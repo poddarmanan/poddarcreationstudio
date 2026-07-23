@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getFabricsWithColours } from '@/lib/data';
+import { getContainer } from '@/server/container';
+import { run } from '@/server/core/http';
 
-export async function GET() {
-  const fabrics = await getFabricsWithColours();
-  return NextResponse.json({ fabrics });
+export async function GET(req: Request) {
+  return run(req, async () => {
+    const fabrics = await getContainer().fabricService.listCatalogue();
+    return NextResponse.json({ fabrics });
+  });
 }
