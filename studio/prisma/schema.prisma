@@ -1,0 +1,147 @@
+// Poddar Creation Studio — data model
+// Ported from the approved Claude Design prototype (fabric/colour system, swatch book,
+// quotes) plus the real backend the user asked for on top of it (auth, uploads/pipeline).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  SALES
+  VIEWER
+  BUYER
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
+enum MediaStage {
+  QUEUED
+  COMPRESSING
+  NAMING
+  THUMBNAIL
+  QR
+  PUBLISHED
+}
+
+model User {
+  id           String           @id @default(cuid())
+  name         String
+  email        String           @unique
+  passwordHash String
+  role         Role             @default(BUYER)
+  approved     Boolean          @default(false)
+  company      String?
+  createdAt    DateTime         @default(now())
+  quotes       Quote[]
+  swatchItems  SwatchBookItem[]
+}
+
+model Fabric {
+  id          String           @id
+  name        String
+  family      String
+  weight      String
+  width       String
+  comp        String
+  nc          Int
+  hand        String
+  sheen       Float
+  flow        Float
+  stretch     Float
+  seed        Int
+  price       Int
+  heroIndex   Int
+  colours     Colour[]
+  media       Media[]
+  quoteItems  QuoteItem[]
+  swatchItems SwatchBookItem[]
+}
+
+model Colour {
+  id          String           @id @default(cuid())
+  fabricId    String
+  fabric      Fabric           @relation(fields: [fabricId], references: [id], onDelete: Cascade)
+  name        String
+  l           Float
+  c           Float
+  h           Float
+  order       Int
+  media       Media[]
+  quoteItems  QuoteItem[]
+  swatchItems SwatchBookItem[]
+
+  @@unique([fabricId, order])
+  @@index([fabricId])
+}
+
+model Media {
+  id                String     @id @default(cuid())
+  fabricId          String
+  fabric            Fabric     @relation(fields: [fabricId], references: [id], onDelete: Cascade)
+  colourId          String?
+  colour            Colour?    @relation(fields: [colourId], references: [id], onDelete: SetNull)
+  type              MediaType  @default(IMAGE)
+  originalName      String
+  originalSizeBytes Int
+  mimeType          String
+  storagePath       String
+  webpPath          String?
+  avifPath          String?
+  thumbPath         String?
+  width             Int?
+  height            Int?
+  qrDataUrl         String?
+  aiColourName      String?
+  aiConfidence      Int?
+  aiSource          String?
+  stage             MediaStage @default(QUEUED)
+  createdAt         DateTime   @default(now())
+
+  @@index([fabricId])
+}
+
+model Quote {
+  id        String      @id @default(cuid())
+  userId    String?
+  user      User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  name      String
+  company   String
+  quantity  String
+  subject   String
+  status    String      @default("received")
+  createdAt DateTime    @default(now())
+  items     QuoteItem[]
+}
+
+model QuoteItem {
+  id       String @id @default(cuid())
+  quoteId  String
+  quote    Quote  @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  fabricId String
+  fabric   Fabric @relation(fields: [fabricId], references: [id])
+  colourId String
+  colour   Colour @relation(fields: [colourId], references: [id])
+}
+
+model SwatchBookItem {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fabricId  String
+  fabric    Fabric   @relation(fields: [fabricId], references: [id])
+  colourId  String
+  colour    Colour   @relation(fields: [colourId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([userId, fabricId, colourId])
+}

@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+:root {
+  --pc-ink: #1c1917;
+  --pc-cream: #faf8f5;
+  --pc-gold: #8a6d45;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--pc-cream);
+  color: var(--pc-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--pc-gold); text-decoration: none; }
+a:hover { color: var(--pc-ink); }
+
+::selection { background: #e8dfd2; }
+
+button { font: inherit; }
+
+button:focus-visible, a:focus-visible, input:focus-visible {
+  outline: 2px solid var(--pc-gold);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.pc-nav { scrollbar-width: none; }
+.pc-nav::-webkit-scrollbar { display: none; }
+
+@keyframes heroDrift { 0% { background-position: 0% 0%, 100% 100%, 50% 0%; } 100% { background-position: 100% 50%, 0% 40%, 60% 100%; } }
+@keyframes sway { 0%, 100% { transform: rotate(calc(var(--amp) * -1)) skewX(calc(var(--amp) * -.4)); } 50% { transform: rotate(var(--amp)) skewX(calc(var(--amp) * .4)); } }
+@keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+@keyframes pulse { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
+@keyframes floatUp { 0% { transform: translateY(10vh); opacity: 0; } 12% { opacity: var(--op); } 88% { opacity: var(--op); } 100% { transform: translateY(-105vh); opacity: 0; } }
+@keyframes clothWave { 0% { transform: translateY(5%) rotate(-1.6deg); border-radius: 46% 54% 0 0/95% 82% 0 0; } 100% { transform: translateY(-1%) rotate(1.4deg); border-radius: 56% 44% 0 0/82% 96% 0 0; } }
+@keyframes unfurl { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes shineSweep { 0% { transform: translateX(-160%) skewX(-12deg); } 100% { transform: translateX(260%) skewX(-12deg); } }
+@keyframes waterSpread { from { transform: scale(.1); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes stretchPulse { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(var(--sx)); } }
+@keyframes rotateOsc { 0%, 100% { transform: perspective(700px) rotateY(-16deg); } 50% { transform: perspective(700px) rotateY(16deg); } }
+@keyframes roomIn { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: none; } }
+@keyframes layCloth { from { opacity: 0; transform: perspective(1200px) rotateX(4deg) translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes threadUp { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+
+/* Pinked (zigzag) swatch edge — the Studio's signature "mill sample" cut */
+.pc-pink {
+  clip-path: polygon(0 0,100% 0,100% 95%,95% 100%,90% 95%,85% 100%,80% 95%,75% 100%,70% 95%,65% 100%,60% 95%,55% 100%,50% 95%,45% 100%,40% 95%,35% 100%,30% 95%,25% 100%,20% 95%,15% 100%,10% 95%,5% 100%,0 95%);
+}
+
+/* Reusable hover behaviours — fixed brand palette, so plain classes stand in for the
+   prototype's per-element `style-hover` without per-node JS hover state. */
+.pc-hv-ink:hover { color: var(--pc-ink); }
+.pc-hv-ink-border:hover { color: var(--pc-ink); border-color: var(--pc-ink); }
+.pc-hv-border-ink:hover { border-color: var(--pc-ink); }
+.pc-hv-gold-fill:hover { background: var(--pc-gold); border-color: var(--pc-gold); }
+.pc-hv-gold-fill-cream:hover { background: var(--pc-gold); border-color: var(--pc-gold); color: var(--pc-cream); }
+.pc-hv-gold-bg:hover { background: var(--pc-gold); }
+.pc-hv-gold-border:hover { border-color: var(--pc-gold); }
+.pc-hv-gold-text-border:hover { border-color: var(--pc-gold); color: var(--pc-gold); }
+.pc-hv-gold-text:hover { color: var(--pc-gold); }
+.pc-hv-lift-14:hover { transform: translateY(-14px); }
+.pc-hv-lift-6:hover { transform: translateY(-6px); box-shadow: 0 24px 50px rgba(28,25,23,.1); }
+.pc-hv-lift-5:hover { transform: translateY(-5px); }
+.pc-hv-lift-4:hover { transform: translateY(-4px); box-shadow: 0 18px 40px rgba(28,25,23,.16); }
+.pc-hv-lift-3:hover { transform: translateY(-3px); box-shadow: 0 14px 30px rgba(28,25,23,.1); }
+.pc-hv-scale-15:hover { transform: scale(1.15); }
+.pc-hv-scale-06:hover { transform: scale(1.06); z-index: 2; }
+.pc-hv-row:hover { background: #f3efe8; }
+.pc-hv-panel:hover { background: rgba(28,25,23,.05); }
+
+@media print {
+  nav, .pc-no-print { display: none !important; }
+}
