@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAF8F5;color:#1C1917;font-family:'Jost',sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#8A6D45;text-decoration:none} a:hover{color:#1C1917}
+::selection{background:#E8DFD2}
+html{scroll-behavior:smooth}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid #8A6D45;outline-offset:2px;border-radius:4px}
+.pc-nav{scrollbar-width:none}.pc-nav::-webkit-scrollbar{display:none}
+@keyframes heroDrift{0%{background-position:0% 0%,100% 100%,50% 0%}100%{background-position:100% 50%,0% 40%,60% 100%}}
+@keyframes sway{0%,100%{transform:rotate(calc(var(--amp) * -1)) skewX(calc(var(--amp) * -.4))}50%{transform:rotate(var(--amp)) skewX(calc(var(--amp) * .4))}}
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes pulse{0%,100%{opacity:.45}50%{opacity:1}}
+@keyframes floatUp{0%{transform:translateY(10vh);opacity:0}12%{opacity:var(--op)}88%{opacity:var(--op)}100%{transform:translateY(-105vh);opacity:0}}
+@keyframes clothWave{0%{transform:translateY(5%) rotate(-1.6deg);border-radius:46% 54% 0 0/95% 82% 0 0}100%{transform:translateY(-1%) rotate(1.4deg);border-radius:56% 44% 0 0/82% 96% 0 0}}
+@keyframes unfurl{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes shineSweep{0%{transform:translateX(-160%) skewX(-12deg)}100%{transform:translateX(260%) skewX(-12deg)}}
+@keyframes waterSpread{from{transform:scale(.1);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes stretchPulse{0%,100%{transform:scaleX(1)}50%{transform:scaleX(var(--sx))}}
+@keyframes rotateOsc{0%,100%{transform:perspective(700px) rotateY(-16deg)}50%{transform:perspective(700px) rotateY(16deg)}}
+@keyframes roomIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
+@keyframes layCloth{from{opacity:0;transform:perspective(1200px) rotateX(4deg) translateY(14px)}to{opacity:1;transform:none}}
+@keyframes threadUp{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+.pc-pink{clip-path:polygon(0 0,100% 0,100% 95%,95% 100%,90% 95%,85% 100%,80% 95%,75% 100%,70% 95%,65% 100%,60% 95%,55% 100%,50% 95%,45% 100%,40% 95%,35% 100%,30% 95%,25% 100%,20% 95%,15% 100%,10% 95%,5% 100%,0 95%)}
+</style>
+</helmet>
+<div style="min-height:100vh">
+<nav style="position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:12px;padding:0 clamp(12px,3vw,40px);height:64px;background:rgba(250,248,245,.82);backdrop-filter:blur(18px);border-bottom:1px solid rgba(28,25,23,.08)">
+  <div onClick="{{ goHome }}" style="cursor:pointer;display:flex;align-items:center;gap:9px">
+    <svg width="15" height="15" viewBox="0 0 16 16"><path d="M1 0h2v16H1zM7 0h2v16H7zM13 0h2v16h-2z" fill="#1C1917"></path><path d="M0 3h16v2H0zM0 11h16v2H0z" fill="#8A6D45" opacity=".9"></path></svg>
+    <span style="display:flex;flex-direction:column;line-height:1">
+      <span style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;letter-spacing:.14em">PODDAR</span>
+      <span style="font-size:9px;letter-spacing:.42em;color:#8A6D45;margin-top:2px">STUDIO</span>
+    </span>
+  </div>
+  <div class="pc-nav" style="display:flex;gap:0;flex:1;justify-content:safe center;flex-wrap:nowrap;min-width:0;overflow-x:auto">
+    <sc-for list="{{ nav }}" as="n" hint-placeholder-count="7">
+      <button onClick="{{ n.go }}" style="cursor:pointer;border:none;background:{{ n.bg }};color:{{ n.fg }};font-family:'Jost',sans-serif;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;padding:6px 8px;border-radius:999px;white-space:nowrap;transition:color .25s,background .25s" style-hover="color:#1C1917">{{ n.label }}<span style="color:#8A6D45;margin-left:4px;font-size:10px">{{ n.count }}</span></button>
+    </sc-for>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <button onClick="{{ toggleLang }}" style="cursor:pointer;background:none;border:1px solid rgba(28,25,23,.15);border-radius:999px;padding:5px 10px;font-family:'Jost',sans-serif;font-size:11.5px;color:#1C1917;white-space:nowrap;transition:border-color .25s" style-hover="border-color:#1C1917">{{ langLabel }}</button>
+    <button onClick="{{ toggleSign }}" style="cursor:pointer;background:{{ signBg }};color:{{ signFg }};border:1px solid rgba(28,25,23,.85);border-radius:999px;padding:5px 13px;font-family:'Jost',sans-serif;font-size:11.5px;white-space:nowrap;transition:background .25s" style-hover="background:#8A6D45;border-color:#8A6D45;color:#FAF8F5">{{ signLabel }}</button>
+  </div>
+</nav>
+
+<sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+<div data-screen-label="Entrance" style="position:relative;min-height:calc(100vh - 64px);overflow:hidden;display:flex;align-items:center;justify-content:center">
+  <div style="position:absolute;inset:0;background:radial-gradient(60% 50% at 25% 15%, rgba(214,184,130,.25), transparent 70%),radial-gradient(50% 60% at 82% 25%, rgba(185,150,160,.18), transparent 70%),radial-gradient(80% 60% at 50% 110%, rgba(150,160,185,.15), transparent 70%);background-size:170% 170%,170% 170%,170% 170%;animation:{{ heroAnim }}"></div>
+  <div style="position:absolute;left:-12%;right:-12%;bottom:-24%;height:64%;background:{{ heroCloth }};animation:{{ clothAnim }};box-shadow:inset 0 40px 80px rgba(255,255,255,.25), 0 -30px 90px rgba(138,109,69,.18)"></div>
+  <div style="position:absolute;left:-10%;right:-10%;bottom:-30%;height:46%;background:{{ heroCloth2 }};opacity:.55;animation:{{ clothAnim2 }}"></div>
+  <sc-for list="{{ particles }}" as="p" hint-placeholder-count="10">
+    <span style="position:absolute;bottom:0;left:{{ p.left }};width:{{ p.size }}px;height:{{ p.size }}px;border-radius:50%;background:#C9A96A;filter:blur(1px);--op:{{ p.op }};animation:floatUp {{ p.dur }} linear {{ p.delay }} infinite"></span>
+  </sc-for>
+  <div style="position:absolute;inset:0;background:radial-gradient(90% 90% at 50% 50%, transparent 55%, rgba(28,25,23,.07))"></div>
+  <div style="position:relative;text-align:center;padding:56px 24px;animation:rise 1.2s cubic-bezier(.2,.8,.2,1) both">
+    <svg width="22" height="22" viewBox="0 0 16 16" style="margin-bottom:16px"><path d="M1 0h2v16H1zM7 0h2v16H7zM13 0h2v16h-2z" fill="#1C1917"></path><path d="M0 3h16v2H0zM0 11h16v2H0z" fill="#8A6D45" opacity=".9"></path></svg>
+    <div style="font-size:11px;letter-spacing:.55em;color:#8A6D45;margin-bottom:14px">{{ t.est }}</div>
+    <span style="display:block;width:72px;height:7px;margin:0 auto 26px;background-image:repeating-linear-gradient(90deg,#8A6D45 0 9px,transparent 9px 16px),repeating-linear-gradient(90deg,rgba(28,25,23,.65) 0 9px,transparent 9px 16px);background-size:16px 2px,16px 2px;background-position:0 0,8px 4px;background-repeat:repeat-x"></span>
+    <h1 style="margin:0;font-family:'Cormorant Garamond',serif;font-weight:500;font-size:clamp(52px,8.5vw,120px);line-height:1">Poddar<br><em style="font-weight:400">Creation</em></h1>
+    <p style="max-width:400px;margin:26px auto 0;font-size:15px;font-weight:300;line-height:1.8;letter-spacing:.02em;color:rgba(28,25,23,.6);text-wrap:balance">{{ t.heroSub }}</p>
+    <div style="margin-top:40px">
+      <button onClick="{{ goShowroom }}" style="cursor:pointer;background:#1C1917;color:#FAF8F5;border:1px solid #1C1917;border-radius:999px;padding:17px 44px;font-family:'Jost',sans-serif;font-size:13px;letter-spacing:.22em;text-transform:uppercase;box-shadow:0 20px 50px rgba(28,25,23,.22)" style-hover="background:#8A6D45;border-color:#8A6D45">{{ t.enter }}</button>
+    </div>
+    <div style="display:flex;gap:26px;justify-content:center;margin-top:26px;font-size:12px;letter-spacing:.2em">
+      <button onClick="{{ goCollection }}" style="cursor:pointer;background:none;border:none;color:rgba(28,25,23,.55);font-family:'Jost',sans-serif;font-size:12px;letter-spacing:.2em;text-transform:uppercase;border-bottom:1px solid rgba(28,25,23,.2);padding:0 0 3px" style-hover="color:#1C1917;border-color:#1C1917">{{ t.collection }}</button>
+      <button onClick="{{ goColours }}" style="cursor:pointer;background:none;border:none;color:rgba(28,25,23,.55);font-family:'Jost',sans-serif;font-size:12px;letter-spacing:.2em;text-transform:uppercase;border-bottom:1px solid rgba(28,25,23,.2);padding:0 0 3px" style-hover="color:#1C1917;border-color:#1C1917">{{ t.explore }}</button>
+    </div>
+    <div style="position:relative;max-width:520px;margin:44px auto 0">
+      <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.65);backdrop-filter:blur(14px);border:1px solid rgba(28,25,23,.12);border-radius:999px;padding:6px 8px 6px 20px;box-shadow:0 12px 40px rgba(28,25,23,.08)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A6D45" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
+        <input value="{{ q }}" onChange="{{ setQ }}" placeholder="{{ t.searchPh }}" style="flex:1;border:none;outline:none;background:transparent;font-family:'Jost',sans-serif;font-size:14px;color:#1C1917">
+        <button onClick="{{ runAi }}" style="cursor:pointer;display:flex;align-items:center;gap:7px;background:#1C1917;color:#FAF8F5;border:none;border-radius:999px;padding:9px 16px;font-family:'Jost',sans-serif;font-size:12px" style-hover="background:#8A6D45"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"></path><circle cx="12" cy="12" r="3"></circle></svg>{{ t.byImage }}</button>
+      </div>
+      <sc-if value="{{ hasResults }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;top:56px;left:0;right:0;background:rgba(255,255,255,.96);backdrop-filter:blur(16px);border:1px solid rgba(28,25,23,.1);border-radius:18px;box-shadow:0 24px 60px rgba(28,25,23,.14);overflow:hidden;text-align:left;z-index:20">
+          <sc-if value="{{ hasAssistant }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:14px 18px 12px;border-bottom:1px solid rgba(28,25,23,.06)">
+              <div style="font-size:10px;letter-spacing:.28em;color:#8A6D45;margin-bottom:6px">STUDIO ASSISTANT</div>
+              <div style="font-size:13.5px;font-weight:300;color:rgba(28,25,23,.75)">{{ assistantNote }}</div>
+              <div style="display:flex;gap:8px;margin-top:10px">
+                <sc-for list="{{ assistantRecs }}" as="r" hint-placeholder-count="3">
+                  <div onClick="{{ r.go }}" style="cursor:pointer;flex:1;border:1px solid rgba(28,25,23,.1);border-radius:8px;overflow:hidden" style-hover="border-color:#8A6D45">
+                    <div style="height:44px;background:{{ r.tex }}"></div>
+                    <div style="padding:7px 9px"><div style="font-size:12px">{{ r.name }}</div><div style="font-size:10px;color:rgba(28,25,23,.5)">{{ r.sub }}</div></div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+          <sc-for list="{{ results }}" as="r" hint-placeholder-count="3">
+            <div onClick="{{ r.go }}" style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:11px 18px;border-bottom:1px solid rgba(28,25,23,.05)" style-hover="background:#F3EFE8">
+              <span style="width:26px;height:26px;border-radius:50%;background:{{ r.dot }};border:1px solid rgba(28,25,23,.1);flex:none"></span>
+              <span style="font-size:14px">{{ r.label }}</span>
+              <span style="margin-left:auto;font-size:12px;color:rgba(28,25,23,.5)">{{ r.sub }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isShowroom }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Showroom" style="position:relative;min-height:calc(100vh - 64px);background:{{ roomBg }};overflow:hidden;transition:background 1s;animation:layCloth .55s cubic-bezier(.2,.8,.2,1) both">
+  <div style="position:absolute;inset:0;pointer-events:none;background:radial-gradient(40% 35% at 25% 0%, {{ roomGlow }}, transparent 70%),radial-gradient(40% 35% at 75% 0%, {{ roomGlow }}, transparent 70%)"></div>
+  <div style="position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 100% at 50% 40%, transparent 60%, rgba(28,25,23,.14))"></div>
+  <div style="position:relative;text-align:center;padding:clamp(24px,4vh,44px) 20px 0">
+    <div style="font-size:10px;letter-spacing:.5em;color:{{ roomAccent }}">{{ t.showroom }} · {{ roomIdx }}</div>
+    <h1 style="margin:8px 0 0;font-family:'Cormorant Garamond',serif;font-weight:500;font-size:clamp(32px,4.2vw,54px);color:{{ roomFg }}">{{ roomLabel }}</h1>
+    <span style="display:block;width:72px;height:7px;margin:10px auto 0;background-image:repeating-linear-gradient(90deg,#8A6D45 0 9px,transparent 9px 16px),repeating-linear-gradient(90deg,{{ roomSubFg }} 0 9px,transparent 9px 16px);background-size:16px 2px,16px 2px;background-position:0 0,8px 4px;background-repeat:repeat-x"></span>
+    <p style="margin:6px 0 0;font-size:13.5px;font-weight:300;color:{{ roomSubFg }}">{{ roomDesc }}</p>
+    <div style="display:inline-flex;gap:6px;margin-top:16px;background:rgba(250,248,245,.55);backdrop-filter:blur(10px);border:1px solid rgba(28,25,23,.1);border-radius:999px;padding:5px">
+      <button onClick="{{ prevRoom }}" style="cursor:pointer;border:none;background:none;font-size:15px;padding:5px 10px;color:#1C1917">‹</button>
+      <sc-for list="{{ roomChips }}" as="r" hint-placeholder-count="4">
+        <button onClick="{{ r.set }}" style="cursor:pointer;background:{{ r.bg }};color:{{ r.fg }};border:none;border-radius:999px;padding:7px 15px;font-family:'Jost',sans-serif;font-size:11.5px;letter-spacing:.1em">{{ r.label }}</button>
+      </sc-for>
+      <button onClick="{{ nextRoom }}" style="cursor:pointer;border:none;background:none;font-size:15px;padding:5px 10px;color:#1C1917">›</button>
+    </div>
+  </div>
+  <div style="position:relative;overflow-x:auto;padding:34px 0 30px">
+    <div style="display:flex;align-items:flex-end;gap:clamp(30px,4.5vw,64px);padding:0 clamp(34px,7vw,100px);min-width:max-content;animation:roomIn .7s cubic-bezier(.2,.8,.2,1) both">
+      <sc-for list="{{ rolls }}" as="r" hint-placeholder-count="4">
+        <div onClick="{{ r.open }}" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;transition:transform .4s cubic-bezier(.2,.8,.2,1)" style-hover="transform:translateY(-14px)">
+          <div style="position:relative;width:92px;height:{{ r.h }}px">
+            <div style="position:absolute;top:-12px;left:0;width:92px;height:24px;border-radius:50%;background:radial-gradient(ellipse at 42% 40%, {{ r.top1 }}, {{ r.top2 }} 70%);border:1px solid rgba(28,25,23,.12)"></div>
+            <div style="position:absolute;top:-4px;left:33px;width:26px;height:9px;border-radius:50%;background:#EFE9DF;border:1px solid rgba(28,25,23,.18)"></div>
+            <div style="position:absolute;inset:0;border-radius:0 0 7px 7px;background:linear-gradient(90deg, {{ r.s1 }} 0%, {{ r.s2 }} 16%, {{ r.mid }} 42%, {{ r.mid }} 58%, {{ r.s3 }} 84%, {{ r.s4 }} 100%);box-shadow:inset 0 -34px 44px rgba(28,25,23,.13)"></div>
+            <div style="position:absolute;inset:0;background:{{ r.weave }};opacity:.5;border-radius:0 0 7px 7px"></div>
+            <div style="position:absolute;left:-16px;right:-16px;bottom:-13px;height:20px;border-radius:50%;background:radial-gradient(ellipse, rgba(28,25,23,.32), transparent 70%)"></div>
+            <div style="position:absolute;top:100%;left:0;right:0;height:60px;margin-top:14px;border-radius:7px 7px 0 0;background:linear-gradient(90deg, {{ r.s1 }} 0%, {{ r.s2 }} 16%, {{ r.mid }} 42%, {{ r.mid }} 58%, {{ r.s3 }} 84%, {{ r.s4 }} 100%);opacity:.14;transform:scaleY(-1);mask-image:linear-gradient(180deg,transparent, #000)"></div>
+          </div>
+          <div style="margin-top:32px;text-align:center;position:relative;z-index:2">
+            <div style="font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:600;color:{{ roomFg }}">{{ r.name }}</div>
+            <div style="font-size:11px;letter-spacing:.14em;color:{{ roomSubFg }};margin-top:3px">{{ r.weight }} · {{ r.width }}</div>
+            <div style="font-size:10.5px;letter-spacing:.1em;color:{{ roomAccent }};margin-top:3px">{{ r.nc }} {{ t.shades }}</div>
+          </div>
+        </div>
+      </sc-for>
+      <div onClick="{{ nextRoom }}" style="cursor:pointer;align-self:center;display:flex;flex-direction:column;align-items:center;gap:10px;padding:0 20px;color:{{ roomSubFg }}" style-hover="color:#8A6D45">
+        <div style="width:52px;height:110px;border:1px solid rgba(28,25,23,.2);border-radius:26px;display:flex;align-items:center;justify-content:center;font-size:22px">›</div>
+        <div style="font-size:10px;letter-spacing:.24em;text-transform:uppercase">{{ nextRoomLabel }}</div>
+      </div>
+    </div>
+  </div>
+  <div style="position:relative;text-align:center;padding-bottom:26px;font-size:11px;letter-spacing:.24em;color:{{ roomSubFg }};animation:pulse 3s infinite">{{ t.scrollHint }}</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isCollection }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Collection" style="padding:clamp(30px,5vw,56px) clamp(16px,5vw,64px) 60px;animation:layCloth .55s cubic-bezier(.2,.8,.2,1) both">
+  <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:32px">
+    <div><div style="font-size:10px;letter-spacing:.5em;color:#8A6D45;margin-bottom:8px">PODDAR CREATION</div>
+    <h1 style="margin:0;font-family:'Cormorant Garamond',serif;font-weight:500;font-size:clamp(32px,4vw,52px)">{{ t.collection }}</h1>
+    <span style="display:block;width:72px;height:7px;margin-top:12px;background-image:repeating-linear-gradient(90deg,#8A6D45 0 9px,transparent 9px 16px),repeating-linear-gradient(90deg,rgba(28,25,23,.65) 0 9px,transparent 9px 16px);background-size:16px 2px,16px 2px;background-position:0 0,8px 4px;background-repeat:repeat-x"></span></div>
+    <span style="font-size:12px;letter-spacing:.2em;color:rgba(28,25,23,.5)">{{ totalShades }} {{ t.shades }} · 11 QUALITIES</span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:26px">
+    <sc-for list="{{ fabrics }}" as="f" hint-placeholder-count="6">
+      <div onClick="{{ f.open }}" style="cursor:pointer;background:#fff;border:1px solid rgba(28,25,23,.08);border-radius:4px;overflow:hidden;transition:transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .35s" style-hover="transform:translateY(-6px);box-shadow:0 24px 50px rgba(28,25,23,.1)">
+        <div style="position:relative;aspect-ratio:4/3;background:{{ f.tex }}">
+          <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,rgba(28,25,23,.14));box-shadow:inset 0 0 0 1px rgba(28,25,23,.06)"></div>
+          <span style="position:absolute;top:12px;left:12px;font-size:10px;letter-spacing:.24em;background:rgba(250,248,245,.85);backdrop-filter:blur(6px);padding:5px 10px;border-radius:999px">{{ f.nc }} {{ t.shades }}</span>
+        </div>
+        <div style="padding:18px 18px 16px">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+            <h3 style="margin:0;font-family:'Cormorant Garamond',serif;font-weight:600;font-size:23px">{{ f.name }}</h3>
+            <span style="font-size:12.5px;color:#8A6D45;white-space:nowrap">{{ f.priceStr }}</span>
+          </div>
+          <div style="font-size:12.5px;color:rgba(28,25,23,.55);margin-top:4px">{{ f.weight }} · {{ f.width }} · {{ f.hand }}</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:14px">
+            <sc-for list="{{ f.dots }}" as="d" hint-placeholder-count="6">
+              <span style="width:15px;height:15px;border-radius:50%;background:{{ d.css }};border:1px solid rgba(28,25,23,.12)"></span>
+            </sc-for>
+            <span style="font-size:11px;color:rgba(28,25,23,.45)">{{ f.more }}</span>
+            <button onClick="{{ f.cmp }}" style="cursor:pointer;margin-left:auto;background:{{ f.cmpBg }};color:{{ f.cmpFg }};border:1px solid rgba(28,25,23,.18);border-radius:999px;padding:5px 12px;font-family:'Jost',sans-serif;font-size:11px;letter-spacing:.1em">{{ f.cmpLabel }}</button>
+          </div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+  <h2 style="margin:52px 0 22px;font-family:'Cormorant Garamond',serif;font-weight:500;font-size:clamp(24px,2.6vw,34px)">{{ t.trending }}</h2>
+  <div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:10px">
+    <sc-for list="{{ trending }}" as="c" hint-placeholder-count="8">
+      <div onClick="{{ c.go }}" class="pc-pink" style="cursor:pointer;flex:none;width:120px;height:150px;border-radius:4px 4px 0 0;background:{{ c.css }};box-shadow:inset 0 0 0 1px rgba(28,25,23,.07);display:flex;flex-direction:column;justify-content:flex-end;padding:12px 12px 16px;transition:transform .3s" style-hover="transform:translateY(-5px)">
+        <span style="font-size:12.5px;color:{{ c.fg }}">{{ c.name }}</span>
+        <span style="font-size:10px;color:{{ c.fg }};opacity:.7">{{ c.fab }}</span>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isFabric }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Fabric Lab" style="padding-bottom:80px;animation:layCloth .55s cubic-bezier(.2,.8,.2,1) both">
+  <div style="display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;padding:22px clamp(16px,5vw,64px) 16px">
+    <button onClick="{{ goShowroom }}" style="cursor:pointer;background:none;border:none;padding:0;font-family:'Jost',sans-serif;font-size:12px;letter-spacing:.18em;color:#8A6D45">← {{ t.showroom }}</button>
+    <h1 style="margin:0;font-family:'Cormorant Garamond',serif;font-weight:500;font-size:clamp(30px,3.6vw,46px)">{{ cf.name }}</h1>
+    <span style="display:inline-flex;align-items:center;gap:8px;font-size:14px;color:rgba(28,25,23,.55)"><span style="width:12px;height:12px;border-radius:50%;background:{{ colCss }};border:1px solid rgba(28,25,23,.18);display:inline-block"></span>{{ colName }} · {{ cf.comp }}</span>
+    <span style="margin-left:auto;font-size:10.5px;letter-spacing:.3em;color:#8A6D45">{{ t.lab }}</span>
+  </div>
+  <div style="padding:0 clamp(16px,5vw,64px) 18px">
+    <div style="font-family:'Cormorant Garamond',serif;font-style:italic;font-size:17.5px;color:rgba(28,25,23,.62)">{{ story }}</div>
+    <span style="display:block;width:72px;height:7px;margin-top:10px;background-image:repeating-linear-gradient(90deg,#8A6D45 0 9px,transparent 9px 16px),repeating-linear-gradient(90deg,rgba(28,25,23,.65) 0 9px,transparent 9px 16px);background-size:16px 2px,16px 2px;background-position:0 0,8px 4px;background-repeat:repeat-x"></span>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:0;border-top:1px solid rgba(28,25,23,.08);border-bottom:1px solid rgba(28,25,23,.08)">
+    <div style="position:relative;min-height:66vh;background:{{ stageBg }};overflow:hidden;display:flex;align-items:center;justify-content:center;grid-column:span 1">
+      <div style="position:absolute;inset:0;background:radial-gradient(50% 40% at 50% 15%, {{ stageGlow }}, transparent 70%)"></div>
+      <div style="position:absolute;left:15%;right:15%;bottom:7%;height:26px;border-radius:50%;background:radial-gradient(ellipse, rgba(28,25,23,.3), transparent 70%)"></div>
+      <sc-if value="{{ shineOn }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;top:0;bottom:0;left:0;width:34%;background:linear-gradient(100deg,transparent, rgba(255,255,255,{{ shineOp }}), transparent);animation:shineSweep 2.4s ease-in-out infinite;z-index:5;pointer-events:none"></div>
+      </sc-if>
+      <sc-if value="{{ isRoll }}" hint-placeholder-val="{{ false }}">
+        <div style="position:relative;width:120px;height:340px;filter:{{ stageFilter }}">
+          <div style="position:absolute;top:-14px;left:0;width:120px;height:28px;border-radius:50%;background:radial-gradient(ellipse at 42% 40%, {{ rollTop1 }}, {{ rollTop2 }} 70%);border:1px solid rgba(28,25,23,.15);z-index:2"></div>
+          <div style="position:absolute;top:-5px;left:44px;width:32px;height:10px;border-radius:50%;background:#EFE9DF;border:1px solid rgba(28,25,23,.2);z-index:3"></div>
+          <div style="position:absolute;inset:0;border-radius:0 0 10px 10px;background:linear-gradient(90deg,{{ rollS1 }} 0%,{{ rollS2 }} 16%,{{ rollMid }} 42%,{{ rollMid }} 58%,{{ rollS3 }} 84%,{{ rollS4 }} 100%)"></div>
+          <div style="position:absolute;inset:0;background:{{ heroWeaveSm }};opacity:.45;border-radius:0 0 10px 10px"></div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ isGarment }}" hint-placeholder-val="{{ true }}">
+        <div style="--amp:{{ windAmp }};animation:sway {{ windDur }} ease-in-out infinite;transform-origin:50% 8%;filter:{{ stageFilter }}">
+          <div style="animation:{{ rotateAnim }}">
+            <div style="--sx:{{ stretchSx }};animation:{{ stretchAnim }};transform-origin:50% 50%;position:relative;filter:drop-shadow(0 30px 28px rgba(28,25,23,.26))">
+              <svg width="290" height="378" viewBox="0 0 200 260">
+                <defs>
+                  <linearGradient id="pcSheen" x1="0" y1="0" x2="1" y2=".2">
+                    <stop offset=".25" stop-color="#fff" stop-opacity="0"></stop>
+                    <stop offset=".45" stop-color="#fff" stop-opacity="{{ sheenOp }}"></stop>
+                    <stop offset=".6" stop-color="#fff" stop-opacity="0"></stop>
+                  </linearGradient>
+                  <pattern id="pcWeave" width="4" height="4" patternUnits="userSpaceOnUse">
+                    <rect width="4" height="4" fill="{{ colCss }}"></rect>
+                    <path d="M0 0H4M0 2H4" stroke="{{ weaveLine }}" stroke-width=".5"></path>
+                  </pattern>
+                </defs>
+                <path d="{{ gPath }}" fill="url(#pcWeave)" stroke="{{ gStroke }}" stroke-width="1.5"></path>
+                <path d="{{ gPath }}" fill="url(#pcSheen)"></path>
+                <path d="M84 95C81 140 83 190 81 228M100 96C100 142 100 192 100 230M116 95C119 140 117 190 119 228" fill="none" stroke="{{ foldStroke }}" stroke-width="1.2" opacity=".5"></path>
+                <path d="M92 96C90 150 91 200 90 230M108 96C110 150 109 200 110 230" fill="none" stroke="{{ foldStroke }}" stroke-width=".8" opacity=".3"></path>
+              </svg>
+              <sc-if value="{{ waterOn }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute;top:44%;left:38%;width:74px;height:88px;border-radius:50%;background:radial-gradient(ellipse, rgba(20,16,12,{{ waterOp }}) 0 55%, transparent 75%);animation:waterSpread 1.4s ease-out both;pointer-events:none"></div>
+              </sc-if>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+      <span style="position:absolute;top:14px;left:16px;font-size:10.5px;letter-spacing:.22em;color:{{ stageLabelFg }};opacity:.75">{{ lightName }} · {{ windName }}</span>
+      <div style="position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:6px;background:rgba(250,248,245,.62);backdrop-filter:blur(12px);border:1px solid rgba(28,25,23,.1);border-radius:999px;padding:5px">
+        <sc-for list="{{ testChips }}" as="g" hint-placeholder-count="4">
+          <button onClick="{{ g.set }}" style="cursor:pointer;background:{{ g.bg }};color:{{ g.fg }};border:none;border-radius:999px;padding:8px 14px;font-family:'Jost',sans-serif;font-size:11px;letter-spacing:.08em">{{ g.label }}</button>
+        </sc-for>
+      </div>
+      <sc-if value="{{ testNoteOn }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;top:14px;right:16px;max-width:230px;background:rgba(250,248,245,.85);backdrop-filter:blur(10px);border:1px solid rgba(28,25,23,.1);border-radius:10px;padding:10px 13px;font-size:11.5px;font-weight:300;line-height:1.55;color:rgba(28,25,23,.75)">{{ testNote }}</div>
+      </sc-if>
+    </div>
+    <div style="padding:clamp(24px,3.5vw,44px);display:flex;flex-direction:column;gap:22px;justify-content:center;background:#FAF8F5">
+      <div>
+        <div style="font-size:10.5px;letter-spacing:.22em;color:rgba(28,25,23,.45);text-transform:uppercase;margin-bottom:10px">{{ t.garment }}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <sc-for list="{{ garmentChips }}" as="g" hint-placeholder-count="6">
+            <button onClick="{{ g.set }}" style="cursor:pointer;background:{{ g.bg }};color:{{ g.fg }};border:1px solid {{ g.bd }};border-radius:999px;padding:9px 17px;font-family:'Jost',sans-serif;font-size:12.5px;transition:background .25s,border-color .25s,color .25s" style-hover="border-color:#8A6D45">{{ g.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:10.5px;letter-spacing:.22em;color:rgba(28,25,23,.45);text-transform:uppercase;margin-bottom:10px">{{ t.lighting }}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <sc-for list="{{ lightChips }}" as="g" hint-placeholder-count="5">
+            <button onClick="{{ g.set }}" style="cursor:pointer;background:{{ g.bg }};color:{{ g.fg }};border:1px solid {{ g.bd }};border-radius:999px;padding:9px 17px;font-family:'Jost',sans-serif;font-size:12.5px;transition:background .25s,border-color .25s,color .25s" style-hover="border-color:#8A6D45">{{ g.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:10.5px;letter-spacing:.22em;color:rgba(28,25,23,.45);text-transform:uppercase;margin-bottom:10px">{{ t.windL }}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <sc-for list="{{ windChips }}" as="g" hint-placeholder-count="4">
+            <button onClick="{{ g.set }}" style="cursor:pointer;background:{{ g.bg }};color:{{ g.fg }};border:1px solid {{ g.bd }};border-radius:999px;padding:9px 17px;font-family:'Jost',sans-serif;font-size:12.5px;transition:background .25s,border-color .25s,color .25s" style-hover="border-color:#8A6D45">{{ g.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:10.5px;letter-spacing:.22em;color:rgba(28,25,23,.45);text-transform:uppercase;margin-bottom:10px">{{ t.scope }}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <sc-for list="{{ scopeChips }}" as="g" hint-placeholder-count="3">
+            <button onClick="{{ g.set }}" style="cursor:pointer;background:{{ g.bg }};color:{{ g.fg }};border:1px solid {{ g.bd }};border-radius:999px;padding:9px 17px;font-family:'Jost',sans-serif;font-size:12.5px;transition:background .25s,border-color .25s,color .25s" style-hover="border-color:#8A6D45">{{ g.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+      <p style="margin:0;font-size:13.5px;font-weight:300;line-height:1.7;color:rgba(28,25,23,.6);max-width:420px;text-wrap:pretty">{{ physicsNote }}</p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">
+        <sc-for list="{{ shades }}" as="c" hint-placeholder-count="12">
+          <button onClick="{{ c.select }}" title="{{ c.name }}" style="cursor:pointer;width:34px;height:34px;border-radius:50%;background:{{ c.css }};border:{{ c.ring }};padding:0;transition:transform .2s" style-hover="transform:scale(1.15)"></button>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <section style="padding:clamp(30px,4.5vw,54px) clamp(16px,5vw,64px) 0">
+    <h2 style="margin:0 0 20px;font-family:'Cormorant Garamond',serif;font-weight:500;font-size:clamp(24px,2.8vw,36px)">{{ t.scenes }}</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));grid-auto-rows:150px;grid-auto-flow:dense;gap:12px">
+      <sc-for list="{{ scenes }}" as="s" hint-placeholder-count="7">
+        <div onClick="{{ s.open }}" style="cursor:pointer;position:relative;grid-column:{{ s.gc }};grid-row:{{ s.gr }};border-radius:4px;overflow:hidden;background:{{ s.css }};box-shadow:inset 0 0 0 1px rgba(28,25,23,.06);transition:transform .35s cubic-bezier(.2,.8,.2,1),box-shadow .35s" style-hover="transform:translateY(-4px);box-shadow:0 18px 40px rgba(28,25,23,.16)">
+          <span style="position:absolute;bottom:10px;left:10px;font-size:9.5px;letter-spacing:.22em;color:{{ s.fg }};text-transform:uppercase;background:rgba(28,25,23,.0);padding:2px 0">{{ s.label }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="padding:clamp(30px,4.5vw,54px) clamp(16px,5vw,64px) 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:36px">
+    <div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:rgba(28,25,23,.08);border:1px solid rgba(28,25,23,.08)">
+        <sc-for list="{{ specRows }}" as="s" hint-placeholder-count="6">
+          <div style="background:#FAF8F5;padding:14px 16px">
+            <div style="font-size:10.5px;letter-spacing:.22em;color:rgba(28,25,23,.45);text-transform:uppercase">{{ s.k }}</div>
+            <div style="font-size:15px;margin-top:4px">{{ s.v }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    <div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <button onClick="{{ openQuote }}" style="cursor:pointer;background:#1C1917;color:#FAF8F5;border:1px solid #1C1917;border-radius:999px;padding:13px 28px;font-family:'Jost',sans-serif;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase" style-hover="background:#8A6D45;border-color:#8A6D45">{{ t.quote }}</button>
+        <a href="{{ waFabric }}" target="_blank" style="display:inline-flex;align-items:center;border:1px solid rgba(28,25,23,.25);border-radius:999px;padding:13px 28px;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:#1C1917" style-hover="border-color:#1C1917">{{ t.whats }}</a>
+        <button onClick="{{ pinCurrent }}" style="cursor:pointer;background:transparent;border:1px solid rgba(28,25,23,.25);border-radius:999px;padding:13px 22px;font-family:'Jost',sans-serif;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:#1C1917" style-hover="border-color:#8A6D45;color:#8A6D45">✦ {{ t.pin }}</button>
+      </div>
+      <div style="display:flex;gap:20px;align-items:center;margin-top:26px;padding-top:22px;border-top:1px solid rgba(28,25,23,.08)">
+        <div>
+          <div style="font-size:10.5px;letter-spacing:.22em;color:rgba(28,25,23,.45);text-transform:uppercase;margin-bottom:8px">{{ t.downloads }}</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <span style="border:1px solid rgba(28,25,23,.15);border-radius:999px;padding:6px 14px;font-size:12px;cursor:pointer" style-hover="border-color:#1C1917">↓ {{ t.spec }}</span>
+            <span style="border:1px solid rgba(28,25,23,.15);border-radius:999px;padding:6px 14px;font-size:12px;cursor:pointer" style-hover="border-color:#1C1917">↓ {{ t.cat }}</span>
+          </div>
+        </div>
+        <div style="margin-left:auto;text-align:center">
+          <div style="width:64px;height:64px;border:1px solid rgba(28,25,23,.2);padding:5px;display:grid;grid-template-columns:repeat(8,1fr);gap:1px">
+            <sc-for list="{{ qr }}" as="b" hint-placeholder-count="16">
+              <span style="background:{{ b.on }}"></span>
+            </sc-for>
+          </div>
+          <div style="font-size:9.5px;letter-spacing:.16em;color:rgba(28,25,23,.45);margin-top:5px">{{ t.qr }}</div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+</sc-if>
+
+<sc-if value="{{ isColours }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Colour wall" style="padding:clamp(30px,5vw,56px) clamp(16px,5vw,64px) 80px;animation:layCloth .55s cubic-bezier(.2,.8,.2,1) both">
+  <div style="font-size:10px;letter-spacing:.5em;color:#8A6D45;margin-bottom:8px">PODDAR CREATION</div>
+  <h1 style="margin:0;font-family:'Cormorant Garamond',serif;font-weight:500;font-size:clamp(34px,4.5vw,58px)">{{ t.colourWall }}</h1>
+  <span style="display:block;width:72px;height:7px;margin-top:12px;background-image:repeating-linear-gradient(90deg,#8A6D45 0 9px,transparent 9px 16px),repeating-linear-gradient(90deg,rgba(28,25,23,.65) 0 9px,transparent 9px 16px);background-size:16px 2px,16px 2px;background-position:0 0,8px 4px;background-repeat:repeat-x"></span>
+  <p style="margin:8px 0 26px;font-size:14px;font-weight:300;color:rgba(28,25,23,.55)">{{ totalShades }} {{ t.shades }} · {{ t.wallSub }}</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px">
+    <sc-for list="{{ wallChips }}" as="g" hint-placeholder-count="6">
+      <button onClick="{{ g.set }}" style="cursor:pointer;background:{{ g.bg }};color:{{ g.fg }};border:1px solid {{ g.bd }};border-radius:999px;padding:8px 16px;font-family:'Jost',sans-serif;font-size:12px">{{ g.label }}</button>
+    </sc-for>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px">
+    <sc-for list="{{ wall }}" as="c" hint-placeholder-count="24">
+      <div onClick="{{ c.go }}" class="pc-pink" style="cursor:pointer;aspect-ratio:1;border-radius:3px 3px 0 0;background:{{ c.css }};box-shadow:inset 0 0 0 1px rgba(28,25,23,.07);display:flex;flex-direction:column;justify-content:flex-end;padding:9px 9px 13px;transition:transform .25s" style-hover="transform:scale(1.06);z-index:2">
+        <span style="font-size:11px;color:{{ c.fg }}">{{ c.name }}</span>
+        <span style="font-size:9px;color:{{ c.fg }};opacity:.65">{{ c.fab }}</span>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isCompare }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Compare" style="padding:clamp(30px,5vw,56px) clamp(16px,5vw,64px) 80px;animation:layCloth .55s cubic-bezier(.2,.8,.2,1) both">
+  <div style="font-size:10px;letter-spacing:.5em;color:#8A6D45;margin-bottom:8px">PODDAR CREATION</div>
+  <h1 style="margin:0 0 6px;font-family:'Cormorant Garamond',serif;font-weight:500;font-size:clamp(34px,4.5vw,58px)">{{ t.compare }}</h1>
+  <span style="display:block;width:72px;height:7px;margin-top:8px;background-image:repeating-linear-gradient(90deg,#8A6D45 0 9px,transparent 9px 16px),repeating-linear-gradient(90deg,rgba(28,25,23,.65) 0 9px,transparent 9px 16px);background-size:16px 2px,16px 2px;background-position:0 0,8px 4px;background-repeat:repeat-x"></span>
+  <sc-if value="{{ compareEmpty }}" hint-placeholder-val="{{ false }}">
+    <div style="margin-top:40px;border:1px dashed rgba(28,25,23,.2);border-radius:6px;padding:60px 24px;text-align:center;color:rgba(28,25,23,.5);font-weight:300">{{ t.emptyCompare }}<div style="margin-top:18px"><button onClick="{{ goCollection }}" style="cursor:pointer;background:#1C1917;color:#FAF8F5;border:none;border-radius:999px;padding:11px 24px;font-family:'Jost',sans-serif;font-size:12px;letter-spacing:.12em">{{ t.collection }} →</button></div></div>
+  </sc-if>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:20px;margin-top:26px">
+    <sc-for list="{{ compareCols }}" as="f" hint-placeholder-count="2">
+      <div style="background:#fff;border:1px solid rgba(28,25,23,.08);border-radius:4px;overflow:hidden">
+        <div class="pc-pink" style="height:150px;background:{{ f.tex }};position:relative">
+          <button onClick="{{ f.remove }}" style="cursor:pointer;position:absolute;top:10px;right:10px;width:26px;height:26px;border-radius:50%;border:none;background:rgba(250,248,245,.9);font-size:13px;line-height:1">×</button>
+        </div>
+        <div style="padding:16px">
+          <div style="font-family:'Cormorant Garamond',serif;font-size:21px;font-weight:600">{{ f.name }}</div>
+          <div style="font-size:12px;color:rgba(28,25,23,.55);margin:2px 0 14px">{{ f.weight }} · {{ f.width }}</div>
+          <sc-for list="{{ f.rows }}" as="r" hint-placeholder-count="3">
+            <div style="margin-bottom:10px">
+              <div style="display:flex;justify-content:space-between;font-size:11px;letter-spacing:.1em;color:rgba(28,25,23,.5);text-transform:uppercase"><span>{{ r.k }}</span><span>{{ r.v }}</span></div>
+              <div style="height:3px;background:rgba(28,25,23,.08);border-radius:2px;margin-top:5px"><div style="height:3px;width:{{ r.w }};background:#8A6D45;border-radius:2px"></div></div>
+            </div>
+          </sc-for>
+          <div style="--amp:{{ f.amp }};animation:sway 3.4s ease-in-out infinite;transform-origin:50% 0%;margin:16px auto 4px;width:70px;height:88px;background:{{ f.drapeTex }};border-radius:0 0 32px 32px;box-shadow:inset -10px 0 14px rgba(28,25,23,.12),inset 10px 0 14px rgba(255,255,255,.14)"></div>
+          <div style="text-align:center;font-size:10px;letter-spacing:.2em;color:rgba(28,25,23,.4)">{{ t.drapeLive }}</div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isBook }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Swatch Book" style="padding:clamp(30px,5vw,56px) clamp(16px,5vw,64px) 80px;animation:layCloth .55s cubic-bezier(.2,.8,.2,1) both">
+  <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap">
+    <div>
+      <div style="font-size:10px;letter-spacing:.5em;color:#8A6D45;margin-bottom:8px">PODDAR CREATION</div>
+      <h1 style="margin:0;font-family:'Cormorant Garamond',serif;font-weight:500;font-size:clamp(34px,4.5vw,58px)">{{ t.book }}</h1>
+      <span style="display:block;width:72px;height:7px;margin-top:10px;background-image:repeating-linear-gradient(90deg,#8A6D45 0 9px,transparent 9px 16px),repeating-linear-gradient(90deg,rgba(28,25,23,.65) 0 9px,transparent 9px 16px);background-size:16px 2px,16px 2px;background-position:0 0,8px 4px;background-repeat:repeat-x"></span>
+      <p style="margin:6px 0 0;font-size:13.5px;font-weight:300;color:rgba(28,25,23,.55)">{{ t.bookSub }}</p>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button onClick="{{ openQuoteBook }}" style="cursor:pointer;background:#1C1917;color:#FAF8F5;border:none;border-radius:999px;padding:9px 20px;font-family:'Jost',sans-serif;font-size:12px;letter-spacing:.1em" style-hover="background:#8A6D45">{{ t.quoteBook }}</button>
+      <button onClick="{{ printBoard }}" style="cursor:pointer;border:1px solid rgba(28,25,23,.2);background:transparent;border-radius:999px;padding:9px 18px;font-family:'Jost',sans-serif;font-size:12px;letter-spacing:.1em" style-hover="border-color:#1C1917">↓ PDF / Print</button>
+      <a href="{{ waBoard }}" target="_blank" style="display:inline-flex;align-items:center;border:1px solid rgba(28,25,23,.2);border-radius:999px;padding:9px 18px;font-size:12px;letter-spacing:.1em;color:#1C1917">WhatsApp ↗</a>
+    </div>
+  </div>
+  <sc-if value="{{ boardEmpty }}" hint-placeholder-val="{{ false }}">
+    <div style="margin-top:40px;border:1px dashed rgba(28,25,23,.2);border-radius:6px;padding:60px 24px;text-align:center;color:rgba(28,25,23,.5);font-weight:300">{{ t.emptyBoard }}</div>
+  </sc-if>
+  <sc-for list="{{ bookGroups }}" as="g" hint-placeholder-count="2">
+    <div style="margin-top:34px">
+      <div style="display:flex;align-items:baseline;gap:12px;border-bottom:1px solid rgba(28,25,23,.1);padding-bottom:8px">
+        <div style="font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:600">{{ g.name }}</div>
+        <span style="font-size:11.5px;color:rgba(28,25,23,.5)">{{ g.meta }}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px;margin-top:18px">
+        <sc-for list="{{ g.items }}" as="p" hint-placeholder-count="3">
+          <div style="background:#fff;border:1px solid rgba(28,25,23,.08);border-radius:4px;overflow:hidden;box-shadow:0 2px 10px rgba(28,25,23,.04);transition:transform .3s cubic-bezier(.2,.8,.2,1),box-shadow .3s" style-hover="transform:translateY(-3px);box-shadow:0 14px 30px rgba(28,25,23,.1)">
+            <div onClick="{{ p.open }}" class="pc-pink" style="cursor:pointer;height:148px;background:{{ p.tex }};box-shadow:inset 0 0 0 1px rgba(28,25,23,.06),inset 0 -18px 24px rgba(28,25,23,.06)"></div>
+            <div style="padding:11px 13px;display:flex;align-items:center;gap:8px">
+              <div style="flex:1;min-width:0"><div style="font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:600">{{ p.colName }}</div></div>
+              <button onClick="{{ p.remove }}" style="cursor:pointer;border:none;background:none;font-size:15px;color:rgba(28,25,23,.4);transition:color .2s" style-hover="color:#1C1917">×</button>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Admin" style="display:flex;flex-wrap:wrap;min-height:calc(100vh - 64px);background:#F5F2ED;animation:layCloth .55s cubic-bezier(.2,.8,.2,1) both">
+  <div style="flex:1 1 216px;max-width:280px;min-width:200px;border-right:1px solid rgba(28,25,23,.08);padding:20px 12px">
+    <div style="font-size:10px;letter-spacing:.34em;color:#8A6D45;padding:0 10px">STUDIO</div>
+    <div style="font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:600;padding:4px 10px 14px">Poddar Workspace</div>
+    <sc-for list="{{ adminNav }}" as="a" hint-placeholder-count="6">
+      <div style="display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;background:{{ a.bg }};color:{{ a.fg }};font-size:13px;cursor:pointer" style-hover="background:rgba(28,25,23,.05)">{{ a.label }}<span style="margin-left:auto;font-size:11px;color:#8A6D45">{{ a.n }}</span></div>
+    </sc-for>
+    <div style="margin-top:22px;padding:0 10px;font-size:10px;letter-spacing:.24em;color:rgba(28,25,23,.4)">ROLES</div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap;padding:8px 10px 0">
+      <sc-for list="{{ roles }}" as="r" hint-placeholder-count="4">
+        <span style="font-size:10.5px;border:1px solid rgba(28,25,23,.14);border-radius:999px;padding:3px 9px;color:rgba(28,25,23,.6)">{{ r.label }}</span>
+      </sc-for>
+    </div>
+  </div>
+  <div style="flex:999 1 340px;padding:clamp(20px,3vw,36px);min-width:0">
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <div><h1 style="margin:0;font-family:'Cormorant Garamond',serif;font-weight:500;font-size:clamp(26px,3vw,38px)">{{ t.adminTitle }}</h1>
+      <span style="display:block;width:56px;height:7px;margin-top:8px;background-image:repeating-linear-gradient(90deg,#8A6D45 0 9px,transparent 9px 16px),repeating-linear-gradient(90deg,rgba(28,25,23,.65) 0 9px,transparent 9px 16px);background-size:16px 2px,16px 2px;background-position:0 0,8px 4px;background-repeat:repeat-x"></span></div>
+      <span style="margin-left:auto;display:flex;gap:10px">
+        <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+          <span style="background:#fff;border:1px solid rgba(28,25,23,.08);border-radius:8px;padding:8px 14px;text-align:center"><span style="display:block;font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600">{{ s.v }}</span><span style="font-size:9.5px;letter-spacing:.14em;color:rgba(28,25,23,.5);text-transform:uppercase">{{ s.k }}</span></span>
+        </sc-for>
+      </span>
+    </div>
+    <div style="margin-top:20px;background:#fff;border:1px solid rgba(28,25,23,.08);border-radius:8px;padding:22px">
+      <div style="border:1.5px dashed rgba(28,25,23,.22);border-radius:8px;padding:26px 20px;text-align:center;color:rgba(28,25,23,.5);font-weight:300;cursor:pointer" style-hover="border-color:#8A6D45;color:#8A6D45">{{ t.dropHint }} — <b style="font-weight:500">500</b> {{ t.dropFiles }}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:18px">
+        <sc-for list="{{ pipeStages }}" as="p" hint-placeholder-count="5">
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;letter-spacing:.08em;color:rgba(28,25,23,.6)"><span>{{ p.label }}</span><span>{{ p.n }}</span></div>
+            <div style="height:4px;background:rgba(28,25,23,.08);border-radius:2px;margin-top:6px"><div style="height:4px;width:{{ p.w }};background:{{ p.c }};border-radius:2px;transition:width .6s"></div></div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="margin-top:16px;background:#fff;border:1px solid rgba(28,25,23,.08);border-radius:8px;padding:22px">
+      <div style="font-size:12px;letter-spacing:.16em;text-transform:uppercase;margin-bottom:6px">{{ t.recent }} · AI</div>
+      <sc-for list="{{ uploads }}" as="u" hint-placeholder-count="5">
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(28,25,23,.06)">
+          <span style="width:34px;height:34px;border-radius:5px;background:{{ u.tex }};flex:none"></span>
+          <div style="flex:1;min-width:0"><div style="font-size:13.5px">{{ u.name }}</div><div style="font-size:11px;color:rgba(28,25,23,.45)">{{ u.meta }}</div></div>
+          <span style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:rgba(28,25,23,.7)"><span style="width:13px;height:13px;border-radius:50%;background:{{ u.dot }}"></span>{{ u.aiName }}<span style="color:#8A6D45;font-size:10px">{{ u.conf }}</span></span>
+          <span style="font-size:10.5px;letter-spacing:.1em;color:{{ u.stFg }};background:{{ u.stBg }};border-radius:999px;padding:4px 10px">{{ u.status }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ transOpen }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;inset:0;z-index:200;overflow:hidden;pointer-events:none">
+    <div style="position:absolute;inset:0;background:{{ transTex }};transform-origin:50% 0;animation:unfurl .75s cubic-bezier(.6,.05,.2,1) both;box-shadow:inset 0 -80px 120px rgba(28,25,23,.3)"></div>
+    <div style="position:absolute;left:0;right:0;top:45%;text-align:center;color:{{ transFg }};animation:rise .5s .25s both">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:clamp(30px,4vw,52px);font-weight:500">{{ transName }}</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-style:italic;font-size:clamp(15px,1.6vw,20px);opacity:.8;margin-top:6px">{{ transStory }}</div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ scopeOpen }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeScope }}" style="position:fixed;inset:0;z-index:100;background:rgba(28,25,23,.5);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:24px;cursor:zoom-out">
+    <div style="position:relative;width:min(640px,92vw);aspect-ratio:4/3;border-radius:6px;overflow:hidden;box-shadow:0 40px 100px rgba(0,0,0,.4);background:{{ scopeTex }};animation:rise .4s cubic-bezier(.2,.8,.2,1) both">
+      <div style="position:absolute;inset:0;background:radial-gradient(circle at 50% 45%, transparent 40%, rgba(28,25,23,.55) 95%)"></div>
+      <span style="position:absolute;top:16px;left:18px;font-size:11px;letter-spacing:.3em;color:#FAF8F5">{{ cf.name }} · {{ colName }} · {{ scopeLevel }}</span>
+      <span style="position:absolute;bottom:16px;right:18px;font-size:10px;letter-spacing:.2em;color:rgba(250,248,245,.7)">{{ t.scopeNote }}</span>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ sceneOpen }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeScene }}" style="position:fixed;inset:0;z-index:100;background:rgba(28,25,23,.5);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:24px;cursor:zoom-out">
+    <div style="position:relative;width:min(760px,94vw);aspect-ratio:4/3;border-radius:6px;overflow:hidden;box-shadow:0 40px 100px rgba(0,0,0,.4);background:{{ sceneCss }};animation:rise .4s cubic-bezier(.2,.8,.2,1) both">
+      <sc-if value="{{ sceneMoving }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;top:0;bottom:0;left:0;width:30%;background:linear-gradient(100deg,transparent, rgba(255,255,255,.3), transparent);animation:shineSweep 2.6s ease-in-out infinite"></div>
+      </sc-if>
+      <span style="position:absolute;top:16px;left:18px;font-size:11px;letter-spacing:.3em;color:{{ sceneFg }}">{{ cf.name }} · {{ colName }} · {{ sceneLabel }}</span>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ quoteOpen }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;inset:0;z-index:100;background:rgba(28,25,23,.45);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:24px">
+    <div style="width:min(440px,94vw);background:#FAF8F5;border-radius:8px;padding:32px;box-shadow:0 40px 100px rgba(0,0,0,.35);animation:rise .4s cubic-bezier(.2,.8,.2,1) both">
+      <sc-if value="{{ quoteSent }}" hint-placeholder-val="{{ false }}">
+        <div style="text-align:center;padding:20px 0">
+          <div style="font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:500">{{ t.quoteThanks }}</div>
+          <p style="font-weight:300;color:rgba(28,25,23,.6);font-size:14px;line-height:1.6">{{ t.quoteFollow }}</p>
+          <button onClick="{{ closeQuote }}" style="cursor:pointer;margin-top:10px;background:#1C1917;color:#FAF8F5;border:none;border-radius:999px;padding:11px 28px;font-family:'Jost',sans-serif;font-size:12px;letter-spacing:.12em">OK</button>
+        </div>
+      </sc-if>
+      <sc-if value="{{ quoteForm }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:500">{{ t.quote }}</div><button onClick="{{ closeQuote }}" style="cursor:pointer;border:none;background:none;font-size:18px;color:rgba(28,25,23,.5)">×</button></div>
+        <div style="font-size:13px;color:rgba(28,25,23,.55);margin:4px 0 20px">{{ quoteSubject }}</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <input placeholder="{{ t.fName }}" style="border:1px solid rgba(28,25,23,.15);border-radius:6px;padding:12px 14px;font-family:'Jost',sans-serif;font-size:14px;background:#fff;outline-color:#8A6D45">
+          <input placeholder="{{ t.fCompany }}" style="border:1px solid rgba(28,25,23,.15);border-radius:6px;padding:12px 14px;font-family:'Jost',sans-serif;font-size:14px;background:#fff;outline-color:#8A6D45">
+          <input placeholder="{{ t.fQty }}" style="border:1px solid rgba(28,25,23,.15);border-radius:6px;padding:12px 14px;font-family:'Jost',sans-serif;font-size:14px;background:#fff;outline-color:#8A6D45">
+          <button onClick="{{ sendQuote }}" style="cursor:pointer;background:#1C1917;color:#FAF8F5;border:none;border-radius:999px;padding:13px;font-family:'Jost',sans-serif;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;margin-top:6px" style-hover="background:#8A6D45">{{ t.quoteSend }}</button>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ aiOpen }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;inset:0;z-index:100;background:rgba(28,25,23,.45);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:24px">
+    <div style="width:min(480px,94vw);background:#FAF8F5;border-radius:8px;padding:32px;box-shadow:0 40px 100px rgba(0,0,0,.35);animation:rise .4s cubic-bezier(.2,.8,.2,1) both">
+      <sc-if value="{{ aiBusy }}" hint-placeholder-val="{{ false }}">
+        <div style="text-align:center;padding:30px 0">
+          <div style="display:flex;gap:6px;justify-content:center;align-items:flex-end;height:44px;margin-bottom:18px">
+            <span style="width:4px;height:26px;border-radius:2px;background:#1C1917;animation:threadUp 1s ease-in-out infinite"></span>
+            <span style="width:4px;height:26px;border-radius:2px;background:#8A6D45;animation:threadUp 1s ease-in-out -.33s infinite"></span>
+            <span style="width:4px;height:26px;border-radius:2px;background:#1C1917;animation:threadUp 1s ease-in-out -.66s infinite"></span>
+          </div>
+          <div style="font-size:13px;letter-spacing:.2em;color:rgba(28,25,23,.6)">{{ t.aiBusy }}</div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ aiDone }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:500">{{ t.aiTitle }}</div><button onClick="{{ closeAi }}" style="cursor:pointer;border:none;background:none;font-size:18px;color:rgba(28,25,23,.5)">×</button></div>
+        <div style="display:flex;gap:16px;align-items:center;margin-top:20px;padding:16px;background:#fff;border:1px solid rgba(28,25,23,.08);border-radius:6px">
+          <div style="width:74px;height:74px;border-radius:4px;background:{{ aiTex }};flex:none"></div>
+          <div style="flex:1">
+            <div style="font-family:'Cormorant Garamond',serif;font-size:21px;font-weight:600">{{ aiFab }}</div>
+            <div style="font-size:12.5px;color:rgba(28,25,23,.55)">{{ aiCol }} · {{ aiMeta }}</div>
+            <div style="height:4px;background:rgba(28,25,23,.08);border-radius:2px;margin-top:10px"><div style="height:4px;width:{{ aiConf }};background:#8A6D45;border-radius:2px"></div></div>
+            <div style="font-size:10.5px;letter-spacing:.14em;color:#8A6D45;margin-top:4px">{{ aiConf }} {{ t.aiConf }}</div>
+          </div>
+        </div>
+        <div style="font-size:11px;letter-spacing:.2em;color:rgba(28,25,23,.45);margin:18px 0 10px;text-transform:uppercase">{{ t.aiAlts }}</div>
+        <div style="display:flex;gap:8px">
+          <sc-for list="{{ aiAlts }}" as="a" hint-placeholder-count="3">
+            <div onClick="{{ a.go }}" style="cursor:pointer;flex:1;height:56px;border-radius:4px;background:{{ a.css }};display:flex;align-items:flex-end;padding:7px"><span style="font-size:10px;color:{{ a.fg }}">{{ a.name }}</span></div>
+          </sc-for>
+        </div>
+        <button onClick="{{ aiGoto }}" style="cursor:pointer;width:100%;margin-top:20px;background:#1C1917;color:#FAF8F5;border:none;border-radius:999px;padding:13px;font-family:'Jost',sans-serif;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase" style-hover="background:#8A6D45">{{ t.open }} →</button>
+      </sc-if>
+    </div>
+  </div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;pricingUnlocked&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Experience&quot;},&quot;reduceMotion&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Experience&quot;}}">
+class Component extends DCLogic {
+  state = {view:'home',lang:'en',room:'hall',fid:'rayon14',ci:18,garment:'kurti',light:'studio',wind:1,compare:['rayon14','gajji'],pins:[],q:'',aiOpen:false,aiBusy:false,ai:null,quote:false,quoteSent:false,quoteFromBook:false,scope:false,scopeP:0,scene:null,trans:null,tests:{stretch:false,shine:false,water:false,rotate:false}};
+
+  data(){
+    if(this._fabs) return this._fabs;
+    const NAMES=[['Kapaas',.96,.015,100],['Ivory',.94,.03,90],['Motiya',.9,.04,80],['Badami',.76,.06,60],['Gehua',.82,.08,78],['Sunehri',.78,.13,88],['Haldi',.8,.16,92],['Kesar',.73,.17,60],['Sindoor',.62,.21,32],['Surkh',.53,.21,27],['Gulab',.78,.11,10],['Rani',.55,.23,352],['Falsa',.46,.17,335],['Jamun',.36,.11,315],['Kashish',.62,.05,320],['Neel',.4,.11,268],['Aasmani',.78,.08,235],['Firozi',.74,.11,200],['Peacock',.48,.11,215],['Dhani',.82,.11,135],['Angoori',.72,.12,118],['Mehendi',.5,.08,125],['Zaitooni',.55,.07,108],['Koyla',.32,.01,70]];
+    const F=[
+      ['pcpc','PC / PC','cotton','8.800 kg','41\u2033+','52% Polyester \u00b7 48% Cotton',64,'Crisp \u00b7 Structured',.1,.3,.1,0,62],
+      ['cambric','Cambric Cotton','cotton','9.000 kg','42\u2033+','100% Combed Cotton',72,'Fine \u00b7 Smooth hand',.08,.35,.1,1,74],
+      ['jaam11','Jaam Cotton','cotton','11.000 kg','42\u2033+','100% Cotton \u00b7 Jaam weave',80,'Matte \u00b7 Natural fall',.08,.4,.12,2,88],
+      ['jaam125','Jaam Cotton Supreme','cotton','12.500 kg','44\u2033+','100% Cotton \u00b7 Dense jaam',80,'Full-bodied \u00b7 Matte',.08,.35,.12,0,96],
+      ['rayon14','Rayon','rayon','14 kg','42\u2033+','100% Viscose Rayon',96,'Fluid \u00b7 Heavy drape',.22,.9,.2,1,82],
+      ['rayon17','Rayon Heavy','rayon','17 kg','56\u2033+','100% Viscose Rayon',96,'Fluid \u00b7 Cascading',.24,.85,.2,2,104],
+      ['slub','Rayon Slub','slub','14 kg','42\u2033+','100% Viscose \u00b7 Slub yarn',64,'Textured \u00b7 Flowing',.18,.85,.18,0,92],
+      ['wrinkle','Rayon Wrinkle','wrinkle','17 kg','56\u2033+','100% Viscose \u00b7 Crinkle finish',56,'Crushed \u00b7 Airy',.15,.8,.16,1,118],
+      ['roman','Roman Silk','silk','9.500 kg','43\u2033+','Poly roman weave \u00b7 Silk touch',72,'Lustrous \u00b7 Smooth folds',.38,.65,.14,2,98],
+      ['gajji','Gajji Silk','silk','20 kg','56\u2033+','Satin gajji \u00b7 Heavy lustre',88,'Liquid shine \u00b7 Weighted',.5,.6,.12,0,210],
+      ['lycra','Cotton Lycra','lycra','21 kg','56\u2033+','95% Cotton \u00b7 5% Spandex',56,'Stretch \u00b7 Recovery',.12,.45,.9,1,148]
+    ];
+    this._fabs=F.map((r,i)=>{
+      const [id,name,family,weight,width,comp,nc,hand,sheen,flow,stretch,seed,price]=r;
+      const colours=NAMES.map(([nm,l,c,h],j)=>{
+        const L=Math.min(.97,Math.max(.25,l+((seed+j)%3-1)*.015));
+        return {name:nm,l:L,c,h,css:`oklch(${(L*100).toFixed(1)}% ${c} ${h})`,fg:L>.62?'#1C1917':'#FAF8F5'};
+      });
+      return {id,name,family,weight,width,comp,nc,hand,sheen,flow,stretch,seed,price,colours,heroIdx:[14,16,21,3,18,15,7,12,8,13,22][i]};
+    });
+    return this._fabs;
+  }
+  shade(o,dl){return `oklch(${Math.max(6,Math.min(98,(o.l+dl)*100)).toFixed(1)}% ${o.c} ${o.h})`}
+  weave(f,o,p){
+    const warp=`repeating-linear-gradient(90deg, ${this.shade(o,-.05)} 0 1px, transparent 1px ${p}px)`;
+    const weft=`repeating-linear-gradient(0deg, rgba(255,255,255,.08) 0 1px, transparent 1px ${p}px)`;
+    if(f.family==='silk') return `repeating-linear-gradient(115deg, rgba(255,255,255,.07) 0 2px, transparent 2px ${p+2}px)`;
+    if(f.family==='slub') return `repeating-linear-gradient(0deg, ${this.shade(o,-.07)} 0 2px, transparent 2px ${p*3}px), ${weft}`;
+    if(f.family==='wrinkle') return `repeating-linear-gradient(70deg, rgba(0,0,0,.05) 0 3px, rgba(255,255,255,.06) 3px 7px), repeating-linear-gradient(105deg, rgba(255,255,255,.05) 0 2px, transparent 2px ${p*3}px)`;
+    if(f.family==='lycra') return `repeating-linear-gradient(90deg, ${this.shade(o,-.04)} 0 1px, transparent 1px ${Math.max(2,p-1)}px)`;
+    return `${weft}, ${warp}`;
+  }
+  tex(f,o,p){
+    const base=`linear-gradient(${o.css},${o.css})`;
+    const sheen=f.sheen>=.2?`linear-gradient(102deg, rgba(255,255,255,0) 28%, rgba(255,255,255,${(.12+f.sheen*.5).toFixed(2)}) 45%, rgba(255,255,255,.03) 58%, rgba(255,255,255,0) 78%), `:'';
+    return `${sheen}${this.weave(f,o,p||3)}, ${base}`;
+  }
+  fab(id){return this.data().find(f=>f.id===id)}
+  stories(){return {pcpc:'Holds a crease like a promise \u2014 shirting that stays sharp.',cambric:'Fine combed threads, a cool hand \u2014 the everyday luxury.',jaam11:'The kurta maker\u2019s workhorse \u2014 matte, honest, dependable.',jaam125:'Denser, weightier \u2014 for silhouettes that stand their ground.',rayon14:'Falls like evening water \u2014 cut it for hems that move.',rayon17:'A heavier pour \u2014 cascades from the shoulder in one line.',slub:'Irregular on purpose \u2014 texture you can read across a room.',wrinkle:'Pre-crushed, carefree \u2014 the pleats are already yours.',roman:'A quiet lustre \u2014 silk manners at cotton sense.',gajji:'Liquid shine, bridal weight \u2014 the roll that ends the search.',lycra:'Moves with the body and returns \u2014 tailored, then forgiving.'}}
+  garments(){return {
+    kurti:{d:'M100 24c-9 0-16-3-21-7L42 30l7 74 15-4v52l-8 84h32v-36h24v36h32l-8-84v-52l15 4 7-74-37-13c-5 4-12 7-21 7Z'},
+    shirt:{d:'M100 26c-10 0-18-3-24-7L38 34l9 86 17-4v112h72V116l17 4 9-86-38-15c-6 4-14 7-24 7Z'},
+    dress:{d:'M100 24c-9 0-16-3-21-7L46 28l9 42 12-3 5 38-30 127h116L128 105l5-38 12 3 9-42-33-11c-5 4-12 7-21 7Z'},
+    top:{d:'M79 30l-11 7 5 58 9-2v103h36V93l9 2 5-58-11-7c-8 9-34 9-42 0Z'},
+    tshirt:{d:'M100 28c-11 0-19-4-25-8L36 36l13 27 17-9v176h68V54l17 9 13-27-39-16c-6 4-14 8-25 8Z'},
+    roll:{d:''}
+  }}
+  lights(){return {
+    daylight:{en:'Daylight',bg:'linear-gradient(180deg,#EAF1F6,#F6F4EF 60%,#E8E4DC)',filter:'brightness(1.05) saturate(1.03)',glow:'rgba(150,180,210,.25)',fg:'#1C1917'},
+    golden:{en:'Golden Hour',bg:'linear-gradient(180deg,#F4E3C6,#EFDCC2 60%,#E0C9A8)',filter:'sepia(.2) brightness(1.04) saturate(1.12)',glow:'rgba(220,165,80,.4)',fg:'#1C1917'},
+    studio:{en:'Studio',bg:'linear-gradient(180deg,#F4F2EE,#E7E3DC)',filter:'contrast(1.05)',glow:'rgba(255,255,255,.6)',fg:'#1C1917'},
+    boutique:{en:'Boutique',bg:'linear-gradient(180deg,#2B2724,#3C342E)',filter:'brightness(1.05) contrast(1.1)',glow:'rgba(235,190,115,.35)',fg:'#FAF8F5'},
+    white:{en:'White Cyc',bg:'linear-gradient(180deg,#FFFFFF,#EFEFEF)',filter:'none',glow:'rgba(0,0,0,.04)',fg:'#1C1917'}
+  }}
+  rooms(){const t=this.dict();return [
+    {k:'hall',label:t.hall,desc:t.hallDesc,ids:['pcpc','cambric','jaam11','jaam125','rayon14','rayon17','slub','wrinkle','roman','gajji','lycra'],bg:'linear-gradient(180deg,#F6F3EE 0%,#EFEAE2 62%,#E0DACE 62.2%,#D4CDBF 100%)',glow:'rgba(214,184,130,.3)',fg:'#1C1917',sub:'rgba(28,25,23,.55)',accent:'#8A6D45'},
+    {k:'cotton',label:t.cottonG,desc:t.cottonDesc,ids:['pcpc','cambric','jaam11','jaam125','lycra'],bg:'linear-gradient(180deg,#EEF3F4 0%,#EDEFE9 62%,#DCDFD4 62.2%,#CFD2C5 100%)',glow:'rgba(160,190,200,.32)',fg:'#1C1917',sub:'rgba(28,25,23,.55)',accent:'#5B7263'},
+    {k:'rayon',label:t.rayonR,desc:t.rayonDesc,ids:['rayon14','rayon17','slub','wrinkle'],bg:'linear-gradient(180deg,#F2EEF4 0%,#EDE8EE 62%,#DED6DF 62.2%,#D0C7D2 100%)',glow:'rgba(180,160,200,.3)',fg:'#1C1917',sub:'rgba(28,25,23,.55)',accent:'#6B5B7A'},
+    {k:'silk',label:t.silkG,desc:t.silkDesc,ids:['roman','gajji'],bg:'linear-gradient(180deg,#2E2A26 0%,#3A332C 62%,#241F1B 62.2%,#1C1815 100%)',glow:'rgba(235,190,115,.4)',fg:'#FAF8F5',sub:'rgba(250,248,245,.6)',accent:'#C9A96A'}
+  ]}
+  dict(){
+    const en={home:'Entrance',showroom:'Showroom',collection:'Collection',colours:'Colours',compare:'Compare',book:'Swatch Book',admin:'Admin',adminTitle:'Catalogue Studio',est:'WHOLESALE DYED FABRICS \u00b7 EST. SURAT',heroSub:'Eleven constructions. Over eight hundred shades. A showroom that never closes.',enter:'Enter the Showroom',explore:'Explore colours',searchPh:'Search \u2014 or ask: \u201csummer kurtis\u201d\u2026',byImage:'Search by image',signin:'Sign in',signed:'Approved buyer \u2713',trending:'Trending shades',shades:'shades',hall:'The Fabric Hall',hallDesc:'Every quality under one roof \u2014 walk right, or step into a gallery.',cottonG:'Cotton Gallery',cottonDesc:'Crisp, matte, structured \u2014 daylight suits cotton.',rayonR:'Rayon Room',rayonDesc:'Fluid drape, soft folds \u2014 cloth that moves like water.',silkG:'Silk Gallery',silkDesc:'Boutique light. Lustre that answers every lamp.',scrollHint:'SCROLL \u2192 \u00b7 CLICK A ROLL TO UNROLL',lab:'FABRIC LAB',garment:'Garment',lighting:'Lighting',windL:'Wind',scope:'Microscope',scopeNote:'SIMULATED WEAVE \u00b7 MACRO',scenes:'Scenes',weight:'Weight',width:'Width',comp:'Composition',hand:'Hand & drape',price:'Price / metre',lock:'Sign in for pricing',stock:'Stock',inStock:'In stock \u00b7 mill fresh',downloads:'Downloads',spec:'Spec sheet',cat:'Colour catalogue',qr:'SHARE \u00b7 QR',quote:'Request a quote',quoteBook:'Quote this book',quoteSend:'Send request',quoteThanks:'Request received.',quoteFollow:'Our sales team will respond within one working day.',whats:'Enquire on WhatsApp',pin:'Add to book',open:'Open fabric',colourWall:'The Colour Wall',wallSub:'every shade, every quality \u2014 click to open',emptyCompare:'Select fabrics to compare from any fabric card.',emptyBoard:'Add shades from any fabric \u2014 build a swatch book for your buyer.',bookSub:'Your collection \u2014 export, share, or turn it into a quotation.',drapeLive:'LIVE DRAPE',fName:'Your name',fCompany:'Company / City',fQty:'Quantity (metres or kg)',aiBusy:'MATCHING FABRIC & SHADE\u2026',aiTitle:'Closest match',aiConf:'CONFIDENCE',aiAlts:'Alternatives',dropHint:'Drag & drop fabric photos or videos',dropFiles:'files queued',recent:'Recent uploads',cmp:'Compare',cmpOn:'\u2713 Comparing'};
+    const hi={home:'\u092a\u094d\u0930\u0935\u0947\u0936',showroom:'\u0936\u094b\u0930\u0942\u092e',collection:'\u0915\u0932\u0947\u0915\u094d\u0936\u0928',colours:'\u0930\u0902\u0917',compare:'\u0924\u0941\u0932\u0928\u093e',book:'\u0938\u094d\u0935\u0949\u091a \u092c\u0941\u0915',admin:'\u0910\u0921\u092e\u093f\u0928',adminTitle:'\u0915\u0948\u091f\u0932\u0949\u0917 \u0938\u094d\u091f\u0942\u0921\u093f\u092f\u094b',est:'\u0925\u094b\u0915 \u0930\u0902\u0917\u0947 \u0915\u092a\u0921\u093c\u0947 \u00b7 \u0938\u0942\u0930\u0924',heroSub:'\u0917\u094d\u092f\u093e\u0930\u0939 \u0915\u094d\u0935\u093e\u0932\u093f\u091f\u0940\u0964 \u0906\u0920 \u0938\u094c \u0938\u0947 \u0905\u0927\u093f\u0915 \u0936\u0947\u0921\u0964 \u090f\u0915 \u0936\u094b\u0930\u0942\u092e \u091c\u094b \u0915\u092d\u0940 \u092c\u0902\u0926 \u0928\u0939\u0940\u0902 \u0939\u094b\u0924\u093e\u0964',enter:'\u0936\u094b\u0930\u0942\u092e \u092e\u0947\u0902 \u092a\u094d\u0930\u0935\u0947\u0936',explore:'\u0930\u0902\u0917 \u0926\u0947\u0916\u0947\u0902',searchPh:'\u0916\u094b\u091c\u0947\u0902 \u2014 \u092f\u093e \u092a\u0942\u091b\u0947\u0902: \u201c\u0917\u0930\u094d\u092e\u0940 \u0915\u0940 \u0915\u0941\u0930\u094d\u0924\u0940\u201d\u2026',byImage:'\u092b\u093c\u094b\u091f\u094b \u0938\u0947 \u0916\u094b\u091c\u0947\u0902',signin:'\u0938\u093e\u0907\u0928 \u0907\u0928',signed:'\u0938\u094d\u0935\u0940\u0915\u0943\u0924 \u0915\u094d\u0930\u0947\u0924\u093e \u2713',trending:'\u091f\u094d\u0930\u0947\u0902\u0921\u093f\u0902\u0917 \u0936\u0947\u0921',shades:'\u0936\u0947\u0921',hall:'\u092b\u093c\u0948\u092c\u094d\u0930\u093f\u0915 \u0939\u0949\u0932',hallDesc:'\u0939\u0930 \u0915\u094d\u0935\u093e\u0932\u093f\u091f\u0940 \u090f\u0915 \u091b\u0924 \u0915\u0947 \u0928\u0940\u091a\u0947\u0964',cottonG:'\u0915\u0949\u091f\u0928 \u0917\u0948\u0932\u0930\u0940',cottonDesc:'\u0915\u0921\u093c\u0915, \u092e\u0948\u091f \u2014 \u0915\u0949\u091f\u0928 \u0915\u094b \u0926\u093f\u0928 \u0915\u093e \u0909\u091c\u093e\u0932\u093e\u0964',rayonR:'\u0930\u0947\u092f\u0949\u0928 \u0915\u0915\u094d\u0937',rayonDesc:'\u092a\u093e\u0928\u0940 \u091c\u0948\u0938\u093e \u092c\u0939\u0924\u093e \u0921\u094d\u0930\u0947\u092a\u0964',silkG:'\u0938\u093f\u0932\u094d\u0915 \u0917\u0948\u0932\u0930\u0940',silkDesc:'\u092c\u0941\u091f\u0940\u0915 \u0930\u094b\u0936\u0928\u0940 \u092e\u0947\u0902 \u091a\u092e\u0915\u0964',scrollHint:'\u0938\u094d\u0915\u094d\u0930\u0949\u0932 \u2192 \u00b7 \u0930\u094b\u0932 \u0916\u094b\u0932\u0928\u0947 \u0939\u0947\u0924\u0941 \u0915\u094d\u0932\u093f\u0915',lab:'\u092b\u093c\u0948\u092c\u094d\u0930\u093f\u0915 \u0932\u0948\u092c',garment:'\u092a\u0930\u093f\u0927\u093e\u0928',lighting:'\u092a\u094d\u0930\u0915\u093e\u0936',windL:'\u0939\u0935\u093e',scope:'\u092e\u093e\u0907\u0915\u094d\u0930\u094b\u0938\u094d\u0915\u094b\u092a',scopeNote:'\u092c\u0941\u0928\u093e\u0935\u091f \u00b7 \u092e\u0948\u0915\u094d\u0930\u094b',scenes:'\u0926\u0943\u0936\u094d\u092f',weight:'\u0935\u091c\u093c\u0928',width:'\u091a\u094c\u0921\u093c\u093e\u0908',comp:'\u0938\u0902\u0930\u091a\u0928\u093e',hand:'\u0921\u094d\u0930\u0947\u092a',price:'\u092e\u0942\u0932\u094d\u092f / \u092e\u0940\u091f\u0930',lock:'\u092e\u0942\u0932\u094d\u092f \u0939\u0947\u0924\u0941 \u0938\u093e\u0907\u0928 \u0907\u0928',stock:'\u0938\u094d\u091f\u0949\u0915',inStock:'\u0938\u094d\u091f\u0949\u0915 \u092e\u0947\u0902',downloads:'\u0921\u093e\u0909\u0928\u0932\u094b\u0921',spec:'\u0938\u094d\u092a\u0947\u0915 \u0936\u0940\u091f',cat:'\u0930\u0902\u0917 \u0938\u0942\u091a\u0940',qr:'\u0938\u093e\u091d\u093e \u00b7 QR',quote:'\u0915\u094b\u091f\u0947\u0936\u0928 \u092e\u093e\u0902\u0917\u0947\u0902',quoteBook:'\u092c\u0941\u0915 \u0915\u093e \u0915\u094b\u091f\u0947\u0936\u0928',quoteSend:'\u092d\u0947\u091c\u0947\u0902',quoteThanks:'\u0905\u0928\u0941\u0930\u094b\u0927 \u092a\u094d\u0930\u093e\u092a\u094d\u0924\u0964',quoteFollow:'\u0939\u092e\u093e\u0930\u0940 \u091f\u0940\u092e \u090f\u0915 \u0915\u093e\u0930\u094d\u092f\u0926\u093f\u0935\u0938 \u092e\u0947\u0902 \u0909\u0924\u094d\u0924\u0930 \u0926\u0947\u0917\u0940\u0964',whats:'WhatsApp \u092a\u0930 \u092a\u0942\u091b\u0947\u0902',pin:'\u092c\u0941\u0915 \u092e\u0947\u0902 \u091c\u094b\u0921\u093c\u0947\u0902',open:'\u0915\u092a\u0921\u093c\u093e \u0916\u094b\u0932\u0947\u0902',colourWall:'\u0930\u0902\u0917 \u0926\u0940\u0935\u093e\u0930',wallSub:'\u0939\u0930 \u0936\u0947\u0921 \u2014 \u0916\u094b\u0932\u0928\u0947 \u0939\u0947\u0924\u0941 \u0915\u094d\u0932\u093f\u0915',emptyCompare:'\u0924\u0941\u0932\u0928\u093e \u0939\u0947\u0924\u0941 \u0915\u092a\u0921\u093c\u0947 \u091a\u0941\u0928\u0947\u0902\u0964',emptyBoard:'\u0936\u0947\u0921 \u091c\u094b\u0921\u093c\u0947\u0902 \u2014 \u0938\u094d\u0935\u0949\u091a \u092c\u0941\u0915 \u092c\u0928\u093e\u090f\u0902\u0964',bookSub:'\u0906\u092a\u0915\u093e \u0915\u0932\u0947\u0915\u094d\u0936\u0928 \u2014 \u0938\u093e\u091d\u093e \u0915\u0930\u0947\u0902 \u092f\u093e \u0915\u094b\u091f\u0947\u0936\u0928 \u092c\u0928\u093e\u090f\u0902\u0964',drapeLive:'\u0932\u093e\u0907\u0935 \u0921\u094d\u0930\u0947\u092a',fName:'\u0906\u092a\u0915\u093e \u0928\u093e\u092e',fCompany:'\u0915\u0902\u092a\u0928\u0940 / \u0936\u0939\u0930',fQty:'\u092e\u093e\u0924\u094d\u0930\u093e',aiBusy:'\u092e\u093f\u0932\u093e\u0928 \u091c\u093e\u0930\u0940\u2026',aiTitle:'\u0928\u093f\u0915\u091f\u0924\u092e \u092e\u0947\u0932',aiConf:'\u0935\u093f\u0936\u094d\u0935\u093e\u0938',aiAlts:'\u0935\u093f\u0915\u0932\u094d\u092a',dropHint:'\u092b\u093c\u094b\u091f\u094b/\u0935\u0940\u0921\u093f\u092f\u094b \u092f\u0939\u093e\u0902 \u0921\u094d\u0930\u0949\u092a \u0915\u0930\u0947\u0902',dropFiles:'\u092b\u093c\u093e\u0907\u0932\u0947\u0902 \u0915\u0924\u093e\u0930 \u092e\u0947\u0902',recent:'\u0939\u093e\u0932 \u0915\u0947 \u0905\u092a\u0932\u094b\u0921',cmp:'\u0924\u0941\u0932\u0928\u093e',cmpOn:'\u2713 \u0924\u0941\u0932\u0928\u093e \u092e\u0947\u0902'};
+    return this.state.lang==='hi'?{...en,...hi}:en;
+  }
+  go(view,extra){this.setState({view,scope:false,scene:null,tests:{stretch:false,shine:false,water:false,rotate:false},...extra});window.scrollTo(0,0)}
+  openFabric(id,ci){this.go('fabric',{fid:id,ci:ci===undefined?this.fab(id).heroIdx:ci})}
+  unroll(f){
+    const o=f.colours[f.heroIdx];
+    this.setState({trans:{tex:this.tex(f,o,6),name:f.name,fg:o.fg,story:this.stories()[f.id]}});
+    setTimeout(()=>this.openFabric(f.id),720);
+    setTimeout(()=>this.setState({trans:null}),1250);
+  }
+  assistant(q){
+    const K=[[/summer|\u0917\u0930\u094d\u092e/i,'Light and breathable for summer:',['cambric','rayon14','slub']],[/kurti|\u0915\u0941\u0930\u094d\u0924/i,'Kurtis drape beautifully in:',['rayon14','jaam11','slub']],[/wedding|bridal|festive|\u0936\u093e\u0926\u0940/i,'For festive lustre:',['gajji','roman','rayon17']],[/dress|gown/i,'For dresses with fall:',['rayon17','gajji','rayon14']],[/shirt/i,'Crisp shirting:',['pcpc','cambric','jaam11']],[/stretch|fitted|legging/i,'With elastic recovery:',['lycra']],[/winter|heavy/i,'Fuller-bodied cloth:',['jaam125','lycra','gajji']],[/saree|\u0938\u093e\u0921\u093c/i,'Saree-ready lustre:',['gajji','roman']]];
+    for(const [re,note,ids] of K){if(re.test(q))return {note,ids}}
+    if(q.trim().split(/\s+/).length>=2)return {note:'Popular with designers right now:',ids:['rayon14','jaam11','gajji']};
+    return null;
+  }
+  renderVals(){
+    const S=this.state, t=this.dict(), fabs=this.data(), reduce=this.props.reduceMotion??false;
+    const signed=S.signed||(this.props.pricingUnlocked??false);
+    const chip=(on)=>on?{bg:'#1C1917',fg:'#FAF8F5',bd:'#1C1917'}:{bg:'transparent',fg:'#1C1917',bd:'rgba(28,25,23,.2)'};
+    const nav=[['home',t.home],['showroom',t.showroom],['collection',t.collection],['colours',t.colours],['compare',t.compare,S.compare.length],['book',t.book,S.pins.length],['admin',t.admin]].map(([k,label,n])=>({label,count:n?String(n):'',go:()=>this.go(k),bg:S.view===k?'rgba(28,25,23,.07)':'transparent',fg:S.view===k?'#1C1917':'rgba(28,25,23,.55)'}));
+    const cards=fabs.map(f=>{const o=f.colours[f.heroIdx];const on=S.compare.includes(f.id);return {...f,tex:this.tex(f,o,4),dots:f.colours.filter((_,j)=>j%4===1).slice(0,6),more:`+${f.nc-6}`,priceStr:signed?`\u20b9${f.price}/m`:t.lock,open:()=>this.openFabric(f.id),cmp:(e)=>{e.stopPropagation();this.setState(s=>({compare:on?s.compare.filter(x=>x!==f.id):s.compare.length<4?[...s.compare,f.id]:s.compare}))},cmpBg:on?'#1C1917':'transparent',cmpFg:on?'#FAF8F5':'#1C1917',cmpLabel:on?t.cmpOn:t.cmp}});
+    const trending=[[4,11],[9,8],[1,6],[8,15],[2,18],[6,12],[10,9],[5,17],[0,19],[3,13]].map(([fi,ci])=>{const f=fabs[fi],c=f.colours[ci];return {name:c.name,fab:f.name,css:this.tex(f,c,3),fg:c.fg,go:()=>this.openFabric(f.id,ci)}});
+    const rooms=this.rooms(), room=rooms.find(r=>r.k===S.room)||rooms[0], ri=rooms.indexOf(room);
+    const rolls=room.ids.map(id=>{const f=this.fab(id);const o=f.colours[f.heroIdx];const w=parseFloat(f.weight);return {name:f.name,weight:f.weight,width:f.width,nc:f.nc,h:Math.round(190+w*7),open:()=>this.unroll(f),top1:this.shade(o,.1),top2:this.shade(o,-.07),s1:this.shade(o,-.28),s2:this.shade(o,-.1),mid:this.shade(o,.08),s3:this.shade(o,-.12),s4:this.shade(o,-.32),weave:this.weave(f,o,3)}});
+    const q=S.q.trim();
+    let results=[];const asst=q?this.assistant(q):null;
+    if(q){const ql=q.toLowerCase();fabs.forEach(f=>{if((f.name+' '+f.comp+' '+f.weight+' '+f.width).toLowerCase().includes(ql))results.push({label:f.name,sub:`${f.weight} \u00b7 ${f.width}`,dot:f.colours[f.heroIdx].css,go:()=>{this.setState({q:''});this.openFabric(f.id)}});f.colours.forEach((c,j)=>{if(c.name.toLowerCase().startsWith(ql))results.push({label:c.name,sub:f.name,dot:c.css,go:()=>{this.setState({q:''});this.openFabric(f.id,j)}})})});results=results.slice(0,6)}
+    const f=this.fab(S.fid)||fabs[4], col=f.colours[Math.min(S.ci,23)], G=this.garments(), L=this.lights(), light=L[S.light];
+    const windNames=['None','Low','Medium','Strong'];
+    const amp=reduce?0:(f.flow*S.wind*1.5);
+    const T=S.tests;
+    const testNotes={stretch:{cotton:'Cotton gives little \u2014 a firm, stable cloth.',rayon:'Rayon eases slightly on the bias.',slub:'Slub eases slightly on the bias.',wrinkle:'The crinkle opens a little under tension.',silk:'Gajji holds firm \u2014 stretch lives in the drape, not the yarn.',lycra:'5% spandex \u2014 stretches and snaps back clean.'},water:{cotton:'Absorbs quickly and darkens \u2014 classic cotton.',rayon:'Drinks water fast; darkens deeply, dries soft.',slub:'Absorbs along the slub lines first.',wrinkle:'Water settles into the crinkle valleys.',silk:'Beads first, then a shallow mark \u2014 wipe it away.',lycra:'Cotton face absorbs; recovery unharmed.'}};
+    const o=col;
+    const sceneDefs=[
+      ['Flat Lay',`radial-gradient(120% 90% at 50% -10%, rgba(255,255,255,.35), transparent 60%), ${this.tex(f,o,4)}`],
+      ['Rolled',`linear-gradient(180deg, rgba(255,255,255,.12), transparent 30%), repeating-linear-gradient(0deg, ${this.shade(o,-.08)} 0 6px, ${this.shade(o,.05)} 6px 30px)`],
+      ['Fold',`linear-gradient(90deg, rgba(28,25,23,.12), transparent 18%), repeating-linear-gradient(180deg, ${this.shade(o,.05)} 0 26px, ${this.shade(o,-.08)} 26px 34px)`],
+      ['Macro',this.tex(f,o,15)],
+      ['Backlight',`${this.weave(f,o,4)}, radial-gradient(60% 60% at 50% 45%, ${this.shade(o,.2)}, ${o.css} 75%)`],
+      ['Wrinkle Test',`repeating-linear-gradient(70deg, rgba(0,0,0,.07) 0 3px, rgba(255,255,255,.08) 3px 7px), repeating-linear-gradient(160deg, rgba(0,0,0,.05) 0 5px, transparent 5px 12px), ${this.tex(f,o,4)}`],
+      ['Movement',this.tex(f,o,4),true],
+      ['Light Test',`linear-gradient(100deg, transparent 30%, rgba(255,255,255,${.2+f.sheen*.5}) 48%, transparent 62%), ${this.tex(f,o,4)}`],
+      ['Garment',`radial-gradient(70% 80% at 50% 40%, ${this.shade(o,.08)}, ${this.shade(o,-.08)} 90%), ${this.weave(f,o,4)}`]
+    ];
+    const spans=[[2,2],[1,1],[1,1],[1,2],[1,1],[1,1],[2,1],[1,1],[1,1]];
+    const scenes=sceneDefs.map(([label,css,moving],i)=>({label,css,fg:o.fg,gc:`span ${spans[i][0]}`,gr:`span ${spans[i][1]}`,open:()=>this.setState({scene:{label,css,moving:!!moving,fg:o.fg}})}));
+    const cf={name:f.name,comp:f.comp,nc:f.nc};
+    const scopeLevels=[['100\u00d7',26],['200\u00d7',48],['500\u00d7',96]];
+    const vals={
+      t,nav,langLabel:S.lang==='en'?'EN \u00b7 \u0939\u093f\u0902':'\u0939\u093f\u0902 \u00b7 EN',toggleLang:()=>this.setState(s=>({lang:s.lang==='en'?'hi':'en'})),
+      toggleSign:()=>this.setState(s=>({signed:!s.signed})),signLabel:signed?t.signed:t.signin,signBg:signed?'#1C1917':'transparent',signFg:signed?'#FAF8F5':'#1C1917',
+      goHome:()=>this.go('home'),goShowroom:()=>this.go('showroom'),goColours:()=>this.go('colours'),goCollection:()=>this.go('collection'),
+      isHome:S.view==='home',isShowroom:S.view==='showroom',isCollection:S.view==='collection',isFabric:S.view==='fabric',isColours:S.view==='colours',isCompare:S.view==='compare',isBook:S.view==='book',isAdmin:S.view==='admin',
+      heroAnim:reduce?'none':'heroDrift 16s ease-in-out infinite alternate',
+      heroCloth:this.tex(fabs[9],fabs[9].colours[4],7),heroCloth2:this.tex(fabs[4],fabs[4].colours[2],6),
+      clothAnim:reduce?'none':'clothWave 11s ease-in-out infinite alternate',clothAnim2:reduce?'none':'clothWave 15s ease-in-out -4s infinite alternate-reverse',
+      particles:Array.from({length:14},(_,i)=>({left:((i*67+13)%100)+'%',size:2+(i%3),dur:(13+(i*3.7)%9).toFixed(1)+'s',delay:(-(i*1.9)).toFixed(1)+'s',op:(.15+(i%4)*.09).toFixed(2)})),
+      q:S.q,setQ:e=>this.setState({q:e.target.value}),hasResults:!!(results.length||asst),results,
+      hasAssistant:!!asst,assistantNote:asst?asst.note:'',assistantRecs:asst?asst.ids.map(id=>{const x=this.fab(id);return {name:x.name,sub:`${x.weight} \u00b7 ${x.hand}`,tex:this.tex(x,x.colours[x.heroIdx],3),go:()=>{this.setState({q:''});this.openFabric(x.id)}}}):[],
+      fabrics:cards,trending,totalShades:fabs.reduce((a,b)=>a+b.nc,0),
+      roomBg:room.bg,roomGlow:room.glow,roomFg:room.fg,roomSubFg:room.sub,roomAccent:room.accent,roomLabel:room.label,roomDesc:room.desc,roomIdx:`${ri+1} / ${rooms.length}`,
+      roomChips:rooms.map(r=>({label:r.label,set:()=>this.setState({room:r.k}),bg:S.room===r.k?'#1C1917':'transparent',fg:S.room===r.k?'#FAF8F5':'#1C1917'})),
+      prevRoom:()=>this.setState({room:rooms[(ri+rooms.length-1)%rooms.length].k}),nextRoom:()=>this.setState({room:rooms[(ri+1)%rooms.length].k}),
+      nextRoomLabel:rooms[(ri+1)%rooms.length].label,
+      rolls,
+      transOpen:!!S.trans,transTex:S.trans?S.trans.tex:'',transName:S.trans?S.trans.name:'',transFg:S.trans?S.trans.fg:'#fff',transStory:S.trans?S.trans.story:'',
+      story:this.stories()[f.id],
+      cf,colName:col.name,heroWeaveSm:this.weave(f,col,3),
+      specRows:[{k:t.weight,v:f.weight},{k:t.width,v:f.width},{k:t.comp,v:f.comp},{k:t.hand,v:f.hand},{k:t.price,v:signed?`\u20b9${f.price} / metre`:t.lock},{k:t.stock,v:t.inStock}],
+      shades:f.colours.map((c,j)=>({name:c.name,css:c.css,ring:j===S.ci?'2px solid #1C1917':'1px solid rgba(28,25,23,.12)',select:()=>this.setState({ci:j})})),
+      garmentChips:Object.keys(G).map(k=>({label:{kurti:'Kurti',shirt:'Shirt',dress:'Dress',top:'Top',tshirt:'T-Shirt',roll:'Fabric Roll'}[k],set:()=>this.setState({garment:k}),...chip(S.garment===k)})),
+      lightChips:Object.keys(L).map(k=>({label:L[k].en,set:()=>this.setState({light:k}),...chip(S.light===k)})),
+      windChips:windNames.map((w,i)=>({label:w,set:()=>this.setState({wind:i}),...chip(S.wind===i)})),
+      scopeChips:scopeLevels.map(([label,p])=>({label,set:()=>this.setState({scope:true,scopeP:p}),...chip(false)})),
+      testChips:[['stretch','Stretch'],['shine','Shine'],['water','Water drop'],['rotate','Rotate']].map(([k,label])=>{const on=T[k];return {label,set:()=>this.setState(s=>({tests:{...s.tests,[k]:!s.tests[k]}})),bg:on?'#1C1917':'transparent',fg:on?'#FAF8F5':'#1C1917'}}),
+      isRoll:S.garment==='roll',isGarment:S.garment!=='roll',
+      gPath:(G[S.garment]||G.kurti).d,colCss:col.css,weaveLine:this.shade(col,-.06),gStroke:this.shade(col,-.14),foldStroke:this.shade(col,-.1),sheenOp:(f.sheen*1.4).toFixed(2),
+      windAmp:amp.toFixed(2)+'deg',windDur:(4.6-S.wind*.9)+'s',windName:windNames[S.wind].toUpperCase(),lightName:light.en.toUpperCase(),
+      stageBg:light.bg,stageFilter:light.filter,stageGlow:light.glow,stageLabelFg:light.fg,
+      rollTop1:this.shade(col,.12),rollTop2:this.shade(col,-.05),rollS1:this.shade(col,-.22),rollS2:this.shade(col,-.08),rollMid:this.shade(col,.06),rollS3:this.shade(col,-.1),rollS4:this.shade(col,-.26),
+      stretchSx:(1+f.stretch*.16).toFixed(3),stretchAnim:T.stretch&&!reduce?'stretchPulse 1.7s ease-in-out infinite':'none',
+      shineOn:T.shine,shineOp:(.25+f.sheen*.6).toFixed(2),
+      waterOn:T.water,waterOp:{cotton:.28,rayon:.32,slub:.3,wrinkle:.3,silk:.12,lycra:.24}[f.family],
+      rotateAnim:T.rotate&&!reduce?'rotateOsc 5.5s ease-in-out infinite':'none',
+      testNoteOn:T.stretch||T.water,testNote:T.water?testNotes.water[f.family]:testNotes.stretch[f.family],
+      physicsNote:{cotton:'Cotton holds its shape \u2014 matte surface, natural wrinkles, a structured fall.',rayon:'Rayon falls heavy and fluid \u2014 soft folds that move like liquid.',slub:'Slub yarn breaks the surface with irregular texture while keeping rayon\u2019s flow.',wrinkle:'A permanent crinkle finish \u2014 airy, crushed, relaxed movement.',silk:'High lustre catches every light change \u2014 smooth, weighted, luxurious folds.',lycra:'Spandex recovery \u2014 the cloth stretches and returns, keeping a clean silhouette.'}[f.family],
+      scenes,sceneOpen:!!S.scene,sceneCss:S.scene?S.scene.css:'',sceneLabel:S.scene?S.scene.label.toUpperCase():'',sceneMoving:!!(S.scene&&S.scene.moving),sceneFg:S.scene?S.scene.fg:'#fff',closeScene:()=>this.setState({scene:null}),
+      scopeOpen:S.scope,closeScope:()=>this.setState({scope:false}),scopeTex:this.tex(f,col,S.scopeP||26),scopeLevel:(scopeLevels.find(x=>x[1]===S.scopeP)||scopeLevels[0])[0],
+      openQuote:()=>this.setState({quote:true,quoteSent:false,quoteFromBook:false}),openQuoteBook:()=>this.setState({quote:true,quoteSent:false,quoteFromBook:true}),closeQuote:()=>this.setState({quote:false}),quoteOpen:S.quote,quoteSent:S.quoteSent,quoteForm:!S.quoteSent,sendQuote:()=>this.setState({quoteSent:true}),
+      quoteSubject:S.quoteFromBook?S.pins.map(p=>{const x=this.fab(p.fid);return `${x.colours[p.ci].name} (${x.name})`}).join(', ')||'\u2014':`${f.name} \u00b7 ${col.name} \u00b7 ${f.weight}`,
+      waFabric:'https://wa.me/919999999999?text='+encodeURIComponent(`Enquiry: ${f.name} \u00b7 ${col.name} \u00b7 ${f.weight} \u00b7 ${f.width}`),
+      pinCurrent:()=>this.setState(s=>({pins:s.pins.some(p=>p.fid===f.id&&p.ci===S.ci)?s.pins:[...s.pins,{fid:f.id,ci:S.ci}]})),
+      qr:Array.from({length:64},(_,i)=>({on:((i*7+f.seed*13+i*i)%5<2||i<3||i%8<1&&i<25)?'#1C1917':'transparent'})),
+      wallChips:[{label:S.lang==='hi'?'\u0938\u092d\u0940':'All qualities',set:()=>this.setState({wallFab:null}),...chip(!S.wallFab)},...fabs.map(x=>({label:x.name,set:()=>this.setState({wallFab:x.id}),...chip(S.wallFab===x.id)}))],
+      wall:(()=>{const items=fabs.filter(x=>!S.wallFab||x.id===S.wallFab).flatMap(x=>x.colours.map((c,j)=>({name:c.name,fab:x.name,css:c.css,fg:c.fg,h:c.h,l:c.l,go:()=>this.openFabric(x.id,j)})));if(!S.wallFab)items.sort((a,b)=>(a.h-b.h)||(b.l-a.l));return items})(),
+      compareEmpty:S.compare.length===0,
+      compareCols:S.compare.map(id=>{const x=this.fab(id);const oc=x.colours[x.heroIdx];return {name:x.name,weight:x.weight,width:x.width,tex:this.tex(x,oc,4),drapeTex:this.tex(x,oc,3),amp:reduce?'0deg':(x.flow*2.2).toFixed(1)+'deg',remove:()=>this.setState(s=>({compare:s.compare.filter(y=>y!==id)})),rows:[{k:'Sheen',v:x.sheen>=.35?'High':x.sheen>=.15?'Soft':'Matte',w:(x.sheen*100/.5).toFixed(0)+'%'},{k:'Flow',v:x.flow>=.7?'Fluid':x.flow>=.45?'Relaxed':'Structured',w:(x.flow*100).toFixed(0)+'%'},{k:'Stretch',v:x.stretch>=.5?'4-way':'Low',w:(x.stretch*100).toFixed(0)+'%'},{k:t.weight,v:x.weight,w:(parseFloat(x.weight)/21*100).toFixed(0)+'%'}]}}),
+      boardEmpty:S.pins.length===0,
+      bookGroups:fabs.map(x=>({x,items:S.pins.map((p,i)=>({p,i})).filter(({p})=>p.fid===x.id)})).filter(g=>g.items.length).map(g=>({name:g.x.name,meta:`${g.x.weight} \u00b7 ${g.x.width} \u00b7 ${g.items.length} ${t.shades}`,items:g.items.map(({p,i})=>({colName:g.x.colours[p.ci].name,tex:this.tex(g.x,g.x.colours[p.ci],4),open:()=>this.openFabric(p.fid,p.ci),remove:()=>this.setState(s=>({pins:s.pins.filter((_,j)=>j!==i)}))}))})),
+      printBoard:()=>window.print(),
+      waBoard:'https://wa.me/?text='+encodeURIComponent('Poddar Creation swatch book: '+S.pins.map(p=>{const x=this.fab(p.fid);return `${x.colours[p.ci].name} (${x.name})`}).join(', ')),
+      runAi:()=>{this.setState({aiOpen:true,aiBusy:true,ai:null});setTimeout(()=>{const fi=Math.floor(Math.random()*11),ci=Math.floor(Math.random()*24);this.setState({aiBusy:false,ai:{fi,ci,conf:88+Math.floor(Math.random()*10)}})},1400)},
+      aiOpen:S.aiOpen,aiBusy:S.aiBusy,aiDone:!!S.ai,closeAi:()=>this.setState({aiOpen:false,ai:null}),
+      adminNav:[['Inbox','23'],['Library','847'],['Uploads','5'],['Colours','812'],['Analytics',''],['Team','6']].map(([label,n],i)=>({label,n,bg:i===2?'rgba(28,25,23,.07)':'transparent',fg:i===2?'#1C1917':'rgba(28,25,23,.6)'})),
+      roles:['Admin','Manager','Sales','Viewer'].map(x=>({label:x})),
+      stats:[{k:'SKUs',v:'847'},{k:'Media',v:'3,388'},{k:'Views 30d',v:'41.2k'},{k:'Quotes',v:'126'}],
+      pipeStages:[['Compress \u00b7 WebP/AVIF','412/500','82%','#8A6D45'],['AI colour naming','388/500','78%','#8A6D45'],['Thumbnails','500/500','100%','#3D6B45'],['QR generation','500/500','100%','#3D6B45'],['Published','380/500','76%','#8A6D45']].map(([label,n,w,c])=>({label,n,w,c})),
+      uploads:[[4,11,'rayon-roll-004.jpg','2.4 MB \u00b7 4000\u00d76000','Neel','97%','Processed'],[9,8,'gajji-drape-012.mp4','48 MB \u00b7 4K \u00b7 12s','Sindoor','94%','HLS encoding'],[1,6,'cambric-macro-118.jpg','3.1 MB \u00b7 macro','Haldi','98%','Processed'],[6,12,'slub-flat-031.jpg','2.8 MB','Falsa','91%','Dedupe check'],[10,9,'lycra-stretch-007.mp4','36 MB \u00b7 4K','Surkh','95%','Queued']].map(([fi,ci,name,meta,aiName,conf,status])=>{const x=fabs[fi];return {name,meta,aiName,conf,status,tex:this.tex(x,x.colours[ci],2),dot:x.colours[ci].css,stFg:status==='Processed'?'#3D6B45':'#8A6D45',stBg:status==='Processed'?'rgba(61,107,69,.1)':'rgba(138,109,69,.12)'}})
+    };
+    if(S.ai){const x=fabs[S.ai.fi],c=x.colours[S.ai.ci];Object.assign(vals,{aiFab:x.name,aiCol:c.name,aiMeta:`${x.weight} \u00b7 ${x.width}`,aiTex:this.tex(x,c,3),aiConf:S.ai.conf+'%',aiGoto:()=>{this.setState({aiOpen:false,ai:null});this.openFabric(x.id,S.ai.ci)},aiAlts:[(S.ai.ci+3)%24,(S.ai.ci+9)%24,(S.ai.ci+15)%24].map(j=>({name:x.colours[j].name,css:x.colours[j].css,fg:x.colours[j].fg,go:()=>{this.setState({aiOpen:false,ai:null});this.openFabric(x.id,j)}}))})}
+    return vals;
+  }
+}
+</script>
+</body>
+</html>
