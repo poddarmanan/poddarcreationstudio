@@ -1,27 +1,37 @@
 import { NextResponse } from 'next/server';
 import { ZodError, type ZodType } from 'zod';
 import { AppError, isAppError } from './errors';
+import type { RateLimitPolicy } from './rate-limit';
 import { getContainer } from '../container';
 
 /**
  * HTTP boundary helpers. Route handlers stay thin: parse → validate → call a service →
- * return. `handle()` gives every route uniform error mapping, safe error bodies (no stack
- * or internal message leakage on 5xx), and telemetry — without changing the success body
- * shape existing clients already depend on.
+ * return. `run()` gives every route uniform error mapping, safe error bodies (no stack
+ * or internal message leakage on 5xx), telemetry, and opt-in CSRF + rate-limit guards —
+ * without changing the success body shape existing clients already depend on.
  */
+
+export interface RunOptions {
+  /** Reject cross-origin state-changing requests (CSRF defense). Set on mutations. */
+  csrf?: boolean;
+  /** Apply a rate-limit policy keyed by client IP. */
+  rateLimit?: RateLimitPolicy;
+}
 
 /**
  * Runs a route handler's body with uniform error mapping + timing telemetry, while leaving
  * the exported route function's native signature intact (Next 16 type-checks route exports
  * strictly, so we wrap the body, not the export).
  *
- *   export async function GET(req: Request) {
- *     return run(req, async () => NextResponse.json({ ... }));
+ *   export async function POST(req: Request) {
+ *     return run(req, async () => NextResponse.json({ ... }), { csrf: true, rateLimit: RATE_LIMITS.write });
  *   }
  */
-export async function run(req: Request, fn: () => Promise<Response>): Promise<Response> {
+export async function run(req: Request, fn: () => Promise<Response>, opts: RunOptions = {}): Promise<Response> {
   const started = performance.now();
   try {
+    if (opts.csrf) assertSameOrigin(req);
+    if (opts.rateLimit) enforceRateLimit(req, opts.rateLimit);
     const res = await fn();
     getContainer().telemetry.timing('http.request', performance.now() - started, {
       method: req.method,
@@ -31,6 +41,35 @@ export async function run(req: Request, fn: () => Promise<Response>): Promise<Re
     return res;
   } catch (err) {
     return toErrorResponse(err, req);
+  }
+}
+
+/**
+ * CSRF defense for JSON/multipart APIs: a cross-site form/script can send a same-site
+ * cookie, but cannot forge the Origin header. Combined with SameSite=Lax cookies this
+ * blocks classic CSRF. Same-origin and server-to-server (no Origin) requests pass.
+ */
+export function assertSameOrigin(req: Request): void {
+  const origin = req.headers.get('origin');
+  if (!origin) return; // non-browser / same-origin navigations don't always send Origin
+  let originHost: string;
+  try {
+    originHost = new URL(origin).host;
+  } catch {
+    throw AppError.forbidden('Invalid origin');
+  }
+  const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
+  if (host && originHost !== host) {
+    throw AppError.forbidden('Cross-origin request rejected');
+  }
+}
+
+export function enforceRateLimit(req: Request, policy: RateLimitPolicy): void {
+  const { rateLimiter } = getContainer();
+  const ip = clientInfo(req).ip ?? 'unknown';
+  const result = rateLimiter.check(`${policy.name}:${ip}`, policy.limit, policy.windowMs);
+  if (!result.allowed) {
+    throw AppError.rateLimited('Too many requests — please slow down and try again shortly');
   }
 }
 

@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { getContainer } from '@/server/container';
 import { run, parseJson, clientInfo } from '@/server/core/http';
 import { AppError } from '@/server/core/errors';
+import { RATE_LIMITS } from '@/server/core/rate-limit';
 
 const QuoteInput = z.object({
   name: z.string().min(1).max(200),
@@ -40,7 +41,7 @@ export async function POST(req: Request) {
     telemetry.capture({ name: 'quote.requested', actorId: session?.user?.id, props: { items: data.items.length } });
 
     return NextResponse.json({ quote }, { status: 201 });
-  });
+  }, { csrf: true, rateLimit: RATE_LIMITS.quote });
 }
 
 export async function GET(req: Request) {

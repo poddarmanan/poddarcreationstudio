@@ -5,14 +5,21 @@ import { processUpload } from '@/lib/upload-pipeline';
 import { mediaUrl } from '@/lib/storage';
 import { run, clientInfo } from '@/server/core/http';
 import { AppError } from '@/server/core/errors';
+import { RATE_LIMITS } from '@/server/core/rate-limit';
+import { sniffMediaType, categoryOf } from '@/server/media/sniff';
 import { getContainer } from '@/server/container';
 
-const MAX_FILE_BYTES = 50 * 1024 * 1024;
-const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif']);
-const VIDEO_TYPES = new Set(['video/mp4', 'video/webm', 'video/quicktime']);
+const MAX_IMAGE_BYTES = 25 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 200 * 1024 * 1024;
 
 function canManage(role?: string) {
   return !!role && ['ADMIN', 'MANAGER'].includes(role);
+}
+
+/** Strip path components and unsafe chars from a client-supplied filename for safe storage/display. */
+function sanitizeFilename(name: string): string {
+  const base = name.split(/[\\/]/).pop() ?? 'file';
+  return base.replace(/[^\w.\- ]+/g, '_').slice(0, 200) || 'file';
 }
 
 export async function POST(req: Request) {
@@ -29,11 +36,18 @@ export async function POST(req: Request) {
     if (!(file instanceof File) || typeof fabricId !== 'string') {
       throw AppError.validation('file and fabricId are required');
     }
-    if (file.size > MAX_FILE_BYTES) throw AppError.payloadTooLarge('File exceeds 50 MB limit');
 
-    const isImage = IMAGE_TYPES.has(file.type);
-    const isVideo = VIDEO_TYPES.has(file.type);
-    if (!isImage && !isVideo) throw AppError.unsupportedMediaType(`Unsupported file type: ${file.type || 'unknown'}`);
+    const buffer = Buffer.from(await file.arrayBuffer());
+
+    // Trust the file's real bytes, never the client-declared MIME type.
+    const sniffed = sniffMediaType(buffer);
+    if (!sniffed) throw AppError.unsupportedMediaType('Unsupported or unrecognized file type');
+    const category = categoryOf(sniffed);
+
+    const maxBytes = category === 'VIDEO' ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
+    if (buffer.byteLength > maxBytes) {
+      throw AppError.payloadTooLarge(`File exceeds the ${Math.round(maxBytes / 1024 / 1024)} MB limit for ${category.toLowerCase()}s`);
+    }
 
     const fabric = await prisma.fabric.findUnique({ where: { id: fabricId } });
     if (!fabric) throw AppError.notFound('Unknown fabric');
@@ -45,14 +59,13 @@ export async function POST(req: Request) {
       resolvedColourId = colour.id;
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
     const media = await processUpload({
       fabricId,
       colourId: resolvedColourId,
-      originalName: file.name,
-      mimeType: file.type,
+      originalName: sanitizeFilename(file.name),
+      mimeType: sniffed,
       buffer,
-      type: isVideo ? 'VIDEO' : 'IMAGE',
+      type: category,
     });
 
     const info = clientInfo(req);
@@ -72,7 +85,7 @@ export async function POST(req: Request) {
       },
       { status: 201 }
     );
-  });
+  }, { csrf: true, rateLimit: RATE_LIMITS.upload });
 }
 
 export async function GET(req: Request) {

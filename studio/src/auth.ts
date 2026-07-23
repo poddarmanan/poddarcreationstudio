@@ -2,10 +2,15 @@ import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
+import { getContainer } from '@/server/container';
+import { RATE_LIMITS } from '@/server/core/rate-limit';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   session: { strategy: 'jwt' },
   trustHost: true,
+  // Secure, httpOnly, SameSite=Lax session cookies (NextAuth defaults); secure flag + the
+  // __Secure- cookie prefix are enforced automatically over HTTPS in production.
+  useSecureCookies: process.env.NODE_ENV === 'production',
   providers: [
     Credentials({
       name: 'Credentials',
@@ -17,6 +22,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const email = typeof credentials?.email === 'string' ? credentials.email.trim().toLowerCase() : undefined;
         const password = typeof credentials?.password === 'string' ? credentials.password : undefined;
         if (!email || !password) return null;
+
+        // Throttle repeated login attempts per account (brute-force defense).
+        const throttle = getContainer().rateLimiter.check(`${RATE_LIMITS.auth.name}:${email}`, RATE_LIMITS.auth.limit, RATE_LIMITS.auth.windowMs);
+        if (!throttle.allowed) {
+          console.warn('[auth] login throttled for', email);
+          return null;
+        }
 
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user) return null;

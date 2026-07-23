@@ -4,6 +4,7 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { run, parseJson } from '@/server/core/http';
 import { AppError } from '@/server/core/errors';
+import { RATE_LIMITS } from '@/server/core/rate-limit';
 
 const PinInput = z.object({ fabricId: z.string(), colourId: z.string() });
 
@@ -44,5 +45,5 @@ export async function POST(req: Request) {
       include: { colour: true },
     });
     return NextResponse.json({ item }, { status: 201 });
-  });
+  }, { csrf: true, rateLimit: RATE_LIMITS.write });
 }

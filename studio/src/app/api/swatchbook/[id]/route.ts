@@ -13,5 +13,5 @@ export async function DELETE(req: Request, ctx: RouteContext<'/api/swatchbook/[i
     if (!item || item.userId !== session.user.id) throw AppError.notFound();
     await prisma.swatchBookItem.delete({ where: { id } });
     return NextResponse.json({ ok: true });
-  });
+  }, { csrf: true });
 }

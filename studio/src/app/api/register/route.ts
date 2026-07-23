@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { run, parseJson, clientInfo } from '@/server/core/http';
 import { AppError } from '@/server/core/errors';
+import { RATE_LIMITS } from '@/server/core/rate-limit';
 import { getContainer } from '@/server/container';
 
 const RegisterInput = z.object({
@@ -33,5 +34,5 @@ export async function POST(req: Request) {
     telemetry.capture({ name: 'user.registered', actorId: user.id });
 
     return NextResponse.json({ user: { id: user.id, email: user.email, name: user.name } }, { status: 201 });
-  });
+  }, { csrf: true, rateLimit: RATE_LIMITS.register });
 }
