@@ -14,6 +14,7 @@ import { SearchService } from './search/search.service';
 import { createEmailTransport } from './email';
 import { EmailService } from './email/email.service';
 import { TokenService } from './email/token.service';
+import { DealerService } from './dealer/dealer.service';
 
 /**
  * Composition root (dependency-injection seam). The ONE place that knows about concrete
@@ -34,6 +35,7 @@ export interface Container {
   searchService: SearchService;
   emailService: EmailService;
   tokenService: TokenService;
+  dealerService: DealerService;
 }
 
 function build(): Container {
@@ -52,8 +54,9 @@ function build(): Container {
   const searchService = new SearchService(createSearchEngine(prisma), new PrismaSearchQueryLogRepository(prisma), prisma, telemetry);
   const emailService = new EmailService(createEmailTransport());
   const tokenService = new TokenService(prisma);
+  const dealerService = new DealerService(prisma);
 
-  return { telemetry, audit, rateLimiter, storage, cdn, fabricRepository, fabricService, colourRepository, colourService, searchService, emailService, tokenService };
+  return { telemetry, audit, rateLimiter, storage, cdn, fabricRepository, fabricService, colourRepository, colourService, searchService, emailService, tokenService, dealerService };
 }
 
 const globalForContainer = globalThis as unknown as { __pcContainer?: Container };

@@ -188,9 +188,16 @@ export function useStudio(fabrics: FabricRow[]): Studio {
   const openFabric = useCallback(
     (id: string, colourIdx?: number) => {
       const f = fab(id);
+      const idx = colourIdx === undefined ? f.heroIndex : colourIdx;
       setFid(id);
-      setCi(colourIdx === undefined ? f.heroIndex : colourIdx);
+      setCi(idx);
       go('fabric');
+      // Record for the dealer portal's "recently viewed" — fire-and-forget; the endpoint
+      // no-ops for anonymous visitors, so this is a no-op unless the buyer is signed in.
+      const colourId = f.colours[idx]?.id;
+      if (colourId) {
+        fetch('/api/portal/recent', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ fabricId: id, colourId }) }).catch(() => {});
+      }
     },
     [fab, go]
   );

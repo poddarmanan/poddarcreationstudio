@@ -63,6 +63,97 @@ model User {
   createdAt       DateTime         @default(now())
   quotes          Quote[]
   swatchItems     SwatchBookItem[]
+  dealerProfile   DealerProfile?
+  favourites      Favourite[]
+  collections     Collection[]
+  recentlyViewed  RecentlyViewed[]
+  downloads       Download[]
+}
+
+/// Dealer/buyer profile: company, shipping, GST, and communication preferences (Priority 6).
+model DealerProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company         String?
+  contactPhone    String?
+  whatsapp        String?
+  gstNumber       String?
+  shippingLine1   String?
+  shippingCity    String?
+  shippingState   String?
+  shippingPincode String?
+  shippingCountry String?  @default("India")
+  prefEmail       Boolean  @default(true)
+  prefWhatsapp    Boolean  @default(true)
+  prefPhone       Boolean  @default(false)
+  updatedAt       DateTime @updatedAt
+}
+
+model Favourite {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fabricId  String
+  fabric    Fabric   @relation(fields: [fabricId], references: [id], onDelete: Cascade)
+  colourId  String?
+  colour    Colour?  @relation(fields: [colourId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, fabricId, colourId])
+  @@index([userId])
+}
+
+model Collection {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  createdAt DateTime         @default(now())
+  items     CollectionItem[]
+
+  @@index([userId])
+}
+
+model CollectionItem {
+  id           String     @id @default(cuid())
+  collectionId String
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  fabricId     String
+  fabric       Fabric     @relation(fields: [fabricId], references: [id], onDelete: Cascade)
+  colourId     String
+  colour       Colour     @relation(fields: [colourId], references: [id], onDelete: Cascade)
+  note         String?
+  createdAt    DateTime   @default(now())
+
+  @@unique([collectionId, fabricId, colourId])
+}
+
+model RecentlyViewed {
+  id       String   @id @default(cuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fabricId String
+  fabric   Fabric   @relation(fields: [fabricId], references: [id], onDelete: Cascade)
+  colourId String?
+  colour   Colour?  @relation(fields: [colourId], references: [id], onDelete: Cascade)
+  viewedAt DateTime @default(now())
+
+  @@unique([userId, fabricId, colourId])
+  @@index([userId, viewedAt])
+}
+
+model Download {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fabricId  String?
+  fabric    Fabric?  @relation(fields: [fabricId], references: [id], onDelete: SetNull)
+  colourId  String?
+  kind      String
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
 
 enum TokenType {
@@ -104,10 +195,14 @@ model Fabric {
   seed        Int
   price       Int
   heroIndex   Int
-  colours     Colour[]
-  media       Media[]
-  quoteItems  QuoteItem[]
-  swatchItems SwatchBookItem[]
+  colours         Colour[]
+  media           Media[]
+  quoteItems      QuoteItem[]
+  swatchItems     SwatchBookItem[]
+  favourites      Favourite[]
+  collectionItems CollectionItem[]
+  recentlyViewed  RecentlyViewed[]
+  downloads       Download[]
 }
 
 model Colour {
@@ -136,11 +231,14 @@ model Colour {
   /// Reserved extension point for future AI / vector similarity search (unused for now).
   colourVector  Json?
 
-  media          Media[]
-  quoteItems     QuoteItem[]
-  swatchItems    SwatchBookItem[]
-  relationsFrom  ColourRelationship[] @relation("relationFrom")
-  relationsTo    ColourRelationship[] @relation("relationTo")
+  media           Media[]
+  quoteItems      QuoteItem[]
+  swatchItems     SwatchBookItem[]
+  relationsFrom   ColourRelationship[] @relation("relationFrom")
+  relationsTo     ColourRelationship[] @relation("relationTo")
+  favourites      Favourite[]
+  collectionItems CollectionItem[]
+  recentlyViewed  RecentlyViewed[]
 
   @@unique([fabricId, order])
   @@index([fabricId])
