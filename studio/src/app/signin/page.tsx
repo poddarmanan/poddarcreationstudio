@@ -1,22 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 import { AuthCard, authInputStyle, authButtonStyle, authNoteStyle } from '@/components/auth/AuthCard';
 
-export default function SignInPage() {
+function SignInForm() {
+  const nextParam = useSearchParams().get('next');
+  // Only same-site paths are honoured, so a crafted ?next= cannot bounce a signed-in user
+  // to another origin.
+  const next = nextParam?.startsWith('/') ? nextParam : '/portal';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [next, setNext] = useState('/portal');
-
-  useEffect(() => {
-    const n = new URLSearchParams(window.location.search).get('next');
-    if (n && n.startsWith('/')) setNext(n);
-  }, []);
-
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -41,5 +39,13 @@ export default function SignInPage() {
         <Link href="/" style={{ color: 'rgba(28,25,23,.55)' }}>Back to the studio</Link>
       </div>
     </AuthCard>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={<AuthCard eyebrow="Dealer Portal" heading="Sign in"><p style={authNoteStyle}>Loading…</p></AuthCard>}>
+      <SignInForm />
+    </Suspense>
   );
 }

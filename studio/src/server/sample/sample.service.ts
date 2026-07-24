@@ -2,6 +2,8 @@ import type { PrismaClient } from '@/generated/prisma/client';
 import type { SampleStatus } from '@/generated/prisma/enums';
 import type { EmailService } from '../email/email.service';
 import type { Telemetry } from '../core/telemetry';
+import type { ActivityService } from '../activity/activity.service';
+import type { NotificationService } from '../notification/notification.service';
 import { AppError } from '../core/errors';
 
 export interface CreateSampleInput {
@@ -39,8 +41,15 @@ export class SampleService {
   constructor(
     private readonly db: PrismaClient,
     private readonly email: EmailService,
-    private readonly telemetry: Telemetry
+    private readonly telemetry: Telemetry,
+    private readonly activity: ActivityService,
+    private notifications?: NotificationService
   ) {}
+
+  /** Wired by the composition root once both services exist. */
+  attachNotifications(notifications: NotificationService): void {
+    this.notifications = notifications;
+  }
 
   async create(input: CreateSampleInput) {
     if (input.items.length === 0) throw AppError.validation('Select at least one shade to sample');
@@ -63,6 +72,26 @@ export class SampleService {
         events: { create: { type: 'CREATED', toStatus: 'REQUESTED', actorId: input.userId } },
       },
       include: { items: true },
+    });
+
+    if (input.userId) {
+      await this.activity.record({
+        userId: input.userId,
+        type: 'SAMPLE',
+        title: 'Sample request sent',
+        detail: `${input.items.length} shade${input.items.length === 1 ? '' : 's'} to ${input.shippingCity}`,
+        entity: 'SampleRequest',
+        entityId: sample.id,
+      });
+    }
+
+    await this.notifications?.notifyStaff({
+      type: 'SAMPLE',
+      title: 'New sample request',
+      body: `${input.company} — ${input.items.length} shade${input.items.length === 1 ? '' : 's'}`,
+      link: '/admin/samples',
+      entity: 'SampleRequest',
+      entityId: sample.id,
     });
 
     try {
@@ -136,13 +165,30 @@ export class SampleService {
       },
     });
 
-    try {
-      const to = updated.email ?? (updated.userId ? (await this.db.user.findUnique({ where: { id: updated.userId } }))?.email : null);
-      if (to) await this.email.sendSampleStatus(to, updated.name, status, updated.courier, updated.trackingNumber);
-    } catch (err) {
-      this.telemetry.error(err, { where: 'sample.notifyStatus' });
+    // A signed-in customer hears through the notification centre (in-app + a preference-aware
+    // email). A guest request has no account to notify, so it still gets the direct email.
+    if (!updated.userId && updated.email) {
+      try {
+        await this.email.sendSampleStatus(updated.email, updated.name, status, updated.courier, updated.trackingNumber);
+      } catch (err) {
+        this.telemetry.error(err, { where: 'sample.notifyGuest' });
+      }
     }
 
+    if (updated.userId) {
+      await this.activity.record({
+        userId: updated.userId,
+        type: 'SAMPLE',
+        title: `Sample request ${status.toLowerCase()}`,
+        detail: updated.trackingNumber ? `${updated.courier} · ${updated.trackingNumber}` : (updated.courier ?? null),
+        entity: 'SampleRequest',
+        entityId: updated.id,
+      });
+    }
+
+    if (updated.userId) {
+      await this.notifications?.sampleUpdated(updated.userId, updated.id, status, updated.courier, updated.trackingNumber);
+    }
     this.telemetry.capture({ name: 'sample.status', actorId, props: { status } });
     return updated;
   }

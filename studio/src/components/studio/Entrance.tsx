@@ -50,12 +50,11 @@ export function Entrance({ studio }: { studio: Studio }) {
 
   // Typo-tolerant results from the search service (Meilisearch / Postgres trigram). Falls
   // back to the instant local list until the request resolves, and if it ever fails.
-  const [apiResults, setApiResults] = useState<ResultItem[] | null>(null);
+  // Keyed by the query they answer, so a stale response never renders against a newer
+  // query and the short-query case needs no state reset.
+  const [apiResults, setApiResults] = useState<{ query: string; items: ResultItem[] } | null>(null);
   useEffect(() => {
-    if (query.length < 2) {
-      setApiResults(null);
-      return;
-    }
+    if (query.length < 2) return;
     const ctrl = new AbortController();
     const timer = setTimeout(async () => {
       try {
@@ -71,7 +70,7 @@ export function Entrance({ studio }: { studio: Studio }) {
           }
           return { key: `a-f-${h.fabricId}`, label: h.name, sub: fab ? `${fab.weight} · ${fab.width}` : '', dot: fab ? colourCss(heroColour(fab)) : '#8A6D45', go: () => { setQ(''); studio.openFabric(h.fabricId); } };
         });
-        setApiResults(items);
+        setApiResults({ query, items });
       } catch {
         /* aborted or offline — keep the instant local results */
       }
@@ -83,7 +82,7 @@ export function Entrance({ studio }: { studio: Studio }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, fabrics]);
 
-  const results = apiResults ?? localResults;
+  const results = apiResults?.query === query ? apiResults.items : localResults;
   const hasResults = !!(results.length || asst);
 
   return (

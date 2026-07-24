@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
+import { isAdmin } from '@/server/core/rbac';
 import { getContainer } from '@/server/container';
 import { mediaUrl } from '@/lib/storage';
 import { CatalogueOps } from '@/components/admin/CatalogueOps';
@@ -8,7 +9,7 @@ import { CatalogueOps } from '@/components/admin/CatalogueOps';
 export default async function AdminCataloguePage() {
   const session = await auth();
   if (!session?.user?.id) redirect('/signin?next=/admin/catalogue');
-  if (!['ADMIN', 'MANAGER'].includes(session.user.role)) redirect('/');
+  if (!isAdmin(session.user.role)) redirect('/');
 
   const { adminService } = getContainer();
   const [{ media, nextCursor }, jobs, feed, fabrics] = await Promise.all([

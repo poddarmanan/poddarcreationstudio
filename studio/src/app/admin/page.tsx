@@ -1,15 +1,21 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { auth } from '@/auth';
+import { isStaff } from '@/server/core/rbac';
 import { getContainer } from '@/server/container';
 
 /** Staff hub: analytics overview + doors to the quote desk, sample desk, and catalogue ops. */
 export default async function AdminHubPage() {
   const session = await auth();
   if (!session?.user?.id) redirect('/signin?next=/admin');
-  if (!['ADMIN', 'MANAGER', 'SALES'].includes(session.user.role)) redirect('/');
+  if (!isStaff(session.user.role)) redirect('/');
 
-  const a = await getContainer().adminService.analytics();
+  const { adminService, notificationService } = getContainer();
+  const [a, notifications, unread] = await Promise.all([
+    adminService.analytics(),
+    notificationService.list(session.user.id, { take: 8 }),
+    notificationService.unreadCount(session.user.id),
+  ]);
   const INK = '#1C1917';
   const GOLD = '#8A6D45';
   const card: React.CSSProperties = { background: '#fff', border: '1px solid rgba(28,25,23,.08)', borderRadius: 8, padding: 22 };
@@ -24,9 +30,12 @@ export default async function AdminHubPage() {
     { k: 'Samples (req.)', v: a.samples.REQUESTED ?? 0 },
   ];
   const doors = [
+    { href: '/admin/sales', title: 'Sales Workspace', desc: 'Pipeline, customers, notes and follow-ups' },
     { href: '/admin/quotes', title: 'Quotations', desc: 'Triage, assign and track inquiries' },
     { href: '/admin/samples', title: 'Samples', desc: 'Approve and dispatch swatch requests' },
     { href: '/admin/catalogue', title: 'Catalogue Ops', desc: 'Bulk media ops, CSV, activity, queue' },
+    { href: '/admin/analytics', title: 'Analytics', desc: 'Interest, conversion, customers, storage' },
+    { href: '/admin/diagnostics', title: 'Diagnostics', desc: 'Health, environment, backups, performance' },
   ];
 
   return (
@@ -53,6 +62,26 @@ export default async function AdminHubPage() {
             </Link>
           ))}
         </div>
+
+        {/* Notifications (M19) — staff read theirs here, customers in the portal. */}
+        {notifications.length > 0 && (
+          <div style={{ ...card, marginTop: 26 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 10 }}>
+              <h2 style={{ margin: 0, fontFamily: 'var(--font-display),serif', fontWeight: 600, fontSize: 17, color: INK }}>Notifications</h2>
+              {unread > 0 && <span style={{ fontSize: 10.5, letterSpacing: '.1em', textTransform: 'uppercase', color: GOLD, background: 'rgba(138,109,69,.1)', borderRadius: 999, padding: '3px 10px' }}>{unread} unread</span>}
+            </div>
+            <ol style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+              {notifications.map((n) => (
+                <li key={n.id} style={{ display: 'flex', gap: 10, alignItems: 'baseline', padding: '7px 0', borderBottom: '1px solid rgba(28,25,23,.06)' }}>
+                  <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: n.readAt ? 'rgba(28,25,23,.2)' : GOLD, flexShrink: 0 }} />
+                  <span style={{ fontSize: 13, color: INK }}>{n.title}</span>
+                  {n.body && <span style={{ fontSize: 11.5, color: 'rgba(28,25,23,.5)' }}>{n.body}</span>}
+                  <span style={{ marginLeft: 'auto', fontSize: 11.5, color: 'rgba(28,25,23,.45)', whiteSpace: 'nowrap' }}>{new Date(n.createdAt).toLocaleDateString()}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
 
         <div style={{ marginTop: 26, fontSize: 12.5 }}>
           <Link href="/" style={{ color: GOLD }}>← Back to the studio</Link>

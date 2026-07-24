@@ -75,6 +75,8 @@ async function main() {
   // Analytics + activity shapes.
   const a = await adminService.analytics();
   assert(a.fabrics === 11 && a.colours === 264 && typeof a.media.total === 'number', 'analytics aggregates');
+  // Seed one entry so the assertion holds on a freshly migrated database too.
+  await getContainer().audit.record({ action: 'smoke.m9', entity: 'Media', entityId: m1.id });
   const feed = await adminService.activity(10);
   assert(Array.isArray(feed.events) && feed.events.length > 0, 'activity feed serves audit rows');
   console.log('analytics + activity ✓');

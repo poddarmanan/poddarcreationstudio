@@ -34,8 +34,10 @@ async function main() {
     message: 'Need bridal-grade lustre; shade must match the swatch.',
     items: [{ fabricId: 'gajji', colourId: colour.id }],
   });
-  assert(quote.status === 'NEW', 'created as NEW');
-  console.log('create: NEW quote with inquiry fields ✓');
+  // Phase 3 M15 renamed the lifecycle: NEW → SUBMITTED, ASSIGNED → UNDER_REVIEW,
+  // QUOTED → PRICED. The M7 workflow contract is unchanged and still asserted here.
+  assert(quote.status === 'SUBMITTED', 'created as SUBMITTED');
+  console.log('create: SUBMITTED quote with inquiry fields ✓');
 
   // Buyer confirmation + 2 staff notices (admin + sales) = 3 emails.
   const afterCreate = await outboxCount();
@@ -45,15 +47,15 @@ async function main() {
   // Assign → ASSIGNED + event + status email.
   await quoteService.assign(quote.id, sales.id, sales.id);
   let detail = await quoteService.get(quote.id);
-  assert(detail?.status === 'ASSIGNED' && detail.assignee?.id === sales.id, 'assigned');
+  assert(detail?.status === 'UNDER_REVIEW' && detail.assignee?.id === sales.id, 'assigned');
   assert(detail.events.some((e) => e.type === 'ASSIGN'), 'ASSIGN event recorded');
 
-  // Status → QUOTED with note.
-  await quoteService.updateStatus(quote.id, 'QUOTED', sales.id, '₹212/m FOB Surat');
+  // Status → PRICED with note.
+  await quoteService.updateStatus(quote.id, 'PRICED', sales.id, '₹212/m FOB Surat');
   detail = await quoteService.get(quote.id);
-  assert(detail?.status === 'QUOTED', 'status QUOTED');
+  assert(detail?.status === 'PRICED', 'status PRICED');
   const statusEvent = detail.events.find((e) => e.type === 'STATUS');
-  assert(statusEvent?.fromStatus === 'ASSIGNED' && statusEvent?.toStatus === 'QUOTED', 'status transition recorded');
+  assert(statusEvent?.fromStatus === 'UNDER_REVIEW' && statusEvent?.toStatus === 'PRICED', 'status transition recorded');
 
   // Note.
   await quoteService.addNote(quote.id, 'Buyer will confirm after Diwali.', sales.id);
@@ -65,11 +67,13 @@ async function main() {
   assert(timeline === 'CREATED → ASSIGN → STATUS → NOTE', 'full ordered timeline');
 
   const afterAll = await outboxCount();
-  assert(afterAll - afterCreate === 2, `assign + quoted status emails (got ${afterAll - afterCreate})`);
-  console.log('status notifications: assigned + quoted emails ✓');
+  // M15: PRICED is an internal state — the customer hears about it at SENT, so only the
+  // assignment (UNDER_REVIEW) email goes out here.
+  assert(afterAll - afterCreate === 1, `assignment status email (got ${afterAll - afterCreate})`);
+  console.log('status notifications: customer told at under-review, not at internal pricing ✓');
 
   // Filtered list.
-  const quoted = await quoteService.list({ status: 'QUOTED' });
+  const quoted = await quoteService.list({ status: 'PRICED' });
   assert(quoted.some((q) => q.id === quote.id), 'list filter by status');
   const mine = await quoteService.list({ assigneeId: sales.id });
   assert(mine.some((q) => q.id === quote.id), 'list filter by assignee');

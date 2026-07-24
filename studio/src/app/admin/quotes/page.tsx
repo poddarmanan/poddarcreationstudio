@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
+import { isStaff } from '@/server/core/rbac';
 import { getContainer } from '@/server/container';
 import { prisma } from '@/lib/prisma';
 import { QuoteDesk } from '@/components/admin/QuoteDesk';
@@ -8,7 +9,7 @@ import { QuoteDesk } from '@/components/admin/QuoteDesk';
 export default async function AdminQuotesPage() {
   const session = await auth();
   if (!session?.user?.id) redirect('/signin?next=/admin/quotes');
-  if (!['ADMIN', 'MANAGER', 'SALES'].includes(session.user.role)) redirect('/');
+  if (!isStaff(session.user.role)) redirect('/');
 
   const [quotes, staff] = await Promise.all([
     getContainer().quoteService.list({}),

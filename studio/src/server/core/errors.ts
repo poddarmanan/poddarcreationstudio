@@ -27,7 +27,16 @@ const STATUS: Record<ErrorCode, number> = {
   INTERNAL: 500,
 };
 
+/**
+ * Cross-realm brand. A production bundle can contain more than one copy of this module
+ * (route bundles vs shared chunks), and `instanceof` is false across copies — which turned
+ * every service-thrown 404/400 into a generic 500. A registry symbol is shared by every
+ * copy, so the check below holds no matter which copy constructed the error.
+ */
+const APP_ERROR = Symbol.for('poddar.AppError');
+
 export class AppError extends Error {
+  readonly [APP_ERROR] = true;
   readonly code: ErrorCode;
   readonly status: number;
   /** Extra machine-readable context (never leaked to clients for 5xx). */
@@ -71,5 +80,5 @@ export class AppError extends Error {
 }
 
 export function isAppError(err: unknown): err is AppError {
-  return err instanceof AppError;
+  return typeof err === 'object' && err !== null && (err as Record<symbol, unknown>)[APP_ERROR] === true;
 }

@@ -17,6 +17,16 @@ import { createEmailTransport } from './email';
 import { EmailService } from './email/email.service';
 import { TokenService } from './email/token.service';
 import { DealerService } from './dealer/dealer.service';
+import { CustomerService } from './customer/customer.service';
+import { CollectionService } from './collection/collection.service';
+import { ActivityService } from './activity/activity.service';
+import { DashboardService } from './dashboard/dashboard.service';
+import { SalesService } from './sales/sales.service';
+import { ShareService } from './share/share.service';
+import { AnalyticsService } from './analytics/analytics.service';
+import { NotificationService } from './notification/notification.service';
+import { HealthService } from './health/health.service';
+import { LoggingEmailTransport } from './email/logging';
 import { QuoteService } from './quote/quote.service';
 import { SampleService } from './sample/sample.service';
 import { AdminService } from './admin/admin.service';
@@ -42,6 +52,15 @@ export interface Container {
   emailService: EmailService;
   tokenService: TokenService;
   dealerService: DealerService;
+  customerService: CustomerService;
+  collectionService: CollectionService;
+  activityService: ActivityService;
+  dashboardService: DashboardService;
+  salesService: SalesService;
+  shareService: ShareService;
+  analyticsService: AnalyticsService;
+  notificationService: NotificationService;
+  healthService: HealthService;
   quoteService: QuoteService;
   sampleService: SampleService;
   adminService: AdminService;
@@ -61,14 +80,30 @@ function build(): Container {
   const colourRepository = new PrismaColourRepository(prisma);
   const colourService = new ColourService(colourRepository);
   const searchService = new SearchService(createSearchEngine(prisma), new PrismaSearchQueryLogRepository(prisma), prisma, telemetry);
-  const emailService = new EmailService(createEmailTransport());
+  // Every message goes through the logging decorator, so all mail — including the Phase 2
+  // flows — lands in EmailLog without any call site knowing (M19).
+  const emailService = new EmailService(new LoggingEmailTransport(createEmailTransport(), prisma));
   const tokenService = new TokenService(prisma);
-  const dealerService = new DealerService(prisma);
-  const quoteService = new QuoteService(prisma, emailService, telemetry);
-  const sampleService = new SampleService(prisma, emailService, telemetry);
+  const activityService = new ActivityService(prisma);
+  const dealerService = new DealerService(prisma, activityService);
+  const customerService = new CustomerService(prisma, emailService, tokenService, telemetry);
+  const quoteService = new QuoteService(prisma, emailService, telemetry, activityService);
+  const collectionService = new CollectionService(prisma, quoteService, telemetry, activityService);
+  const sampleService = new SampleService(prisma, emailService, telemetry, activityService);
   const adminService = new AdminService(prisma, storage);
+  const salesService = new SalesService(prisma, telemetry);
+  const shareService = new ShareService(prisma, emailService, telemetry, activityService);
+  const analyticsService = new AnalyticsService(prisma, storage);
+  const notificationService = new NotificationService(prisma, emailService, telemetry);
+  const dashboardService = new DashboardService(prisma, dealerService, collectionService, sampleService, activityService, notificationService);
+  const healthService = new HealthService(prisma, storage, emailService, searchService);
+  // Quote, sample and share services publish notifications; the notification service needs
+  // none of them. Attaching after construction keeps that one-way and avoids a service locator.
+  quoteService.attachNotifications(notificationService);
+  sampleService.attachNotifications(notificationService);
+  shareService.attachNotifications(notificationService);
 
-  return { telemetry, audit, rateLimiter, cache, storage, cdn, fabricRepository, fabricService, colourRepository, colourService, searchService, emailService, tokenService, dealerService, quoteService, sampleService, adminService };
+  return { telemetry, audit, rateLimiter, cache, storage, cdn, fabricRepository, fabricService, colourRepository, colourService, searchService, emailService, tokenService, dealerService, customerService, collectionService, activityService, dashboardService, salesService, shareService, analyticsService, notificationService, healthService, quoteService, sampleService, adminService };
 }
 
 const globalForContainer = globalThis as unknown as { __pcContainer?: Container };

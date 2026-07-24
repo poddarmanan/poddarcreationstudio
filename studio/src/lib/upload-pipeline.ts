@@ -44,7 +44,7 @@ export async function processUpload(input: UploadInput) {
     metadata: { fabricId: input.fabricId, colourId: input.colourId ?? '', checksum },
   });
 
-  const media = await prisma.media.create({
+  await prisma.media.create({
     data: {
       id,
       fabricId: input.fabricId,

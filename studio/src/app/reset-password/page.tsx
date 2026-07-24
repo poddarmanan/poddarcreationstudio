@@ -1,19 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { AuthCard, authInputStyle, authButtonStyle, authNoteStyle } from '@/components/auth/AuthCard';
 
-export default function ResetPasswordPage() {
-  const [token, setToken] = useState('');
+function ResetPasswordForm() {
+  const token = useSearchParams().get('token') ?? '';
   const [password, setPassword] = useState('');
   const [state, setState] = useState<'form' | 'done'>('form');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    setToken(new URLSearchParams(window.location.search).get('token') ?? '');
-  }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -44,5 +41,13 @@ export default function ResetPasswordPage() {
         </form>
       )}
     </AuthCard>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<AuthCard eyebrow="Security" heading="Choose a new password"><p style={authNoteStyle}>Loading…</p></AuthCard>}>
+      <ResetPasswordForm />
+    </Suspense>
   );
 }

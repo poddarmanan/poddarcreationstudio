@@ -8,13 +8,10 @@ import { AppError } from '@/server/core/errors';
 import { RATE_LIMITS } from '@/server/core/rate-limit';
 import { sniffMediaType, categoryOf } from '@/server/media/sniff';
 import { getContainer } from '@/server/container';
+import { isAdmin, isStaff } from '@/server/core/rbac';
 
 const MAX_IMAGE_BYTES = 25 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 200 * 1024 * 1024;
-
-function canManage(role?: string) {
-  return !!role && ['ADMIN', 'MANAGER'].includes(role);
-}
 
 /** Strip path components and unsafe chars from a client-supplied filename for safe storage/display. */
 function sanitizeFilename(name: string): string {
@@ -25,7 +22,7 @@ function sanitizeFilename(name: string): string {
 export async function POST(req: Request) {
   return run(req, async () => {
     const session = await auth();
-    if (!canManage(session?.user?.role)) throw AppError.forbidden('Admin or manager role required');
+    if (!isAdmin(session?.user?.role)) throw AppError.forbidden('Admin or manager role required');
 
     const form = await req.formData().catch(() => null);
     if (!form) throw AppError.validation('multipart/form-data required');
@@ -113,9 +110,7 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
   return run(req, async () => {
     const session = await auth();
-    if (!canManage(session?.user?.role) && session?.user?.role !== 'SALES') {
-      throw AppError.forbidden('Staff role required');
-    }
+    if (!isStaff(session?.user?.role)) throw AppError.forbidden('Staff role required');
     const [media, colourCount, mediaCount, quoteCount, fabricCount] = await Promise.all([
       prisma.media.findMany({
         orderBy: { createdAt: 'desc' },

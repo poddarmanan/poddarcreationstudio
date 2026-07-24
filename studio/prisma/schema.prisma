@@ -94,7 +94,18 @@ model User {
   approved        Boolean          @default(false)
   company         String?
   emailVerifiedAt DateTime?
+  /// Last successful credential sign-in (Phase 3 M12). Powers "returning customers"
+  /// analytics and the sales workspace's engagement view.
+  lastLoginAt     DateTime?
   createdAt       DateTime         @default(now())
+  addresses       ShippingAddress[]
+  contacts        ContactPerson[]
+  activity        ActivityEvent[]
+  followUps       FollowUp[]       @relation("customerFollowUps")
+  assignedFollowUps FollowUp[]     @relation("assignedFollowUps")
+  notes           CustomerNote[]   @relation("customerNotes")
+  authoredNotes   CustomerNote[]   @relation("authoredNotes")
+  notifications   Notification[]
   quotes          Quote[]          @relation("buyerQuotes")
   assignedQuotes  Quote[]          @relation("assignedQuotes")
   sampleRequests  SampleRequest[]  @relation("buyerSamples")
@@ -116,6 +127,9 @@ model DealerProfile {
   contactPhone    String?
   whatsapp        String?
   gstNumber       String?
+  /// VAT / tax identifier for export customers (Phase 3 M12). GST covers India, VAT the rest.
+  vatNumber       String?
+  website         String?
   shippingLine1   String?
   shippingCity    String?
   shippingState   String?
@@ -124,7 +138,53 @@ model DealerProfile {
   prefEmail       Boolean  @default(true)
   prefWhatsapp    Boolean  @default(true)
   prefPhone       Boolean  @default(false)
+  // Per-category email preferences (Phase 3 M19). In-app notifications are always written;
+  // these only govern whether we also put it in someone's inbox.
+  notifyQuotes    Boolean  @default(true)
+  notifySamples   Boolean  @default(true)
+  notifyShares    Boolean  @default(true)
   updatedAt       DateTime @updatedAt
+}
+
+/// A customer's book of delivery addresses (Phase 3 M12). The single address on
+/// `DealerProfile` stays as the profile's primary and is migrated in as the first entry;
+/// sample and quote flows read the default address from here.
+model ShippingAddress {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label       String   @default("Delivery address")
+  contactName String?
+  phone       String?
+  line1       String
+  line2       String?
+  city        String
+  state       String?
+  pincode     String?
+  country     String   @default("India")
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, isDefault])
+}
+
+/// Named people at the customer's company (Phase 3 M12) — merchandiser, accounts, logistics.
+/// Sales addresses the right person instead of a generic company mailbox.
+model ContactPerson {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  designation String?
+  email       String?
+  phone       String?
+  whatsapp    String?
+  isPrimary   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, isPrimary])
 }
 
 model Favourite {
@@ -141,15 +201,23 @@ model Favourite {
   @@index([userId])
 }
 
+/// A customer's board of shades (Phase 3 M13) — "Wedding collection", "AW26 linens".
+/// Ordered, annotated, quantified, and (M17) shareable as a catalogue.
 model Collection {
-  id        String           @id @default(cuid())
-  userId    String
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name      String
-  createdAt DateTime         @default(now())
-  items     CollectionItem[]
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  /// Item chosen as the board's cover; null falls back to the first item.
+  coverItemId String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt @default(now())
+  items       CollectionItem[]
+  shares      CollectionShare[]
 
   @@index([userId])
+  @@index([userId, updatedAt])
 }
 
 model CollectionItem {
@@ -161,9 +229,175 @@ model CollectionItem {
   colourId     String
   colour       Colour     @relation(fields: [colourId], references: [id], onDelete: Cascade)
   note         String?
+  /// Indicative order quantity for this shade, carried into a quotation request.
+  quantity     Float?
+  unit         String?    @default("m")
+  /// Manual ordering within the board; ties break on createdAt.
+  position     Int        @default(0)
   createdAt    DateTime   @default(now())
 
   @@unique([collectionId, fabricId, colourId])
+  @@index([collectionId, position])
+}
+
+/// A shared catalogue link for a collection (Phase 3 M17). The raw token lives only in the
+/// URL; only its SHA-256 hash is stored, so a database read cannot reconstruct a live link —
+/// the same discipline as the email `Token` model.
+model CollectionShare {
+  id            String      @id @default(cuid())
+  collectionId  String
+  collection    Collection  @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  createdById   String?
+  tokenHash     String      @unique
+  title         String?
+  message       String?
+  /// bcrypt hash of the optional passphrase. Null = the link alone is enough.
+  passwordHash  String?
+  expiresAt     DateTime?
+  allowDownload Boolean     @default(true)
+  revokedAt     DateTime?
+  viewCount     Int         @default(0)
+  lastViewedAt  DateTime?
+  createdAt     DateTime    @default(now())
+  views         ShareView[]
+
+  @@index([collectionId, createdAt])
+}
+
+/// One anonymous open of a shared catalogue (Phase 3 M17). Feeds the owner's "who has seen
+/// this?" and M18's popular-collections analytics. Stores no identity — a truncated IP hash
+/// is enough to distinguish visitors without retaining an address.
+model ShareView {
+  id        String          @id @default(cuid())
+  shareId   String
+  share     CollectionShare @relation(fields: [shareId], references: [id], onDelete: Cascade)
+  visitorId String?
+  referer   String?
+  createdAt DateTime        @default(now())
+
+  @@index([shareId, createdAt])
+}
+
+/// One notification for one person (Phase 3 M19). In-app is the durable record; email is a
+/// delivery channel on top, subject to the recipient's preferences.
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// QUOTE | SAMPLE | SHARE | ACCOUNT | SYSTEM — drives grouping and the preference check.
+  type      String
+  title     String
+  body      String?
+  /// Where clicking it should take the recipient.
+  link      String?
+  entity    String?
+  entityId  String?
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId, readAt, createdAt])
+  @@index([userId, createdAt])
+}
+
+/// Delivery record for every email the platform sends (Phase 3 M19). Written by a transport
+/// decorator, so *all* mail is logged — including the Phase 2 flows — without touching a single
+/// call site. Doubles as the email half of the sales workspace's communication history.
+model EmailLog {
+  id        String   @id @default(cuid())
+  to        String
+  subject   String
+  userId    String?
+  /// SENT | FAILED
+  status    String   @default("SENT")
+  error     String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([to, createdAt])
+  @@index([createdAt])
+}
+
+/// Human-readable journey log per customer (Phase 3 M14) — "you saved Rani", "your quote
+/// was priced". Deliberately separate from `AuditLog`, which is a security record written
+/// for staff and retained on different terms; this one is written *for the customer*.
+model ActivityEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Coarse category, used for the icon/grouping. See ACTIVITY_TYPES in activity.service.
+  type      String
+  title     String
+  detail    String?
+  entity    String?
+  entityId  String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([type, createdAt])
+}
+
+enum FollowUpStatus {
+  OPEN
+  DONE
+  CANCELLED
+}
+
+/// A scheduled touchpoint with a customer (Phase 3 M14 read side, M16 sales tooling).
+/// `visibleToCustomer` separates "we'll call you Thursday" from an internal reminder — the
+/// customer dashboard only ever shows the former.
+model FollowUp {
+  id                String         @id @default(cuid())
+  userId            String
+  user              User           @relation("customerFollowUps", fields: [userId], references: [id], onDelete: Cascade)
+  assigneeId        String?
+  assignee          User?          @relation("assignedFollowUps", fields: [assigneeId], references: [id], onDelete: SetNull)
+  createdById       String?
+  subject           String
+  note              String?
+  dueAt             DateTime
+  status            FollowUpStatus @default(OPEN)
+  visibleToCustomer Boolean        @default(true)
+  completedAt       DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@index([userId, status, dueAt])
+  @@index([assigneeId, status, dueAt])
+}
+
+/// A salesperson's note about a customer (Phase 3 M16). Internal by construction — there is
+/// no customer-facing read path for this model anywhere in the app.
+model CustomerNote {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation("customerNotes", fields: [userId], references: [id], onDelete: Cascade)
+  authorId  String?
+  author    User?    @relation("authoredNotes", fields: [authorId], references: [id], onDelete: SetNull)
+  body      String
+  /// Pinned notes lead the customer profile — payment terms, who to call, standing agreements.
+  pinned    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, pinned, createdAt])
+}
+
+/// Every open of a fabric, signed-in or not (Phase 3 M18). `RecentlyViewed` is a per-customer
+/// convenience capped at 30 rows; this is the analytics record and keeps every view, including
+/// anonymous ones — which are most of them, since browsing needs no account.
+/// `visitorId` is a truncated salted hash: enough to count visitors, not enough to identify one.
+model FabricView {
+  id        String   @id @default(cuid())
+  fabricId  String
+  fabric    Fabric   @relation(fields: [fabricId], references: [id], onDelete: Cascade)
+  colourId  String?
+  userId    String?
+  visitorId String?
+  createdAt DateTime @default(now())
+
+  @@index([fabricId, createdAt])
+  @@index([createdAt])
+  @@index([colourId])
 }
 
 model RecentlyViewed {
@@ -241,6 +475,7 @@ model Fabric {
   recentlyViewed  RecentlyViewed[]
   downloads       Download[]
   sampleItems     SampleItem[]
+  views           FabricView[]
 }
 
 model Colour {
@@ -364,12 +599,25 @@ model SearchQuery {
   @@index([createdAt])
 }
 
+/// The quotation lifecycle (Phase 3 M15). Replaces the Phase 2 vocabulary
+/// (NEW/ASSIGNED/QUOTED/WON/LOST) with the eight states the business actually works in;
+/// existing rows were mapped in the migration and the API still accepts the old names as
+/// aliases, so no client broke.
 enum QuoteStatus {
-  NEW
-  ASSIGNED
-  QUOTED
-  WON
-  LOST
+  /// Started by the customer, not yet sent to us.
+  DRAFT
+  /// Received, awaiting triage.
+  SUBMITTED
+  /// A salesperson owns it and is working the numbers.
+  UNDER_REVIEW
+  /// Pricing is filled in but not yet released to the customer.
+  PRICED
+  /// Pricing has been sent to the customer.
+  SENT
+  ACCEPTED
+  REJECTED
+  /// Passed its validity date without a decision.
+  EXPIRED
 }
 
 model Quote {
@@ -388,7 +636,17 @@ model Quote {
   shippingMethod String?
   timeline       String?
   message        String?
-  status         QuoteStatus  @default(NEW)
+  status         QuoteStatus  @default(SUBMITTED)
+  // Pricing (Phase 3 M15). Held on the quote so a customer sees one authoritative figure;
+  // per-shade prices live on QuoteItem. Money is stored in minor units to avoid float drift.
+  currency       String       @default("INR")
+  /// Total quoted value in minor units (paise/cents).
+  totalValue     Int?
+  priceNote      String?
+  validUntil     DateTime?
+  submittedAt    DateTime?
+  sentAt         DateTime?
+  decidedAt      DateTime?
   assigneeId     String?
   assignee       User?        @relation("assignedQuotes", fields: [assigneeId], references: [id], onDelete: SetNull)
   createdAt      DateTime     @default(now())
@@ -425,6 +683,11 @@ model QuoteItem {
   fabric   Fabric @relation(fields: [fabricId], references: [id])
   colourId String
   colour   Colour @relation(fields: [colourId], references: [id])
+  // Per-shade pricing (Phase 3 M15). unitPrice is in minor units, like Quote.totalValue.
+  quantity  Float?
+  unit      String? @default("m")
+  unitPrice Int?
+  note      String?
 }
 
 enum SampleStatus {

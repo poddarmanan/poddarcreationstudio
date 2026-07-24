@@ -21,6 +21,26 @@ for the design history).
 - Signature brand elements throughout: weave mark, selvage-stitch dividers, pinked swatch edges,
   cloth-lay screen transitions, thread loader, EN/हिंदी toggle
 
+**Customer platform (Phase 3):**
+- **Accounts** — registration, verification, password reset, company profile with GST *and* VAT,
+  a shipping address book, and named contact people
+- **Collections** — Pinterest-style boards: ordered shades with per-item notes and quantities,
+  duplication, and "send to sales" which becomes a quotation request carrying the customer's intent
+- **Dashboard** — activity feed, recommendations (rule-based, from the CIELAB colour
+  relationships — no model), upcoming follow-ups, quotes, samples, downloads, favourites
+- **Quote tracking** — the eight-state lifecycle (`DRAFT → SUBMITTED → UNDER_REVIEW → PRICED →
+  SENT → ACCEPTED/REJECTED/EXPIRED`) with pricing in minor units, a customer-facing progress
+  tracker, and accept/decline
+- **Sales workspace** — pipeline board, customer profiles, one merged communication history,
+  internal notes and follow-up reminders
+- **Catalogue sharing** — tokenised public links with optional passphrase and expiry, QR codes,
+  a dependency-free PDF export, a print stylesheet, and email delivery
+- **Analytics** — top viewed/downloaded fabrics, catalogue gaps from zero-result searches,
+  quote and sample conversion, returning customers, popular collections, storage usage
+- **Notifications** — unified in-app + email with per-category preferences and a delivery log
+- **Operations** — health probes, environment validation, diagnostics, preflight, and backup
+  verification that actually restores
+
 **Backend (real, not mocked):**
 - PostgreSQL + Prisma 7 (`Fabric`, `Colour`, `Media`, `Quote`, `SwatchBookItem`, `User`)
 - NextAuth v5 credentials auth with roles (ADMIN / MANAGER / SALES / VIEWER / BUYER) and an
@@ -48,6 +68,23 @@ npx prisma db seed
 
 # 4. Run
 npm run dev          # http://localhost:3000
+```
+
+### Verifying a deployment
+
+```bash
+npm run lint && npm run typecheck && npm run build   # static gates
+npm run smoke                                         # every milestone smoke (~35s)
+npm run smoke -- --http                               # + live HTTP smokes against a running server
+npm run preflight                                     # environment, dependencies, headers, probes
+npm run verify:backup                                 # dump → restore → row-by-row comparison
+```
+
+Probes for an orchestrator:
+
+```bash
+curl -fsS $APP_URL/api/health          # liveness — touches no dependency
+curl -fsS $APP_URL/api/health/ready    # readiness — 503 when a dependency is down
 ```
 
 ### Demo accounts (password `poddar123`)

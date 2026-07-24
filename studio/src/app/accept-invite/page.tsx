@@ -1,20 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { AuthCard, authInputStyle, authButtonStyle, authNoteStyle } from '@/components/auth/AuthCard';
 
-export default function AcceptInvitePage() {
-  const [token, setToken] = useState('');
+function AcceptInviteForm() {
+  // Read during render (instead of setting state from an effect) so the first paint already
+  // reflects the link's token.
+  const token = useSearchParams().get('token') ?? '';
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [state, setState] = useState<'form' | 'done'>('form');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    setToken(new URLSearchParams(window.location.search).get('token') ?? '');
-  }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -46,5 +45,13 @@ export default function AcceptInvitePage() {
         </form>
       )}
     </AuthCard>
+  );
+}
+
+export default function AcceptInvitePage() {
+  return (
+    <Suspense fallback={<AuthCard eyebrow="Invitation" heading="Accept your invitation"><p style={authNoteStyle}>Loading…</p></AuthCard>}>
+      <AcceptInviteForm />
+    </Suspense>
   );
 }

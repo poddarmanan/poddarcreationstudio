@@ -9,6 +9,8 @@ const ProfileInput = z.object({
   contactPhone: z.string().max(40).nullish(),
   whatsapp: z.string().max(40).nullish(),
   gstNumber: z.string().max(30).nullish(),
+  vatNumber: z.string().max(30).nullish(),
+  website: z.string().max(200).nullish(),
   shippingLine1: z.string().max(300).nullish(),
   shippingCity: z.string().max(120).nullish(),
   shippingState: z.string().max(120).nullish(),
@@ -33,7 +35,9 @@ export async function PUT(req: Request) {
     async () => {
       const user = await requireUser();
       const data = await parseJson(req, ProfileInput);
-      const profile = await getContainer().dealerService.upsertProfile(user.id, data);
+      const { dealerService, audit } = getContainer();
+      const profile = await dealerService.upsertProfile(user.id, data);
+      await audit.record({ actorId: user.id, action: 'customer.profile.update', entity: 'DealerProfile', entityId: profile.id });
       return NextResponse.json({ profile });
     },
     { csrf: true }

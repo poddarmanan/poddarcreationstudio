@@ -1,11 +1,14 @@
 import type { PrismaClient } from '@/generated/prisma/client';
 import { AppError } from '../core/errors';
+import type { ActivityService } from '../activity/activity.service';
 
 export interface ProfileInput {
   company?: string | null;
   contactPhone?: string | null;
   whatsapp?: string | null;
   gstNumber?: string | null;
+  vatNumber?: string | null;
+  website?: string | null;
   shippingLine1?: string | null;
   shippingCity?: string | null;
   shippingState?: string | null;
@@ -16,15 +19,22 @@ export interface ProfileInput {
   prefPhone?: boolean;
 }
 
-const swatch = { select: { id: true, name: true, hex: true, order: true, fabric: { select: { id: true, name: true } } } };
+// `family` feeds the dashboard's family-affinity recommendations (M14).
+const swatch = { select: { id: true, name: true, hex: true, order: true, fabric: { select: { id: true, name: true, family: true } } } };
 
 /**
- * Dealer portal domain (Priority 6): profile, favourites, collections, recently-viewed,
- * downloads, and saved quotes. Every mutation is scoped to the acting user id, so a dealer
- * can only ever touch their own records.
+ * Dealer portal domain (Priority 6): profile, favourites, recently-viewed, downloads, and
+ * saved quotes. Every mutation is scoped to the acting user id, so a dealer can only ever
+ * touch their own records.
+ *
+ * Collections moved to `CollectionService` in Phase 3 M13 when boards grew notes,
+ * quantities, ordering and quote hand-off; only the dashboard count remains here.
  */
 export class DealerService {
-  constructor(private readonly db: PrismaClient) {}
+  constructor(
+    private readonly db: PrismaClient,
+    private readonly activity: ActivityService
+  ) {}
 
   // ---- Profile ---------------------------------------------------------------
   getProfile(userId: string) {
@@ -47,65 +57,25 @@ export class DealerService {
   async addFavourite(userId: string, fabricId: string, colourId: string | null) {
     const existing = await this.db.favourite.findFirst({ where: { userId, fabricId, colourId } });
     if (existing) return existing;
-    return this.db.favourite.create({ data: { userId, fabricId, colourId } });
+    const favourite = await this.db.favourite.create({
+      data: { userId, fabricId, colourId },
+      include: { fabric: { select: { name: true } }, colour: { select: { name: true } } },
+    });
+    await this.activity.record({
+      userId,
+      type: 'FAVOURITE',
+      title: `Saved ${favourite.colour?.name ?? favourite.fabric.name}`,
+      detail: favourite.colour ? favourite.fabric.name : null,
+      entity: 'Favourite',
+      entityId: favourite.id,
+    });
+    return favourite;
   }
 
   async removeFavourite(userId: string, id: string) {
     const fav = await this.db.favourite.findUnique({ where: { id } });
     if (!fav || fav.userId !== userId) throw AppError.notFound();
     await this.db.favourite.delete({ where: { id } });
-  }
-
-  // ---- Collections -----------------------------------------------------------
-  listCollections(userId: string) {
-    return this.db.collection.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-      include: { items: { include: { colour: swatch }, orderBy: { createdAt: 'asc' } } },
-    });
-  }
-
-  createCollection(userId: string, name: string) {
-    return this.db.collection.create({ data: { userId, name } });
-  }
-
-  async deleteCollection(userId: string, id: string) {
-    const col = await this.db.collection.findUnique({ where: { id } });
-    if (!col || col.userId !== userId) throw AppError.notFound();
-    await this.db.collection.delete({ where: { id } });
-  }
-
-  private async ownCollection(userId: string, collectionId: string) {
-    const col = await this.db.collection.findUnique({ where: { id: collectionId } });
-    if (!col || col.userId !== userId) throw AppError.notFound('Collection not found');
-    return col;
-  }
-
-  async addToCollection(userId: string, collectionId: string, fabricId: string, colourId: string, note?: string | null) {
-    await this.ownCollection(userId, collectionId);
-    const existing = await this.db.collectionItem.findFirst({ where: { collectionId, fabricId, colourId } });
-    if (existing) return existing;
-    return this.db.collectionItem.create({ data: { collectionId, fabricId, colourId, note } });
-  }
-
-  /** Snapshot the user's current swatch book into a new collection. */
-  async collectionFromSwatchBook(userId: string, name: string) {
-    const pins = await this.db.swatchBookItem.findMany({ where: { userId } });
-    const collection = await this.db.collection.create({ data: { userId, name } });
-    if (pins.length) {
-      await this.db.collectionItem.createMany({
-        data: pins.map((p) => ({ collectionId: collection.id, fabricId: p.fabricId, colourId: p.colourId })),
-        skipDuplicates: true,
-      });
-    }
-    return collection;
-  }
-
-  async removeCollectionItem(userId: string, collectionId: string, itemId: string) {
-    await this.ownCollection(userId, collectionId);
-    const item = await this.db.collectionItem.findUnique({ where: { id: itemId } });
-    if (!item || item.collectionId !== collectionId) throw AppError.notFound();
-    await this.db.collectionItem.delete({ where: { id: itemId } });
   }
 
   // ---- Recently viewed -------------------------------------------------------
@@ -131,8 +101,20 @@ export class DealerService {
   }
 
   // ---- Downloads -------------------------------------------------------------
-  recordDownload(userId: string, kind: string, fabricId: string | null, colourId: string | null) {
-    return this.db.download.create({ data: { userId, kind, fabricId, colourId } });
+  async recordDownload(userId: string, kind: string, fabricId: string | null, colourId: string | null) {
+    const download = await this.db.download.create({
+      data: { userId, kind, fabricId, colourId },
+      include: { fabric: { select: { name: true } } },
+    });
+    await this.activity.record({
+      userId,
+      type: 'DOWNLOAD',
+      title: kind === 'SPEC' ? 'Downloaded a spec sheet' : 'Downloaded a colour catalogue',
+      detail: download.fabric?.name ?? null,
+      entity: 'Download',
+      entityId: download.id,
+    });
+    return download;
   }
 
   listDownloads(userId: string, limit = 20) {

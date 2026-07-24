@@ -4,7 +4,7 @@ import { getContainer } from '@/server/container';
 import { processUpload } from '@/lib/upload-pipeline';
 import { run, clientInfo } from '@/server/core/http';
 import { AppError } from '@/server/core/errors';
-import { requireRole } from '@/server/core/session';
+import { requireAdmin } from '@/server/core/rbac';
 import { sniffMediaType, categoryOf } from '@/server/media/sniff';
 
 /** POST /api/admin/uploads/[jobId]/retry — re-run a FAILED upload from its retained original. */
@@ -12,7 +12,7 @@ export async function POST(req: Request, ctx: RouteContext<'/api/admin/uploads/[
   return run(
     req,
     async () => {
-      const user = await requireRole(['ADMIN', 'MANAGER']);
+      const user = await requireAdmin();
       const { jobId } = await ctx.params;
 
       const job = await prisma.uploadJob.findUnique({ where: { id: jobId } });

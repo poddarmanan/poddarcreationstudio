@@ -3,26 +3,38 @@
 import { useState, type CSSProperties, type ReactNode } from 'react';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
+import { AddressBook, ContactPeople, AccountSecurity, type Address, type Contact } from './AccountPanels';
+import { ActivityFeed, FollowUps, Recommendations, type ActivityRow, type FollowUpRow, type RecommendationRow } from './DashboardPanels';
+import { NotificationCentre, type NotificationRow, type NotificationPreferences } from './NotificationCentre';
 
 // ---- Loose prop types (data is serialized from the dealer service) -----------
 type Colour = { id: string; name: string; hex: string | null; order: number; fabric: { id: string; name: string } };
 type Favourite = { id: string; fabricId: string; colourId: string | null; fabric: { id: string; name: string; weight: string; width: string }; colour: Colour | null };
-type CollectionItem = { id: string; fabricId: string; colourId: string; colour: Colour };
-type Collection = { id: string; name: string; items: CollectionItem[] };
+type CollectionItem = { id: string; fabricId: string; colourId: string; note: string | null; quantity: number | null; unit: string | null; colour: Colour };
+type Collection = { id: string; name: string; description: string | null; updatedAt: string; items: CollectionItem[] };
 type Recent = { id: string; fabricId: string; colourId: string | null; fabric: { id: string; name: string }; colour: Colour | null };
 type Download = { id: string; kind: string; createdAt: string; fabric: { id: string; name: string } | null };
 type QuoteItem = { fabric: { name: string }; colour: { name: string; hex: string | null } };
-type Quote = { id: string; subject: string; company: string; quantity: string; status: string; createdAt: string; items: QuoteItem[] };
+type Quote = { id: string; subject: string; company: string; quantity: string; status: string; createdAt: string; currency: string; totalValue: number | null; items: QuoteItem[] };
 type SampleItemT = { id: string; fabric: { name: string }; colour: { name: string; hex: string | null } };
 type Sample = { id: string; status: string; courier: string | null; trackingNumber: string | null; createdAt: string; items: SampleItemT[] };
 type Profile = {
   company?: string | null; contactPhone?: string | null; whatsapp?: string | null; gstNumber?: string | null;
+  vatNumber?: string | null; website?: string | null;
   shippingLine1?: string | null; shippingCity?: string | null; shippingState?: string | null; shippingPincode?: string | null; shippingCountry?: string | null;
   prefEmail?: boolean; prefWhatsapp?: boolean; prefPhone?: boolean;
 } | null;
 
 interface Props {
-  user: { name: string; email: string; role: string; approved: boolean };
+  user: { name: string; email: string; role: string; approved: boolean; emailVerified: boolean };
+  addresses: Address[];
+  contacts: Contact[];
+  activity: ActivityRow[];
+  followUps: FollowUpRow[];
+  recommendations: RecommendationRow[];
+  notifications: NotificationRow[];
+  unread: number;
+  notificationPreferences: NotificationPreferences;
   profile: Profile;
   stats: { favourites: number; collections: number; quotes: number; downloads: number; recent: number };
   favourites: Favourite[];
@@ -82,9 +94,14 @@ export function PortalDashboard(props: Props) {
   const [sampleMsg, setSampleMsg] = useState('');
 
   async function requestSamples() {
-    const p = profile;
+    // Prefer the address book's default (M12); fall back to the profile's legacy single
+    // address so accounts that predate the address book still work.
+    const shipTo = props.addresses.find((a) => a.isDefault) ?? props.addresses[0];
+    const p = shipTo
+      ? { company: profile?.company, contactPhone: shipTo.phone ?? profile?.contactPhone, shippingLine1: shipTo.line1, shippingCity: shipTo.city, shippingState: shipTo.state, shippingPincode: shipTo.pincode, shippingCountry: shipTo.country }
+      : profile;
     if (!p?.shippingLine1 || !p?.shippingCity) {
-      setSampleMsg('Add your shipping address in the profile above first.');
+      setSampleMsg('Add a shipping address below first.');
       return;
     }
     const book = (await fetch('/api/swatchbook').then((r) => r.json()).catch(() => null)) as { items?: { fabricId: string; colourId: string }[] } | null;
@@ -188,18 +205,38 @@ export function PortalDashboard(props: Props) {
           ))}
         </div>
 
+        {/* Notifications (M19) */}
+        <Section title="Notifications" meta={props.unread > 0 ? `${props.unread} unread` : undefined}>
+          <NotificationCentre initial={props.notifications} initialUnread={props.unread} preferences={props.notificationPreferences} />
+        </Section>
+
+        {/* Upcoming follow-ups (M14) — only shown when the team has scheduled one */}
+        {props.followUps.length > 0 && (
+          <Section title="Upcoming follow-ups" meta={`${props.followUps.length}`}>
+            <FollowUps rows={props.followUps} />
+          </Section>
+        )}
+
+        {/* Recent activity (M14) */}
+        <Section title="Recent activity">
+          <ActivityFeed rows={props.activity} />
+        </Section>
+
+        {/* Recommended for you (M14) */}
+        <Section title="Recommended for you">
+          <Recommendations groups={props.recommendations} />
+        </Section>
+
         {/* Profile */}
         <Section title="Company profile" action={savedFlash ? <span style={{ fontSize: 12, color: '#3D6B45' }}>Saved ✓</span> : undefined}>
           <form onSubmit={saveProfile} style={card}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 16 }}>
               <div><div style={label}>Company</div><input style={input} value={profile?.company ?? ''} onChange={(e) => set('company', e.target.value)} /></div>
               <div><div style={label}>GST number</div><input style={input} value={profile?.gstNumber ?? ''} onChange={(e) => set('gstNumber', e.target.value)} /></div>
+              <div><div style={label}>VAT / tax number</div><input style={input} value={profile?.vatNumber ?? ''} onChange={(e) => set('vatNumber', e.target.value)} /></div>
+              <div><div style={label}>Website</div><input style={input} value={profile?.website ?? ''} onChange={(e) => set('website', e.target.value)} /></div>
               <div><div style={label}>Phone</div><input style={input} value={profile?.contactPhone ?? ''} onChange={(e) => set('contactPhone', e.target.value)} /></div>
               <div><div style={label}>WhatsApp</div><input style={input} value={profile?.whatsapp ?? ''} onChange={(e) => set('whatsapp', e.target.value)} /></div>
-              <div style={{ gridColumn: '1/-1' }}><div style={label}>Shipping address</div><input style={input} value={profile?.shippingLine1 ?? ''} onChange={(e) => set('shippingLine1', e.target.value)} /></div>
-              <div><div style={label}>City</div><input style={input} value={profile?.shippingCity ?? ''} onChange={(e) => set('shippingCity', e.target.value)} /></div>
-              <div><div style={label}>State</div><input style={input} value={profile?.shippingState ?? ''} onChange={(e) => set('shippingState', e.target.value)} /></div>
-              <div><div style={label}>Pincode</div><input style={input} value={profile?.shippingPincode ?? ''} onChange={(e) => set('shippingPincode', e.target.value)} /></div>
             </div>
             <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', marginTop: 18 }}>
               <div style={label}>Contact preferences</div>
@@ -211,6 +248,21 @@ export function PortalDashboard(props: Props) {
             </div>
             <button type="submit" style={{ ...inkBtn, marginTop: 18 }}>Save profile</button>
           </form>
+        </Section>
+
+        {/* Shipping addresses (M12) */}
+        <Section title="Shipping addresses" meta={`${props.addresses.length}`}>
+          <AddressBook initial={props.addresses} />
+        </Section>
+
+        {/* Contact people (M12) */}
+        <Section title="Contact people" meta={`${props.contacts.length}`}>
+          <ContactPeople initial={props.contacts} />
+        </Section>
+
+        {/* Account security (M12) */}
+        <Section title="Account">
+          <AccountSecurity email={props.user.email} verified={props.user.emailVerified} />
         </Section>
 
         {/* Favourites */}
@@ -244,15 +296,20 @@ export function PortalDashboard(props: Props) {
             <div style={{ display: 'grid', gap: 16 }}>
               {collections.map((col) => (
                 <div key={col.id} style={card}>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-                    <div style={{ fontFamily: 'var(--font-display),serif', fontSize: 20, fontWeight: 600, color: INK }}>{col.name}</div>
-                    <span style={{ fontSize: 11.5, color: 'rgba(28,25,23,.5)' }}>{col.items.length} shades</span>
-                    <button onClick={() => deleteCollection(col.id)} style={{ ...chipBtn, marginLeft: 'auto', padding: '5px 12px' }}>Delete</button>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+                    <Link href={`/portal/collections/${col.id}`} style={{ fontFamily: 'var(--font-display),serif', fontSize: 20, fontWeight: 600, color: INK, textDecoration: 'none' }}>{col.name} →</Link>
+                    <span style={{ fontSize: 11.5, color: 'rgba(28,25,23,.5)' }}>
+                      {col.items.length} shades
+                      {col.items.some((i) => i.quantity) && ` · ${col.items.reduce((n, i) => n + (i.quantity ?? 0), 0)}${col.items[0]?.unit ?? 'm'}`}
+                    </span>
+                    <Link href={`/portal/collections/${col.id}`} style={{ ...chipBtn, marginLeft: 'auto', padding: '5px 12px', textDecoration: 'none', color: INK }}>Open board</Link>
+                    <button onClick={() => deleteCollection(col.id)} style={{ ...chipBtn, padding: '5px 12px' }}>Delete</button>
                   </div>
+                  {col.description && <div style={{ fontSize: 12.5, fontWeight: 300, color: 'rgba(28,25,23,.6)', marginTop: 6 }}>{col.description}</div>}
                   {col.items.length > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginTop: 14 }}>
                       {col.items.map((it) => (
-                        <Swatch key={it.id} hex={it.colour.hex} name={it.colour.name} sub={it.colour.fabric.name} onRemove={() => removeItem(col.id, it.id)} />
+                        <Swatch key={it.id} hex={it.colour.hex} name={it.colour.name} sub={it.note ?? it.colour.fabric.name} onRemove={() => removeItem(col.id, it.id)} />
                       ))}
                     </div>
                   )}
@@ -276,19 +333,22 @@ export function PortalDashboard(props: Props) {
         </Section>
 
         {/* Saved quotes */}
-        <Section title="Saved quotes" meta={`${props.quotes.length}`}>
+        <Section title="Quotations" meta={`${props.quotes.length}`}>
           {props.quotes.length === 0 ? (
-            <div style={emptyNote}>No quotes yet — request one from any fabric or swatch book.</div>
+            <div style={emptyNote}>No quotations yet — send a collection to sales, or request one from any fabric.</div>
           ) : (
             <div style={{ display: 'grid', gap: 10 }}>
               {props.quotes.map((q) => (
-                <div key={q.id} style={{ ...card, display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px' }}>
+                <Link key={q.id} href={`/portal/quotes/${q.id}`} style={{ ...card, display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', textDecoration: 'none' }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 14, color: INK }}>{q.subject}</div>
-                    <div style={{ fontSize: 11.5, color: 'rgba(28,25,23,.5)' }}>{q.quantity} · {new Date(q.createdAt).toLocaleDateString()}</div>
+                    <div style={{ fontSize: 11.5, color: 'rgba(28,25,23,.5)' }}>
+                      {q.quantity} · {new Date(q.createdAt).toLocaleDateString()}
+                      {q.totalValue !== null && q.totalValue !== undefined && ` · ${q.currency} ${(q.totalValue / 100).toLocaleString('en-IN')}`}
+                    </div>
                   </div>
-                  <span style={{ fontSize: 10.5, letterSpacing: '.1em', textTransform: 'uppercase', color: GOLD, background: 'rgba(138,109,69,.1)', borderRadius: 999, padding: '4px 12px' }}>{q.status}</span>
-                </div>
+                  <span style={{ fontSize: 10.5, letterSpacing: '.1em', textTransform: 'uppercase', color: GOLD, background: 'rgba(138,109,69,.1)', borderRadius: 999, padding: '4px 12px' }}>{q.status.replace(/_/g, ' ')}</span>
+                </Link>
               ))}
             </div>
           )}

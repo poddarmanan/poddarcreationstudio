@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { requireAdmin } from '@/server/core/rbac';
 import { prisma } from '@/lib/prisma';
 import { getContainer } from '@/server/container';
 import { run, clientInfo } from '@/server/core/http';
@@ -10,10 +10,7 @@ export async function POST(req: Request, ctx: RouteContext<'/api/admin/users/[id
   return run(
     req,
     async () => {
-      const session = await auth();
-      if (!session?.user || !['ADMIN', 'MANAGER'].includes(session.user.role)) {
-        throw AppError.forbidden('Admin or manager role required');
-      }
+      const actor = await requireAdmin();
       const { id } = await ctx.params;
       const user = await prisma.user.findUnique({ where: { id } });
       if (!user) throw AppError.notFound('User not found');
@@ -27,7 +24,7 @@ export async function POST(req: Request, ctx: RouteContext<'/api/admin/users/[id
           telemetry.error(err, { where: 'approve.email' });
         }
         const info = clientInfo(req);
-        await audit.record({ actorId: session.user.id, action: 'user.approve', entity: 'User', entityId: id, ip: info.ip, userAgent: info.userAgent });
+        await audit.record({ actorId: actor.id, action: 'user.approve', entity: 'User', entityId: id, ip: info.ip, userAgent: info.userAgent });
       }
       return NextResponse.json({ ok: true });
     },
