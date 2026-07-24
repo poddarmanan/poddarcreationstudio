@@ -24,6 +24,40 @@ enum MediaType {
   VIDEO
 }
 
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum UploadJobStatus {
+  PENDING
+  PROCESSING
+  DONE
+  FAILED
+}
+
+/// Upload queue (Priority 11). The original file is stored before processing, so FAILED
+/// jobs can be retried without re-uploading.
+model UploadJob {
+  id          String          @id @default(cuid())
+  fabricId    String
+  colourId    String?
+  fileName    String
+  mimeType    String
+  sizeBytes   Int
+  originalKey String
+  status      UploadJobStatus @default(PENDING)
+  attempts    Int             @default(0)
+  error       String?
+  mediaId     String?
+  actorId     String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([status, createdAt])
+}
+
 enum MediaStage {
   QUEUED
   COMPRESSING
@@ -302,10 +336,16 @@ model Media {
   metadata          Json?
   /// Dominant colour palette extracted from the uploaded image (Priority 9).
   dominantPalette   Json?
+  // Content lifecycle (Priority 11): draft/publish/archive + reversible soft delete.
+  contentStatus     ContentStatus @default(PUBLISHED)
+  publishedAt       DateTime?
+  deletedAt         DateTime?
   createdAt         DateTime   @default(now())
 
   @@index([fabricId])
   @@index([storageKey])
+  @@index([contentStatus])
+  @@index([deletedAt])
 }
 
 /// Search query log (Priority 10). Powers per-user "recent" and aggregate "popular"

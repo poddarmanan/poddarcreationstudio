@@ -59,18 +59,40 @@ export async function POST(req: Request) {
       resolvedColourId = colour.id;
     }
 
-    const media = await processUpload({
-      fabricId,
-      colourId: resolvedColourId,
-      originalName: sanitizeFilename(file.name),
-      mimeType: sniffed,
-      buffer,
-      type: category,
+    // Queue-backed processing (Priority 11): the original is retained under the job before
+    // the pipeline runs, so a FAILED job can be retried without re-uploading the file.
+    const { audit, telemetry, storage } = getContainer();
+    const safeName = sanitizeFilename(file.name);
+    const ext = (safeName.split('.').pop() || 'bin').toLowerCase();
+    const job = await prisma.uploadJob.create({
+      data: { fabricId, colourId: resolvedColourId, fileName: safeName, mimeType: sniffed, sizeBytes: buffer.byteLength, originalKey: '', status: 'PROCESSING', attempts: 1, actorId: session?.user?.id },
     });
+    const originalKey = `uploads/jobs/${job.id}/original.${ext}`;
+    await storage.put({ key: originalKey, body: buffer, contentType: sniffed });
+    await prisma.uploadJob.update({ where: { id: job.id }, data: { originalKey } });
+
+    let media;
+    try {
+      media = await processUpload({
+        fabricId,
+        colourId: resolvedColourId,
+        originalName: safeName,
+        mimeType: sniffed,
+        buffer,
+        type: category,
+      });
+    } catch (err) {
+      await prisma.uploadJob.update({
+        where: { id: job.id },
+        data: { status: 'FAILED', error: err instanceof Error ? err.message.slice(0, 500) : 'Processing failed' },
+      });
+      telemetry.error(err, { where: 'upload.pipeline', jobId: job.id });
+      throw AppError.internal('Upload processing failed — it has been queued for retry');
+    }
+    await prisma.uploadJob.update({ where: { id: job.id }, data: { status: 'DONE', mediaId: media.id } });
 
     const info = clientInfo(req);
-    const { audit, telemetry } = getContainer();
-    await audit.record({ actorId: session?.user?.id, action: 'media.upload', entity: 'Media', entityId: media.id, ip: info.ip, userAgent: info.userAgent, meta: { fabricId, type: media.type, bytes: buffer.byteLength } });
+    await audit.record({ actorId: session?.user?.id, action: 'media.upload', entity: 'Media', entityId: media.id, ip: info.ip, userAgent: info.userAgent, meta: { fabricId, type: media.type, bytes: buffer.byteLength, jobId: job.id } });
     telemetry.capture({ name: 'media.uploaded', actorId: session?.user?.id, props: { fabricId, type: media.type } });
 
     return NextResponse.json(
