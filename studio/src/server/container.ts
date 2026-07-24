@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
-import { type Telemetry, ConsoleTelemetry, NoopTelemetry } from './core/telemetry';
+import { type Telemetry } from './core/telemetry';
+import { createTelemetry } from './core/telemetry-factory';
 import { type Audit } from './core/audit';
 import { PrismaAudit } from './core/audit-prisma';
 import { type RateLimiter, InMemoryRateLimiter } from './core/rate-limit';
@@ -23,7 +24,7 @@ import { AdminService } from './admin/admin.service';
 /**
  * Composition root (dependency-injection seam). The ONE place that knows about concrete
  * drivers and wires them together; the rest of the app depends on interfaces. Swapping a
- * provider (telemetry → Sentry/PostHog in M11, audit → Prisma in M1, storage → R2 in M2)
+ * provider (telemetry → Sentry/PostHog, audit → Prisma, storage → R2, search → Meilisearch)
  * is a change here plus an env flag — no call site edits.
  */
 export interface Container {
@@ -47,8 +48,7 @@ export interface Container {
 }
 
 function build(): Container {
-  const telemetry: Telemetry =
-    process.env.NODE_ENV === 'production' && !process.env.TELEMETRY_VERBOSE ? new NoopTelemetry() : new ConsoleTelemetry();
+  const telemetry: Telemetry = createTelemetry();
 
   const audit: Audit = new PrismaAudit(prisma);
   const rateLimiter: RateLimiter = new InMemoryRateLimiter();

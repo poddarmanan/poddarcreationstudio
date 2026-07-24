@@ -27,6 +27,26 @@ export class NoopTelemetry implements Telemetry {
   timing(): void {}
 }
 
+/** Fans out to several sinks (e.g. console + Sentry + PostHog); each sink stays isolated. */
+export class CompositeTelemetry implements Telemetry {
+  constructor(private readonly sinks: Telemetry[]) {}
+  capture(event: TelemetryEvent): void {
+    for (const s of this.sinks) {
+      try { s.capture(event); } catch { /* one sink must not break the rest */ }
+    }
+  }
+  error(err: unknown, context?: Record<string, unknown>): void {
+    for (const s of this.sinks) {
+      try { s.error(err, context); } catch { /* isolated */ }
+    }
+  }
+  timing(name: string, ms: number, props?: Record<string, unknown>): void {
+    for (const s of this.sinks) {
+      try { s.timing(name, ms, props); } catch { /* isolated */ }
+    }
+  }
+}
+
 export class ConsoleTelemetry implements Telemetry {
   capture(event: TelemetryEvent): void {
     console.info('[telemetry] event', event.name, event.props ?? {}, event.actorId ? `actor=${event.actorId}` : '');
