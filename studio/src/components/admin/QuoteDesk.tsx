@@ -9,18 +9,37 @@ type Quote = {
   id: string; name: string; company: string; email: string | null; quantity: string; subject: string;
   moq: string | null; expectedQty: string | null; country: string | null; shippingMethod: string | null; timeline: string | null; message: string | null;
   status: string; createdAt: string; assignee: { id: string; name: string } | null; items: QuoteItem[]; events?: QuoteEvent[];
+  currency: string; totalValue: number | null; priceNote: string | null; validUntil: string | null;
 };
 type Staff = { id: string; name: string; role: string };
 
 const INK = '#1C1917';
 const GOLD = '#8A6D45';
-const STATUSES = ['NEW', 'ASSIGNED', 'QUOTED', 'WON', 'LOST'] as const;
+// The M15 lifecycle. Colours stay inside the existing palette — gold for waiting, the
+// established blue/violet for work in progress, green for won, muted ink for closed.
+const STATUSES = ['DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'PRICED', 'SENT', 'ACCEPTED', 'REJECTED', 'EXPIRED'] as const;
+const CLOSED: string[] = ['ACCEPTED', 'REJECTED', 'EXPIRED'];
 const STATUS_STYLE: Record<string, { fg: string; bg: string }> = {
-  NEW: { fg: GOLD, bg: 'rgba(138,109,69,.12)' },
-  ASSIGNED: { fg: '#4A5B8A', bg: 'rgba(74,91,138,.12)' },
-  QUOTED: { fg: '#6B5B7A', bg: 'rgba(107,91,122,.12)' },
-  WON: { fg: '#3D6B45', bg: 'rgba(61,107,69,.12)' },
-  LOST: { fg: 'rgba(28,25,23,.5)', bg: 'rgba(28,25,23,.07)' },
+  DRAFT: { fg: 'rgba(28,25,23,.5)', bg: 'rgba(28,25,23,.07)' },
+  SUBMITTED: { fg: GOLD, bg: 'rgba(138,109,69,.12)' },
+  UNDER_REVIEW: { fg: '#4A5B8A', bg: 'rgba(74,91,138,.12)' },
+  PRICED: { fg: '#6B5B7A', bg: 'rgba(107,91,122,.12)' },
+  SENT: { fg: '#4A5B8A', bg: 'rgba(74,91,138,.12)' },
+  ACCEPTED: { fg: '#3D6B45', bg: 'rgba(61,107,69,.12)' },
+  REJECTED: { fg: 'rgba(28,25,23,.5)', bg: 'rgba(28,25,23,.07)' },
+  EXPIRED: { fg: '#A33', bg: 'rgba(170,51,51,.08)' },
+};
+
+/** Only the moves the service will accept, so the desk never offers a dead button. */
+const NEXT_STATUSES: Record<string, string[]> = {
+  DRAFT: ['SUBMITTED', 'REJECTED'],
+  SUBMITTED: ['UNDER_REVIEW', 'REJECTED', 'EXPIRED'],
+  UNDER_REVIEW: ['PRICED', 'REJECTED', 'EXPIRED'],
+  PRICED: ['SENT', 'UNDER_REVIEW', 'REJECTED', 'EXPIRED'],
+  SENT: ['ACCEPTED', 'REJECTED', 'UNDER_REVIEW', 'EXPIRED'],
+  ACCEPTED: [],
+  REJECTED: [],
+  EXPIRED: ['UNDER_REVIEW'],
 };
 
 const card: CSSProperties = { background: '#fff', border: '1px solid rgba(28,25,23,.08)', borderRadius: 8 };
@@ -28,8 +47,8 @@ const chipBtn: CSSProperties = { cursor: 'pointer', background: 'transparent', b
 const select: CSSProperties = { border: '1px solid rgba(28,25,23,.15)', borderRadius: 6, padding: '7px 10px', fontFamily: 'var(--font-body),sans-serif', fontSize: 12.5, background: '#FAF8F5', outlineColor: GOLD };
 
 function Badge({ status }: { status: string }) {
-  const s = STATUS_STYLE[status] ?? STATUS_STYLE.NEW;
-  return <span style={{ fontSize: 10, letterSpacing: '.14em', textTransform: 'uppercase', color: s.fg, background: s.bg, borderRadius: 999, padding: '4px 11px', whiteSpace: 'nowrap' }}>{status}</span>;
+  const s = STATUS_STYLE[status] ?? STATUS_STYLE.SUBMITTED;
+  return <span style={{ fontSize: 10, letterSpacing: '.14em', textTransform: 'uppercase', color: s.fg, background: s.bg, borderRadius: 999, padding: '4px 11px', whiteSpace: 'nowrap' }}>{status.replace(/_/g, ' ')}</span>;
 }
 
 export function QuoteDesk({ quotes: initial, staff, me }: { quotes: Quote[]; staff: Staff[]; me: { id: string; name: string } }) {
@@ -38,6 +57,8 @@ export function QuoteDesk({ quotes: initial, staff, me }: { quotes: Quote[]; sta
   const [openId, setOpenId] = useState<string | null>(null);
   const [detail, setDetail] = useState<Quote | null>(null);
   const [note, setNote] = useState('');
+  const [price, setPrice] = useState({ total: '', validUntil: '', priceNote: '' });
+  const [priceError, setPriceError] = useState('');
 
   const visible = quotes.filter((q) => filter === 'ALL' || q.status === filter);
   const counts = Object.fromEntries(STATUSES.map((s) => [s, quotes.filter((q) => q.status === s).length]));
@@ -48,6 +69,35 @@ export function QuoteDesk({ quotes: initial, staff, me }: { quotes: Quote[]; sta
     const data = (await res.json()) as { quote: Quote };
     setQuotes((qs) => qs.map((q) => (q.id === id ? { ...q, ...data.quote } : q)));
     if (openId === id) setDetail(data.quote);
+  }
+
+  /** Money is entered in rupees and stored in paise, so nothing is lost to float rounding. */
+  async function savePricing(id: string) {
+    setPriceError('');
+    const rupees = Number(price.total);
+    if (price.total !== '' && (!Number.isFinite(rupees) || rupees < 0)) {
+      setPriceError('Enter the total as a number.');
+      return;
+    }
+    const res = await fetch(`/api/quotes/${id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        action: 'price',
+        totalValue: price.total === '' ? null : Math.round(rupees * 100),
+        priceNote: price.priceNote || null,
+        validUntil: price.validUntil ? new Date(price.validUntil).toISOString() : null,
+      }),
+    });
+    if (!res.ok) {
+      const err = (await res.json().catch(() => null)) as { error?: string } | null;
+      setPriceError(err?.error ?? 'Could not save pricing.');
+      return;
+    }
+    const data = (await res.json()) as { quote: Quote };
+    setQuotes((qs) => qs.map((q) => (q.id === id ? { ...q, ...data.quote } : q)));
+    setDetail(data.quote);
+    setPrice({ total: '', validUntil: '', priceNote: '' });
   }
 
   async function open(id: string) {
@@ -115,9 +165,26 @@ export function QuoteDesk({ quotes: initial, staff, me }: { quotes: Quote[]; sta
                     </select>
                     <button onClick={() => patch(q.id, { action: 'assign', assigneeId: me.id })} style={chipBtn}>Take it</button>
                     <span style={{ width: 1, height: 22, background: 'rgba(28,25,23,.12)' }} />
-                    {STATUSES.filter((s) => s !== 'NEW' && s !== q.status).map((s) => (
-                      <button key={s} onClick={() => patch(q.id, { action: 'status', status: s })} style={chipBtn}>→ {s}</button>
+                    {(NEXT_STATUSES[q.status] ?? []).map((s) => (
+                      <button key={s} onClick={() => patch(q.id, { action: 'status', status: s })} style={chipBtn}>→ {s.replace(/_/g, ' ').toLowerCase()}</button>
                     ))}
+                    {CLOSED.includes(q.status) && <span style={{ fontSize: 12, color: 'rgba(28,25,23,.5)' }}>Closed — start a new quotation to requote.</span>}
+                  </div>
+
+                  {/* Pricing (M15) — the quote cannot be sent to the customer without it. */}
+                  <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(28,25,23,.08)' }}>
+                    <div style={{ fontSize: 10.5, letterSpacing: '.22em', color: 'rgba(28,25,23,.45)', textTransform: 'uppercase', marginBottom: 8 }}>
+                      Pricing{q.totalValue !== null ? ` · ${q.currency} ${(q.totalValue / 100).toLocaleString('en-IN')}` : ''}
+                      {q.validUntil ? ` · valid to ${new Date(q.validUntil).toLocaleDateString()}` : ''}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                      <input value={price.total} onChange={(e) => setPrice((p) => ({ ...p, total: e.target.value }))} placeholder={`Total (${q.currency})`} style={{ ...select, width: 150 }} />
+                      <input type="date" value={price.validUntil} onChange={(e) => setPrice((p) => ({ ...p, validUntil: e.target.value }))} aria-label="Valid until" style={{ ...select, width: 150 }} />
+                      <input value={price.priceNote} onChange={(e) => setPrice((p) => ({ ...p, priceNote: e.target.value }))} placeholder="Terms, incoterms, notes…" style={{ ...select, flex: '1 1 200px' }} />
+                      <button onClick={() => savePricing(q.id)} style={chipBtn}>Save pricing</button>
+                    </div>
+                    {q.priceNote && <div style={{ marginTop: 8, fontSize: 12.5, fontWeight: 300, color: 'rgba(28,25,23,.6)' }}>{q.priceNote}</div>}
+                    {priceError && <div style={{ marginTop: 8, fontSize: 12.5, color: '#A33' }}>{priceError}</div>}
                   </div>
 
                   {(q.message || q.expectedQty || q.shippingMethod || q.timeline) && (
@@ -139,6 +206,7 @@ export function QuoteDesk({ quotes: initial, staff, me }: { quotes: Quote[]; sta
                           {e.type === 'CREATED' && 'Inquiry received'}
                           {e.type === 'ASSIGN' && (e.note ?? 'Assigned')}
                           {e.type === 'STATUS' && `${e.fromStatus} → ${e.toStatus}${e.note ? ` — ${e.note}` : ''}`}
+                          {e.type === 'PRICE' && (e.note ?? 'Pricing updated')}
                           {e.type === 'NOTE' && `Note: ${e.note}`}
                         </span>
                       </div>

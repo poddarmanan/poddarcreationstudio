@@ -477,12 +477,25 @@ model SearchQuery {
   @@index([createdAt])
 }
 
+/// The quotation lifecycle (Phase 3 M15). Replaces the Phase 2 vocabulary
+/// (NEW/ASSIGNED/QUOTED/WON/LOST) with the eight states the business actually works in;
+/// existing rows were mapped in the migration and the API still accepts the old names as
+/// aliases, so no client broke.
 enum QuoteStatus {
-  NEW
-  ASSIGNED
-  QUOTED
-  WON
-  LOST
+  /// Started by the customer, not yet sent to us.
+  DRAFT
+  /// Received, awaiting triage.
+  SUBMITTED
+  /// A salesperson owns it and is working the numbers.
+  UNDER_REVIEW
+  /// Pricing is filled in but not yet released to the customer.
+  PRICED
+  /// Pricing has been sent to the customer.
+  SENT
+  ACCEPTED
+  REJECTED
+  /// Passed its validity date without a decision.
+  EXPIRED
 }
 
 model Quote {
@@ -501,7 +514,17 @@ model Quote {
   shippingMethod String?
   timeline       String?
   message        String?
-  status         QuoteStatus  @default(NEW)
+  status         QuoteStatus  @default(SUBMITTED)
+  // Pricing (Phase 3 M15). Held on the quote so a customer sees one authoritative figure;
+  // per-shade prices live on QuoteItem. Money is stored in minor units to avoid float drift.
+  currency       String       @default("INR")
+  /// Total quoted value in minor units (paise/cents).
+  totalValue     Int?
+  priceNote      String?
+  validUntil     DateTime?
+  submittedAt    DateTime?
+  sentAt         DateTime?
+  decidedAt      DateTime?
   assigneeId     String?
   assignee       User?        @relation("assignedQuotes", fields: [assigneeId], references: [id], onDelete: SetNull)
   createdAt      DateTime     @default(now())
@@ -538,6 +561,11 @@ model QuoteItem {
   fabric   Fabric @relation(fields: [fabricId], references: [id])
   colourId String
   colour   Colour @relation(fields: [colourId], references: [id])
+  // Per-shade pricing (Phase 3 M15). unitPrice is in minor units, like Quote.totalValue.
+  quantity  Float?
+  unit      String? @default("m")
+  unitPrice Int?
+  note      String?
 }
 
 enum SampleStatus {

@@ -6,6 +6,7 @@ import { BASE, Session, signIn, expectJson } from './http-client';
  * The customer journey, end to end over live HTTP (Phase 3).
  *
  *   browse → save → build a collection → annotate → reorder → request a quotation
+ *   → sales review → priced → sent → customer tracks progress → accepts
  *
  * Every step goes through the real session, CSRF, zod and RBAC layers. Run against a
  * started server: `npx tsx scripts/smoke-http-journey.ts [baseUrl]`.
@@ -92,6 +93,48 @@ async function main() {
   const { quotes } = await buyer.json<{ quotes: { id: string; status: string }[] }>('/api/portal/quotes');
   assert(quotes.some((q) => q.id === quote.id), 'the quotation appears in the customer\'s own list');
   console.log('request quotation: collection → quote, visible to the customer ✓');
+
+  // ---- Sales review → priced → sent ------------------------------------------
+  const desk = await staff.json<{ quotes: { id: string; status: string }[] }>('/api/quotes');
+  const onDesk = desk.quotes.find((q) => q.id === quote.id);
+  assert(onDesk, 'the quotation reaches the sales desk');
+  assert(onDesk!.status === 'SUBMITTED', `it lands as SUBMITTED (got ${onDesk!.status})`);
+
+  const me = await staff.json<{ user: { id: string } }>('/api/auth/session');
+  await expectJson(await staff.send(`/api/quotes/${quote.id}`, 'PATCH', { action: 'assign', assigneeId: me.user.id }), 200, 'assign');
+
+  // Sending before pricing is refused by the service, not just hidden in the UI.
+  const premature = await staff.send(`/api/quotes/${quote.id}`, 'PATCH', { action: 'status', status: 'SENT' });
+  assert(premature.status === 400, `an unpriced quotation cannot be sent (got ${premature.status})`);
+
+  await expectJson(await staff.send(`/api/quotes/${quote.id}`, 'PATCH', { action: 'price', totalValue: 12_380_000, priceNote: 'FOB Surat' }), 200, 'price');
+  await expectJson(await staff.send(`/api/quotes/${quote.id}`, 'PATCH', { action: 'status', status: 'SENT' }), 200, 'send');
+  console.log('sales review: assigned → priced → sent ✓');
+
+  // ---- Customer tracks progress ----------------------------------------------
+  const tracked = await buyer.json<{ quote: { status: string; totalValue: number | null; canDecide: boolean; progress: { step: string; done: boolean }[]; events: { type: string }[] } }>(`/api/portal/quotes/${quote.id}`);
+  assert(tracked.quote.status === 'SENT' && tracked.quote.canDecide, 'the customer sees a decidable quotation');
+  assert(tracked.quote.totalValue === 12_380_000, 'the customer sees the quoted total');
+  assert(tracked.quote.progress.filter((p) => p.done).length === 5, 'progress reaches the "sent" step');
+  assert(!tracked.quote.events.some((e) => e.type === 'NOTE'), 'internal notes are withheld from the customer');
+
+  const trackerPage = await buyer.fetch(`/portal/quotes/${quote.id}`);
+  assert(trackerPage.status === 200, `tracker page → 200 (got ${trackerPage.status})`);
+  // en-IN grouping — ₹1,23,800.00, not 123,800.00.
+  assert((await trackerPage.text()).includes('1,23,800.00'), 'the tracker page renders the quoted total');
+  console.log('customer tracking: progress, pricing, tracker page ✓');
+
+  // ---- Order discussion: the customer accepts ---------------------------------
+  const foreign = await staff.send(`/api/portal/quotes/${quote.id}`, 'POST', { action: 'accept' });
+  assert(foreign.status === 404, `another account cannot decide this quotation (got ${foreign.status})`);
+
+  const decided = await expectJson<{ quote: { status: string; canDecide: boolean } }>(
+    await buyer.send(`/api/portal/quotes/${quote.id}`, 'POST', { action: 'accept', note: 'Please proceed' }),
+    200,
+    'accept'
+  );
+  assert(decided.quote.status === 'ACCEPTED' && !decided.quote.canDecide, 'accepted, and no longer decidable');
+  console.log('order discussion: customer accepts ✓');
 
   // ---- Cleanup ---------------------------------------------------------------
   await buyer.send(`/api/portal/collections/${collection.id}`, 'DELETE');

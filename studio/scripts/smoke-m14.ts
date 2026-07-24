@@ -46,10 +46,10 @@ async function main() {
 
   // Quote status changes reach the customer's feed too.
   const quote = await collectionService.requestQuote(buyer.id, board.id, { name: buyer.name, company: 'Dash Co', email: buyer.email });
-  await getContainer().quoteService.updateStatus(quote.id, 'QUOTED', staff.id);
+  await getContainer().quoteService.updateStatus(quote.id, 'UNDER_REVIEW', staff.id);
   const withQuote = await activityService.list(buyer.id);
   assert(withQuote.some((e) => e.title === 'Quotation requested'), 'quote request recorded');
-  assert(withQuote.some((e) => e.title.startsWith('Quotation quoted')), 'quote status change recorded');
+  assert(withQuote.some((e) => e.title === 'Quotation under review'), 'quote status change recorded');
   console.log('activity: quote lifecycle reaches the customer ✓');
 
   // ---- Recommendations ------------------------------------------------------

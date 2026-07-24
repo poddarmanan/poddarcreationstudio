@@ -158,7 +158,19 @@ export function quoteReceivedTemplate(p: { name: string; subject: string }): Ren
 }
 
 export function quoteStatusTemplate(p: { name: string; subject: string; status: string; url: string }): RenderedEmail {
-  const nice: Record<string, string> = { ASSIGNED: 'assigned to a sales specialist', QUOTED: 'quoted — pricing is ready', WON: 'confirmed', LOST: 'closed' };
+  // Phase 3 M15 vocabulary. The Phase 2 names are kept so an in-flight email built from an
+  // older payload still reads correctly.
+  const nice: Record<string, string> = {
+    UNDER_REVIEW: 'picked up by a sales specialist',
+    SENT: 'quoted — pricing is ready for you',
+    ACCEPTED: 'confirmed',
+    REJECTED: 'closed',
+    EXPIRED: 'expired — tell us and we’ll requote',
+    ASSIGNED: 'picked up by a sales specialist',
+    QUOTED: 'quoted — pricing is ready for you',
+    WON: 'confirmed',
+    LOST: 'closed',
+  };
   const paragraphs = [
     `Hello ${escapeHtml(p.name)},`,
     `Your quotation for <strong>${escapeHtml(p.subject)}</strong> has been ${nice[p.status] ?? p.status.toLowerCase()}.`,

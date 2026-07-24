@@ -14,7 +14,7 @@ type Collection = { id: string; name: string; description: string | null; update
 type Recent = { id: string; fabricId: string; colourId: string | null; fabric: { id: string; name: string }; colour: Colour | null };
 type Download = { id: string; kind: string; createdAt: string; fabric: { id: string; name: string } | null };
 type QuoteItem = { fabric: { name: string }; colour: { name: string; hex: string | null } };
-type Quote = { id: string; subject: string; company: string; quantity: string; status: string; createdAt: string; items: QuoteItem[] };
+type Quote = { id: string; subject: string; company: string; quantity: string; status: string; createdAt: string; currency: string; totalValue: number | null; items: QuoteItem[] };
 type SampleItemT = { id: string; fabric: { name: string }; colour: { name: string; hex: string | null } };
 type Sample = { id: string; status: string; courier: string | null; trackingNumber: string | null; createdAt: string; items: SampleItemT[] };
 type Profile = {
@@ -324,19 +324,22 @@ export function PortalDashboard(props: Props) {
         </Section>
 
         {/* Saved quotes */}
-        <Section title="Saved quotes" meta={`${props.quotes.length}`}>
+        <Section title="Quotations" meta={`${props.quotes.length}`}>
           {props.quotes.length === 0 ? (
-            <div style={emptyNote}>No quotes yet — request one from any fabric or swatch book.</div>
+            <div style={emptyNote}>No quotations yet — send a collection to sales, or request one from any fabric.</div>
           ) : (
             <div style={{ display: 'grid', gap: 10 }}>
               {props.quotes.map((q) => (
-                <div key={q.id} style={{ ...card, display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px' }}>
+                <Link key={q.id} href={`/portal/quotes/${q.id}`} style={{ ...card, display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', textDecoration: 'none' }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 14, color: INK }}>{q.subject}</div>
-                    <div style={{ fontSize: 11.5, color: 'rgba(28,25,23,.5)' }}>{q.quantity} · {new Date(q.createdAt).toLocaleDateString()}</div>
+                    <div style={{ fontSize: 11.5, color: 'rgba(28,25,23,.5)' }}>
+                      {q.quantity} · {new Date(q.createdAt).toLocaleDateString()}
+                      {q.totalValue !== null && q.totalValue !== undefined && ` · ${q.currency} ${(q.totalValue / 100).toLocaleString('en-IN')}`}
+                    </div>
                   </div>
-                  <span style={{ fontSize: 10.5, letterSpacing: '.1em', textTransform: 'uppercase', color: GOLD, background: 'rgba(138,109,69,.1)', borderRadius: 999, padding: '4px 12px' }}>{q.status}</span>
-                </div>
+                  <span style={{ fontSize: 10.5, letterSpacing: '.1em', textTransform: 'uppercase', color: GOLD, background: 'rgba(138,109,69,.1)', borderRadius: 999, padding: '4px 12px' }}>{q.status.replace(/_/g, ' ')}</span>
+                </Link>
               ))}
             </div>
           )}
