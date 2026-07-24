@@ -6,6 +6,9 @@ import {
   inviteTemplate,
   buyerApprovedTemplate,
   quoteSharedTemplate,
+  quoteReceivedTemplate,
+  quoteStatusTemplate,
+  noticeTemplate,
 } from './templates';
 
 function appUrl(): string {
@@ -46,5 +49,17 @@ export class EmailService {
 
   sendQuoteShared(to: string, fromName: string, url: string, items: string[]) {
     return this.transport.send({ to, ...quoteSharedTemplate({ fromName, url, items }) });
+  }
+
+  sendQuoteReceived(to: string, name: string, subject: string) {
+    return this.transport.send({ to, ...quoteReceivedTemplate({ name, subject }) });
+  }
+
+  sendQuoteStatus(to: string, name: string, subject: string, status: string) {
+    return this.transport.send({ to, ...quoteStatusTemplate({ name, subject, status, url: `${appUrl()}/portal` }) });
+  }
+
+  sendStaffNotice(to: string, eyebrow: string, heading: string, paragraphs: string[], cta?: { label: string; url: string }) {
+    return this.transport.send({ to, ...noticeTemplate({ eyebrow, heading, paragraphs, cta }) });
   }
 }

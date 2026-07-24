@@ -145,6 +145,39 @@ export function quoteSharedTemplate(p: { fromName: string; url: string; items: s
   };
 }
 
+export function quoteReceivedTemplate(p: { name: string; subject: string }): RenderedEmail {
+  const paragraphs = [
+    `Thank you, ${escapeHtml(p.name)}.`,
+    `We’ve received your quotation request for <strong>${escapeHtml(p.subject)}</strong>. Our sales team will respond within one working day.`,
+  ];
+  return {
+    subject: 'We’ve received your quotation request',
+    html: layout({ preheader: 'Your quotation request has been received.', eyebrow: 'Quotation', heading: 'Request received', paragraphs }),
+    text: toText('Request received', paragraphs),
+  };
+}
+
+export function quoteStatusTemplate(p: { name: string; subject: string; status: string; url: string }): RenderedEmail {
+  const nice: Record<string, string> = { ASSIGNED: 'assigned to a sales specialist', QUOTED: 'quoted — pricing is ready', WON: 'confirmed', LOST: 'closed' };
+  const paragraphs = [
+    `Hello ${escapeHtml(p.name)},`,
+    `Your quotation for <strong>${escapeHtml(p.subject)}</strong> has been ${nice[p.status] ?? p.status.toLowerCase()}.`,
+  ];
+  return {
+    subject: `Update on your quotation · ${p.subject}`,
+    html: layout({ preheader: 'There’s an update on your quotation.', eyebrow: 'Quotation', heading: 'Your quotation was updated', paragraphs, cta: { label: 'View in your portal', url: p.url } }),
+    text: toText('Your quotation was updated', paragraphs, { label: 'View in your portal', url: p.url }),
+  };
+}
+
+export function noticeTemplate(p: { eyebrow: string; heading: string; paragraphs: string[]; cta?: { label: string; url: string } }): RenderedEmail {
+  return {
+    subject: p.heading,
+    html: layout({ preheader: p.heading, eyebrow: p.eyebrow, heading: p.heading, paragraphs: p.paragraphs, cta: p.cta }),
+    text: toText(p.heading, p.paragraphs, p.cta),
+  };
+}
+
 function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
