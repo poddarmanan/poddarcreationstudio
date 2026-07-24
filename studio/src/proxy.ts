@@ -4,9 +4,21 @@ import { NextResponse, type NextRequest } from 'next/server';
  * Content-Security-Policy with a per-request nonce (Priority 3). Next.js auto-applies the
  * nonce to its framework + page scripts, so `script-src` needs no 'unsafe-inline'.
  *
+ * **Every page this policy covers must render dynamically.** Next can only stamp the
+ * request's nonce into markup it generates per request; a statically prerendered page was
+ * built before the nonce existed, so its inline bootstrap scripts carry none and this policy
+ * refuses them — the page never hydrates. That broke `/signin`, `/forgot-password`,
+ * `/reset-password`, `/verify-email` and `/accept-invite` in production: nobody could sign in
+ * or reset a password. Those five are now server wrappers marked `force-dynamic`.
+ *
+ * Nothing in a build, lint or type check can see this, and the HTTP smokes authenticate
+ * through the API rather than the form, so it took driving a real browser to find. If you add
+ * a new client-rendered route, render it dynamically or it will fail the same way —
+ * `scripts/smoke-http-hydration.ts` guards against exactly that.
+ *
  * Documented tradeoff: the ported design renders inline `style` attributes on nearly every
  * element (baseline is frozen — removing them would be a redesign), so `style-src` must
- * allow 'unsafe-inline'. Scripts remain strictly nonce-gated, which is where XSS risk lives.
+ * allow 'unsafe-inline'.
  */
 export function proxy(request: NextRequest) {
   const isDev = process.env.NODE_ENV === 'development';
