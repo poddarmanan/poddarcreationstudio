@@ -13,6 +13,8 @@ type Recent = { id: string; fabricId: string; colourId: string | null; fabric: {
 type Download = { id: string; kind: string; createdAt: string; fabric: { id: string; name: string } | null };
 type QuoteItem = { fabric: { name: string }; colour: { name: string; hex: string | null } };
 type Quote = { id: string; subject: string; company: string; quantity: string; status: string; createdAt: string; items: QuoteItem[] };
+type SampleItemT = { id: string; fabric: { name: string }; colour: { name: string; hex: string | null } };
+type Sample = { id: string; status: string; courier: string | null; trackingNumber: string | null; createdAt: string; items: SampleItemT[] };
 type Profile = {
   company?: string | null; contactPhone?: string | null; whatsapp?: string | null; gstNumber?: string | null;
   shippingLine1?: string | null; shippingCity?: string | null; shippingState?: string | null; shippingPincode?: string | null; shippingCountry?: string | null;
@@ -28,6 +30,7 @@ interface Props {
   recent: Recent[];
   downloads: Download[];
   quotes: Quote[];
+  samples: Sample[];
 }
 
 const INK = '#1C1917';
@@ -75,6 +78,39 @@ export function PortalDashboard(props: Props) {
   const [profile, setProfile] = useState<Profile>(props.profile);
   const [savedFlash, setSavedFlash] = useState(false);
   const [newName, setNewName] = useState('');
+  const [samples, setSamples] = useState(props.samples);
+  const [sampleMsg, setSampleMsg] = useState('');
+
+  async function requestSamples() {
+    const p = profile;
+    if (!p?.shippingLine1 || !p?.shippingCity) {
+      setSampleMsg('Add your shipping address in the profile above first.');
+      return;
+    }
+    const book = (await fetch('/api/swatchbook').then((r) => r.json()).catch(() => null)) as { items?: { fabricId: string; colourId: string }[] } | null;
+    const items = (book?.items ?? []).map((i) => ({ fabricId: i.fabricId, colourId: i.colourId })).slice(0, 20);
+    if (items.length === 0) {
+      setSampleMsg('Your swatch book is empty — pin shades in the studio first.');
+      return;
+    }
+    const res = await fetch('/api/samples', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        name: props.user.name, company: p.company ?? props.user.name, phone: p.contactPhone,
+        shippingLine1: p.shippingLine1, shippingCity: p.shippingCity, shippingState: p.shippingState,
+        shippingPincode: p.shippingPincode, shippingCountry: p.shippingCountry ?? 'India', items,
+      }),
+    });
+    if (res.ok) {
+      const list = (await fetch('/api/samples').then((r) => r.json()).catch(() => null)) as { samples?: Sample[] } | null;
+      if (list?.samples) setSamples(list.samples);
+      setSampleMsg('Sample request sent — our team will approve and dispatch it.');
+    } else {
+      const err = (await res.json().catch(() => null)) as { error?: string } | null;
+      setSampleMsg(err?.error ?? 'Could not send the request.');
+    }
+  }
 
   async function removeFavourite(id: string) {
     setFavourites((f) => f.filter((x) => x.id !== id));
@@ -252,6 +288,36 @@ export function PortalDashboard(props: Props) {
                     <div style={{ fontSize: 11.5, color: 'rgba(28,25,23,.5)' }}>{q.quantity} · {new Date(q.createdAt).toLocaleDateString()}</div>
                   </div>
                   <span style={{ fontSize: 10.5, letterSpacing: '.1em', textTransform: 'uppercase', color: GOLD, background: 'rgba(138,109,69,.1)', borderRadius: 999, padding: '4px 12px' }}>{q.status}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </Section>
+
+        {/* Sample requests */}
+        <Section
+          title="Sample requests"
+          meta={`${samples.length}`}
+          action={<button onClick={requestSamples} style={inkBtn}>Request samples from swatch book</button>}
+        >
+          {sampleMsg && <div style={{ fontSize: 12.5, color: GOLD, marginBottom: 10 }}>{sampleMsg}</div>}
+          {samples.length === 0 ? (
+            <div style={emptyNote}>Request physical swatches of your pinned shades — approval, courier and tracking show up here.</div>
+          ) : (
+            <div style={{ display: 'grid', gap: 10 }}>
+              {samples.map((sm) => (
+                <div key={sm.id} style={{ ...card, display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {sm.items.slice(0, 6).map((it) => (
+                      <span key={it.id} title={`${it.colour.name} (${it.fabric.name})`} style={{ width: 18, height: 18, borderRadius: '50%', background: it.colour.hex ?? '#E8DFD2', border: '1px solid rgba(28,25,23,.12)' }} />
+                    ))}
+                    {sm.items.length > 6 && <span style={{ fontSize: 11, color: 'rgba(28,25,23,.45)' }}>+{sm.items.length - 6}</span>}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 120 }}>
+                    <div style={{ fontSize: 13.5, color: INK }}>{sm.items.length} shade{sm.items.length === 1 ? '' : 's'} · {new Date(sm.createdAt).toLocaleDateString()}</div>
+                    {sm.courier && <div style={{ fontSize: 11.5, color: 'rgba(28,25,23,.55)' }}>{sm.courier}{sm.trackingNumber ? ` · ${sm.trackingNumber}` : ''}</div>}
+                  </div>
+                  <span style={{ fontSize: 10.5, letterSpacing: '.1em', textTransform: 'uppercase', color: GOLD, background: 'rgba(138,109,69,.1)', borderRadius: 999, padding: '4px 12px' }}>{sm.status}</span>
                 </div>
               ))}
             </div>

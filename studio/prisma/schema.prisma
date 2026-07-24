@@ -63,6 +63,8 @@ model User {
   createdAt       DateTime         @default(now())
   quotes          Quote[]          @relation("buyerQuotes")
   assignedQuotes  Quote[]          @relation("assignedQuotes")
+  sampleRequests  SampleRequest[]  @relation("buyerSamples")
+  assignedSamples SampleRequest[]  @relation("assignedSamples")
   swatchItems     SwatchBookItem[]
   dealerProfile   DealerProfile?
   favourites      Favourite[]
@@ -204,6 +206,7 @@ model Fabric {
   collectionItems CollectionItem[]
   recentlyViewed  RecentlyViewed[]
   downloads       Download[]
+  sampleItems     SampleItem[]
 }
 
 model Colour {
@@ -240,6 +243,7 @@ model Colour {
   favourites      Favourite[]
   collectionItems CollectionItem[]
   recentlyViewed  RecentlyViewed[]
+  sampleItems     SampleItem[]
 
   @@unique([fabricId, order])
   @@index([fabricId])
@@ -379,6 +383,68 @@ model QuoteItem {
   fabric   Fabric @relation(fields: [fabricId], references: [id])
   colourId String
   colour   Colour @relation(fields: [colourId], references: [id])
+}
+
+enum SampleStatus {
+  REQUESTED
+  APPROVED
+  DISPATCHED
+  DELIVERED
+  REJECTED
+}
+
+/// Physical swatch/sample dispatch workflow (Priority 8).
+model SampleRequest {
+  id              String        @id @default(cuid())
+  userId          String?
+  user            User?         @relation("buyerSamples", fields: [userId], references: [id], onDelete: SetNull)
+  name            String
+  company         String
+  email           String?
+  phone           String?
+  shippingLine1   String
+  shippingCity    String
+  shippingState   String?
+  shippingPincode String?
+  shippingCountry String        @default("India")
+  message         String?
+  status          SampleStatus  @default(REQUESTED)
+  courier         String?
+  trackingNumber  String?
+  assigneeId      String?
+  assignee        User?         @relation("assignedSamples", fields: [assigneeId], references: [id], onDelete: SetNull)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  items           SampleItem[]
+  events          SampleEvent[]
+
+  @@index([status])
+  @@index([userId])
+}
+
+model SampleItem {
+  id       String        @id @default(cuid())
+  sampleId String
+  sample   SampleRequest @relation(fields: [sampleId], references: [id], onDelete: Cascade)
+  fabricId String
+  fabric   Fabric        @relation(fields: [fabricId], references: [id])
+  colourId String
+  colour   Colour        @relation(fields: [colourId], references: [id])
+}
+
+/// Immutable history of a sample request: approval, dispatch, courier updates (Priority 8).
+model SampleEvent {
+  id         String        @id @default(cuid())
+  sampleId   String
+  sample     SampleRequest @relation(fields: [sampleId], references: [id], onDelete: Cascade)
+  type       String // CREATED | STATUS | COURIER | NOTE
+  fromStatus SampleStatus?
+  toStatus   SampleStatus?
+  note       String?
+  actorId    String?
+  createdAt  DateTime      @default(now())
+
+  @@index([sampleId, createdAt])
 }
 
 model SwatchBookItem {

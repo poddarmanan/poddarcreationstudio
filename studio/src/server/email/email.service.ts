@@ -9,6 +9,7 @@ import {
   quoteReceivedTemplate,
   quoteStatusTemplate,
   noticeTemplate,
+  sampleStatusTemplate,
 } from './templates';
 
 function appUrl(): string {
@@ -61,5 +62,9 @@ export class EmailService {
 
   sendStaffNotice(to: string, eyebrow: string, heading: string, paragraphs: string[], cta?: { label: string; url: string }) {
     return this.transport.send({ to, ...noticeTemplate({ eyebrow, heading, paragraphs, cta }) });
+  }
+
+  sendSampleStatus(to: string, name: string, status: string, courier?: string | null, trackingNumber?: string | null) {
+    return this.transport.send({ to, ...sampleStatusTemplate({ name, status, courier, trackingNumber, url: `${appUrl()}/portal` }) });
   }
 }

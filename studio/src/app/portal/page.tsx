@@ -8,9 +8,9 @@ export default async function PortalPage() {
   const session = await auth();
   if (!session?.user?.id) redirect('/signin?next=/portal');
 
-  const svc = getContainer().dealerService;
+  const { dealerService: svc, sampleService } = getContainer();
   const uid = session.user.id;
-  const [profile, stats, favourites, collections, recent, downloads, quotes] = await Promise.all([
+  const [profile, stats, favourites, collections, recent, downloads, quotes, samples] = await Promise.all([
     svc.getProfile(uid),
     svc.dashboard(uid),
     svc.listFavourites(uid),
@@ -18,6 +18,7 @@ export default async function PortalPage() {
     svc.listRecent(uid),
     svc.listDownloads(uid),
     svc.listQuotes(uid),
+    sampleService.list({ userId: uid }),
   ]);
 
   return (
@@ -30,6 +31,7 @@ export default async function PortalPage() {
       recent={JSON.parse(JSON.stringify(recent))}
       downloads={JSON.parse(JSON.stringify(downloads))}
       quotes={JSON.parse(JSON.stringify(quotes))}
+      samples={JSON.parse(JSON.stringify(samples))}
     />
   );
 }

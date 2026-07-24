@@ -178,6 +178,21 @@ export function noticeTemplate(p: { eyebrow: string; heading: string; paragraphs
   };
 }
 
+export function sampleStatusTemplate(p: { name: string; status: string; courier?: string | null; trackingNumber?: string | null; url: string }): RenderedEmail {
+  const lines: Record<string, string> = {
+    APPROVED: 'Your sample request is approved — swatches are being cut and packed.',
+    DISPATCHED: `Your samples are on their way${p.courier ? ` via <strong>${escapeHtml(p.courier)}</strong>` : ''}${p.trackingNumber ? ` — tracking <strong>${escapeHtml(p.trackingNumber)}</strong>` : ''}.`,
+    DELIVERED: 'Your samples were delivered. We hope the hand feels as good as the screen looked.',
+    REJECTED: 'We couldn’t fulfil this sample request. Our team will reach out with alternatives.',
+  };
+  const paragraphs = [`Hello ${escapeHtml(p.name)},`, lines[p.status] ?? `Your sample request is now ${p.status.toLowerCase()}.`];
+  return {
+    subject: `Sample request update · ${p.status.charAt(0) + p.status.slice(1).toLowerCase()}`,
+    html: layout({ preheader: 'There’s an update on your sample request.', eyebrow: 'Samples', heading: 'Sample request update', paragraphs, cta: { label: 'Track in your portal', url: p.url } }),
+    text: toText('Sample request update', paragraphs, { label: 'Track in your portal', url: p.url }),
+  };
+}
+
 function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
