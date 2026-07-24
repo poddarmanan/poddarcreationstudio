@@ -103,6 +103,8 @@ model User {
   activity        ActivityEvent[]
   followUps       FollowUp[]       @relation("customerFollowUps")
   assignedFollowUps FollowUp[]     @relation("assignedFollowUps")
+  notes           CustomerNote[]   @relation("customerNotes")
+  authoredNotes   CustomerNote[]   @relation("authoredNotes")
   quotes          Quote[]          @relation("buyerQuotes")
   assignedQuotes  Quote[]          @relation("assignedQuotes")
   sampleRequests  SampleRequest[]  @relation("buyerSamples")
@@ -277,6 +279,23 @@ model FollowUp {
 
   @@index([userId, status, dueAt])
   @@index([assigneeId, status, dueAt])
+}
+
+/// A salesperson's note about a customer (Phase 3 M16). Internal by construction — there is
+/// no customer-facing read path for this model anywhere in the app.
+model CustomerNote {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation("customerNotes", fields: [userId], references: [id], onDelete: Cascade)
+  authorId  String?
+  author    User?    @relation("authoredNotes", fields: [authorId], references: [id], onDelete: SetNull)
+  body      String
+  /// Pinned notes lead the customer profile — payment terms, who to call, standing agreements.
+  pinned    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, pinned, createdAt])
 }
 
 model RecentlyViewed {

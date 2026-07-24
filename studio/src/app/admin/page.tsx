@@ -25,6 +25,7 @@ export default async function AdminHubPage() {
     { k: 'Samples (req.)', v: a.samples.REQUESTED ?? 0 },
   ];
   const doors = [
+    { href: '/admin/sales', title: 'Sales Workspace', desc: 'Pipeline, customers, notes and follow-ups' },
     { href: '/admin/quotes', title: 'Quotations', desc: 'Triage, assign and track inquiries' },
     { href: '/admin/samples', title: 'Samples', desc: 'Approve and dispatch swatch requests' },
     { href: '/admin/catalogue', title: 'Catalogue Ops', desc: 'Bulk media ops, CSV, activity, queue' },
