@@ -3,6 +3,7 @@
 import type { Studio } from './state';
 import { Selvage } from './brand';
 import { FONT_DISPLAY, FONT_BODY, colourShade, fabricWeave, heroColour } from './helpers';
+import { useDragScroll, scrollByEl } from './interactions';
 import { ROOMS } from '@/lib/fabric-generator';
 
 export function Showroom({ studio }: { studio: Studio }) {
@@ -12,6 +13,8 @@ export function Showroom({ studio }: { studio: Studio }) {
   const ri = rooms.indexOf(room);
   const next = rooms[(ri + 1) % rooms.length];
   const prev = rooms[(ri + rooms.length - 1) % rooms.length];
+  const walkDrag = useDragScroll();
+  const roomFade = room.k === 'silk' ? 'rgba(35,30,26,.85)' : 'rgba(240,235,226,.85)';
 
   const rolls = room.ids
     .map((id) => studio.fab(id))
@@ -46,7 +49,10 @@ export function Showroom({ studio }: { studio: Studio }) {
         }}
       />
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(120% 100% at 50% 40%, transparent 60%, rgba(28,25,23,.14))' }} />
-      <div style={{ position: 'relative', textAlign: 'center', padding: 'clamp(24px,4vh,44px) 20px 0' }}>
+      <div
+        key={room.k}
+        style={{ position: 'relative', textAlign: 'center', padding: 'clamp(24px,4vh,44px) 20px 0', animation: 'rise .6s cubic-bezier(.2,.8,.2,1) both' }}
+      >
         <div style={{ fontSize: 10, letterSpacing: '.5em', color: room.accent }}>
           {t.showroom} · {ri + 1} / {rooms.length}
         </div>
@@ -56,9 +62,10 @@ export function Showroom({ studio }: { studio: Studio }) {
         <Selvage style={{ margin: '10px auto 0' }} />
         <p style={{ margin: '6px 0 0', fontSize: 13.5, fontWeight: 300, color: room.sub }}>{t[room.descKey]}</p>
         <div
+          className="pc-nav"
           style={{
             display: 'inline-flex', gap: 6, marginTop: 16, background: 'rgba(250,248,245,.55)', backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(28,25,23,.1)', borderRadius: 999, padding: 5,
+            border: '1px solid rgba(28,25,23,.1)', borderRadius: 999, padding: 5, maxWidth: '94vw', overflowX: 'auto',
           }}
         >
           <button onClick={() => studio.setRoom(prev.k)} style={{ cursor: 'pointer', border: 'none', background: 'none', fontSize: 15, padding: '5px 10px', color: '#1C1917' }}>
@@ -83,7 +90,13 @@ export function Showroom({ studio }: { studio: Studio }) {
           </button>
         </div>
       </div>
-      <div style={{ position: 'relative', overflowX: 'auto', padding: '34px 0 30px' }}>
+      <div style={{ position: 'relative' }}>
+      <div
+        id="pc-walk"
+        className="pc-nav"
+        {...walkDrag}
+        style={{ position: 'relative', overflowX: 'auto', padding: '34px 0 30px', cursor: 'grab', touchAction: 'pan-y' }}
+      >
         <div
           key={room.k}
           style={{
@@ -151,8 +164,39 @@ export function Showroom({ studio }: { studio: Studio }) {
           </div>
         </div>
       </div>
-      <div style={{ position: 'relative', textAlign: 'center', paddingBottom: 26, fontSize: 11, letterSpacing: '.24em', color: room.sub, animation: 'pulse 3s infinite' }}>
-        {t.scrollHint}
+        <div style={{ position: 'absolute', top: 0, bottom: 0, right: 0, width: 90, pointerEvents: 'none', background: `linear-gradient(270deg,${roomFade},transparent)` }} />
+        <button
+          onClick={() => scrollByEl('pc-walk', -520)}
+          aria-label="Scroll left"
+          className="pc-hv-ink-fill"
+          style={{
+            cursor: 'pointer', position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', width: 44, height: 44, borderRadius: '50%',
+            border: '1px solid rgba(28,25,23,.15)', background: 'rgba(250,248,245,.82)', backdropFilter: 'blur(10px)', boxShadow: '0 8px 24px rgba(28,25,23,.14)',
+            fontSize: 18, color: '#1C1917', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .25s,color .25s',
+          }}
+        >
+          ‹
+        </button>
+        <button
+          onClick={() => scrollByEl('pc-walk', 520)}
+          aria-label="Scroll right"
+          className="pc-hv-ink-fill"
+          style={{
+            cursor: 'pointer', position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', width: 44, height: 44, borderRadius: '50%',
+            border: '1px solid rgba(28,25,23,.15)', background: 'rgba(250,248,245,.82)', backdropFilter: 'blur(10px)', boxShadow: '0 8px 24px rgba(28,25,23,.14)',
+            fontSize: 18, color: '#1C1917', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .25s,color .25s',
+          }}
+        >
+          ›
+        </button>
+      </div>
+      <div style={{ position: 'relative', textAlign: 'center', paddingBottom: 26, fontSize: 11, letterSpacing: '.24em', color: room.sub }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, animation: 'pulse 3s infinite' }}>
+          <svg width="26" height="10" viewBox="0 0 26 10" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path d="M0 5h22M18 1l4 4-4 4" />
+          </svg>
+          {t.scrollHint}
+        </span>
       </div>
     </div>
   );

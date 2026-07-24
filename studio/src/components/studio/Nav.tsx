@@ -22,12 +22,12 @@ export function Nav({ studio }: { studio: Studio }) {
   return (
     <nav
       style={{
-        position: 'sticky', top: 0, zIndex: 50, display: 'flex', alignItems: 'center', gap: 12,
-        padding: '0 clamp(12px,3vw,40px)', height: 64, background: 'rgba(250,248,245,.82)',
+        position: 'sticky', top: 0, zIndex: 50, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 12px',
+        padding: '8px clamp(12px,3vw,40px)', minHeight: 48, background: 'rgba(250,248,245,.86)',
         backdropFilter: 'blur(18px)', borderBottom: '1px solid rgba(28,25,23,.08)',
       }}
     >
-      <div onClick={() => go('home')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 9 }}>
+      <div onClick={() => go('home')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 9, flex: 'none' }}>
         <WeaveMark />
         <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
           <span style={{ fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: 600, letterSpacing: '.14em' }}>PODDAR</span>
@@ -35,8 +35,8 @@ export function Nav({ studio }: { studio: Studio }) {
         </span>
       </div>
       <div
-        className="pc-nav"
-        style={{ display: 'flex', gap: 0, flex: 1, justifyContent: 'safe center', flexWrap: 'nowrap', minWidth: 0, overflowX: 'auto' }}
+        className="pc-nav pc-hdrnav"
+        style={{ display: 'flex', gap: 0, justifyContent: 'safe center', flexWrap: 'nowrap', minWidth: 0, overflowX: 'auto' }}
       >
         {items.filter((n) => !n.hidden).map((n) => (
           <button
@@ -56,7 +56,7 @@ export function Nav({ studio }: { studio: Studio }) {
           </button>
         ))}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 'none', marginLeft: 'auto' }}>
         <button
           onClick={studio.toggleLang}
           className="pc-hv-border-ink"
@@ -70,16 +70,19 @@ export function Nav({ studio }: { studio: Studio }) {
         <button
           onClick={() => (signedIn ? studio.doSignOut() : studio.openSignIn())}
           className="pc-hv-gold-fill-cream"
-          title={signedIn ? 'Sign out' : undefined}
+          title={signedIn ? `${signLabel} — sign out` : signLabel}
+          aria-label={signedIn ? 'Sign out' : 'Sign in'}
           style={{
-            cursor: 'pointer',
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32,
             background: signedIn ? '#1C1917' : 'transparent',
             color: signedIn ? '#FAF8F5' : '#1C1917',
-            border: '1px solid rgba(28,25,23,.85)', borderRadius: 999, padding: '5px 13px',
-            fontFamily: FONT_BODY, fontSize: 11.5, whiteSpace: 'nowrap', transition: 'background .25s',
+            border: '1px solid rgba(28,25,23,.85)', borderRadius: '50%', transition: 'background .25s,color .25s',
           }}
         >
-          {signLabel}
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <circle cx="12" cy="8" r="4" />
+            <path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" />
+          </svg>
         </button>
       </div>
     </nav>

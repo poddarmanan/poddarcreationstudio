@@ -18,8 +18,8 @@ export interface Pin {
 export interface Tests {
   stretch: boolean;
   shine: boolean;
-  water: boolean;
-  rotate: boolean;
+  /** "Watch in 3D": oscillating rotation with a mannequin/stand behind the garment. */
+  d3: boolean;
 }
 
 export interface TransState {
@@ -115,7 +115,7 @@ export function useStudio(fabrics: FabricRow[]): Studio {
   const [garment, setGarment] = useState<GarmentKey>('kurti');
   const [light, setLight] = useState<LightKey>('studio');
   const [wind, setWind] = useState(1);
-  const [tests, setTests] = useState<Tests>({ stretch: false, shine: false, water: false, rotate: false });
+  const [tests, setTests] = useState<Tests>({ stretch: false, shine: false, d3: false });
   const [compare, setCompare] = useState<string[]>(['rayon14', 'gajji']);
   const [pins, setPins] = useState<Pin[]>([]);
   const [q, setQ] = useState('');
@@ -181,7 +181,7 @@ export function useStudio(fabrics: FabricRow[]): Studio {
     setView(v);
     setScope(false);
     setScene(null);
-    setTests({ stretch: false, shine: false, water: false, rotate: false });
+    setTests({ stretch: false, shine: false, d3: false });
     window.scrollTo(0, 0);
   }, []);
 

@@ -15,7 +15,10 @@ body {
   background: var(--pc-cream);
   color: var(--pc-ink);
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
+
+input, button { touch-action: manipulation; }
 
 a { color: var(--pc-gold); text-decoration: none; }
 a:hover { color: var(--pc-ink); }
@@ -33,6 +36,10 @@ button:focus-visible, a:focus-visible, input:focus-visible {
 .pc-nav { scrollbar-width: none; }
 .pc-nav::-webkit-scrollbar { display: none; }
 
+/* Header nav row: shares the bar on desktop, drops to its own full-width row on phones. */
+.pc-hdrnav { order: 0; flex: 1 1 auto; }
+@media (max-width: 680px) { .pc-hdrnav { order: 3; flex: 1 1 100%; } }
+
 @keyframes heroDrift { 0% { background-position: 0% 0%, 100% 100%, 50% 0%; } 100% { background-position: 100% 50%, 0% 40%, 60% 100%; } }
 @keyframes sway { 0%, 100% { transform: rotate(calc(var(--amp) * -1)) skewX(calc(var(--amp) * -.4)); } 50% { transform: rotate(var(--amp)) skewX(calc(var(--amp) * .4)); } }
 @keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
@@ -47,6 +54,8 @@ button:focus-visible, a:focus-visible, input:focus-visible {
 @keyframes roomIn { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: none; } }
 @keyframes layCloth { from { opacity: 0; transform: perspective(1200px) rotateX(4deg) translateY(14px); } to { opacity: 1; transform: none; } }
 @keyframes threadUp { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+@keyframes modelIn { from { opacity: 0; transform: translate(-50%, -18px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@keyframes tileIn { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: none; } }
 
 /* Pinked (zigzag) swatch edge — the Studio's signature "mill sample" cut */
 .pc-pink {
@@ -64,6 +73,7 @@ button:focus-visible, a:focus-visible, input:focus-visible {
 .pc-hv-gold-border:hover { border-color: var(--pc-gold); }
 .pc-hv-gold-text-border:hover { border-color: var(--pc-gold); color: var(--pc-gold); }
 .pc-hv-gold-text:hover { color: var(--pc-gold); }
+.pc-hv-ink-fill:hover { background: var(--pc-ink); color: var(--pc-cream); }
 .pc-hv-lift-14:hover { transform: translateY(-14px); }
 .pc-hv-lift-6:hover { transform: translateY(-6px); box-shadow: 0 24px 50px rgba(28,25,23,.1); }
 .pc-hv-lift-5:hover { transform: translateY(-5px); }
