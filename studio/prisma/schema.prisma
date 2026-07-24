@@ -90,16 +90,58 @@ model Colour {
   fabricId    String
   fabric      Fabric           @relation(fields: [fabricId], references: [id], onDelete: Cascade)
   name        String
+  // Canonical colour definition (OKLCH).
   l           Float
   c           Float
   h           Float
   order       Int
-  media       Media[]
-  quoteItems  QuoteItem[]
-  swatchItems SwatchBookItem[]
+  // Derived colour intelligence (Priority 9). Nullable so rows exist before backfill.
+  hex           String?
+  rgbR          Int?
+  rgbG          Int?
+  rgbB          Int?
+  labL          Float?
+  labA          Float?
+  labB          Float?
+  brightness    Float?
+  saturation    Float?
+  temperature   String?
+  contrastInk   Float?
+  contrastCream Float?
+  /// Reserved extension point for future AI / vector similarity search (unused for now).
+  colourVector  Json?
+
+  media          Media[]
+  quoteItems     QuoteItem[]
+  swatchItems    SwatchBookItem[]
+  relationsFrom  ColourRelationship[] @relation("relationFrom")
+  relationsTo    ColourRelationship[] @relation("relationTo")
 
   @@unique([fabricId, order])
   @@index([fabricId])
+  @@index([temperature])
+}
+
+enum ColourRelationKind {
+  SIMILAR
+  COMPLEMENTARY
+  ANALOGOUS
+}
+
+/// Precomputed colour relationships (Priority 9). Powers "similar shades" and prepares
+/// future AI-assisted discovery. Ranked by CIELAB ΔE / hue distance.
+model ColourRelationship {
+  id           String             @id @default(cuid())
+  fromColourId String
+  fromColour   Colour             @relation("relationFrom", fields: [fromColourId], references: [id], onDelete: Cascade)
+  toColourId   String
+  toColour     Colour             @relation("relationTo", fields: [toColourId], references: [id], onDelete: Cascade)
+  kind         ColourRelationKind
+  distance     Float
+  rank         Int
+
+  @@unique([fromColourId, toColourId, kind])
+  @@index([fromColourId, kind, rank])
 }
 
 model Media {
@@ -130,6 +172,8 @@ model Media {
   checksum          String?
   etag              String?
   metadata          Json?
+  /// Dominant colour palette extracted from the uploaded image (Priority 9).
+  dominantPalette   Json?
   createdAt         DateTime   @default(now())
 
   @@index([fabricId])

@@ -6,6 +6,8 @@ import { type RateLimiter, InMemoryRateLimiter } from './core/rate-limit';
 import { type StorageProvider, type Cdn, createStorage, createCdn } from './storage';
 import { PrismaFabricRepository, type FabricRepository } from './fabric/fabric.repository';
 import { FabricService } from './fabric/fabric.service';
+import { PrismaColourRepository, type ColourRepository } from './colour/colour.repository';
+import { ColourService } from './colour/colour.service';
 
 /**
  * Composition root (dependency-injection seam). The ONE place that knows about concrete
@@ -21,6 +23,8 @@ export interface Container {
   cdn: Cdn;
   fabricRepository: FabricRepository;
   fabricService: FabricService;
+  colourRepository: ColourRepository;
+  colourService: ColourService;
 }
 
 function build(): Container {
@@ -34,8 +38,10 @@ function build(): Container {
 
   const fabricRepository = new PrismaFabricRepository(prisma);
   const fabricService = new FabricService(fabricRepository);
+  const colourRepository = new PrismaColourRepository(prisma);
+  const colourService = new ColourService(colourRepository);
 
-  return { telemetry, audit, rateLimiter, storage, cdn, fabricRepository, fabricService };
+  return { telemetry, audit, rateLimiter, storage, cdn, fabricRepository, fabricService, colourRepository, colourService };
 }
 
 const globalForContainer = globalThis as unknown as { __pcContainer?: Container };

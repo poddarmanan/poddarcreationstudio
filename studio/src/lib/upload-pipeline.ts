@@ -4,8 +4,10 @@ import { randomUUID, createHash } from 'node:crypto';
 import { prisma } from '@/lib/prisma';
 import { getContainer } from '@/server/container';
 import { nameColourFromImage } from '@/lib/ai-colour-naming';
+import { extractDominantPalette } from '@/server/colour/palette';
 import { srgbToOklch } from '@/lib/oklch';
 import type { MediaType } from '@/generated/prisma/enums';
+import type { Prisma } from '@/generated/prisma/client';
 
 export interface UploadInput {
   fabricId: string;
@@ -78,6 +80,8 @@ export async function processUpload(input: UploadInput) {
       storage.put({ key: thumbKey, body: thumb, contentType: 'image/webp' }),
     ]);
 
+    const dominantPalette = await extractDominantPalette(input.buffer);
+
     await prisma.media.update({
       where: { id },
       data: {
@@ -87,6 +91,7 @@ export async function processUpload(input: UploadInput) {
         width: meta.width,
         height: meta.height,
         metadata: { width: meta.width, height: meta.height, format: meta.format, bytes: { webp: webp.byteLength, avif: avif.byteLength } },
+        dominantPalette: dominantPalette as unknown as Prisma.InputJsonValue,
         stage: 'THUMBNAIL',
       },
     });

@@ -3,6 +3,8 @@ import bcrypt from 'bcryptjs';
 import { PrismaClient } from '../src/generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { FABRIC_DEFS, generateColours } from '../src/lib/fabric-generator';
+import { PrismaColourRepository } from '../src/server/colour/colour.repository';
+import { ColourService } from '../src/server/colour/colour.service';
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter });
@@ -73,6 +75,11 @@ async function main() {
     create: { name: 'Approved Buyer', email: 'buyer@example.com', passwordHash, role: 'BUYER', approved: true, company: 'Anand Garments, Mumbai' },
     update: {},
   });
+
+  console.log('Computing colour intelligence (metrics + relationships)…');
+  const colourService = new ColourService(new PrismaColourRepository(prisma));
+  const result = await colourService.analyzeAll();
+  console.log(`  ${result.coloursUpdated} colours analyzed, ${result.relationships} relationships built`);
 
   console.log('Done.');
 }
