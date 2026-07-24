@@ -29,9 +29,18 @@ export async function POST(req: Request) {
     });
 
     const info = clientInfo(req);
-    const { audit, telemetry } = getContainer();
+    const { audit, telemetry, emailService, tokenService } = getContainer();
     await audit.record({ actorId: user.id, action: 'user.register', entity: 'User', entityId: user.id, ip: info.ip, userAgent: info.userAgent });
     telemetry.capture({ name: 'user.registered', actorId: user.id });
+
+    // Email verification + welcome (best-effort — a transport failure must not fail signup).
+    try {
+      const rawToken = await tokenService.issue({ type: 'EMAIL_VERIFICATION', email, userId: user.id, ttlMs: 24 * 60 * 60 * 1000 });
+      await emailService.sendVerification(email, user.name, rawToken);
+      await emailService.sendWelcome(email, user.name);
+    } catch (err) {
+      telemetry.error(err, { where: 'register.email' });
+    }
 
     return NextResponse.json({ user: { id: user.id, email: user.email, name: user.name } }, { status: 201 });
   }, { csrf: true, rateLimit: RATE_LIMITS.register });

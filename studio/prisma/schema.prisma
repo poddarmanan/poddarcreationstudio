@@ -52,16 +52,41 @@ model AuditLog {
 }
 
 model User {
-  id           String           @id @default(cuid())
-  name         String
-  email        String           @unique
-  passwordHash String
-  role         Role             @default(BUYER)
-  approved     Boolean          @default(false)
-  company      String?
-  createdAt    DateTime         @default(now())
-  quotes       Quote[]
-  swatchItems  SwatchBookItem[]
+  id              String           @id @default(cuid())
+  name            String
+  email           String           @unique
+  passwordHash    String
+  role            Role             @default(BUYER)
+  approved        Boolean          @default(false)
+  company         String?
+  emailVerifiedAt DateTime?
+  createdAt       DateTime         @default(now())
+  quotes          Quote[]
+  swatchItems     SwatchBookItem[]
+}
+
+enum TokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+  INVITE
+}
+
+/// Single-use, expiring tokens for email verification, password reset, and invites
+/// (Priority 4). Only the SHA-256 hash of the token is stored; the raw value lives only
+/// in the emailed link.
+model Token {
+  id            String    @id @default(cuid())
+  type          TokenType
+  tokenHash     String    @unique
+  email         String
+  userId        String?
+  role          Role?
+  invitedByName String?
+  expiresAt     DateTime
+  usedAt        DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([email, type])
 }
 
 model Fabric {

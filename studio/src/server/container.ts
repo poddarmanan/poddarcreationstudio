@@ -11,6 +11,9 @@ import { ColourService } from './colour/colour.service';
 import { createSearchEngine } from './search';
 import { PrismaSearchQueryLogRepository } from './search/search.repository';
 import { SearchService } from './search/search.service';
+import { createEmailTransport } from './email';
+import { EmailService } from './email/email.service';
+import { TokenService } from './email/token.service';
 
 /**
  * Composition root (dependency-injection seam). The ONE place that knows about concrete
@@ -29,6 +32,8 @@ export interface Container {
   colourRepository: ColourRepository;
   colourService: ColourService;
   searchService: SearchService;
+  emailService: EmailService;
+  tokenService: TokenService;
 }
 
 function build(): Container {
@@ -45,8 +50,10 @@ function build(): Container {
   const colourRepository = new PrismaColourRepository(prisma);
   const colourService = new ColourService(colourRepository);
   const searchService = new SearchService(createSearchEngine(prisma), new PrismaSearchQueryLogRepository(prisma), prisma, telemetry);
+  const emailService = new EmailService(createEmailTransport());
+  const tokenService = new TokenService(prisma);
 
-  return { telemetry, audit, rateLimiter, storage, cdn, fabricRepository, fabricService, colourRepository, colourService, searchService };
+  return { telemetry, audit, rateLimiter, storage, cdn, fabricRepository, fabricService, colourRepository, colourService, searchService, emailService, tokenService };
 }
 
 const globalForContainer = globalThis as unknown as { __pcContainer?: Container };
