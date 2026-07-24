@@ -19,6 +19,8 @@ import { TokenService } from './email/token.service';
 import { DealerService } from './dealer/dealer.service';
 import { CustomerService } from './customer/customer.service';
 import { CollectionService } from './collection/collection.service';
+import { ActivityService } from './activity/activity.service';
+import { DashboardService } from './dashboard/dashboard.service';
 import { QuoteService } from './quote/quote.service';
 import { SampleService } from './sample/sample.service';
 import { AdminService } from './admin/admin.service';
@@ -46,6 +48,8 @@ export interface Container {
   dealerService: DealerService;
   customerService: CustomerService;
   collectionService: CollectionService;
+  activityService: ActivityService;
+  dashboardService: DashboardService;
   quoteService: QuoteService;
   sampleService: SampleService;
   adminService: AdminService;
@@ -67,14 +71,16 @@ function build(): Container {
   const searchService = new SearchService(createSearchEngine(prisma), new PrismaSearchQueryLogRepository(prisma), prisma, telemetry);
   const emailService = new EmailService(createEmailTransport());
   const tokenService = new TokenService(prisma);
-  const dealerService = new DealerService(prisma);
+  const activityService = new ActivityService(prisma);
+  const dealerService = new DealerService(prisma, activityService);
   const customerService = new CustomerService(prisma, emailService, tokenService, telemetry);
-  const quoteService = new QuoteService(prisma, emailService, telemetry);
-  const collectionService = new CollectionService(prisma, quoteService, telemetry);
-  const sampleService = new SampleService(prisma, emailService, telemetry);
+  const quoteService = new QuoteService(prisma, emailService, telemetry, activityService);
+  const collectionService = new CollectionService(prisma, quoteService, telemetry, activityService);
+  const sampleService = new SampleService(prisma, emailService, telemetry, activityService);
   const adminService = new AdminService(prisma, storage);
+  const dashboardService = new DashboardService(prisma, dealerService, collectionService, sampleService, activityService);
 
-  return { telemetry, audit, rateLimiter, cache, storage, cdn, fabricRepository, fabricService, colourRepository, colourService, searchService, emailService, tokenService, dealerService, customerService, collectionService, quoteService, sampleService, adminService };
+  return { telemetry, audit, rateLimiter, cache, storage, cdn, fabricRepository, fabricService, colourRepository, colourService, searchService, emailService, tokenService, dealerService, customerService, collectionService, activityService, dashboardService, quoteService, sampleService, adminService };
 }
 
 const globalForContainer = globalThis as unknown as { __pcContainer?: Container };

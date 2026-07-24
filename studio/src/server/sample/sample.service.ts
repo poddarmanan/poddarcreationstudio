@@ -2,6 +2,7 @@ import type { PrismaClient } from '@/generated/prisma/client';
 import type { SampleStatus } from '@/generated/prisma/enums';
 import type { EmailService } from '../email/email.service';
 import type { Telemetry } from '../core/telemetry';
+import type { ActivityService } from '../activity/activity.service';
 import { AppError } from '../core/errors';
 
 export interface CreateSampleInput {
@@ -39,7 +40,8 @@ export class SampleService {
   constructor(
     private readonly db: PrismaClient,
     private readonly email: EmailService,
-    private readonly telemetry: Telemetry
+    private readonly telemetry: Telemetry,
+    private readonly activity: ActivityService
   ) {}
 
   async create(input: CreateSampleInput) {
@@ -64,6 +66,17 @@ export class SampleService {
       },
       include: { items: true },
     });
+
+    if (input.userId) {
+      await this.activity.record({
+        userId: input.userId,
+        type: 'SAMPLE',
+        title: 'Sample request sent',
+        detail: `${input.items.length} shade${input.items.length === 1 ? '' : 's'} to ${input.shippingCity}`,
+        entity: 'SampleRequest',
+        entityId: sample.id,
+      });
+    }
 
     try {
       const staff = await this.db.user.findMany({ where: { role: { in: ['SALES', 'MANAGER', 'ADMIN'] } }, select: { email: true } });
@@ -141,6 +154,17 @@ export class SampleService {
       if (to) await this.email.sendSampleStatus(to, updated.name, status, updated.courier, updated.trackingNumber);
     } catch (err) {
       this.telemetry.error(err, { where: 'sample.notifyStatus' });
+    }
+
+    if (updated.userId) {
+      await this.activity.record({
+        userId: updated.userId,
+        type: 'SAMPLE',
+        title: `Sample request ${status.toLowerCase()}`,
+        detail: updated.trackingNumber ? `${updated.courier} · ${updated.trackingNumber}` : (updated.courier ?? null),
+        entity: 'SampleRequest',
+        entityId: updated.id,
+      });
     }
 
     this.telemetry.capture({ name: 'sample.status', actorId, props: { status } });

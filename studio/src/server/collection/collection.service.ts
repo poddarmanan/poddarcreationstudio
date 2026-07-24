@@ -2,6 +2,7 @@ import type { PrismaClient } from '@/generated/prisma/client';
 import { AppError } from '../core/errors';
 import type { Telemetry } from '../core/telemetry';
 import type { QuoteService } from '../quote/quote.service';
+import type { ActivityService } from '../activity/activity.service';
 
 export interface CollectionInput {
   name?: string;
@@ -55,7 +56,8 @@ export class CollectionService {
   constructor(
     private readonly db: PrismaClient,
     private readonly quotes: QuoteService,
-    private readonly telemetry: Telemetry
+    private readonly telemetry: Telemetry,
+    private readonly activity: ActivityService
   ) {}
 
   // ---- Reads -----------------------------------------------------------------
@@ -104,6 +106,7 @@ export class CollectionService {
   // ---- Board lifecycle -------------------------------------------------------
   async create(userId: string, name: string, description?: string | null) {
     const collection = await this.db.collection.create({ data: { userId, name: name.trim(), description: description ?? null } });
+    await this.activity.record({ userId, type: 'COLLECTION', title: `Started “${collection.name}”`, entity: 'Collection', entityId: collection.id });
     this.telemetry.capture({ name: 'collection.created', actorId: userId });
     return collection;
   }
@@ -259,6 +262,14 @@ export class CollectionService {
       items: collection.items.map((i) => ({ fabricId: i.fabricId, colourId: i.colourId })),
     });
 
+    await this.activity.record({
+      userId,
+      type: 'COLLECTION',
+      title: `Sent “${collection.name}” to sales`,
+      detail: `${collection.items.length} shade${collection.items.length === 1 ? '' : 's'}`,
+      entity: 'Collection',
+      entityId: collection.id,
+    });
     this.telemetry.capture({ name: 'collection.quote.requested', actorId: userId, props: { items: collection.items.length, collectionId } });
     return quote;
   }

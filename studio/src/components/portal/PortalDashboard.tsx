@@ -4,6 +4,7 @@ import { useState, type CSSProperties, type ReactNode } from 'react';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { AddressBook, ContactPeople, AccountSecurity, type Address, type Contact } from './AccountPanels';
+import { ActivityFeed, FollowUps, Recommendations, type ActivityRow, type FollowUpRow, type RecommendationRow } from './DashboardPanels';
 
 // ---- Loose prop types (data is serialized from the dealer service) -----------
 type Colour = { id: string; name: string; hex: string | null; order: number; fabric: { id: string; name: string } };
@@ -27,6 +28,9 @@ interface Props {
   user: { name: string; email: string; role: string; approved: boolean; emailVerified: boolean };
   addresses: Address[];
   contacts: Contact[];
+  activity: ActivityRow[];
+  followUps: FollowUpRow[];
+  recommendations: RecommendationRow[];
   profile: Profile;
   stats: { favourites: number; collections: number; quotes: number; downloads: number; recent: number };
   favourites: Favourite[];
@@ -196,6 +200,23 @@ export function PortalDashboard(props: Props) {
             </div>
           ))}
         </div>
+
+        {/* Upcoming follow-ups (M14) — only shown when the team has scheduled one */}
+        {props.followUps.length > 0 && (
+          <Section title="Upcoming follow-ups" meta={`${props.followUps.length}`}>
+            <FollowUps rows={props.followUps} />
+          </Section>
+        )}
+
+        {/* Recent activity (M14) */}
+        <Section title="Recent activity">
+          <ActivityFeed rows={props.activity} />
+        </Section>
+
+        {/* Recommended for you (M14) */}
+        <Section title="Recommended for you">
+          <Recommendations groups={props.recommendations} />
+        </Section>
 
         {/* Profile */}
         <Section title="Company profile" action={savedFlash ? <span style={{ fontSize: 12, color: '#3D6B45' }}>Saved ✓</span> : undefined}>

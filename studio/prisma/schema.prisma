@@ -100,6 +100,9 @@ model User {
   createdAt       DateTime         @default(now())
   addresses       ShippingAddress[]
   contacts        ContactPerson[]
+  activity        ActivityEvent[]
+  followUps       FollowUp[]       @relation("customerFollowUps")
+  assignedFollowUps FollowUp[]     @relation("assignedFollowUps")
   quotes          Quote[]          @relation("buyerQuotes")
   assignedQuotes  Quote[]          @relation("assignedQuotes")
   sampleRequests  SampleRequest[]  @relation("buyerSamples")
@@ -226,6 +229,54 @@ model CollectionItem {
 
   @@unique([collectionId, fabricId, colourId])
   @@index([collectionId, position])
+}
+
+/// Human-readable journey log per customer (Phase 3 M14) — "you saved Rani", "your quote
+/// was priced". Deliberately separate from `AuditLog`, which is a security record written
+/// for staff and retained on different terms; this one is written *for the customer*.
+model ActivityEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Coarse category, used for the icon/grouping. See ACTIVITY_TYPES in activity.service.
+  type      String
+  title     String
+  detail    String?
+  entity    String?
+  entityId  String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([type, createdAt])
+}
+
+enum FollowUpStatus {
+  OPEN
+  DONE
+  CANCELLED
+}
+
+/// A scheduled touchpoint with a customer (Phase 3 M14 read side, M16 sales tooling).
+/// `visibleToCustomer` separates "we'll call you Thursday" from an internal reminder — the
+/// customer dashboard only ever shows the former.
+model FollowUp {
+  id                String         @id @default(cuid())
+  userId            String
+  user              User           @relation("customerFollowUps", fields: [userId], references: [id], onDelete: Cascade)
+  assigneeId        String?
+  assignee          User?          @relation("assignedFollowUps", fields: [assigneeId], references: [id], onDelete: SetNull)
+  createdById       String?
+  subject           String
+  note              String?
+  dueAt             DateTime
+  status            FollowUpStatus @default(OPEN)
+  visibleToCustomer Boolean        @default(true)
+  completedAt       DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@index([userId, status, dueAt])
+  @@index([assigneeId, status, dueAt])
 }
 
 model RecentlyViewed {

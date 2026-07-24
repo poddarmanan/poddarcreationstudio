@@ -2,6 +2,7 @@ import type { PrismaClient } from '@/generated/prisma/client';
 import type { QuoteStatus } from '@/generated/prisma/enums';
 import type { EmailService } from '../email/email.service';
 import type { Telemetry } from '../core/telemetry';
+import type { ActivityService } from '../activity/activity.service';
 import { AppError } from '../core/errors';
 
 export interface CreateQuoteInput {
@@ -31,7 +32,8 @@ export class QuoteService {
   constructor(
     private readonly db: PrismaClient,
     private readonly email: EmailService,
-    private readonly telemetry: Telemetry
+    private readonly telemetry: Telemetry,
+    private readonly activity: ActivityService
   ) {}
 
   async create(input: CreateQuoteInput) {
@@ -55,6 +57,17 @@ export class QuoteService {
       },
       include: { items: true },
     });
+
+    if (input.userId) {
+      await this.activity.record({
+        userId: input.userId,
+        type: 'QUOTE',
+        title: 'Quotation requested',
+        detail: input.subject,
+        entity: 'Quote',
+        entityId: quote.id,
+      });
+    }
 
     await this.notifyOnCreate(quote.id, input);
     this.telemetry.capture({ name: 'quote.created', actorId: input.userId ?? undefined, props: { items: input.items.length, country: input.country ?? undefined } });
@@ -132,6 +145,16 @@ export class QuoteService {
       data: { status, events: { create: { type: 'STATUS', fromStatus: quote.status, toStatus: status, note, actorId } } },
     });
     await this.notifyStatus(updated.id);
+    if (updated.userId) {
+      await this.activity.record({
+        userId: updated.userId,
+        type: 'QUOTE',
+        title: `Quotation ${status.toLowerCase().replace(/_/g, ' ')}`,
+        detail: updated.subject,
+        entity: 'Quote',
+        entityId: updated.id,
+      });
+    }
     this.telemetry.capture({ name: 'quote.status', actorId, props: { status } });
     return updated;
   }

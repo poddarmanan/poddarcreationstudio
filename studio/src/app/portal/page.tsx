@@ -3,38 +3,38 @@ import { auth } from '@/auth';
 import { getContainer } from '@/server/container';
 import { PortalDashboard } from '@/components/portal/PortalDashboard';
 
-/** Dealer portal (Priority 6). Server-rendered from the dealer service; requires sign-in. */
+/**
+ * Customer dashboard (Priority 6; expanded in Phase 3 M14). Every panel is assembled by
+ * `DashboardService` in one parallel read, so the page is a single database round trip.
+ */
 export default async function PortalPage() {
   const session = await auth();
   if (!session?.user?.id) redirect('/signin?next=/portal');
 
-  const { dealerService: svc, sampleService, customerService, collectionService } = getContainer();
+  const { dashboardService, customerService } = getContainer();
   const uid = session.user.id;
-  const [account, stats, favourites, collections, recent, downloads, quotes, samples] = await Promise.all([
-    customerService.account(uid),
-    svc.dashboard(uid),
-    svc.listFavourites(uid),
-    collectionService.list(uid),
-    svc.listRecent(uid),
-    svc.listDownloads(uid),
-    svc.listQuotes(uid),
-    sampleService.list({ userId: uid }),
-  ]);
+  const [account, dashboard] = await Promise.all([customerService.account(uid), dashboardService.forUser(uid)]);
   const { user, profile, addresses, contacts } = account;
+
+  // Prisma rows carry Date objects; the dashboard is a client component, so serialise once.
+  const json = <T,>(value: T) => JSON.parse(JSON.stringify(value));
 
   return (
     <PortalDashboard
       user={{ name: user.name, email: user.email, role: user.role, approved: user.approved, emailVerified: !!user.emailVerifiedAt }}
-      addresses={JSON.parse(JSON.stringify(addresses))}
-      contacts={JSON.parse(JSON.stringify(contacts))}
-      profile={JSON.parse(JSON.stringify(profile))}
-      stats={stats}
-      favourites={JSON.parse(JSON.stringify(favourites))}
-      collections={JSON.parse(JSON.stringify(collections))}
-      recent={JSON.parse(JSON.stringify(recent))}
-      downloads={JSON.parse(JSON.stringify(downloads))}
-      quotes={JSON.parse(JSON.stringify(quotes))}
-      samples={JSON.parse(JSON.stringify(samples))}
+      addresses={json(addresses)}
+      contacts={json(contacts)}
+      profile={json(profile)}
+      stats={dashboard.stats}
+      favourites={json(dashboard.favourites)}
+      collections={json(dashboard.collections)}
+      recent={json(dashboard.recent)}
+      downloads={json(dashboard.downloads)}
+      quotes={json(dashboard.quotes)}
+      samples={json(dashboard.samples)}
+      activity={json(dashboard.activity)}
+      followUps={json(dashboard.followUps)}
+      recommendations={json(dashboard.recommendations)}
     />
   );
 }
