@@ -3,6 +3,7 @@ import type { SampleStatus } from '@/generated/prisma/enums';
 import type { EmailService } from '../email/email.service';
 import type { Telemetry } from '../core/telemetry';
 import type { ActivityService } from '../activity/activity.service';
+import type { NotificationService } from '../notification/notification.service';
 import { AppError } from '../core/errors';
 
 export interface CreateSampleInput {
@@ -41,8 +42,14 @@ export class SampleService {
     private readonly db: PrismaClient,
     private readonly email: EmailService,
     private readonly telemetry: Telemetry,
-    private readonly activity: ActivityService
+    private readonly activity: ActivityService,
+    private notifications?: NotificationService
   ) {}
+
+  /** Wired by the composition root once both services exist. */
+  attachNotifications(notifications: NotificationService): void {
+    this.notifications = notifications;
+  }
 
   async create(input: CreateSampleInput) {
     if (input.items.length === 0) throw AppError.validation('Select at least one shade to sample');
@@ -77,6 +84,15 @@ export class SampleService {
         entityId: sample.id,
       });
     }
+
+    await this.notifications?.notifyStaff({
+      type: 'SAMPLE',
+      title: 'New sample request',
+      body: `${input.company} — ${input.items.length} shade${input.items.length === 1 ? '' : 's'}`,
+      link: '/admin/samples',
+      entity: 'SampleRequest',
+      entityId: sample.id,
+    });
 
     try {
       const staff = await this.db.user.findMany({ where: { role: { in: ['SALES', 'MANAGER', 'ADMIN'] } }, select: { email: true } });
@@ -149,11 +165,14 @@ export class SampleService {
       },
     });
 
-    try {
-      const to = updated.email ?? (updated.userId ? (await this.db.user.findUnique({ where: { id: updated.userId } }))?.email : null);
-      if (to) await this.email.sendSampleStatus(to, updated.name, status, updated.courier, updated.trackingNumber);
-    } catch (err) {
-      this.telemetry.error(err, { where: 'sample.notifyStatus' });
+    // A signed-in customer hears through the notification centre (in-app + a preference-aware
+    // email). A guest request has no account to notify, so it still gets the direct email.
+    if (!updated.userId && updated.email) {
+      try {
+        await this.email.sendSampleStatus(updated.email, updated.name, status, updated.courier, updated.trackingNumber);
+      } catch (err) {
+        this.telemetry.error(err, { where: 'sample.notifyGuest' });
+      }
     }
 
     if (updated.userId) {
@@ -167,6 +186,9 @@ export class SampleService {
       });
     }
 
+    if (updated.userId) {
+      await this.notifications?.sampleUpdated(updated.userId, updated.id, status, updated.courier, updated.trackingNumber);
+    }
     this.telemetry.capture({ name: 'sample.status', actorId, props: { status } });
     return updated;
   }

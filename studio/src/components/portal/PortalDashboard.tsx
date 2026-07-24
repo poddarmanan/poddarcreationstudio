@@ -5,6 +5,7 @@ import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { AddressBook, ContactPeople, AccountSecurity, type Address, type Contact } from './AccountPanels';
 import { ActivityFeed, FollowUps, Recommendations, type ActivityRow, type FollowUpRow, type RecommendationRow } from './DashboardPanels';
+import { NotificationCentre, type NotificationRow, type NotificationPreferences } from './NotificationCentre';
 
 // ---- Loose prop types (data is serialized from the dealer service) -----------
 type Colour = { id: string; name: string; hex: string | null; order: number; fabric: { id: string; name: string } };
@@ -31,6 +32,9 @@ interface Props {
   activity: ActivityRow[];
   followUps: FollowUpRow[];
   recommendations: RecommendationRow[];
+  notifications: NotificationRow[];
+  unread: number;
+  notificationPreferences: NotificationPreferences;
   profile: Profile;
   stats: { favourites: number; collections: number; quotes: number; downloads: number; recent: number };
   favourites: Favourite[];
@@ -200,6 +204,11 @@ export function PortalDashboard(props: Props) {
             </div>
           ))}
         </div>
+
+        {/* Notifications (M19) */}
+        <Section title="Notifications" meta={props.unread > 0 ? `${props.unread} unread` : undefined}>
+          <NotificationCentre initial={props.notifications} initialUnread={props.unread} preferences={props.notificationPreferences} />
+        </Section>
 
         {/* Upcoming follow-ups (M14) — only shown when the team has scheduled one */}
         {props.followUps.length > 0 && (

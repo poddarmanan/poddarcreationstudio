@@ -234,7 +234,7 @@ export function CustomerProfile({ initial, staff }: { initial: CustomerDetail; s
             {detail.communication.map((c) => (
               <li key={c.id} style={{ display: 'flex', gap: 12, alignItems: 'baseline', padding: '8px 0', borderBottom: '1px solid rgba(28,25,23,.06)' }}>
                 <span style={{ ...meta, minWidth: 92, whiteSpace: 'nowrap' }}>{new Date(c.at).toLocaleDateString()}</span>
-                <span style={{ fontSize: 10, letterSpacing: '.12em', textTransform: 'uppercase', color: GOLD, minWidth: 78 }}>{c.channel.replace(/_/g, ' ')}</span>
+                <span style={{ fontSize: 10, letterSpacing: '.12em', textTransform: 'uppercase', color: GOLD, minWidth: 82 }}>{c.channel.replace(/_/g, ' ')}</span>
                 <span style={{ fontSize: 13, color: INK }}>{c.summary}</span>
               </li>
             ))}

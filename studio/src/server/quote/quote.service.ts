@@ -3,6 +3,7 @@ import type { QuoteStatus } from '@/generated/prisma/enums';
 import type { EmailService } from '../email/email.service';
 import type { Telemetry } from '../core/telemetry';
 import type { ActivityService } from '../activity/activity.service';
+import type { NotificationService } from '../notification/notification.service';
 import { AppError } from '../core/errors';
 
 export interface CreateQuoteInput {
@@ -79,8 +80,16 @@ export class QuoteService {
     private readonly db: PrismaClient,
     private readonly email: EmailService,
     private readonly telemetry: Telemetry,
-    private readonly activity: ActivityService
+    private readonly activity: ActivityService,
+    /** Set by the container after construction — notifications depend on email, which
+     *  depends on nothing here, so this breaks the constructor cycle without a locator. */
+    private notifications?: NotificationService
   ) {}
+
+  /** Wired by the composition root once both services exist. */
+  attachNotifications(notifications: NotificationService): void {
+    this.notifications = notifications;
+  }
 
   async create(input: CreateQuoteInput) {
     const quote = await this.db.quote.create({
@@ -117,6 +126,14 @@ export class QuoteService {
     }
 
     await this.notifyOnCreate(quote.id, input);
+    await this.notifications?.notifyStaff({
+      type: 'QUOTE',
+      title: 'New quotation request',
+      body: `${input.company} — ${input.subject}`,
+      link: '/admin/quotes',
+      entity: 'Quote',
+      entityId: quote.id,
+    });
     this.telemetry.capture({ name: 'quote.created', actorId: input.userId ?? undefined, props: { items: input.items.length, country: input.country ?? undefined } });
     return quote;
   }
@@ -182,7 +199,9 @@ export class QuoteService {
         events: { create: { type: 'ASSIGN', fromStatus: quote.status, toStatus: nextStatus, note: `Assigned to ${assignee.name}`, actorId } },
       },
     });
-    await this.notifyStatus(updated.id);
+    if (updated.userId && nextStatus !== quote.status) {
+      await this.notifications?.quoteUpdated(updated.userId, updated.id, updated.subject, nextStatus);
+    }
     return updated;
   }
 
@@ -207,7 +226,6 @@ export class QuoteService {
         events: { create: { type: 'STATUS', fromStatus: quote.status, toStatus: status, note, actorId } },
       },
     });
-    await this.notifyStatus(updated.id);
     if (updated.userId) {
       await this.activity.record({
         userId: updated.userId,
@@ -218,6 +236,7 @@ export class QuoteService {
         entityId: updated.id,
       });
     }
+    if (updated.userId) await this.notifications?.quoteUpdated(updated.userId, updated.id, updated.subject, status);
     this.telemetry.capture({ name: 'quote.status', actorId, props: { status } });
     return updated;
   }
@@ -367,19 +386,6 @@ export class QuoteService {
     return this.db.quoteEvent.create({ data: { quoteId: id, type: 'NOTE', note, actorId } });
   }
 
-  private async notifyStatus(id: string) {
-    try {
-      const quote = await this.db.quote.findUnique({ where: { id }, include: { user: { select: { email: true, name: true } } } });
-      if (!quote) return;
-      const to = quote.email ?? quote.user?.email;
-      // Only the states a customer benefits from hearing about — internal triage is silent.
-      if (to && (quote.status === 'UNDER_REVIEW' || quote.status === 'SENT' || quote.status === 'ACCEPTED' || quote.status === 'EXPIRED')) {
-        await this.email.sendQuoteStatus(to, quote.name, quote.subject, quote.status);
-      }
-    } catch (err) {
-      this.telemetry.error(err, { where: 'quote.notifyStatus' });
-    }
-  }
 }
 
 /** "under review" reads better than "UNDER_REVIEW" in a message aimed at a person. */

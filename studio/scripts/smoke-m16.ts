@@ -66,6 +66,7 @@ async function main() {
   assert(detail.communication.length > 0, 'communication history assembled');
   assert(detail.communication.some((c) => c.channel === 'QUOTE'), 'quote events feed the history');
   assert(detail.communication.some((c) => c.channel === 'SAMPLE'), 'sample events feed the history');
+  assert(detail.communication.some((c) => c.channel === 'EMAIL'), 'M19 email deliveries feed the history too');
   const times = detail.communication.map((c) => new Date(c.at).getTime());
   assert(times.every((t, i) => i === 0 || times[i - 1] >= t), 'communication history is newest-first');
   console.log('customer profile: full story, merged communication history ✓');

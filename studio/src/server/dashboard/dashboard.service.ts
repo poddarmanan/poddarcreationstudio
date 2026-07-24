@@ -3,6 +3,7 @@ import type { ActivityService } from '../activity/activity.service';
 import type { CollectionService } from '../collection/collection.service';
 import type { DealerService } from '../dealer/dealer.service';
 import type { SampleService } from '../sample/sample.service';
+import type { NotificationService } from '../notification/notification.service';
 import { relativePast, relativeFuture, isOverdue } from './format';
 
 /** Shade projection used across every dashboard panel. */
@@ -31,11 +32,12 @@ export class DashboardService {
     private readonly dealers: DealerService,
     private readonly collections: CollectionService,
     private readonly samples: SampleService,
-    private readonly activity: ActivityService
+    private readonly activity: ActivityService,
+    private readonly notifications: NotificationService
   ) {}
 
   async forUser(userId: string) {
-    const [stats, favourites, boards, recent, downloads, quotes, samples, events, followUps] = await Promise.all([
+    const [stats, favourites, boards, recent, downloads, quotes, samples, events, followUps, notifications, unread, notificationPreferences] = await Promise.all([
       this.dealers.dashboard(userId),
       this.dealers.listFavourites(userId),
       this.collections.list(userId),
@@ -45,6 +47,9 @@ export class DashboardService {
       this.samples.list({ userId }),
       this.activity.list(userId, 12),
       this.upcomingFollowUps(userId),
+      this.notifications.list(userId, { take: 12 }),
+      this.notifications.unreadCount(userId),
+      this.notifications.preferences(userId),
     ]);
 
     // Derived from data already in hand — no extra queries.
@@ -63,6 +68,9 @@ export class DashboardService {
       samples,
       activity: events.map((e) => ({ ...e, whenLabel: relativePast(e.createdAt, now) })),
       followUps: followUps.map((f) => ({ ...f, dueLabel: relativeFuture(f.dueAt, now), overdue: isOverdue(f.dueAt, now) })),
+      notifications: notifications.map((n) => ({ ...n, whenLabel: relativePast(n.createdAt, now) })),
+      unread,
+      notificationPreferences,
       recommendations,
     };
   }

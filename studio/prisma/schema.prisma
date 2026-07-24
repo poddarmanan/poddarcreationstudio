@@ -105,6 +105,7 @@ model User {
   assignedFollowUps FollowUp[]     @relation("assignedFollowUps")
   notes           CustomerNote[]   @relation("customerNotes")
   authoredNotes   CustomerNote[]   @relation("authoredNotes")
+  notifications   Notification[]
   quotes          Quote[]          @relation("buyerQuotes")
   assignedQuotes  Quote[]          @relation("assignedQuotes")
   sampleRequests  SampleRequest[]  @relation("buyerSamples")
@@ -137,6 +138,11 @@ model DealerProfile {
   prefEmail       Boolean  @default(true)
   prefWhatsapp    Boolean  @default(true)
   prefPhone       Boolean  @default(false)
+  // Per-category email preferences (Phase 3 M19). In-app notifications are always written;
+  // these only govern whether we also put it in someone's inbox.
+  notifyQuotes    Boolean  @default(true)
+  notifySamples   Boolean  @default(true)
+  notifyShares    Boolean  @default(true)
   updatedAt       DateTime @updatedAt
 }
 
@@ -270,6 +276,45 @@ model ShareView {
   createdAt DateTime        @default(now())
 
   @@index([shareId, createdAt])
+}
+
+/// One notification for one person (Phase 3 M19). In-app is the durable record; email is a
+/// delivery channel on top, subject to the recipient's preferences.
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// QUOTE | SAMPLE | SHARE | ACCOUNT | SYSTEM — drives grouping and the preference check.
+  type      String
+  title     String
+  body      String?
+  /// Where clicking it should take the recipient.
+  link      String?
+  entity    String?
+  entityId  String?
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId, readAt, createdAt])
+  @@index([userId, createdAt])
+}
+
+/// Delivery record for every email the platform sends (Phase 3 M19). Written by a transport
+/// decorator, so *all* mail is logged — including the Phase 2 flows — without touching a single
+/// call site. Doubles as the email half of the sales workspace's communication history.
+model EmailLog {
+  id        String   @id @default(cuid())
+  to        String
+  subject   String
+  userId    String?
+  /// SENT | FAILED
+  status    String   @default("SENT")
+  error     String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([to, createdAt])
+  @@index([createdAt])
 }
 
 /// Human-readable journey log per customer (Phase 3 M14) — "you saved Rani", "your quote

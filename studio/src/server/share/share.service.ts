@@ -6,6 +6,7 @@ import { AppError } from '../core/errors';
 import type { Telemetry } from '../core/telemetry';
 import type { EmailService } from '../email/email.service';
 import type { ActivityService } from '../activity/activity.service';
+import type { NotificationService } from '../notification/notification.service';
 import { renderCataloguePdf, type CatalogueItem } from '../pdf/catalogue-pdf';
 import { shareCookieName, verifyShareTicket } from './share-cookie';
 
@@ -40,8 +41,14 @@ export class ShareService {
     private readonly db: PrismaClient,
     private readonly email: EmailService,
     private readonly telemetry: Telemetry,
-    private readonly activity: ActivityService
+    private readonly activity: ActivityService,
+    private notifications?: NotificationService
   ) {}
+
+  /** Wired by the composition root once both services exist. */
+  attachNotifications(notifications: NotificationService): void {
+    this.notifications = notifications;
+  }
 
   // ---- Owner side --------------------------------------------------------------
   async create(userId: string, collectionId: string, input: CreateShareInput = {}) {
@@ -182,10 +189,19 @@ export class ShareService {
    */
   async recordView(shareId: string, visitorKey?: string | null, referer?: string | null) {
     const visitorId = visitorKey ? createHash('sha256').update(`${shareId}:${visitorKey}`).digest('hex').slice(0, 16) : null;
-    await this.db.$transaction([
-      this.db.collectionShare.update({ where: { id: shareId }, data: { viewCount: { increment: 1 }, lastViewedAt: new Date() } }),
+    const [updated] = await this.db.$transaction([
+      this.db.collectionShare.update({
+        where: { id: shareId },
+        data: { viewCount: { increment: 1 }, lastViewedAt: new Date() },
+        include: { collection: { select: { userId: true, name: true } } },
+      }),
       this.db.shareView.create({ data: { shareId, visitorId, referer: referer?.slice(0, 300) ?? null } }),
     ]);
+    // Only the first open notifies. "Your catalogue was viewed" is useful once; on every
+    // refresh it is noise, and noisy notifications get muted wholesale.
+    if (updated.viewCount === 1) {
+      await this.notifications?.catalogueOpened(updated.collection.userId, shareId, updated.collection.name);
+    }
     this.telemetry.capture({ name: 'share.viewed', props: { shareId } });
   }
 

@@ -35,6 +35,9 @@ export default async function PortalPage() {
       activity={json(dashboard.activity)}
       followUps={json(dashboard.followUps)}
       recommendations={json(dashboard.recommendations)}
+      notifications={json(dashboard.notifications)}
+      unread={dashboard.unread}
+      notificationPreferences={dashboard.notificationPreferences}
     />
   );
 }

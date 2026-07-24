@@ -145,7 +145,7 @@ export class SalesService {
     });
     if (!user) throw AppError.notFound('Customer not found');
 
-    const [collections, quotes, samples, activity, notes, followUps, downloads] = await Promise.all([
+    const [collections, quotes, samples, activity, notes, followUps, downloads, emails] = await Promise.all([
       this.db.collection.findMany({
         where: { userId },
         orderBy: { updatedAt: 'desc' },
@@ -168,6 +168,8 @@ export class SalesService {
       this.db.customerNote.findMany({ where: { userId }, orderBy: [{ pinned: 'desc' }, { createdAt: 'desc' }], include: { author: { select: { name: true } } } }),
       this.db.followUp.findMany({ where: { userId }, orderBy: [{ status: 'asc' }, { dueAt: 'asc' }], include: { assignee: { select: { id: true, name: true } } } }),
       this.db.download.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, take: 15, include: { fabric: { select: { name: true } } } }),
+      // M19's delivery log completes the communication history: what we actually sent them.
+      this.db.emailLog.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, take: 40 }),
     ]);
 
     const now = new Date();
@@ -180,7 +182,7 @@ export class SalesService {
       notes,
       followUps: followUps.map((f) => ({ ...f, dueLabel: relativeFuture(f.dueAt, now), overdue: f.status === 'OPEN' && isOverdue(f.dueAt, now) })),
       downloads,
-      communication: this.communicationHistory(quotes, samples, notes, followUps),
+      communication: this.communicationHistory(quotes, samples, notes, followUps, emails),
       summary: {
         openQuotes: quotes.filter((q) => PIPELINE_STAGES.includes(q.status)).length,
         wonValue: quotes.filter((q) => q.status === 'ACCEPTED').reduce((sum, q) => sum + (q.totalValue ?? 0), 0),
@@ -199,7 +201,8 @@ export class SalesService {
     quotes: { id: string; subject: string; events: { id: string; type: string; note: string | null; fromStatus: QuoteStatus | null; toStatus: QuoteStatus | null; createdAt: Date }[] }[],
     samples: { id: string; events: { id: string; type: string; note: string | null; toStatus: SampleStatus | null; createdAt: Date }[] }[],
     notes: { id: string; body: string; createdAt: Date; author: { name: string } | null }[],
-    followUps: { id: string; subject: string; dueAt: Date; status: string; createdAt: Date }[]
+    followUps: { id: string; subject: string; dueAt: Date; status: string; createdAt: Date }[],
+    emails: { id: string; subject: string; status: string; createdAt: Date }[]
   ) {
     const entries: { id: string; at: Date; channel: string; summary: string; ref?: string }[] = [];
 
@@ -237,6 +240,15 @@ export class SalesService {
     }
     for (const f of followUps) {
       entries.push({ id: `f-${f.id}`, at: f.createdAt, channel: 'FOLLOW_UP', summary: `Follow-up ${f.status.toLowerCase()} — ${f.subject} (due ${f.dueAt.toISOString().slice(0, 10)})` });
+    }
+
+    for (const mail of emails) {
+      entries.push({
+        id: `e-${mail.id}`,
+        at: mail.createdAt,
+        channel: 'EMAIL',
+        summary: mail.status === 'FAILED' ? `Email failed: ${mail.subject}` : `Emailed: ${mail.subject}`,
+      });
     }
 
     return entries.sort((a, b) => b.at.getTime() - a.at.getTime()).slice(0, 60);
