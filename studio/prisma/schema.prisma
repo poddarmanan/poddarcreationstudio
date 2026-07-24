@@ -208,6 +208,7 @@ model Collection {
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt @default(now())
   items       CollectionItem[]
+  shares      CollectionShare[]
 
   @@index([userId])
   @@index([userId, updatedAt])
@@ -231,6 +232,44 @@ model CollectionItem {
 
   @@unique([collectionId, fabricId, colourId])
   @@index([collectionId, position])
+}
+
+/// A shared catalogue link for a collection (Phase 3 M17). The raw token lives only in the
+/// URL; only its SHA-256 hash is stored, so a database read cannot reconstruct a live link —
+/// the same discipline as the email `Token` model.
+model CollectionShare {
+  id            String      @id @default(cuid())
+  collectionId  String
+  collection    Collection  @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  createdById   String?
+  tokenHash     String      @unique
+  title         String?
+  message       String?
+  /// bcrypt hash of the optional passphrase. Null = the link alone is enough.
+  passwordHash  String?
+  expiresAt     DateTime?
+  allowDownload Boolean     @default(true)
+  revokedAt     DateTime?
+  viewCount     Int         @default(0)
+  lastViewedAt  DateTime?
+  createdAt     DateTime    @default(now())
+  views         ShareView[]
+
+  @@index([collectionId, createdAt])
+}
+
+/// One anonymous open of a shared catalogue (Phase 3 M17). Feeds the owner's "who has seen
+/// this?" and M18's popular-collections analytics. Stores no identity — a truncated IP hash
+/// is enough to distinguish visitors without retaining an address.
+model ShareView {
+  id        String          @id @default(cuid())
+  shareId   String
+  share     CollectionShare @relation(fields: [shareId], references: [id], onDelete: Cascade)
+  visitorId String?
+  referer   String?
+  createdAt DateTime        @default(now())
+
+  @@index([shareId, createdAt])
 }
 
 /// Human-readable journey log per customer (Phase 3 M14) — "you saved Rani", "your quote

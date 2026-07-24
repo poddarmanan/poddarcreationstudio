@@ -25,6 +25,11 @@ export interface BoardItem {
   colour: { id: string; name: string; hex: string | null; temperature: string | null; fabric: { id: string; name: string; family: string; weight: string; width: string; comp: string } };
 }
 
+export interface ShareRow {
+  id: string; title: string | null; expiresAt: string | null; allowDownload: boolean;
+  revokedAt: string | null; viewCount: number; lastViewedAt: string | null; createdAt: string; hasPassword: boolean;
+}
+
 export interface Board {
   id: string;
   name: string;
@@ -37,8 +42,14 @@ export interface Board {
 const jsonHeaders = { 'content-type': 'application/json' };
 const meta: CSSProperties = { fontSize: 11.5, color: 'rgba(28,25,23,.5)' };
 
-export function CollectionBoard({ initial, canQuote }: { initial: Board; canQuote: boolean }) {
+export function CollectionBoard({ initial, canQuote, shares: initialShares }: { initial: Board; canQuote: boolean; shares: ShareRow[] }) {
   const [board, setBoard] = useState(initial);
+  const [shares, setShares] = useState(initialShares);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareForm, setShareForm] = useState({ title: '', message: '', password: '', expiresAt: '', allowDownload: true });
+  // The raw link is returned exactly once, at creation — the server can never show it again.
+  const [freshLink, setFreshLink] = useState<{ url: string; qr: string; token: string } | null>(null);
+  const [emailTo, setEmailTo] = useState('');
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(initial.name);
   const [description, setDescription] = useState(initial.description ?? '');
@@ -120,6 +131,65 @@ export function CollectionBoard({ initial, canQuote }: { initial: Board; canQuot
     }
   }
 
+  async function createShare() {
+    const res = await fetch(`/api/portal/collections/${board.id}/share`, {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({
+        title: shareForm.title || null,
+        message: shareForm.message || null,
+        password: shareForm.password || null,
+        expiresAt: shareForm.expiresAt ? new Date(`${shareForm.expiresAt}T23:59:59`).toISOString() : null,
+        allowDownload: shareForm.allowDownload,
+      }),
+    });
+    if (!res.ok) {
+      const err = (await res.json().catch(() => null)) as { error?: string } | null;
+      say(err?.error ?? 'Could not create a link.', 'error');
+      return;
+    }
+    const data = (await res.json()) as { url: string; qr: string; token: string };
+    setFreshLink({ url: data.url, qr: data.qr, token: data.token });
+    setShareForm({ title: '', message: '', password: '', expiresAt: '', allowDownload: true });
+    await refreshShares();
+    say('Link created — copy it now, it is shown only once.');
+  }
+
+  async function refreshShares() {
+    const res = await fetch(`/api/portal/collections/${board.id}/share`);
+    if (res.ok) setShares(((await res.json()) as { shares: ShareRow[] }).shares);
+  }
+
+  async function revokeShare(id: string) {
+    setShares((list) => list.map((s) => (s.id === id ? { ...s, revokedAt: new Date().toISOString() } : s)));
+    await fetch(`/api/portal/shares/${id}`, { method: 'DELETE' }).catch(() => {});
+    await refreshShares();
+  }
+
+  async function emailShare() {
+    if (!freshLink) return;
+    const addresses = emailTo.split(/[,;\s]+/).map((a) => a.trim()).filter(Boolean);
+    if (addresses.length === 0) {
+      say('Add at least one email address.', 'error');
+      return;
+    }
+    const shareId = shares.find((s) => !s.revokedAt)?.id;
+    if (!shareId) return;
+    const res = await fetch(`/api/portal/shares/${shareId}`, {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({ action: 'email', token: freshLink.token, to: addresses }),
+    });
+    if (res.ok) {
+      const { sent } = (await res.json()) as { sent: number };
+      setEmailTo('');
+      say(`Catalogue emailed to ${sent} recipient${sent === 1 ? '' : 's'}.`);
+    } else {
+      const err = (await res.json().catch(() => null)) as { error?: string } | null;
+      say(err?.error ?? 'Could not email the catalogue.', 'error');
+    }
+  }
+
   async function duplicate() {
     const res = await fetch('/api/portal/collections', {
       method: 'POST',
@@ -180,6 +250,7 @@ export function CollectionBoard({ initial, canQuote }: { initial: Board; canQuot
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 18 }}>
               {canQuote && <button onClick={() => setQuoteOpen((o) => !o)} style={inkBtn}>Request quotation</button>}
+              <button onClick={() => setShareOpen((o) => !o)} style={chipBtn}>Share catalogue</button>
               <button onClick={() => setEditing(true)} style={chipBtn}>Edit details</button>
               <button onClick={duplicate} style={chipBtn}>Duplicate</button>
               <button onClick={removeBoard} style={chipBtn}>Delete</button>
@@ -200,6 +271,70 @@ export function CollectionBoard({ initial, canQuote }: { initial: Board; canQuot
               <button onClick={requestQuote} disabled={busy} style={{ ...inkBtn, opacity: busy ? 0.6 : 1 }}>{busy ? 'Sending…' : 'Send to sales'}</button>
               <span style={meta}>Quantities and notes below travel with the request.</span>
             </div>
+          </div>
+        )}
+
+        {/* Share catalogue (M17) */}
+        {shareOpen && (
+          <div style={{ ...card, marginTop: 18 }}>
+            <div style={label}>Share this collection</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 14, marginTop: 10 }}>
+              <div><div style={label}>Title on the link</div><input style={input} value={shareForm.title} onChange={(e) => setShareForm((f) => ({ ...f, title: e.target.value }))} placeholder={board.name} /></div>
+              <div><div style={label}>Passphrase (optional)</div><input style={input} value={shareForm.password} onChange={(e) => setShareForm((f) => ({ ...f, password: e.target.value }))} placeholder="Leave blank for an open link" /></div>
+              <div><div style={label}>Expires (optional)</div><input type="date" style={input} value={shareForm.expiresAt} onChange={(e) => setShareForm((f) => ({ ...f, expiresAt: e.target.value }))} /></div>
+              <div style={{ gridColumn: '1/-1' }}><div style={label}>Message</div><input style={input} value={shareForm.message} onChange={(e) => setShareForm((f) => ({ ...f, message: e.target.value }))} placeholder="A line for whoever opens it" /></div>
+            </div>
+            <label style={{ fontSize: 13, display: 'flex', gap: 6, alignItems: 'center', cursor: 'pointer', marginTop: 14 }}>
+              <input type="checkbox" checked={shareForm.allowDownload} onChange={(e) => setShareForm((f) => ({ ...f, allowDownload: e.target.checked }))} />
+              Allow PDF download
+            </label>
+            <button onClick={createShare} style={{ ...inkBtn, marginTop: 16 }}>Create link</button>
+
+            {freshLink && (
+              <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid rgba(28,25,23,.08)', display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element -- generated data-URL QR */}
+                <img src={freshLink.qr} alt="QR code for the shared catalogue" width={116} height={116} style={{ borderRadius: 6, border: '1px solid rgba(28,25,23,.08)' }} />
+                <div style={{ flex: '1 1 260px', minWidth: 0 }}>
+                  <div style={label}>Your link — shown only once</div>
+                  <input readOnly value={freshLink.url} onFocus={(e) => e.currentTarget.select()} style={{ ...input, fontFamily: 'monospace', fontSize: 12 }} />
+                  <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                    <a href={freshLink.url} target="_blank" rel="noreferrer" style={{ ...chipBtn, textDecoration: 'none', color: INK }}>Open ↗</a>
+                    <a href={`/api/share/${encodeURIComponent(freshLink.token)}/pdf`} style={{ ...chipBtn, textDecoration: 'none', color: INK }}>Download PDF</a>
+                  </div>
+                  <div style={{ marginTop: 12 }}>
+                    <div style={label}>Email it</div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <input style={{ ...input, flex: '1 1 200px' }} value={emailTo} onChange={(e) => setEmailTo(e.target.value)} placeholder="buyer@example.com, merch@example.com" />
+                      <button onClick={emailShare} style={{ ...chipBtn, marginTop: 6 }}>Send</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {shares.length > 0 && (
+              <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid rgba(28,25,23,.08)' }}>
+                <div style={label}>Links</div>
+                <div style={{ display: 'grid', gap: 8, marginTop: 8 }}>
+                  {shares.map((s) => (
+                    <div key={s.id} style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', fontSize: 12.5, color: 'rgba(28,25,23,.7)' }}>
+                      <span>{s.title ?? board.name}</span>
+                      <span style={meta}>
+                        {s.viewCount} view{s.viewCount === 1 ? '' : 's'}
+                        {s.hasPassword && ' · passphrase'}
+                        {s.expiresAt && ` · until ${new Date(s.expiresAt).toLocaleDateString()}`}
+                        {!s.allowDownload && ' · no download'}
+                      </span>
+                      {s.revokedAt ? (
+                        <span style={{ ...meta, marginLeft: 'auto' }}>revoked</span>
+                      ) : (
+                        <button onClick={() => revokeShare(s.id)} style={{ ...chipBtn, marginLeft: 'auto', padding: '4px 12px' }}>Revoke</button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
