@@ -35,6 +35,7 @@ export default async function AdminHubPage() {
     { href: '/admin/samples', title: 'Samples', desc: 'Approve and dispatch swatch requests' },
     { href: '/admin/catalogue', title: 'Catalogue Ops', desc: 'Bulk media ops, CSV, activity, queue' },
     { href: '/admin/analytics', title: 'Analytics', desc: 'Interest, conversion, customers, storage' },
+    { href: '/admin/diagnostics', title: 'Diagnostics', desc: 'Health, environment, backups, performance' },
   ];
 
   return (

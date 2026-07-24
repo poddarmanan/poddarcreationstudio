@@ -1,6 +1,7 @@
 # Poddar Creation Studio — Phase 3: Business Experience & Customer Platform
 
-**Status:** in progress · baseline frozen · this phase *extends*, never redesigns.
+**Status:** ✅ complete (M12–M20) · baseline frozen · this phase *extends*, never redesigns.
+**Per-milestone detail:** see `M12_…` through `M20_…` in this folder.
 **Depends on:** Phase 2 (M0–M11) — DI container, repository pattern, storage/email/search/
 telemetry abstractions, audit log, RBAC, monitoring.
 
@@ -54,9 +55,9 @@ Each arrow maps to a milestone:
 |---|-----------|-----------|--------------|
 | **M12** | Customer accounts | `ShippingAddress`, `ContactPerson` | `/portal` account panels, `server/core/rbac.ts` |
 | **M13** | Saved collections | `Collection` extensions | `/portal/collections/[id]` |
-| **M14** | Customer dashboard | `ActivityEvent` | `/portal` |
+| **M14** | Customer dashboard | `ActivityEvent`, `FollowUp` | `/portal` |
 | **M15** | Quote tracking | `QuoteStatus` v2, `Quote` pricing fields | `/portal/quotes/[id]`, `/admin/quotes` |
-| **M16** | Sales workspace | `CustomerNote`, `FollowUp` | `/admin/sales`, `/admin/sales/[userId]` |
+| **M16** | Sales workspace | `CustomerNote` | `/admin/sales`, `/admin/sales/[id]` |
 | **M17** | Catalog sharing | `CollectionShare`, `ShareView` | `/c/[token]`, PDF + print |
 | **M18** | Business analytics | `FabricView` | `/admin/analytics` |
 | **M19** | Notification center | `Notification`, `EmailLog` | `/api/notifications`, portal + admin bell |
@@ -173,3 +174,54 @@ monitoring, security headers, performance and backup verification.
   would consume (today's "recommended" is deterministic colour/family affinity, not AI).
 - `CollectionShare` is where a future **payment or checkout** flow would attach.
 - `NotificationService` has channel seams for WhatsApp/SMS drivers.
+
+
+---
+
+## 6. Outcome
+
+All nine milestones shipped, each as its own commit, each gated on build + lint + typecheck +
+migration + smoke + regression before it was committed.
+
+| Milestone | Migration | Smoke |
+|---|---|---|
+| M12 Customer accounts | `20260724210345`, `20260724210500` | `smoke-m12.ts`, `smoke-http-rbac.ts` |
+| M13 Saved collections | `20260724212104` | `smoke-m13.ts`, `smoke-http-journey.ts` |
+| M14 Customer dashboard | `20260724213229` | `smoke-m14.ts` |
+| M15 Quote tracking | `20260724215500` | `smoke-m15.ts` |
+| M16 Sales workspace | `20260724221500` | `smoke-m16.ts` |
+| M17 Catalogue sharing | `20260724224500` | `smoke-m17.ts`, `smoke-http-share.ts` |
+| M18 Business analytics | `20260724231500` | `smoke-m18.ts` |
+| M19 Notification centre | `20260724234000` | `smoke-m19.ts` |
+| M20 Deployment readiness | — | `smoke-m20.ts`, `preflight.ts`, `verify-backup.ts` |
+
+`npm run smoke -- --http` runs all twenty scripts in ~40s.
+
+### Deviations from the plan above
+
+- **`FollowUp` landed in M14, not M16.** The customer-facing "upcoming follow-ups" panel is
+  part of the dashboard, so the model had to exist by then; M16 built the sales tooling on it.
+- **M18 added `FabricView`** rather than reusing `RecentlyViewed`, which is signed-in only and
+  capped at 30 rows — see that milestone's note.
+- **M19 wrote the delivery log as a transport decorator**, which captured the Phase 2 email
+  flows too, at no call-site cost.
+
+### Bugs found and fixed on the way
+
+| Where | What |
+|---|---|
+| `server/core/errors.ts` | `isAppError` used `instanceof`; duplicate module copies in a production bundle made **every service-thrown 4xx a 500** |
+| `server/email/dev.ts` | Two emails sent in the same millisecond overwrote each other |
+| `analytics.popularCollections` | Joining items and shares fanned rows out, multiplying view counts |
+| `quote.service` + notifications | Briefly sent **two emails** per status change; unified to one path |
+| `/admin/sales` loading shell | Streamed its title to a customer before the staff check resolved |
+| `Entrance.tsx` | A stale search response could render against a newer query |
+| 6 React lint errors | `set-state-in-effect` across the auth pages, `Entrance` and `state.ts` |
+| `prisma/seed.ts` | Seeded privileged accounts were never marked email-verified |
+| `smoke-m2`, `smoke-m9` | Pinned to one database; could not run on a fresh environment |
+
+### Deferred features — still not built, by design
+
+Three.js / React Three Fiber, cloth physics, AI chat, AI search, AI vision, ERP, inventory
+management, order management, CRM, and payment gateways. The extension points reserved for
+them are listed in section 5 above and remain unused.

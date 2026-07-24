@@ -60,19 +60,23 @@ async function main() {
 
   console.log('Seeding demo accounts…');
   const passwordHash = await bcrypt.hash('poddar123', 10);
+  // Seeded accounts are created by us, not self-registered, so they count as verified. Left
+  // unverified they trip the M20 security check ("privileged account never verified its
+  // email"), which would make a freshly seeded deployment report itself unhealthy on day one.
+  const emailVerifiedAt = new Date();
   await prisma.user.upsert({
     where: { email: 'admin@poddarcreation.studio' },
-    create: { name: 'Studio Admin', email: 'admin@poddarcreation.studio', passwordHash, role: 'ADMIN', approved: true },
-    update: {},
+    create: { name: 'Studio Admin', email: 'admin@poddarcreation.studio', passwordHash, role: 'ADMIN', approved: true, emailVerifiedAt },
+    update: { emailVerifiedAt },
   });
   await prisma.user.upsert({
     where: { email: 'sales@poddarcreation.studio' },
-    create: { name: 'Sales Desk', email: 'sales@poddarcreation.studio', passwordHash, role: 'SALES', approved: true },
-    update: {},
+    create: { name: 'Sales Desk', email: 'sales@poddarcreation.studio', passwordHash, role: 'SALES', approved: true, emailVerifiedAt },
+    update: { emailVerifiedAt },
   });
   await prisma.user.upsert({
     where: { email: 'buyer@example.com' },
-    create: { name: 'Approved Buyer', email: 'buyer@example.com', passwordHash, role: 'BUYER', approved: true, company: 'Anand Garments, Mumbai' },
+    create: { name: 'Approved Buyer', email: 'buyer@example.com', passwordHash, role: 'BUYER', approved: true, company: 'Anand Garments, Mumbai', emailVerifiedAt },
     update: {},
   });
 

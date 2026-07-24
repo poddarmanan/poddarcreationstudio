@@ -25,6 +25,7 @@ import { SalesService } from './sales/sales.service';
 import { ShareService } from './share/share.service';
 import { AnalyticsService } from './analytics/analytics.service';
 import { NotificationService } from './notification/notification.service';
+import { HealthService } from './health/health.service';
 import { LoggingEmailTransport } from './email/logging';
 import { QuoteService } from './quote/quote.service';
 import { SampleService } from './sample/sample.service';
@@ -59,6 +60,7 @@ export interface Container {
   shareService: ShareService;
   analyticsService: AnalyticsService;
   notificationService: NotificationService;
+  healthService: HealthService;
   quoteService: QuoteService;
   sampleService: SampleService;
   adminService: AdminService;
@@ -94,13 +96,14 @@ function build(): Container {
   const analyticsService = new AnalyticsService(prisma, storage);
   const notificationService = new NotificationService(prisma, emailService, telemetry);
   const dashboardService = new DashboardService(prisma, dealerService, collectionService, sampleService, activityService, notificationService);
+  const healthService = new HealthService(prisma, storage, emailService, searchService);
   // Quote, sample and share services publish notifications; the notification service needs
   // none of them. Attaching after construction keeps that one-way and avoids a service locator.
   quoteService.attachNotifications(notificationService);
   sampleService.attachNotifications(notificationService);
   shareService.attachNotifications(notificationService);
 
-  return { telemetry, audit, rateLimiter, cache, storage, cdn, fabricRepository, fabricService, colourRepository, colourService, searchService, emailService, tokenService, dealerService, customerService, collectionService, activityService, dashboardService, salesService, shareService, analyticsService, notificationService, quoteService, sampleService, adminService };
+  return { telemetry, audit, rateLimiter, cache, storage, cdn, fabricRepository, fabricService, colourRepository, colourService, searchService, emailService, tokenService, dealerService, customerService, collectionService, activityService, dashboardService, salesService, shareService, analyticsService, notificationService, healthService, quoteService, sampleService, adminService };
 }
 
 const globalForContainer = globalThis as unknown as { __pcContainer?: Container };
