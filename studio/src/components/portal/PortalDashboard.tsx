@@ -8,8 +8,8 @@ import { AddressBook, ContactPeople, AccountSecurity, type Address, type Contact
 // ---- Loose prop types (data is serialized from the dealer service) -----------
 type Colour = { id: string; name: string; hex: string | null; order: number; fabric: { id: string; name: string } };
 type Favourite = { id: string; fabricId: string; colourId: string | null; fabric: { id: string; name: string; weight: string; width: string }; colour: Colour | null };
-type CollectionItem = { id: string; fabricId: string; colourId: string; colour: Colour };
-type Collection = { id: string; name: string; items: CollectionItem[] };
+type CollectionItem = { id: string; fabricId: string; colourId: string; note: string | null; quantity: number | null; unit: string | null; colour: Colour };
+type Collection = { id: string; name: string; description: string | null; updatedAt: string; items: CollectionItem[] };
 type Recent = { id: string; fabricId: string; colourId: string | null; fabric: { id: string; name: string }; colour: Colour | null };
 type Download = { id: string; kind: string; createdAt: string; fabric: { id: string; name: string } | null };
 type QuoteItem = { fabric: { name: string }; colour: { name: string; hex: string | null } };
@@ -266,15 +266,20 @@ export function PortalDashboard(props: Props) {
             <div style={{ display: 'grid', gap: 16 }}>
               {collections.map((col) => (
                 <div key={col.id} style={card}>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-                    <div style={{ fontFamily: 'var(--font-display),serif', fontSize: 20, fontWeight: 600, color: INK }}>{col.name}</div>
-                    <span style={{ fontSize: 11.5, color: 'rgba(28,25,23,.5)' }}>{col.items.length} shades</span>
-                    <button onClick={() => deleteCollection(col.id)} style={{ ...chipBtn, marginLeft: 'auto', padding: '5px 12px' }}>Delete</button>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+                    <Link href={`/portal/collections/${col.id}`} style={{ fontFamily: 'var(--font-display),serif', fontSize: 20, fontWeight: 600, color: INK, textDecoration: 'none' }}>{col.name} →</Link>
+                    <span style={{ fontSize: 11.5, color: 'rgba(28,25,23,.5)' }}>
+                      {col.items.length} shades
+                      {col.items.some((i) => i.quantity) && ` · ${col.items.reduce((n, i) => n + (i.quantity ?? 0), 0)}${col.items[0]?.unit ?? 'm'}`}
+                    </span>
+                    <Link href={`/portal/collections/${col.id}`} style={{ ...chipBtn, marginLeft: 'auto', padding: '5px 12px', textDecoration: 'none', color: INK }}>Open board</Link>
+                    <button onClick={() => deleteCollection(col.id)} style={{ ...chipBtn, padding: '5px 12px' }}>Delete</button>
                   </div>
+                  {col.description && <div style={{ fontSize: 12.5, fontWeight: 300, color: 'rgba(28,25,23,.6)', marginTop: 6 }}>{col.description}</div>}
                   {col.items.length > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginTop: 14 }}>
                       {col.items.map((it) => (
-                        <Swatch key={it.id} hex={it.colour.hex} name={it.colour.name} sub={it.colour.fabric.name} onRemove={() => removeItem(col.id, it.id)} />
+                        <Swatch key={it.id} hex={it.colour.hex} name={it.colour.name} sub={it.note ?? it.colour.fabric.name} onRemove={() => removeItem(col.id, it.id)} />
                       ))}
                     </div>
                   )}

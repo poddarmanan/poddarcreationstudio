@@ -4,7 +4,7 @@ import { getContainer } from '../src/server/container';
 import { prisma } from '../src/lib/prisma';
 
 async function main() {
-  const svc = getContainer().dealerService;
+  const { dealerService: svc, collectionService: collections } = getContainer();
 
   const buyer = await prisma.user.findUniqueOrThrow({ where: { email: 'buyer@example.com' } });
   const admin = await prisma.user.findUniqueOrThrow({ where: { email: 'admin@poddarcreation.studio' } });
@@ -43,19 +43,21 @@ async function main() {
 
   // Collections: manual + snapshot from swatch book.
   await prisma.swatchBookItem.createMany({ data: colours.map((c) => ({ userId: buyer.id, fabricId: fabric.id, colourId: c.id })) });
-  const manual = await svc.createCollection(buyer.id, 'Summer palette');
-  await svc.addToCollection(buyer.id, manual.id, fabric.id, colours[1].id, 'for kurtis');
-  const snap = await svc.collectionFromSwatchBook(buyer.id, 'From my book');
-  let cols = await svc.listCollections(buyer.id);
+  // Collections moved to CollectionService in Phase 3 M13; the M6 behaviour it inherited
+  // is still asserted here so the dealer-portal contract stays covered.
+  const manual = await collections.create(buyer.id, 'Summer palette');
+  await collections.addItem(buyer.id, manual.id, { fabricId: fabric.id, colourId: colours[1].id, note: 'for kurtis' });
+  const snap = await collections.fromSwatchBook(buyer.id, 'From my book');
+  let cols = await collections.list(buyer.id);
   const snapCol = cols.find((c) => c.id === snap.id)!;
   assert(cols.length === 2, '2 collections');
   assert(snapCol.items.length === 3, `snapshot captured 3 swatch-book items (got ${snapCol.items.length})`);
   console.log('collections: manual + add-item + swatch-book snapshot ✓');
 
   // Ownership: admin cannot delete buyer's collection.
-  await assert.rejects(() => svc.deleteCollection(admin.id, manual.id), /Not found/, 'ownership enforced on collections');
-  await svc.removeCollectionItem(buyer.id, manual.id, (await svc.listCollections(buyer.id)).find((c) => c.id === manual.id)!.items[0].id);
-  cols = await svc.listCollections(buyer.id);
+  await assert.rejects(() => collections.remove(admin.id, manual.id), /not found/i, 'ownership enforced on collections');
+  await collections.removeItem(buyer.id, manual.id, (await collections.list(buyer.id)).find((c) => c.id === manual.id)!.items[0].id);
+  cols = await collections.list(buyer.id);
   assert(cols.find((c) => c.id === manual.id)!.items.length === 0, 'collection item removed');
 
   // Recently viewed: bump semantics (re-view updates, no dup).

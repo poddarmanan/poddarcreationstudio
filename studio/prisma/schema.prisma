@@ -190,15 +190,22 @@ model Favourite {
   @@index([userId])
 }
 
+/// A customer's board of shades (Phase 3 M13) — "Wedding collection", "AW26 linens".
+/// Ordered, annotated, quantified, and (M17) shareable as a catalogue.
 model Collection {
-  id        String           @id @default(cuid())
-  userId    String
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name      String
-  createdAt DateTime         @default(now())
-  items     CollectionItem[]
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  /// Item chosen as the board's cover; null falls back to the first item.
+  coverItemId String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt @default(now())
+  items       CollectionItem[]
 
   @@index([userId])
+  @@index([userId, updatedAt])
 }
 
 model CollectionItem {
@@ -210,9 +217,15 @@ model CollectionItem {
   colourId     String
   colour       Colour     @relation(fields: [colourId], references: [id], onDelete: Cascade)
   note         String?
+  /// Indicative order quantity for this shade, carried into a quotation request.
+  quantity     Float?
+  unit         String?    @default("m")
+  /// Manual ordering within the board; ties break on createdAt.
+  position     Int        @default(0)
   createdAt    DateTime   @default(now())
 
   @@unique([collectionId, fabricId, colourId])
+  @@index([collectionId, position])
 }
 
 model RecentlyViewed {
