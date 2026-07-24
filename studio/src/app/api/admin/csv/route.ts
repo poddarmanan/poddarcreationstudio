@@ -2,12 +2,12 @@ import { NextResponse } from 'next/server';
 import { getContainer } from '@/server/container';
 import { run, clientInfo } from '@/server/core/http';
 import { AppError } from '@/server/core/errors';
-import { requireRole } from '@/server/core/session';
+import { requireStaff, requireAdmin } from '@/server/core/rbac';
 
 /** GET /api/admin/csv — export the full colour catalogue as CSV (Priority 11). */
 export async function GET(req: Request) {
   return run(req, async () => {
-    await requireRole(['ADMIN', 'MANAGER', 'SALES']);
+    await requireStaff();
     const csv = await getContainer().adminService.exportColoursCsv();
     return new NextResponse(csv, {
       headers: {
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
   return run(
     req,
     async () => {
-      const user = await requireRole(['ADMIN', 'MANAGER']);
+      const user = await requireAdmin();
       const csv = await req.text();
       if (!csv || csv.length > 2_000_000) throw AppError.validation('CSV body required (max 2 MB)');
 

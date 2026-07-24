@@ -3,6 +3,7 @@
 import { useState, type CSSProperties, type ReactNode } from 'react';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
+import { AddressBook, ContactPeople, AccountSecurity, type Address, type Contact } from './AccountPanels';
 
 // ---- Loose prop types (data is serialized from the dealer service) -----------
 type Colour = { id: string; name: string; hex: string | null; order: number; fabric: { id: string; name: string } };
@@ -17,12 +18,15 @@ type SampleItemT = { id: string; fabric: { name: string }; colour: { name: strin
 type Sample = { id: string; status: string; courier: string | null; trackingNumber: string | null; createdAt: string; items: SampleItemT[] };
 type Profile = {
   company?: string | null; contactPhone?: string | null; whatsapp?: string | null; gstNumber?: string | null;
+  vatNumber?: string | null; website?: string | null;
   shippingLine1?: string | null; shippingCity?: string | null; shippingState?: string | null; shippingPincode?: string | null; shippingCountry?: string | null;
   prefEmail?: boolean; prefWhatsapp?: boolean; prefPhone?: boolean;
 } | null;
 
 interface Props {
-  user: { name: string; email: string; role: string; approved: boolean };
+  user: { name: string; email: string; role: string; approved: boolean; emailVerified: boolean };
+  addresses: Address[];
+  contacts: Contact[];
   profile: Profile;
   stats: { favourites: number; collections: number; quotes: number; downloads: number; recent: number };
   favourites: Favourite[];
@@ -82,9 +86,14 @@ export function PortalDashboard(props: Props) {
   const [sampleMsg, setSampleMsg] = useState('');
 
   async function requestSamples() {
-    const p = profile;
+    // Prefer the address book's default (M12); fall back to the profile's legacy single
+    // address so accounts that predate the address book still work.
+    const shipTo = props.addresses.find((a) => a.isDefault) ?? props.addresses[0];
+    const p = shipTo
+      ? { company: profile?.company, contactPhone: shipTo.phone ?? profile?.contactPhone, shippingLine1: shipTo.line1, shippingCity: shipTo.city, shippingState: shipTo.state, shippingPincode: shipTo.pincode, shippingCountry: shipTo.country }
+      : profile;
     if (!p?.shippingLine1 || !p?.shippingCity) {
-      setSampleMsg('Add your shipping address in the profile above first.');
+      setSampleMsg('Add a shipping address below first.');
       return;
     }
     const book = (await fetch('/api/swatchbook').then((r) => r.json()).catch(() => null)) as { items?: { fabricId: string; colourId: string }[] } | null;
@@ -194,12 +203,10 @@ export function PortalDashboard(props: Props) {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 16 }}>
               <div><div style={label}>Company</div><input style={input} value={profile?.company ?? ''} onChange={(e) => set('company', e.target.value)} /></div>
               <div><div style={label}>GST number</div><input style={input} value={profile?.gstNumber ?? ''} onChange={(e) => set('gstNumber', e.target.value)} /></div>
+              <div><div style={label}>VAT / tax number</div><input style={input} value={profile?.vatNumber ?? ''} onChange={(e) => set('vatNumber', e.target.value)} /></div>
+              <div><div style={label}>Website</div><input style={input} value={profile?.website ?? ''} onChange={(e) => set('website', e.target.value)} /></div>
               <div><div style={label}>Phone</div><input style={input} value={profile?.contactPhone ?? ''} onChange={(e) => set('contactPhone', e.target.value)} /></div>
               <div><div style={label}>WhatsApp</div><input style={input} value={profile?.whatsapp ?? ''} onChange={(e) => set('whatsapp', e.target.value)} /></div>
-              <div style={{ gridColumn: '1/-1' }}><div style={label}>Shipping address</div><input style={input} value={profile?.shippingLine1 ?? ''} onChange={(e) => set('shippingLine1', e.target.value)} /></div>
-              <div><div style={label}>City</div><input style={input} value={profile?.shippingCity ?? ''} onChange={(e) => set('shippingCity', e.target.value)} /></div>
-              <div><div style={label}>State</div><input style={input} value={profile?.shippingState ?? ''} onChange={(e) => set('shippingState', e.target.value)} /></div>
-              <div><div style={label}>Pincode</div><input style={input} value={profile?.shippingPincode ?? ''} onChange={(e) => set('shippingPincode', e.target.value)} /></div>
             </div>
             <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', marginTop: 18 }}>
               <div style={label}>Contact preferences</div>
@@ -211,6 +218,21 @@ export function PortalDashboard(props: Props) {
             </div>
             <button type="submit" style={{ ...inkBtn, marginTop: 18 }}>Save profile</button>
           </form>
+        </Section>
+
+        {/* Shipping addresses (M12) */}
+        <Section title="Shipping addresses" meta={`${props.addresses.length}`}>
+          <AddressBook initial={props.addresses} />
+        </Section>
+
+        {/* Contact people (M12) */}
+        <Section title="Contact people" meta={`${props.contacts.length}`}>
+          <ContactPeople initial={props.contacts} />
+        </Section>
+
+        {/* Account security (M12) */}
+        <Section title="Account">
+          <AccountSecurity email={props.user.email} verified={props.user.emailVerified} />
         </Section>
 
         {/* Favourites */}

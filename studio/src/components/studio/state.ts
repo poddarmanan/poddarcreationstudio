@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import type { FabricRow, ColourRow } from '@/lib/types';
 import { dict, type Dict, type Lang, type GarmentKey, type LightKey, type RoomKey } from '@/lib/fabric-generator';
@@ -105,6 +105,23 @@ export interface Studio {
   reduceMotion: boolean;
 }
 
+/**
+ * `prefers-reduced-motion` as an external store. Reading it through useSyncExternalStore
+ * (instead of setting state from an effect) keeps the server snapshot deterministic and
+ * avoids a cascading render on mount — the honoured value and behaviour are unchanged.
+ */
+const MOTION_QUERY = '(prefers-reduced-motion: reduce)';
+
+function subscribeReduceMotion(onChange: () => void): () => void {
+  const mq = window.matchMedia(MOTION_QUERY);
+  mq.addEventListener('change', onChange);
+  return () => mq.removeEventListener('change', onChange);
+}
+
+function getReduceMotion(): boolean {
+  return window.matchMedia(MOTION_QUERY).matches;
+}
+
 export function useStudio(fabrics: FabricRow[]): Studio {
   const { data: session } = useSession();
   const [view, setView] = useState<View>('home');
@@ -132,16 +149,8 @@ export function useStudio(fabrics: FabricRow[]): Studio {
   const [aiBusy, setAiBusy] = useState(false);
   const [ai, setAi] = useState<AiMatch | null>(null);
   const [signInOpen, setSignInOpen] = useState(false);
-  const [reduceMotion, setReduceMotion] = useState(false);
+  const reduceMotion = useSyncExternalStore(subscribeReduceMotion, getReduceMotion, () => false);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
-
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setReduceMotion(mq.matches);
-    const onChange = (e: MediaQueryListEvent) => setReduceMotion(e.matches);
-    mq.addEventListener('change', onChange);
-    return () => mq.removeEventListener('change', onChange);
-  }, []);
 
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
 

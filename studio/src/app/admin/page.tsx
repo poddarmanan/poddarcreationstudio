@@ -1,13 +1,14 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { auth } from '@/auth';
+import { isStaff } from '@/server/core/rbac';
 import { getContainer } from '@/server/container';
 
 /** Staff hub: analytics overview + doors to the quote desk, sample desk, and catalogue ops. */
 export default async function AdminHubPage() {
   const session = await auth();
   if (!session?.user?.id) redirect('/signin?next=/admin');
-  if (!['ADMIN', 'MANAGER', 'SALES'].includes(session.user.role)) redirect('/');
+  if (!isStaff(session.user.role)) redirect('/');
 
   const a = await getContainer().adminService.analytics();
   const INK = '#1C1917';

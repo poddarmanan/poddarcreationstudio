@@ -6,6 +6,8 @@ export interface ProfileInput {
   contactPhone?: string | null;
   whatsapp?: string | null;
   gstNumber?: string | null;
+  vatNumber?: string | null;
+  website?: string | null;
   shippingLine1?: string | null;
   shippingCity?: string | null;
   shippingState?: string | null;

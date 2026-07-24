@@ -10,6 +10,9 @@ export class DevEmailTransport implements EmailTransport {
   readonly name = 'dev';
   private readonly from: string;
   private readonly outbox: string;
+  /** Disambiguates messages sent inside the same millisecond, which would otherwise
+   *  collide on filename and silently overwrite each other. */
+  private sequence = 0;
 
   constructor() {
     this.from = process.env.EMAIL_FROM ?? 'Poddar Creation Studio <studio@poddarcreation.local>';
@@ -20,7 +23,8 @@ export class DevEmailTransport implements EmailTransport {
     await mkdir(this.outbox, { recursive: true });
     const stamp = new Date().toISOString().replace(/[:.]/g, '-');
     const safeTo = message.to.replace(/[^\w.@-]+/g, '_');
-    const file = path.join(this.outbox, `${stamp}_${safeTo}.eml`);
+    const seq = String((this.sequence += 1)).padStart(4, '0');
+    const file = path.join(this.outbox, `${stamp}_${seq}_${safeTo}.eml`);
     const eml = [
       `From: ${this.from}`,
       `To: ${message.to}`,

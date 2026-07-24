@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/auth';
 import { getContainer } from '@/server/container';
+import { isStaff } from '@/server/core/rbac';
 import { run, parseJson, clientInfo } from '@/server/core/http';
 import { AppError } from '@/server/core/errors';
 import { RATE_LIMITS } from '@/server/core/rate-limit';
@@ -59,9 +60,9 @@ export async function GET(req: Request) {
 
     const url = new URL(req.url);
     const status = (url.searchParams.get('status') as SampleStatus | null) ?? undefined;
-    const isStaff = ['ADMIN', 'MANAGER', 'SALES'].includes(session.user.role);
+    const staff = isStaff(session.user.role);
     // Buyers see only their own requests; staff see everything.
-    const samples = await getContainer().sampleService.list({ status, userId: isStaff ? undefined : session.user.id });
+    const samples = await getContainer().sampleService.list({ status, userId: staff ? undefined : session.user.id });
     return NextResponse.json({ samples });
   });
 }

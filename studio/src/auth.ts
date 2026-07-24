@@ -36,6 +36,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const valid = await bcrypt.compare(password, user.passwordHash);
         if (!valid) return null;
 
+        // Engagement stamp for the sales workspace + returning-customer analytics (M12).
+        // Best-effort: a write failure must never block a valid sign-in.
+        await getContainer().customerService.recordLogin(user.id);
+
         return {
           id: user.id,
           name: user.name,

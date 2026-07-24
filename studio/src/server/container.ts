@@ -17,6 +17,7 @@ import { createEmailTransport } from './email';
 import { EmailService } from './email/email.service';
 import { TokenService } from './email/token.service';
 import { DealerService } from './dealer/dealer.service';
+import { CustomerService } from './customer/customer.service';
 import { QuoteService } from './quote/quote.service';
 import { SampleService } from './sample/sample.service';
 import { AdminService } from './admin/admin.service';
@@ -42,6 +43,7 @@ export interface Container {
   emailService: EmailService;
   tokenService: TokenService;
   dealerService: DealerService;
+  customerService: CustomerService;
   quoteService: QuoteService;
   sampleService: SampleService;
   adminService: AdminService;
@@ -64,11 +66,12 @@ function build(): Container {
   const emailService = new EmailService(createEmailTransport());
   const tokenService = new TokenService(prisma);
   const dealerService = new DealerService(prisma);
+  const customerService = new CustomerService(prisma, emailService, tokenService, telemetry);
   const quoteService = new QuoteService(prisma, emailService, telemetry);
   const sampleService = new SampleService(prisma, emailService, telemetry);
   const adminService = new AdminService(prisma, storage);
 
-  return { telemetry, audit, rateLimiter, cache, storage, cdn, fabricRepository, fabricService, colourRepository, colourService, searchService, emailService, tokenService, dealerService, quoteService, sampleService, adminService };
+  return { telemetry, audit, rateLimiter, cache, storage, cdn, fabricRepository, fabricService, colourRepository, colourService, searchService, emailService, tokenService, dealerService, customerService, quoteService, sampleService, adminService };
 }
 
 const globalForContainer = globalThis as unknown as { __pcContainer?: Container };

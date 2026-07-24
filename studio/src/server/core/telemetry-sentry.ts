@@ -1,4 +1,4 @@
-import type { Telemetry, TelemetryEvent } from './telemetry';
+import type { Telemetry } from './telemetry';
 
 /**
  * Sentry driver (Priority 5) over the documented envelope HTTP API — dependency-free and

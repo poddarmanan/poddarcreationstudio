@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/auth';
 import { getContainer } from '@/server/container';
+import { requireStaff } from '@/server/core/rbac';
 import { run, parseJson, clientInfo } from '@/server/core/http';
-import { AppError } from '@/server/core/errors';
 import { RATE_LIMITS } from '@/server/core/rate-limit';
 import type { QuoteStatus } from '@/generated/prisma/enums';
 
@@ -56,13 +56,12 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   return run(req, async () => {
-    const session = await auth();
-    if (!session?.user || !['ADMIN', 'MANAGER', 'SALES'].includes(session.user.role)) throw AppError.forbidden();
+    const staff = await requireStaff();
 
     const url = new URL(req.url);
     const status = (url.searchParams.get('status') as QuoteStatus | null) ?? undefined;
     const mine = url.searchParams.get('mine') === '1';
-    const quotes = await getContainer().quoteService.list({ status, assigneeId: mine ? session.user.id : undefined });
+    const quotes = await getContainer().quoteService.list({ status, assigneeId: mine ? staff.id : undefined });
     return NextResponse.json({ quotes });
   });
 }

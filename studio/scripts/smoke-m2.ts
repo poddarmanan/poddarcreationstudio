@@ -15,9 +15,13 @@ async function main() {
     .png()
     .toBuffer();
 
+  // Resolve a real shade rather than pinning a cuid, so the script runs against any
+  // freshly migrated + seeded database.
+  const shade = await prisma.colour.findFirstOrThrow({ where: { fabricId: 'rayon14' }, orderBy: { order: 'asc' } });
+
   const media = await processUpload({
     fabricId: 'rayon14',
-    colourId: 'cmry0czns0033zm7dkhqfbm4z',
+    colourId: shade.id,
     originalName: 'smoke-test.png',
     mimeType: 'image/png',
     buffer: png,
@@ -33,7 +37,7 @@ async function main() {
   console.log('media.aiColourName =', media.aiColourName, `(${media.aiConfidence}%, ${media.aiSource})`);
 
   assert(media.stage === 'PUBLISHED', 'expected PUBLISHED');
-  assert(media.storageKey?.startsWith('fabrics/rayon14/cmry0czns0033zm7dkhqfbm4z/v1/'), 'versioned folder key');
+  assert(media.storageKey?.startsWith(`fabrics/rayon14/${shade.id}/v1/`), 'versioned folder key');
   assert(media.checksum && media.checksum.length === 64, 'sha256 checksum');
   assert(media.version === 1, 'version=1');
   assert(media.webpPath && media.avifPath && media.thumbPath, 'derivatives present');
@@ -62,7 +66,7 @@ async function main() {
   console.log('signed-url verify: valid ✓ / expired ✗ / tampered ✗');
 
   // Cleanup: remove the created objects and the Media row.
-  await storage.deletePrefix(`fabrics/rayon14/cmry0czns0033zm7dkhqfbm4z/v1`);
+  await storage.deletePrefix(`fabrics/rayon14/${shade.id}/v1`);
   const gone = await storage.get(media.storageKey!);
   assert(gone === null, 'deletePrefix cleaned objects');
   await prisma.media.delete({ where: { id: media.id } });

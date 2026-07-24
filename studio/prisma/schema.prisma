@@ -94,7 +94,12 @@ model User {
   approved        Boolean          @default(false)
   company         String?
   emailVerifiedAt DateTime?
+  /// Last successful credential sign-in (Phase 3 M12). Powers "returning customers"
+  /// analytics and the sales workspace's engagement view.
+  lastLoginAt     DateTime?
   createdAt       DateTime         @default(now())
+  addresses       ShippingAddress[]
+  contacts        ContactPerson[]
   quotes          Quote[]          @relation("buyerQuotes")
   assignedQuotes  Quote[]          @relation("assignedQuotes")
   sampleRequests  SampleRequest[]  @relation("buyerSamples")
@@ -116,6 +121,9 @@ model DealerProfile {
   contactPhone    String?
   whatsapp        String?
   gstNumber       String?
+  /// VAT / tax identifier for export customers (Phase 3 M12). GST covers India, VAT the rest.
+  vatNumber       String?
+  website         String?
   shippingLine1   String?
   shippingCity    String?
   shippingState   String?
@@ -125,6 +133,47 @@ model DealerProfile {
   prefWhatsapp    Boolean  @default(true)
   prefPhone       Boolean  @default(false)
   updatedAt       DateTime @updatedAt
+}
+
+/// A customer's book of delivery addresses (Phase 3 M12). The single address on
+/// `DealerProfile` stays as the profile's primary and is migrated in as the first entry;
+/// sample and quote flows read the default address from here.
+model ShippingAddress {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label       String   @default("Delivery address")
+  contactName String?
+  phone       String?
+  line1       String
+  line2       String?
+  city        String
+  state       String?
+  pincode     String?
+  country     String   @default("India")
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, isDefault])
+}
+
+/// Named people at the customer's company (Phase 3 M12) — merchandiser, accounts, logistics.
+/// Sales addresses the right person instead of a generic company mailbox.
+model ContactPerson {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  designation String?
+  email       String?
+  phone       String?
+  whatsapp    String?
+  isPrimary   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, isPrimary])
 }
 
 model Favourite {

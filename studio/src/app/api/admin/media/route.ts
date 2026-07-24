@@ -3,10 +3,8 @@ import { z } from 'zod';
 import { getContainer } from '@/server/container';
 import { mediaUrl } from '@/lib/storage';
 import { run, parseJson, clientInfo } from '@/server/core/http';
-import { requireRole } from '@/server/core/session';
+import { requireStaff, requireAdmin } from '@/server/core/rbac';
 import type { ContentStatus } from '@/generated/prisma/enums';
-
-const STAFF = ['ADMIN', 'MANAGER'];
 
 const BulkInput = z.object({
   action: z.enum(['edit', 'delete', 'restore', 'purge']),
@@ -17,7 +15,7 @@ const BulkInput = z.object({
 
 export async function GET(req: Request) {
   return run(req, async () => {
-    await requireRole([...STAFF, 'SALES']);
+    await requireStaff();
     const url = new URL(req.url);
     const { adminService } = getContainer();
     const { media, nextCursor } = await adminService.listMedia({
@@ -39,7 +37,7 @@ export async function POST(req: Request) {
   return run(
     req,
     async () => {
-      const user = await requireRole(STAFF);
+      const user = await requireAdmin();
       const body = await parseJson(req, BulkInput);
       const { adminService, audit } = getContainer();
 
