@@ -123,9 +123,17 @@ model Media {
   aiConfidence      Int?
   aiSource          String?
   stage             MediaStage @default(QUEUED)
+  // Storage-layer metadata (Priority 1). storageKey is the provider-agnostic object key;
+  // *Path columns keep holding the same keys for backward compatibility.
+  version           Int        @default(1)
+  storageKey        String?
+  checksum          String?
+  etag              String?
+  metadata          Json?
   createdAt         DateTime   @default(now())
 
   @@index([fabricId])
+  @@index([storageKey])
 }
 
 model Quote {

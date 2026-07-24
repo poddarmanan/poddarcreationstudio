@@ -3,6 +3,7 @@ import { type Telemetry, ConsoleTelemetry, NoopTelemetry } from './core/telemetr
 import { type Audit } from './core/audit';
 import { PrismaAudit } from './core/audit-prisma';
 import { type RateLimiter, InMemoryRateLimiter } from './core/rate-limit';
+import { type StorageProvider, type Cdn, createStorage, createCdn } from './storage';
 import { PrismaFabricRepository, type FabricRepository } from './fabric/fabric.repository';
 import { FabricService } from './fabric/fabric.service';
 
@@ -16,6 +17,8 @@ export interface Container {
   telemetry: Telemetry;
   audit: Audit;
   rateLimiter: RateLimiter;
+  storage: StorageProvider;
+  cdn: Cdn;
   fabricRepository: FabricRepository;
   fabricService: FabricService;
 }
@@ -26,11 +29,13 @@ function build(): Container {
 
   const audit: Audit = new PrismaAudit(prisma);
   const rateLimiter: RateLimiter = new InMemoryRateLimiter();
+  const storage = createStorage();
+  const cdn = createCdn(storage);
 
   const fabricRepository = new PrismaFabricRepository(prisma);
   const fabricService = new FabricService(fabricRepository);
 
-  return { telemetry, audit, rateLimiter, fabricRepository, fabricService };
+  return { telemetry, audit, rateLimiter, storage, cdn, fabricRepository, fabricService };
 }
 
 const globalForContainer = globalThis as unknown as { __pcContainer?: Container };

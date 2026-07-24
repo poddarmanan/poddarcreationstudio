@@ -21,7 +21,22 @@ const securityHeaders = [
     : []),
 ];
 
+/** Allow next/image to optimize media served from a configured CDN / public storage base. */
+function remoteImagePatterns() {
+  const bases = [process.env.CDN_IMAGE_BASE, process.env.R2_PUBLIC_BASE, process.env.MEDIA_PUBLIC_BASE].filter(
+    (b): b is string => !!b
+  );
+  return bases.map((b) => {
+    const u = new URL(b);
+    return { protocol: u.protocol.replace(":", "") as "http" | "https", hostname: u.hostname };
+  });
+}
+
 const nextConfig: NextConfig = {
+  images: {
+    formats: ["image/avif", "image/webp"],
+    remotePatterns: remoteImagePatterns(),
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

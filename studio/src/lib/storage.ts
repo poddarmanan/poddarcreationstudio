@@ -1,21 +1,11 @@
-import { mkdir, writeFile } from 'node:fs/promises';
-import path from 'node:path';
+import { getContainer } from '@/server/container';
 
-const ROOT = path.resolve(process.cwd(), process.env.STORAGE_DIR ?? './storage');
-
-export function storageRoot() {
-  return ROOT;
-}
-
-export async function saveBuffer(relPath: string, data: Buffer): Promise<string> {
-  const abs = path.join(ROOT, relPath);
-  await mkdir(path.dirname(abs), { recursive: true });
-  await writeFile(abs, data);
-  return relPath;
-}
-
-/** Public URL for a file stored under STORAGE_DIR, served by the /api/media/[...path] route. */
-export function mediaUrl(relPath: string | null | undefined): string | null {
-  if (!relPath) return null;
-  return `/api/media/${relPath.split(path.sep).join('/')}`;
+/**
+ * Public URL for a stored object key, resolved through the active storage/CDN provider
+ * (local media route, R2 public base, or CDN). Returns null for absent keys. Kept as a
+ * small helper because the uploads route builds several of these per response.
+ */
+export function mediaUrl(key: string | null | undefined): string | null {
+  if (!key) return null;
+  return getContainer().storage.publicUrl(key);
 }
