@@ -337,6 +337,24 @@ model CustomerNote {
   @@index([userId, pinned, createdAt])
 }
 
+/// Every open of a fabric, signed-in or not (Phase 3 M18). `RecentlyViewed` is a per-customer
+/// convenience capped at 30 rows; this is the analytics record and keeps every view, including
+/// anonymous ones — which are most of them, since browsing needs no account.
+/// `visitorId` is a truncated salted hash: enough to count visitors, not enough to identify one.
+model FabricView {
+  id        String   @id @default(cuid())
+  fabricId  String
+  fabric    Fabric   @relation(fields: [fabricId], references: [id], onDelete: Cascade)
+  colourId  String?
+  userId    String?
+  visitorId String?
+  createdAt DateTime @default(now())
+
+  @@index([fabricId, createdAt])
+  @@index([createdAt])
+  @@index([colourId])
+}
+
 model RecentlyViewed {
   id       String   @id @default(cuid())
   userId   String
@@ -412,6 +430,7 @@ model Fabric {
   recentlyViewed  RecentlyViewed[]
   downloads       Download[]
   sampleItems     SampleItem[]
+  views           FabricView[]
 }
 
 model Colour {

@@ -14,13 +14,13 @@ const BASE = process.argv[2] ?? process.env.APP_URL ?? 'http://localhost:3000';
 const WORKSPACE_MARKERS = ['PODDAR WORKSPACE', 'Staff hub', 'SALES WORKSPACE', 'INQUIRY DESK', 'Catalogue Ops'];
 
 const STAFF_ENDPOINTS = [
-  '/api/admin/analytics',
   '/api/admin/activity',
   '/api/admin/media',
   '/api/admin/staff',
   '/api/admin/csv',
   '/api/admin/sales/pipeline',
   '/api/admin/sales/customers',
+  '/api/admin/analytics',
   '/api/quotes',
 ];
 
@@ -82,7 +82,7 @@ async function main() {
   // Server components bounce customers with `redirect('/')`. Next may answer either with a
   // 3xx or with a 200 carrying a redirect instruction, so assert the property that actually
   // matters: no workspace content ever reaches a customer.
-  for (const page of ['/admin', '/admin/quotes', '/admin/samples', '/admin/catalogue', '/admin/sales']) {
+  for (const page of ['/admin', '/admin/quotes', '/admin/samples', '/admin/catalogue', '/admin/sales', '/admin/analytics']) {
     const res = await buyer.fetch(page);
     if (res.status >= 300 && res.status < 400) {
       assert(res.headers.get('location')?.endsWith('/'), `${page} → redirected away from the workspace`);
