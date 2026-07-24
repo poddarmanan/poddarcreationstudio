@@ -180,6 +180,21 @@ model Media {
   @@index([storageKey])
 }
 
+/// Search query log (Priority 10). Powers per-user "recent" and aggregate "popular"
+/// searches. `normalized` is the lowercased/trimmed query for grouping.
+model SearchQuery {
+  id          String   @id @default(cuid())
+  query       String
+  normalized  String
+  userId      String?
+  resultCount Int
+  createdAt   DateTime @default(now())
+
+  @@index([normalized])
+  @@index([userId, createdAt])
+  @@index([createdAt])
+}
+
 model Quote {
   id        String      @id @default(cuid())
   userId    String?

@@ -8,6 +8,9 @@ import { PrismaFabricRepository, type FabricRepository } from './fabric/fabric.r
 import { FabricService } from './fabric/fabric.service';
 import { PrismaColourRepository, type ColourRepository } from './colour/colour.repository';
 import { ColourService } from './colour/colour.service';
+import { createSearchEngine } from './search';
+import { PrismaSearchQueryLogRepository } from './search/search.repository';
+import { SearchService } from './search/search.service';
 
 /**
  * Composition root (dependency-injection seam). The ONE place that knows about concrete
@@ -25,6 +28,7 @@ export interface Container {
   fabricService: FabricService;
   colourRepository: ColourRepository;
   colourService: ColourService;
+  searchService: SearchService;
 }
 
 function build(): Container {
@@ -40,8 +44,9 @@ function build(): Container {
   const fabricService = new FabricService(fabricRepository);
   const colourRepository = new PrismaColourRepository(prisma);
   const colourService = new ColourService(colourRepository);
+  const searchService = new SearchService(createSearchEngine(prisma), new PrismaSearchQueryLogRepository(prisma), prisma, telemetry);
 
-  return { telemetry, audit, rateLimiter, storage, cdn, fabricRepository, fabricService, colourRepository, colourService };
+  return { telemetry, audit, rateLimiter, storage, cdn, fabricRepository, fabricService, colourRepository, colourService, searchService };
 }
 
 const globalForContainer = globalThis as unknown as { __pcContainer?: Container };
