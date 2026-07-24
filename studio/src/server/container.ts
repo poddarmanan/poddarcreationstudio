@@ -3,6 +3,7 @@ import { type Telemetry, ConsoleTelemetry, NoopTelemetry } from './core/telemetr
 import { type Audit } from './core/audit';
 import { PrismaAudit } from './core/audit-prisma';
 import { type RateLimiter, InMemoryRateLimiter } from './core/rate-limit';
+import { TtlCache } from './core/ttl-cache';
 import { type StorageProvider, type Cdn, createStorage, createCdn } from './storage';
 import { PrismaFabricRepository, type FabricRepository } from './fabric/fabric.repository';
 import { FabricService } from './fabric/fabric.service';
@@ -29,6 +30,7 @@ export interface Container {
   telemetry: Telemetry;
   audit: Audit;
   rateLimiter: RateLimiter;
+  cache: TtlCache;
   storage: StorageProvider;
   cdn: Cdn;
   fabricRepository: FabricRepository;
@@ -50,11 +52,12 @@ function build(): Container {
 
   const audit: Audit = new PrismaAudit(prisma);
   const rateLimiter: RateLimiter = new InMemoryRateLimiter();
+  const cache = new TtlCache();
   const storage = createStorage();
   const cdn = createCdn(storage);
 
   const fabricRepository = new PrismaFabricRepository(prisma);
-  const fabricService = new FabricService(fabricRepository);
+  const fabricService = new FabricService(fabricRepository, cache);
   const colourRepository = new PrismaColourRepository(prisma);
   const colourService = new ColourService(colourRepository);
   const searchService = new SearchService(createSearchEngine(prisma), new PrismaSearchQueryLogRepository(prisma), prisma, telemetry);
@@ -65,7 +68,7 @@ function build(): Container {
   const sampleService = new SampleService(prisma, emailService, telemetry);
   const adminService = new AdminService(prisma, storage);
 
-  return { telemetry, audit, rateLimiter, storage, cdn, fabricRepository, fabricService, colourRepository, colourService, searchService, emailService, tokenService, dealerService, quoteService, sampleService, adminService };
+  return { telemetry, audit, rateLimiter, cache, storage, cdn, fabricRepository, fabricService, colourRepository, colourService, searchService, emailService, tokenService, dealerService, quoteService, sampleService, adminService };
 }
 
 const globalForContainer = globalThis as unknown as { __pcContainer?: Container };

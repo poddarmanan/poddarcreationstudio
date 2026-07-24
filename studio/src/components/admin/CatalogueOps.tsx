@@ -139,7 +139,7 @@ export function CatalogueOps(props: { media: Media[]; nextCursor: string | null;
                   <input type="checkbox" checked={selected.has(m.id)} onChange={() => toggle(m.id)} />
                   {m.thumbUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={m.thumbUrl} alt="" width={38} height={38} style={{ borderRadius: 5, objectFit: 'cover' }} />
+                    <img src={m.thumbUrl} alt="" width={38} height={38} loading="lazy" style={{ borderRadius: 5, objectFit: 'cover' }} />
                   ) : (
                     <span style={{ width: 38, height: 38, borderRadius: 5, background: m.colour?.hex ?? '#E8DFD2', display: 'inline-block' }} />
                   )}

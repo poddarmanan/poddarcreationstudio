@@ -346,6 +346,7 @@ model Media {
   @@index([storageKey])
   @@index([contentStatus])
   @@index([deletedAt])
+  @@index([createdAt])
 }
 
 /// Search query log (Priority 10). Powers per-user "recent" and aggregate "popular"
@@ -398,6 +399,7 @@ model Quote {
   @@index([status])
   @@index([assigneeId])
   @@index([userId])
+  @@index([createdAt])
 }
 
 /// Immutable timeline of a quote: status changes, assignments, and notes (Priority 7).
@@ -460,6 +462,7 @@ model SampleRequest {
 
   @@index([status])
   @@index([userId])
+  @@index([createdAt])
 }
 
 model SampleItem {

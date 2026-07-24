@@ -27,8 +27,9 @@ export async function POST(req: Request) {
       const csv = await req.text();
       if (!csv || csv.length > 2_000_000) throw AppError.validation('CSV body required (max 2 MB)');
 
-      const { adminService, audit } = getContainer();
+      const { adminService, audit, fabricService } = getContainer();
       const result = await adminService.importColoursCsv(csv);
+      fabricService.invalidateCatalogue();
 
       const info = clientInfo(req);
       await audit.record({ actorId: user.id, action: 'catalogue.csv_import', ip: info.ip, userAgent: info.userAgent, meta: { updated: result.updated, created: result.created, errors: result.errors.length } });

@@ -19,6 +19,9 @@ export async function GET(req: Request, ctx: RouteContext<'/api/colours/[id]/rel
     const limit = Math.min(24, Math.max(1, Number(url.searchParams.get('limit')) || 6));
 
     const related = await getContainer().colourService.getRelated(id, kind, limit);
-    return NextResponse.json({ related });
+    return NextResponse.json(
+      { related },
+      { headers: { 'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=3600' } }
+    );
   });
 }
