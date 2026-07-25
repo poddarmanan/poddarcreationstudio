@@ -14,6 +14,8 @@ import type * as THREE from 'three';
  */
 
 export interface CacheStats {
+  /** Entries a live surface is currently drawing with. */
+  retained: number;
   size: number;
   hits: number;
   misses: number;
@@ -25,6 +27,8 @@ interface Entry {
   texture: THREE.Texture;
   bytes: number;
   usedAt: number;
+  /** How many live surfaces are drawing with this texture right now. */
+  refs: number;
 }
 
 export class TextureCache {
@@ -51,28 +55,46 @@ export class TextureCache {
 
     this.misses += 1;
     const texture = factory();
-    this.entries.set(key, { texture, bytes, usedAt: performance.now() });
+    this.entries.set(key, { texture, bytes, usedAt: performance.now(), refs: 0 });
     this.evictIfNeeded();
     return texture;
+  }
+
+  /**
+   * Claims a texture against eviction. Retain/release exist separately from `get` because
+   * `get` is called during render — and under StrictMode a render happens twice — while
+   * effects are guaranteed to be paired. Claiming in `get` would leak a reference every
+   * time a component re-rendered.
+   */
+  retain(key: string): void {
+    const entry = this.entries.get(key);
+    if (entry) entry.refs += 1;
   }
 
   has(key: string): boolean {
     return this.entries.has(key);
   }
 
-  /** Drops the least-recently-used entries until both ceilings are satisfied. */
+  /**
+   * Drops the least-recently-used *unclaimed* entries until both ceilings are satisfied.
+   *
+   * An entry a surface is still drawing with is never evicted, however old it is — freeing a
+   * texture out from under a live material gives you an untextured white plane, not a
+   * smaller memory footprint. If everything is claimed we go over budget and stop; that is
+   * the honest outcome, and M29's adaptive quality is what lowers the demand.
+   */
   private evictIfNeeded(): void {
     while (this.entries.size > this.maxEntries || this.bytes > this.maxBytes) {
       let oldestKey: string | null = null;
       let oldestAt = Infinity;
       for (const [key, entry] of this.entries) {
-        if (entry.usedAt < oldestAt) {
+        if (entry.refs === 0 && entry.usedAt < oldestAt) {
           oldestAt = entry.usedAt;
           oldestKey = key;
         }
       }
-      if (!oldestKey) return;
-      this.release(oldestKey);
+      if (!oldestKey) return; // everything is in use
+      this.evict(oldestKey);
       this.evictions += 1;
     }
   }
@@ -83,8 +105,17 @@ export class TextureCache {
     return total;
   }
 
-  /** Disposes one entry's GPU memory and forgets it. */
+  /**
+   * Gives up one claim. The texture stays cached — that is the entire point of a cache — and
+   * simply becomes evictable again once nobody holds it.
+   */
   release(key: string): void {
+    const entry = this.entries.get(key);
+    if (entry) entry.refs = Math.max(0, entry.refs - 1);
+  }
+
+  /** Disposes one entry's GPU memory and forgets it, claimed or not. */
+  evict(key: string): void {
     const entry = this.entries.get(key);
     if (!entry) return;
     entry.texture.dispose();
@@ -98,7 +129,9 @@ export class TextureCache {
   }
 
   get stats(): CacheStats {
-    return { size: this.entries.size, hits: this.hits, misses: this.misses, evictions: this.evictions, bytesApprox: this.bytes };
+    let retained = 0;
+    for (const entry of this.entries.values()) if (entry.refs > 0) retained += 1;
+    return { size: this.entries.size, retained, hits: this.hits, misses: this.misses, evictions: this.evictions, bytesApprox: this.bytes };
   }
 }
 

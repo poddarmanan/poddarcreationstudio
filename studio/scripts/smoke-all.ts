@@ -14,7 +14,15 @@ const exec = promisify(execFile);
  *
  * Exits non-zero if any script fails, so this is the one command CI needs.
  */
-const HTTP_SCRIPTS = ['smoke-http-rbac.ts', 'smoke-http-journey.ts', 'smoke-http-share.ts'];
+// Browser-driven smokes run last: they are the slowest, and a service-level failure is a
+// cheaper thing to be told about first. `.mjs` ones are launched with node, not tsx.
+const HTTP_SCRIPTS = [
+  'smoke-http-rbac.ts',
+  'smoke-http-journey.ts',
+  'smoke-http-share.ts',
+  'smoke-http-hydration.ts',
+  'smoke-three.mjs',
+];
 
 async function main() {
   const dir = path.join(process.cwd(), 'scripts');
@@ -34,7 +42,8 @@ async function main() {
     const at = Date.now();
     process.stdout.write(`${script.padEnd(26)} `);
     try {
-      await exec('npx', ['tsx', path.join('scripts', script)], { env: process.env, maxBuffer: 1024 * 1024 * 32 });
+      const argv = script.endsWith('.mjs') ? ['node', [path.join('scripts', script)]] : ['npx', ['tsx', path.join('scripts', script)]];
+      await exec(argv[0] as string, argv[1] as string[], { env: process.env, maxBuffer: 1024 * 1024 * 32 });
       console.log(`PASS  (${Date.now() - at}ms)`);
     } catch (err) {
       failed.push(script);

@@ -38,6 +38,13 @@ const SERVER: Capability = {
   reason: 'Rendered on the server — capability is only known in the browser',
 };
 
+/**
+ * The snapshot a server render sees. Exported so `useSyncExternalStore` can hand React a
+ * stable server value and let it reconcile to the real one after hydration — reading the
+ * capability during render would otherwise be a hydration mismatch on every page.
+ */
+export const SERVER_CAPABILITY: Capability = SERVER;
+
 let cached: Capability | null = null;
 
 /** Detects once and memoises. Returns a safe "off" capability during SSR. */

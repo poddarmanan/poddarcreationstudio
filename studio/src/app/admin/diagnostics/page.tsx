@@ -5,6 +5,7 @@ import { auth } from '@/auth';
 import { isAdmin } from '@/server/core/rbac';
 import { getContainer } from '@/server/container';
 import type { CheckStatus } from '@/server/health/health.service';
+import { ThreeReadiness } from '@/components/three/ThreeReadiness';
 
 /**
  * Production diagnostics (Phase 3 M20). Admin-only, because the detail names configuration
@@ -84,6 +85,15 @@ export default async function DiagnosticsPage() {
                 </div>
               );
             })}
+          </div>
+        </section>
+
+        {/* The only client-rendered section on the page. A GPU's capability is knowable
+            nowhere else, and support needs a customer to be able to read it back. */}
+        <section style={{ marginTop: 28 }}>
+          <h2 style={{ margin: '0 0 12px', fontFamily: 'var(--font-display),serif', fontWeight: 600, fontSize: 20, color: INK }}>3D readiness</h2>
+          <div style={card}>
+            <ThreeReadiness />
           </div>
         </section>
 

@@ -14,7 +14,8 @@
     "preflight": "tsx scripts/preflight.ts",
     "verify:backup": "tsx scripts/verify-backup.ts",
     "smoke": "tsx scripts/smoke-all.ts",
-    "smoke:mobile": "node scripts/capture-mobile.mjs"
+    "smoke:mobile": "node scripts/capture-mobile.mjs",
+    "smoke:three": "node scripts/smoke-three.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.114.0",
