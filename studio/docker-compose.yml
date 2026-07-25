@@ -1,0 +1,55 @@
+# Self-hosted Poddar Creation Studio (Phase 5 M31).
+#
+#   cp .env.example .env.production && edit it
+#   docker compose up -d
+#
+# The app waits for Postgres to be *healthy*, not merely started — `depends_on` without a
+# condition only waits for the container to exist, which is how a first boot ends up failing
+# its migration against a database that has not finished initialising.
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-poddar}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-poddar}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-poddar} -d ${POSTGRES_DB:-poddar}']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # Migrations run as their own one-shot service rather than in the app's entrypoint. With
+  # more than one app replica, an entrypoint migration means every replica races to apply the
+  # same migration on every deploy.
+  migrate:
+    build: .
+    env_file: [.env.production]
+    depends_on:
+      db: { condition: service_healthy }
+    # The seed is idempotent — it upserts — so a restart does not duplicate the catalogue.
+    # Set SEED_ON_DEPLOY=0 in .env.production once real data exists.
+    command: >
+      sh -c "node_modules/.bin/prisma migrate deploy &&
+             if [ \"$${SEED_ON_DEPLOY:-1}\" = \"1\" ]; then node_modules/.bin/prisma db seed; fi"
+    restart: 'no'
+
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: [.env.production]
+    ports: ['3000:3000']
+    depends_on:
+      db: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+    volumes:
+      # Only needed with STORAGE_DRIVER=local. An S3/R2 driver needs no volume at all, which
+      # is why it is the recommendation for anything with more than one replica.
+      - media:/app/storage
+
+volumes:
+  db-data:
+  media:

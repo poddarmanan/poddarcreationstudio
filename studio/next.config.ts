@@ -33,6 +33,13 @@ function remoteImagePatterns() {
 }
 
 const nextConfig: NextConfig = {
+  /**
+   * Standalone output for container deployment (Phase 5 M31): Next traces the modules the
+   * server actually needs into `.next/standalone`, so the runtime image carries about 150MB
+   * instead of a full `node_modules`. It is opt-in rather than always-on because it changes
+   * what `next build` emits, and Vercel — which does its own tracing — has no use for it.
+   */
+  ...(process.env.BUILD_STANDALONE === "1" ? { output: "standalone" as const } : {}),
   images: {
     formats: ["image/avif", "image/webp"],
     remotePatterns: remoteImagePatterns(),

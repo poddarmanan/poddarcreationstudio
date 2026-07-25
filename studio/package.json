@@ -9,6 +9,8 @@
     "postinstall": "prisma generate",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
+    "startup:check": "tsx scripts/startup-check.ts",
+    "docker:build": "docker build -t poddar-studio .",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "check:materials": "node scripts/check-material-abstraction.mjs",

@@ -1,154 +1,160 @@
-# Deploying Poddar Creation Studio
+# Deployment
 
-Getting a live URL you can keep checking. Two paths — a hosted deployment, or running it on
-your own machine against the same database.
+Three supported targets. All three run the same artefact and the same checks; they differ only
+in who runs the migration and where uploads land.
 
-**The one thing that trips up every host:** the Next.js app lives in **`studio/`**, not at the
-repository root (the root holds the original design bundle). Set the project's *root directory*
-to `studio` or nothing will build.
+Before any of them: **`npm run startup:check`**. It validates every environment variable, proves
+the database is reachable, confirms migrations are applied and round-trips a file through
+storage. Its exit code is the contract:
 
----
-
-## 0. A database first (both paths need it)
-
-Any Postgres 15/16 works. Free, no card, ~2 minutes:
-
-- **Neon** — <https://neon.tech> → new project → copy the connection string
-- **Supabase** — <https://supabase.com> → new project → Settings → Database → URI
-- **Prisma Postgres** — <https://console.prisma.io>
-
-You want a URL shaped like:
-
-```
-postgresql://USER:PASSWORD@HOST/DBNAME?sslmode=require
-```
-
-Keep it — the same string works for the hosted deploy *and* for running locally, so you never
-have to install Postgres on Windows.
-
-### Create the schema and the catalogue
-
-From `C:\Users\teena\poddarcreationstudio\studio` in PowerShell:
-
-```powershell
-npm install
-$env:DATABASE_URL = "postgresql://…your string…"
-npm run db:deploy      # applies all 20 migrations
-npm run db:seed        # 11 fabrics, 264 shades, demo accounts
-```
-
-`db:seed` is not optional for a demo — without it the catalogue is empty and the app has
-nothing to show. The health check will tell you so (`Connected, but the catalogue is empty`).
-
----
-
-## 1. Hosted — Vercel (recommended)
-
-Next.js's own host; no config file needed.
-
-1. <https://vercel.com/new> → import `poddarmanan/poddarcreationstudio`
-2. **Root Directory → `studio`** ← the step everyone misses
-3. Framework preset: Next.js (auto-detected)
-4. Add environment variables:
-
-| Variable | Value |
+| Code | Meaning |
 |---|---|
-| `DATABASE_URL` | your Postgres URL from step 0 |
-| `AUTH_SECRET` | generate one: `openssl rand -base64 48`, or any 48+ random chars |
-| `APP_URL` | `https://<your-project>.vercel.app` |
-| `NEXTAUTH_URL` | same as `APP_URL` |
+| `0` | ready to serve |
+| `1` | misconfigured — do not start; the release will fail where users can see it |
+| `2` | dependencies unreachable — retry, Postgres or storage may still be coming up |
 
-5. Deploy.
+That distinction matters in a container: a cold `docker compose up` routinely has the app ready a
+second before the database is, and that is a reason to wait rather than to fail a deploy.
 
-`prisma generate` runs automatically via the `postinstall` script. Migrations do **not** run on
-deploy by design — run `npm run db:deploy` yourself when a release contains new ones, so a
-migration never races two concurrent builds.
+---
 
-After the first deploy, set `APP_URL`/`NEXTAUTH_URL` to the real URL and redeploy — emailed
-links and share links are built from it.
+## 1. Vercel
 
-### Sign in
+The default. Vercel does its own module tracing, so `BUILD_STANDALONE` stays unset.
 
-Demo accounts, password `poddar123`:
+```
+Framework      Next.js (detected)
+Root directory studio
+Build command  npm run build
+Install        npm install          # postinstall runs `prisma generate`
+```
 
-| Email | Sees |
+Environment variables — set every one of these before the first deploy:
+
+| Variable | Notes |
 |---|---|
-| `admin@poddarcreation.studio` | Everything — workspace, analytics, diagnostics |
-| `sales@poddarcreation.studio` | Sales workspace, quote and sample desks |
-| `buyer@example.com` | Customer portal, collections, quote tracking |
+| `DATABASE_URL` | Pooled connection string. Serverless functions open a connection per invocation; an unpooled URL will exhaust Postgres under any real traffic. |
+| `AUTH_SECRET` | `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` |
+| `APP_URL`, `NEXTAUTH_URL` | Your https origin. Not optional: cookies and every email link derive from it. |
+| `STORAGE_DRIVER=s3` + `S3_*` | **Required on Vercel.** The filesystem is ephemeral — `local` means uploads vanish on the next deploy. |
+| `RESEND_API_KEY`, `EMAIL_FROM` | Without a key the dev transport writes `.eml` files to a disk that does not persist. |
+| `SENTRY_DSN`, `POSTHOG_KEY` | Optional; see OPERATIONS.md. |
 
-**Change these before showing anyone outside the business.** They are public knowledge — they
-are in this repository.
+Migrations do **not** run on Vercel's build. Run them from CI or a machine that can reach the
+database:
+
+```bash
+npx prisma migrate deploy
+```
+
+## 2. Docker
+
+```bash
+cp .env.example .env.production          # then edit
+echo 'POSTGRES_PASSWORD=…' >> .env.production
+docker compose up -d
+```
+
+Compose brings up Postgres, waits for it to be **healthy** rather than merely started, runs
+`prisma migrate deploy` as a one-shot service, seeds if `SEED_ON_DEPLOY=1`, and only then starts
+the app.
+
+Migrations are a separate service on purpose. Putting them in the app's entrypoint means every
+replica races to apply the same migration on every deploy.
+
+The image is multi-stage: the runtime carries a Node runtime, the traced standalone server and
+the Prisma engine — not the toolchain, not the sources. It runs as an unprivileged user, because
+a container running as root turns a code-execution bug into a host problem.
+
+> The Dockerfile and compose file were authored against this codebase but could not be built in
+> the environment that produced them — no Docker daemon was available. Treat your first
+> `docker compose up` as their first real test.
+
+## 3. Self-hosted Node
+
+```bash
+npm ci
+npm run build
+npx prisma migrate deploy
+npm run startup:check          # exit 0 before you route traffic
+npm run start                  # behind nginx/Caddy for TLS
+```
+
+Run it under a supervisor that restarts on failure (systemd, pm2). Terminate TLS at the proxy
+and forward `X-Forwarded-Proto`, or the app cannot tell it is on https and will emit insecure
+cookies.
 
 ---
 
-## 2. Local — run it on your Windows machine
+## HTTPS is enforced, not suggested
 
-Fastest way to iterate, and it uses the same hosted database, so there is nothing to install
-beyond Node.
+- HSTS (`max-age=63072000; includeSubDomains; preload`) is emitted **only** when
+  `NODE_ENV=production`, so local development over plain HTTP is not poisoned for months.
+- `startup:check` refuses to start in production when `APP_URL` is not `https://`.
+- Session cookies are `Secure` in production; over plain HTTP they will simply not be set, and
+  sign-in will appear to succeed and then do nothing.
 
-```powershell
-cd C:\Users\teena\poddarcreationstudio\studio
-npm install
+## Health endpoints
 
-# create studio\.env with:
-#   DATABASE_URL="postgresql://…"
-#   AUTH_SECRET="…48+ random characters…"
-#   APP_URL="http://localhost:3000"
-#   NEXTAUTH_URL="http://localhost:3000"
-
-npm run dev
-```
-
-Open <http://localhost:3000>.
-
----
-
-## 3. Check it actually works
-
-```powershell
-npm run preflight https://your-project.vercel.app
-```
-
-It reports on the environment, every dependency, the security headers over the wire, and both
-probes. Or hit them directly:
-
-```
-https://your-project.vercel.app/api/health          → liveness
-https://your-project.vercel.app/api/health/ready    → readiness (503 if a dependency is down)
-```
-
-Signed in as admin, `/admin/diagnostics` shows the same checks with full detail.
-
----
-
-## 4. Known limits of a minimal deploy
-
-None of these stop you browsing, quoting, sharing or tracking — but know them before showing a
-customer:
-
-| Limit | Effect | Fix |
+| Endpoint | For | Behaviour |
 |---|---|---|
-| **Storage is local disk** | Uploads vanish on redeploy; on Vercel the filesystem is read-only, so admin uploads fail outright | Set `STORAGE_DRIVER=r2` + `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` |
-| **Email is the dev transport** | Nothing is actually sent — messages are written to disk. The notification centre still records everything in-app | Set `RESEND_API_KEY` + `EMAIL_FROM` |
-| **No error tracking** | Failures are invisible after the fact | Set `SENTRY_DSN` (and `POSTHOG_KEY` for product analytics) |
-| **Search is the Postgres driver** | Works, slightly less typo-tolerant than Meilisearch | Set `SEARCH_DRIVER=meili` + `MEILI_HOST` |
+| `/api/health` | Liveness | 200 while the process is alive. Never touches the database — a liveness probe that fails on a slow query gets your healthy app killed during an incident. |
+| `/api/health/ready` | Readiness | 200 healthy, 503 unhealthy. Names failing checks only, never their detail. |
+| `/admin/diagnostics` | Humans | Full detail, admin-only, because that detail is exactly the reconnaissance an attacker wants. |
 
-`npm run preflight` names each of these as a warning or failure with the exact variable to set,
-so you never have to guess which one bit you.
+Point the load balancer at `/api/health/ready` and the orchestrator's liveness probe at
+`/api/health`.
 
-Every one of these is a driver swap behind an interface — no application code changes.
+## Zero-downtime migrations
 
----
+Postgres takes an `ACCESS EXCLUSIVE` lock for most `ALTER TABLE`s. On a table with traffic, one
+careless migration stalls every query behind it.
 
-## 5. Backups
+**Expand, migrate, contract** — three deploys, never one:
 
-Once there is real data:
+1. **Expand.** Add the new column nullable, or the new table. Deploy code that writes to both
+   old and new and reads from old. Safe to roll back.
+2. **Migrate.** Backfill in batches (`UPDATE … WHERE id IN (SELECT … LIMIT 1000)`), never a
+   single statement over the whole table. Deploy code that reads new, still writes both.
+3. **Contract.** Only once nothing reads the old column: drop it.
 
-```powershell
-$env:DATABASE_URL = "postgresql://…"
-npm run verify:backup
+Rules that keep this true:
+
+- **Never rename.** A rename is a drop and an add, and the old code dies the moment it lands.
+  Add the new name, migrate, drop the old.
+- **Never add `NOT NULL` without a default** to a populated table. Add nullable, backfill, then
+  add the constraint `NOT VALID` and `VALIDATE` it separately — validation takes only a `SHARE
+  UPDATE EXCLUSIVE` lock.
+- **Create indexes `CONCURRENTLY`.** A plain `CREATE INDEX` blocks writes for its whole duration.
+- **Set a lock timeout** so a migration that cannot get its lock fails fast instead of queueing
+  every query behind it: `SET lock_timeout = '3s';` at the top of the migration.
+
+## Rollback
+
+**Code rolls back. Schema does not.** That asymmetry is the whole reason for expand/migrate/
+contract — a schema that is one step ahead of the code is survivable; one that is a step behind
+is an outage.
+
+When a release is bad:
+
+1. **Redeploy the previous build.** Vercel: promote the prior deployment. Docker: `docker compose
+   up -d --no-deps app` on the previous tag. This is the first move in every case; do it before
+   diagnosing.
+2. **Leave the schema alone.** If you followed expand/migrate/contract, the previous code runs
+   against the new schema. If you did not, you are choosing between data loss and downtime —
+   take downtime.
+3. **Check `/api/health/ready`** and `/admin/diagnostics` before declaring recovery.
+4. **Only then** work out what happened. `SENTRY_DSN` and the audit log are where to look.
+
+Restoring from backup is a **last resort**, not a rollback: it discards every write since the
+snapshot. See BACKUP_RECOVERY.md.
+
+## After every deploy
+
+```bash
+npm run startup:check
+npx tsx scripts/preflight.ts https://your-domain
 ```
 
-Takes a real `pg_dump`, restores it into a scratch database, compares row counts table by
-table, and drops the scratch database. A backup nobody has restored is a hope, not a backup.
+Preflight additionally checks security headers over the wire, the public/private boundary, and
+that the showroom is still reachable anonymously.
