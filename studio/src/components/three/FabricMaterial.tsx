@@ -60,7 +60,12 @@ export function FabricMaterial({ spec, tier, repeat = 1, side = THREE.DoubleSide
       c.needsUpdate = true;
       return c;
     };
-    return { map: clone(maps.map), normalMap: clone(maps.normalMap), orm: clone(maps.aoMap) };
+    const orm = clone(maps.aoMap);
+    // three.js reads `aoMap` from the *second* UV set by default, and none of our geometry has
+    // one — so occlusion sampled undefined coordinates and shaded bands of the cloth black.
+    // Pointing it at UV0, which is the set the weave is laid out in, is the fix.
+    orm.channel = 0;
+    return { map: clone(maps.map), normalMap: clone(maps.normalMap), orm };
   }, [maps, repeat]);
 
   useEffect(

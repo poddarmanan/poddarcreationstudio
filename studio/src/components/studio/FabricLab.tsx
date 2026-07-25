@@ -3,6 +3,7 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import type { Studio } from './state';
 import { Selvage } from './brand';
+import { FabricViewer } from '@/components/three/FabricViewer';
 import { FONT_DISPLAY, FONT_BODY, fabricTex, fabricWeave, colourCss, colourFg, colourShade, chipStyle, heroColour } from './helpers';
 import { useDragScroll, scrollByEl } from './interactions';
 import {
@@ -140,6 +141,16 @@ export function FabricLab({ studio }: { studio: Studio }) {
                 }}
               />
             )}
+            <FabricViewer
+              fabric={f}
+              colour={col}
+              light={studio.light}
+              wind={wind}
+              pulled={tests.stretch}
+              rolled={isRoll}
+              label={`${f.name} in ${col.name}, rendered in three dimensions`}
+              fallback={
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {isRoll ? (
               <div style={{ position: 'relative', width: 120, height: 340, filter: light.filter }}>
                 <div
@@ -210,6 +221,9 @@ export function FabricLab({ studio }: { studio: Studio }) {
                 </div>
               </div>
             )}
+                </div>
+              }
+            />
             <span style={{ position: 'absolute', top: 14, left: 16, fontSize: 10.5, letterSpacing: '.22em', color: light.fg, opacity: 0.75 }}>
               {light.en.toUpperCase()} · {WIND_NAMES[wind].toUpperCase()}
             </span>
