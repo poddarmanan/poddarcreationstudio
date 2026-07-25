@@ -4,6 +4,8 @@ import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import type { Studio } from './state';
 import { Selvage } from './brand';
 import { FabricViewer } from '@/components/three/FabricViewer';
+import { MetamerismStrip } from '@/components/three/MetamerismStrip';
+import { oklchToHex } from '@/lib/three/colour';
 import { FONT_DISPLAY, FONT_BODY, fabricTex, fabricWeave, colourCss, colourFg, colourShade, chipStyle, heroColour } from './helpers';
 import { useDragScroll, scrollByEl } from './interactions';
 import {
@@ -20,6 +22,9 @@ const DIAL_LABELS: Record<GarmentKey, string> = { kurti: 'Kurti', shirt: 'Shirt'
 export function FabricLab({ studio }: { studio: Studio }) {
   const { t, currentFabric: f, currentColour: col, tests, garment, light: lightKey, wind, reduceMotion, approved, isStaff } = studio;
   const light = LIGHTS[lightKey];
+  // The same sRGB the weave texture is generated from, so the strip and the canvas start
+  // from one colour rather than two conversions of it.
+  const renderHex = oklchToHex(col.l, col.c, col.h);
   const priced = approved || isStaff;
   const amp = reduceMotion ? 0 : f.flow * wind * 1.5;
   const story = FABRIC_STORIES[f.id] ?? '';
@@ -279,6 +284,12 @@ export function FabricLab({ studio }: { studio: Studio }) {
                   <RailChip key={w} on={wind === i} onClick={() => studio.setWind(i)}>{w}</RailChip>
                 ))}
               </div>
+            </div>
+            {/* The lighting studio's actual product: what the shade does when the light
+                changes. A buyer approves under one light and the garment is worn under
+                another; when those disagree it comes back as a rejected lot. */}
+            <div style={{ display: 'flex', gap: 12, marginTop: 12, paddingLeft: 74 }}>
+              <MetamerismStrip albedoHex={renderHex} current={lightKey} />
             </div>
           </div>
         </div>

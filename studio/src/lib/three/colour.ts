@@ -54,3 +54,46 @@ export function oklchToHex(lightness: number, chroma: number, hueDeg: number): s
   const hex = (n: number) => n.toString(16).padStart(2, '0');
   return `#${hex(encode(r))}${hex(encode(g))}${hex(encode(bl))}`;
 }
+
+/** Linearises an sRGB byte. The inverse of `encode`. */
+function decode(byte: number): number {
+  const v = byte / 255;
+  return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+}
+
+export interface Oklab {
+  L: number;
+  a: number;
+  b: number;
+}
+
+/** sRGB hex → OKLab, for measuring how far apart two colours look. */
+export function hexToOklab(hex: string): Oklab {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  const v = m ? parseInt(m[1], 16) : 0;
+  const r = decode((v >> 16) & 255);
+  const g = decode((v >> 8) & 255);
+  const b = decode(v & 255);
+
+  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+  const m_ = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+
+  return {
+    L: 0.2104542553 * l + 0.793617785 * m_ - 0.0040720468 * s,
+    a: 1.9779984951 * l - 2.428592205 * m_ + 0.4505937099 * s,
+    b: 0.0259040371 * l + 0.7827717662 * m_ - 0.808675766 * s,
+  };
+}
+
+/**
+ * Perceptual distance between two colours, ×100 so the numbers sit in a familiar range.
+ *
+ * Roughly: under 2 is a match nobody would argue with, 2-5 is a shift a buyer will notice
+ * side by side, and above 5 is two different shades.
+ */
+export function shadeDistance(a: string, b: string): number {
+  const x = hexToOklab(a);
+  const y = hexToOklab(b);
+  return Math.hypot(x.L - y.L, x.a - y.a, x.b - y.b) * 100;
+}
