@@ -10,6 +10,7 @@ import { useCapability } from './useCapability';
 import { Stage, type StageStats } from './Stage';
 import { FabricPanel } from './FabricPanel';
 import { LightingRig, RIGS } from './LightingRig';
+import { ShineSweep } from './ShineSweep';
 
 /**
  * Fabric Viewer 2.0 (Phase 4 M23).
@@ -30,6 +31,10 @@ export interface FabricViewerProps {
   wind?: number;
   /** The stretch test from the lab's rail (M24). */
   pulled?: boolean;
+  /** The shine test (M24): a light walked across the cloth to show where the highlight goes. */
+  shine?: boolean;
+  /** "Watch in 3D" (M24): lets the cloth turn all the way round, on a stand. */
+  free?: boolean;
   /** Shown whenever 3D is unavailable — the studio's existing flat rendering. */
   fallback: ReactNode;
   label: string;
@@ -39,7 +44,27 @@ export interface FabricViewerProps {
 }
 
 /** Drag to turn, wheel to come closer. Cloth is judged at an angle, so turning is the point. */
-function Turntable({ children, idle }: { children: ReactNode; idle: boolean }) {
+/**
+ * The stand the cloth hangs from once "Watch in 3D" is on. A length of fabric floating in
+ * space has no scale; a stand of a known height gives the eye something to measure against,
+ * which is the same reason a showroom drapes cloth over a rail rather than holding it up.
+ */
+function Stand() {
+  return (
+    <group position={[0, -0.72, 0]}>
+      <mesh position={[0, 0.06, 0]}>
+        <cylinderGeometry args={[0.012, 0.012, 0.12, 12]} />
+        <meshBasicMaterial color="#B9A88E" />
+      </mesh>
+      <mesh position={[0, 0, 0]}>
+        <cylinderGeometry args={[0.16, 0.16, 0.012, 24]} />
+        <meshBasicMaterial color="#8F8069" />
+      </mesh>
+    </group>
+  );
+}
+
+function Turntable({ children, idle, free = false }: { children: ReactNode; idle: boolean; free?: boolean }) {
   const group = useRef<THREE.Group>(null);
   const target = useRef({ x: 0, y: 0 });
   const gl = useThree((s) => s.gl);
@@ -57,13 +82,16 @@ function Turntable({ children, idle }: { children: ReactNode; idle: boolean }) {
   const onMove = useCallback(
     (e: PointerEvent) => {
       if (!dragging.current) return;
-      target.current.y = Math.max(-1.2, Math.min(1.2, target.current.y + (e.clientX - last.current.x) * 0.006));
+      const next = target.current.y + (e.clientX - last.current.x) * 0.006;
+      // "Watch in 3D" is the one case where turning all the way round is the point; otherwise
+      // the arc is clamped to the one a bolt is actually rocked through.
+      target.current.y = free ? next : Math.max(-1.2, Math.min(1.2, next));
       // Clamped: letting a buyer tumble the cloth past vertical does not help them judge it.
       target.current.x = Math.max(-0.5, Math.min(0.5, target.current.x + (e.clientY - last.current.y) * 0.004));
       last.current = { x: e.clientX, y: e.clientY };
       invalidate();
     },
-    [invalidate]
+    [invalidate, free]
   );
 
   const onUp = useCallback((e: PointerEvent) => {
@@ -79,7 +107,9 @@ function Turntable({ children, idle }: { children: ReactNode; idle: boolean }) {
     // letting it do so shows the back of a surface that has no back.
     if (idle && !dragging.current) {
       rock.current += delta * 0.5;
-      target.current.y = Math.sin(rock.current) * 0.34;
+      // "Watch in 3D" is the one case where a full turn is the point — the buyer asked to see
+      // the whole thing. Otherwise it rocks through the arc a bolt is actually rocked through.
+      target.current.y = free ? rock.current * 0.7 : Math.sin(rock.current) * 0.34;
     }
     g.rotation.y += (target.current.y - g.rotation.y) * Math.min(1, delta * 6);
     g.rotation.x += (target.current.x - g.rotation.x) * Math.min(1, delta * 6);
@@ -122,6 +152,8 @@ export function FabricViewer({
   light,
   wind = 0,
   pulled = false,
+  shine = false,
+  free = false,
   fallback,
   label,
   onStats,
@@ -149,7 +181,9 @@ export function FabricViewer({
     >
       <Exposure light={light} />
       <LightingRig light={light} tier={capability.tier} />
-      <Turntable idle={!pulled}>
+      <ShineSweep active={shine} sheen={fabric.sheen} />
+      {free && <Stand />}
+      <Turntable idle={!pulled} free={free}>
         <FabricPanel
           spec={spec}
           tier={capability.tier}

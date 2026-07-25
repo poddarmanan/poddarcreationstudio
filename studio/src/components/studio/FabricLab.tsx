@@ -147,6 +147,8 @@ export function FabricLab({ studio }: { studio: Studio }) {
               light={studio.light}
               wind={wind}
               pulled={tests.stretch}
+              shine={tests.shine}
+              free={tests.d3}
               rolled={isRoll}
               label={`${f.name} in ${col.name}, rendered in three dimensions`}
               fallback={

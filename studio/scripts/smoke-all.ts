@@ -26,6 +26,7 @@ const HTTP_SCRIPTS = [
   'smoke-http-share.ts',
   'smoke-http-hydration.ts',
   'smoke-three.mjs',
+  'smoke-m24.mjs',
 ];
 
 async function main() {
