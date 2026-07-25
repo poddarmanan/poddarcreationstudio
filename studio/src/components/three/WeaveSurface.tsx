@@ -1,44 +1,31 @@
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { QualityTier } from '@/lib/three/capability';
 import { shadowsAllowed } from '@/lib/three/capability';
-import type { WeaveSpec } from '@/lib/three/weave';
-import { releaseWeaveTextures, retainWeaveTextures, weaveTextures } from '@/lib/three/textures';
+import type { FabricMaterialSpec } from '@/lib/three/fabric-spec';
+import { FabricMaterial } from './FabricMaterial';
 
 /**
  * A lit panel of generated cloth (Phase 4 M21).
  *
- * This is the smallest complete path through the foundation — spec to texture to material to
- * a lit, shaded surface — and it exists so the foundation can be *proved* rather than
- * asserted. M22 replaces the material here with the full PBR treatment (roughness, sheen,
- * anisotropy, transmission); the resource handling and the lighting rig stay.
+ * The smallest complete path through the foundation — spec sheet to texture to material to a
+ * lit, shaded surface. It exists so the pipeline can be *proved* rather than asserted, and the
+ * diagnostics panel renders it.
  */
 
 export interface WeaveSurfaceProps {
-  spec: WeaveSpec;
-  size: number;
+  spec: FabricMaterialSpec;
   tier: QualityTier;
+  repeat?: number;
   /** Slow rotation, so the specular travels across the weave the way it does on a bolt. */
   spin?: boolean;
 }
 
-export function WeaveSurface({ spec, size, tier, spin = false }: WeaveSurfaceProps) {
+export function WeaveSurface({ spec, tier, repeat = 1, spin = false }: WeaveSurfaceProps) {
   const mesh = useRef<THREE.Mesh>(null);
-  const gl = useThree((s) => s.gl);
-
-  // Anisotropic filtering is what stops a weave turning to mush at a glancing angle — the
-  // exact angle cloth is usually seen at. It is cheap and the GPU tells us its ceiling.
-  const anisotropy = useMemo(() => Math.min(8, gl.capabilities.getMaxAnisotropy?.() ?? 1), [gl]);
-  const { map, normalMap } = useMemo(() => weaveTextures(spec, size, anisotropy), [spec, size, anisotropy]);
-
-  // Claimed in an effect, never in render: StrictMode renders twice and would leak a claim.
-  useEffect(() => {
-    retainWeaveTextures(spec, size);
-    return () => releaseWeaveTextures(spec, size);
-  }, [spec, size]);
 
   useFrame((state, delta) => {
     if (!spin || !mesh.current) return;
@@ -62,14 +49,7 @@ export function WeaveSurface({ spec, size, tier, spin = false }: WeaveSurfacePro
         {/* Segmented rather than a flat quad: the surface has to be able to deform for the
             drape and wind work later, and a two-triangle plane cannot. */}
         <planeGeometry args={[1.6, 1.6, tier === 'low' ? 8 : 32, tier === 'low' ? 8 : 32]} />
-        <meshStandardMaterial
-          map={map}
-          normalMap={normalMap}
-          normalScale={new THREE.Vector2(1, 1)}
-          roughness={1 - spec.sheen * 0.55}
-          metalness={0}
-          side={THREE.DoubleSide}
-        />
+        <FabricMaterial spec={spec} tier={tier} repeat={repeat} />
       </mesh>
     </>
   );

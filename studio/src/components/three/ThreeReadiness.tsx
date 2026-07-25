@@ -5,7 +5,8 @@ import { Stage, type StageStats } from './Stage';
 import { useCapability } from './useCapability';
 import { WeaveSurface } from './WeaveSurface';
 import { frameBudgetMs, shadowsAllowed, textureSizeFor } from '@/lib/three/capability';
-import { weaveKindForFamily } from '@/lib/three/weave';
+import { fabricMaterialSpec } from '@/lib/three/fabric-spec';
+import { FABRIC_DEFS, generateColours } from '@/lib/fabric-generator';
 
 /**
  * 3D readiness, on the diagnostics page (Phase 4 M21).
@@ -36,17 +37,13 @@ export function ThreeReadiness() {
   const [fallback, setFallback] = useState<string | null>(null);
 
   const size = textureSizeFor(capability.tier, capability.maxTextureSize);
-  const spec = useMemo(
-    () => ({
-      kind: weaveKindForFamily('rayon'),
-      threadCount: 60,
-      sheen: 0.5,
-      irregularity: 0.35,
-      hex: '#8A6D45',
-      seed: 21,
-    }),
-    []
-  );
+  // A real catalogue row rather than an invented one: if the spec-sheet mapping breaks, this
+  // panel is where it shows, and a made-up fabric would hide exactly that.
+  const spec = useMemo(() => {
+    const fabric = FABRIC_DEFS.find((f) => f.id === 'gajji') ?? FABRIC_DEFS[0];
+    const colours = generateColours(fabric);
+    return fabricMaterialSpec(fabric, colours[fabric.heroIndex] ?? colours[0]);
+  }, []);
 
   const budget = frameBudgetMs(capability.tier);
   const slow = stats ? stats.worstFrameMs > budget * 1.6 : false;
@@ -78,7 +75,7 @@ export function ThreeReadiness() {
             </div>
           }
         >
-          <WeaveSurface spec={spec} size={size} tier={capability.tier} spin />
+          <WeaveSurface spec={spec} tier={capability.tier} spin repeat={4} />
         </Stage>
       </div>
 

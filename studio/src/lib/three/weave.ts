@@ -87,6 +87,8 @@ function isWarpOver(kind: WeaveKind, x: number, y: number): boolean {
 export interface GeneratedMaps {
   albedo: HTMLCanvasElement;
   normal: HTMLCanvasElement;
+  /** Red = ambient occlusion, green = roughness, blue = unused. One texture, two channels. */
+  ormap: HTMLCanvasElement;
   size: number;
 }
 
@@ -117,6 +119,14 @@ export function generateWeaveMaps(spec: WeaveSpec, size: number): GeneratedMaps 
   const albedoCtx = albedo.getContext('2d')!;
   const albedoData = albedoCtx.createImageData(size, size);
 
+  // Occlusion and roughness travel together in one texture (M22). They are both single-channel
+  // and both derived from the same relief, so packing them halves the uploads and the samples:
+  // red is how much ambient light the gap between threads loses, green is how rough the fibre
+  // is at that point. Blue is spare.
+  const ormap = createCanvas(size);
+  const ormCtx = ormap.getContext('2d')!;
+  const ormData = ormCtx.createImageData(size, size);
+
   for (let py = 0; py < size; py++) {
     for (let px = 0; px < size; px++) {
       const tx = Math.floor(px / cell);
@@ -144,11 +154,24 @@ export function generateWeaveMaps(spec: WeaveSpec, size: number): GeneratedMaps 
       albedoData.data[o + 1] = clamp255(g * tone * (1 + lift));
       albedoData.data[o + 2] = clamp255(b * tone * (1 + lift * 0.95));
       albedoData.data[o + 3] = 255;
+
+      // Ambient occlusion: the valleys between threads see less of the sky. This is what stops
+      // a weave reading as a printed pattern on a flat card.
+      const ao = 0.55 + h * 0.45;
+      // Roughness: a thread's crown is where the fibres lie parallel and catch a highlight;
+      // the gaps are broken fibre ends and scatter. Sheen decides how far apart those two get,
+      // which is the whole difference between gajji silk and cambric.
+      const rough = 1 - spec.sheen * (0.25 + crown * 0.6);
+      ormData.data[o] = clamp255(ao * 255);
+      ormData.data[o + 1] = clamp255(rough * 255);
+      ormData.data[o + 2] = 0;
+      ormData.data[o + 3] = 255;
     }
   }
   albedoCtx.putImageData(albedoData, 0, 0);
+  ormCtx.putImageData(ormData, 0, 0);
 
-  return { albedo, normal: heightToNormal(height, size, 1.4 + spec.sheen), size };
+  return { albedo, normal: heightToNormal(height, size, 1.4 + spec.sheen), ormap, size };
 }
 
 /**

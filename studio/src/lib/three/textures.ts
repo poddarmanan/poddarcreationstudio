@@ -17,6 +17,9 @@ import { approxTextureBytes, getTextureCache } from './texture-cache';
 export interface WeaveTextures {
   map: THREE.Texture;
   normalMap: THREE.Texture;
+  /** Ambient occlusion in red, roughness in green — three.js reads each from its own channel. */
+  aoMap: THREE.Texture;
+  roughnessMap: THREE.Texture;
   /** Edge length in pixels — the tier decided this, not the fabric. */
   size: number;
 }
@@ -45,6 +48,7 @@ export function weaveTextures(spec: WeaveSpec, size: number, anisotropy = 1): We
   const cache = getTextureCache();
   const albedoKey = weaveCacheKey(spec, size, 'albedo');
   const normalKey = weaveCacheKey(spec, size, 'normal');
+  const ormKey = weaveCacheKey(spec, size, 'orm');
 
   // One pass, memoised: whichever map is asked for first generates both and parks the other.
   let generated: ReturnType<typeof generateWeaveMaps> | null = null;
@@ -53,8 +57,11 @@ export function weaveTextures(spec: WeaveSpec, size: number, anisotropy = 1): We
 
   const map = cache.get(albedoKey, () => configure(new THREE.CanvasTexture(generate().albedo), true, anisotropy), bytes);
   const normalMap = cache.get(normalKey, () => configure(new THREE.CanvasTexture(generate().normal), false, anisotropy), bytes);
+  // One upload, sampled twice: `aoMap` reads red and `roughnessMap` reads green off the same
+  // texture object, so the packed map costs a third of what three separate greyscales would.
+  const ormap = cache.get(ormKey, () => configure(new THREE.CanvasTexture(generate().ormap), false, anisotropy), bytes);
 
-  return { map, normalMap, size };
+  return { map, normalMap, aoMap: ormap, roughnessMap: ormap, size };
 }
 
 /**
@@ -66,6 +73,7 @@ export function retainWeaveTextures(spec: WeaveSpec, size: number): void {
   const cache = getTextureCache();
   cache.retain(weaveCacheKey(spec, size, 'albedo'));
   cache.retain(weaveCacheKey(spec, size, 'normal'));
+  cache.retain(weaveCacheKey(spec, size, 'orm'));
 }
 
 /** Gives up the claim. The textures stay cached and become evictable once nobody holds them. */
@@ -73,4 +81,5 @@ export function releaseWeaveTextures(spec: WeaveSpec, size: number): void {
   const cache = getTextureCache();
   cache.release(weaveCacheKey(spec, size, 'albedo'));
   cache.release(weaveCacheKey(spec, size, 'normal'));
+  cache.release(weaveCacheKey(spec, size, 'orm'));
 }

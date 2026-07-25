@@ -11,6 +11,7 @@
     "db:seed": "prisma db seed",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "check:materials": "node scripts/check-material-abstraction.mjs",
     "preflight": "tsx scripts/preflight.ts",
     "verify:backup": "tsx scripts/verify-backup.ts",
     "smoke": "tsx scripts/smoke-all.ts",

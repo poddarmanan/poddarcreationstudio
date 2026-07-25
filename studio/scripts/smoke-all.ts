@@ -14,6 +14,10 @@ const exec = promisify(execFile);
  *
  * Exits non-zero if any script fails, so this is the one command CI needs.
  */
+// Static checks run first — they are instant, and an architectural violation is worth being
+// told about before waiting a minute for a browser.
+const STATIC_SCRIPTS = ['check-material-abstraction.mjs'];
+
 // Browser-driven smokes run last: they are the slowest, and a service-level failure is a
 // cheaper thing to be told about first. `.mjs` ones are launched with node, not tsx.
 const HTTP_SCRIPTS = [
@@ -33,7 +37,7 @@ async function main() {
     .sort((a, b) => Number(a.match(/\d+/)![0]) - Number(b.match(/\d+/)![0]));
 
   const includeHttp = process.argv.includes('--http');
-  const scripts = [...milestone, ...(includeHttp ? HTTP_SCRIPTS.filter((f) => files.includes(f)) : [])];
+  const scripts = [...STATIC_SCRIPTS.filter((f) => files.includes(f)), ...milestone, ...(includeHttp ? HTTP_SCRIPTS.filter((f) => files.includes(f)) : [])];
 
   const failed: string[] = [];
   const started = Date.now();
