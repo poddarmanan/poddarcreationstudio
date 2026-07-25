@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { Stage, type StageStats } from './Stage';
 import { useCapability } from './useCapability';
+import { useEffectiveTier } from './quality';
 import { WeaveSurface } from './WeaveSurface';
 import { frameBudgetMs, shadowsAllowed, textureSizeFor } from '@/lib/three/capability';
 import { fabricMaterialSpec } from '@/lib/three/fabric-spec';
@@ -33,10 +34,12 @@ function Row({ label, value, tone }: { label: string; value: string; tone?: stri
 
 export function ThreeReadiness() {
   const capability = useCapability();
+  // What the device earned at startup, and what it is actually holding right now (M29).
+  const tier = useEffectiveTier(capability.tier);
   const [stats, setStats] = useState<StageStats | null>(null);
   const [fallback, setFallback] = useState<string | null>(null);
 
-  const size = textureSizeFor(capability.tier, capability.maxTextureSize);
+  const size = textureSizeFor(tier, capability.maxTextureSize);
   // A real catalogue row rather than an invented one: if the spec-sheet mapping breaks, this
   // panel is where it shows, and a made-up fabric would hide exactly that.
   const spec = useMemo(() => {
@@ -45,7 +48,7 @@ export function ThreeReadiness() {
     return fabricMaterialSpec(fabric, colours[fabric.heroIndex] ?? colours[0]);
   }, []);
 
-  const budget = frameBudgetMs(capability.tier);
+  const budget = frameBudgetMs(tier);
   const slow = stats ? stats.worstFrameMs > budget * 1.6 : false;
 
   return (
@@ -75,18 +78,18 @@ export function ThreeReadiness() {
             </div>
           }
         >
-          <WeaveSurface spec={spec} tier={capability.tier} spin repeat={4} />
+          <WeaveSurface spec={spec} tier={tier} spin repeat={4} />
         </Stage>
       </div>
 
       <div>
         <Row label="WebGL" value={capability.webgl === 0 ? 'unavailable' : `version ${capability.webgl}`} tone={capability.webgl === 0 ? '#A33' : undefined} />
-        <Row label="Quality tier" value={capability.tier} />
+        <Row label="Quality tier" value={tier === capability.tier ? capability.tier : `${tier} (from ${capability.tier})`} />
         <Row label="Renderer" value={capability.renderer} />
         <Row label="Max texture" value={`${capability.maxTextureSize}px`} />
         <Row label="Map resolution" value={`${size}px`} />
         <Row label="Pixel ratio" value={capability.pixelRatio.toFixed(2)} />
-        <Row label="Shadows" value={shadowsAllowed(capability.tier) ? 'on' : 'off'} />
+        <Row label="Shadows" value={shadowsAllowed(tier) ? 'on' : 'off'} />
         <Row label="Frame budget" value={`${budget}ms`} />
         <Row
           label="Measured"

@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import type { ColourLike, FabricLike } from '@/lib/three/fabric-spec';
 import { fabricMaterialSpec } from '@/lib/three/fabric-spec';
 import { useCapability } from './useCapability';
+import { useEffectiveTier } from './quality';
 import { Stage } from './Stage';
 import { FabricMaterial } from './FabricMaterial';
 
@@ -63,21 +64,22 @@ function Inspection() {
 }
 
 export function MicroscopeView({ fabric, colour, power, fallback, label }: MicroscopeViewProps) {
-  const capability = useCapability();
+  const detected = useCapability();
+  const tier = useEffectiveTier(detected.tier);
   const spec = useMemo(() => fabricMaterialSpec(fabric, colour), [fabric, colour]);
   const tiles = tilesFor(power);
 
   // The magnification decides the resolution, not the tier. A tier that would render a whole
   // garment at 256px still needs real detail when the camera is 20mm from the cloth — this is
   // one surface, one material, and the only thing on screen.
-  const size = capability.tier === 'low' ? 512 : capability.tier === 'medium' ? 1024 : 2048;
+  const size = tier === 'low' ? 512 : tier === 'medium' ? 1024 : 2048;
 
   return (
     <Stage label={label} animate fallback={fallback} style={{ position: 'absolute', inset: 0 }}>
       <Inspection />
       <mesh>
         <planeGeometry args={[2.6, 1.95, 1, 1]} />
-        <FabricMaterial spec={spec} tier={capability.tier} repeat={tiles} size={Math.min(size, capability.maxTextureSize || size)} />
+        <FabricMaterial spec={spec} tier={tier} repeat={tiles} size={Math.min(size, detected.maxTextureSize || size)} />
       </mesh>
     </Stage>
   );

@@ -5,6 +5,7 @@ import type { LightKey } from '@/lib/fabric-generator';
 import type { ColourLike, FabricLike } from '@/lib/three/fabric-spec';
 import { fabricMaterialSpec } from '@/lib/three/fabric-spec';
 import { useCapability } from './useCapability';
+import { useEffectiveTier } from './quality';
 import { Stage } from './Stage';
 import { FabricPanel } from './FabricPanel';
 import { LightingRig } from './LightingRig';
@@ -40,7 +41,10 @@ export interface ComparisonStageProps {
 }
 
 export function ComparisonStage({ entries, light, fallback, label }: ComparisonStageProps) {
-  const capability = useCapability();
+  const detected = useCapability();
+  // One verdict for the whole tab: four fabrics rendered at four different qualities is
+  // exactly the unfairness this view exists to remove.
+  const tier = useEffectiveTier(detected.tier);
 
   const specs = useMemo(
     () => entries.map((e) => ({ ...e, spec: fabricMaterialSpec(e.fabric, e.colour) })),
@@ -57,12 +61,12 @@ export function ComparisonStage({ entries, light, fallback, label }: ComparisonS
 
   return (
     <Stage label={label} animate fallback={fallback} style={{ position: 'absolute', inset: 0 }}>
-      <LightingRig light={light} tier={capability.tier} />
+      <LightingRig light={light} tier={tier} />
       {shown.map((entry, i) => (
         <group key={entry.id} position={[i * spacing - offset, 0, 0]}>
           <FabricPanel
             spec={entry.spec}
-            tier={capability.tier}
+            tier={tier}
             flow={entry.fabric.flow}
             stretch={entry.fabric.stretch}
             width={width}

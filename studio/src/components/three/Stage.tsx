@@ -4,6 +4,7 @@ import { Component, useCallback, useMemo, useState, type ReactNode } from 'react
 import dynamic from 'next/dynamic';
 import { useCapability } from './useCapability';
 import { reportClientEvent } from '@/lib/telemetry-client';
+import { primeQuality, recordFrameSample, useEffectiveTier } from './quality';
 
 /**
  * The host every 3D surface in the studio mounts into (Phase 4 M21).
@@ -81,8 +82,13 @@ export interface StageProps {
 }
 
 export function Stage({ fallback, children, animate = false, label, onStats, onFallback, className, style }: StageProps) {
-  const capability = useCapability();
+  const detected = useCapability();
   const [lost, setLost] = useState(false);
+
+  // The tier the device *earned* at startup is the ceiling; what it can hold right now is
+  // measured (M29). Every surface in the tab shares the verdict — see `quality.ts`.
+  const tier = useEffectiveTier(detected.tier);
+  const capability = useMemo(() => ({ ...detected, tier }), [detected, tier]);
 
   const fail = useCallback(
     (reason: FallbackReason, props?: Record<string, unknown>) => {
@@ -102,6 +108,7 @@ export function Stage({ fallback, children, animate = false, label, onStats, onF
   const onError = useCallback((err: Error) => fail('error', { message: err.message.slice(0, 200) }), [fail]);
 
   const onReady = useCallback(() => {
+    primeQuality(detected.tier);
     reportClientEvent('three.ready', {
       tier: capability.tier,
       webgl: capability.webgl,
@@ -110,11 +117,21 @@ export function Stage({ fallback, children, animate = false, label, onStats, onF
       pixelRatio: capability.pixelRatio,
       mobile: capability.mobile,
     });
-  }, [capability]);
+  }, [capability, detected.tier]);
 
   // `webgl: 0` covers both the server snapshot and a browser without WebGL, so the first
   // paint is always the flat rendering and 3D arrives after hydration if the device can.
   const supported = capability.webgl > 0 && capability.tier !== 'off';
+
+  const handleStats = useCallback(
+    (s: StageStats) => {
+      // One second of measurement. The worst frame in the window, not the mean: a scene at a
+      // steady 55fps with one 400ms hitch averages fine and feels broken.
+      recordFrameSample(s.worstFrameMs);
+      onStats?.(s);
+    },
+    [onStats]
+  );
 
   const shell = useMemo<React.CSSProperties>(
     () => ({ position: 'relative', width: '100%', height: '100%', ...style }),
@@ -140,7 +157,7 @@ export function Stage({ fallback, children, animate = false, label, onStats, onF
         <StageCanvas
           capability={capability}
           animate={animate}
-          onStats={onStats}
+          onStats={handleStats}
           onContextLost={onContextLost}
           onContextRestored={onContextRestored}
           onReady={onReady}

@@ -7,6 +7,7 @@ import type { GarmentKey, LightKey } from '@/lib/fabric-generator';
 import type { ColourLike, FabricLike } from '@/lib/three/fabric-spec';
 import { fabricMaterialSpec } from '@/lib/three/fabric-spec';
 import { useCapability } from './useCapability';
+import { useEffectiveTier } from './quality';
 import { Stage, type StageStats } from './Stage';
 import { FabricPanel } from './FabricPanel';
 import { LightingRig, RIGS } from './LightingRig';
@@ -163,7 +164,9 @@ export function FabricViewer({
   onStats,
   rolled = false,
 }: FabricViewerProps) {
-  const capability = useCapability();
+  const detected = useCapability();
+  // The measured tier, shared across every surface in the tab (M29).
+  const tier = useEffectiveTier(detected.tier);
   const [, setStats] = useState<StageStats | null>(null);
   const spec = useMemo(() => fabricMaterialSpec(fabric, colour), [fabric, colour]);
 
@@ -184,7 +187,7 @@ export function FabricViewer({
       style={{ position: 'absolute', inset: 0 }}
     >
       <Exposure light={light} />
-      <LightingRig light={light} tier={capability.tier} />
+      <LightingRig light={light} tier={tier} />
       <ShineSweep active={shine} sheen={fabric.sheen} />
       {free && <Stand />}
       <Turntable idle={!pulled} free={free}>
@@ -192,7 +195,7 @@ export function FabricViewer({
           <GarmentMesh
             garment={garment}
             spec={spec}
-            tier={capability.tier}
+            tier={tier}
             flow={fabric.flow}
             stretch={fabric.stretch}
             wind={wind}
@@ -201,7 +204,7 @@ export function FabricViewer({
         ) : (
           <FabricPanel
             spec={spec}
-            tier={capability.tier}
+            tier={tier}
             flow={fabric.flow}
             stretch={fabric.stretch}
             wind={wind}
