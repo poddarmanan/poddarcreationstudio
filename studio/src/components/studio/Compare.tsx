@@ -2,6 +2,7 @@
 
 import type { Studio } from './state';
 import { Selvage } from './brand';
+import { ComparisonStage } from '@/components/three/ComparisonStage';
 import { FONT_DISPLAY, FONT_BODY, fabricTex, heroColour } from './helpers';
 
 export function Compare({ studio }: { studio: Studio }) {
@@ -26,6 +27,36 @@ export function Compare({ studio }: { studio: Studio }) {
               {t.collection} →
             </button>
           </div>
+        </div>
+      )}
+      {compare.length > 0 && (
+        /* Every selected quality hanging under one light, at one moment — which is what a
+           merchant does with real bolts, and the only honest way to answer "which of these
+           drapes better". One canvas for all of them: browsers cap WebGL contexts, and a grid
+           of separate viewers stops working at exactly the point enough fabrics are being
+           compared for it to matter. */
+        <div
+          style={{
+            position: 'relative', marginTop: 26, height: 'clamp(240px,32vw,380px)', borderRadius: 6,
+            overflow: 'hidden', border: '1px solid rgba(28,25,23,.08)', background: '#F0EDE7',
+          }}
+        >
+          <ComparisonStage
+            entries={compare.map((id) => {
+              const x = studio.fab(id);
+              return { id, fabric: x, colour: heroColour(x) };
+            })}
+            light={studio.light}
+            label={`${compare.length} qualities hanging side by side under one light`}
+            fallback={
+              <div style={{ position: 'absolute', inset: 0, display: 'flex' }}>
+                {compare.map((id) => {
+                  const x = studio.fab(id);
+                  return <div key={id} style={{ flex: 1, background: fabricTex(x, heroColour(x), 4) }} />;
+                })}
+              </div>
+            }
+          />
         </div>
       )}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(230px,1fr))', gap: 20, marginTop: 26 }}>
