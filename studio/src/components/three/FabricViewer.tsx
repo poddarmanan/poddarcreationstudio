@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import type { LightKey } from '@/lib/fabric-generator';
+import type { GarmentKey, LightKey } from '@/lib/fabric-generator';
 import type { ColourLike, FabricLike } from '@/lib/three/fabric-spec';
 import { fabricMaterialSpec } from '@/lib/three/fabric-spec';
 import { useCapability } from './useCapability';
@@ -11,6 +11,7 @@ import { Stage, type StageStats } from './Stage';
 import { FabricPanel } from './FabricPanel';
 import { LightingRig, RIGS } from './LightingRig';
 import { ShineSweep } from './ShineSweep';
+import { GarmentMesh } from './GarmentMesh';
 
 /**
  * Fabric Viewer 2.0 (Phase 4 M23).
@@ -41,6 +42,8 @@ export interface FabricViewerProps {
   onStats?: (stats: StageStats) => void;
   /** Roll rather than hanging panel: the showroom's bolt-on-the-shelf presentation. */
   rolled?: boolean;
+  /** Cut the cloth into a garment silhouette (M25). `roll` keeps the hanging panel. */
+  garment?: GarmentKey;
 }
 
 /** Drag to turn, wheel to come closer. Cloth is judged at an angle, so turning is the point. */
@@ -154,6 +157,7 @@ export function FabricViewer({
   pulled = false,
   shine = false,
   free = false,
+  garment,
   fallback,
   label,
   onStats,
@@ -184,16 +188,28 @@ export function FabricViewer({
       <ShineSweep active={shine} sheen={fabric.sheen} />
       {free && <Stand />}
       <Turntable idle={!pulled} free={free}>
-        <FabricPanel
-          spec={spec}
-          tier={capability.tier}
-          flow={fabric.flow}
-          stretch={fabric.stretch}
-          wind={wind}
-          pulled={pulled}
-          width={rolled ? 0.42 : 0.9}
-          height={rolled ? 1.5 : 1.35}
-        />
+        {garment && garment !== 'roll' ? (
+          <GarmentMesh
+            garment={garment}
+            spec={spec}
+            tier={capability.tier}
+            flow={fabric.flow}
+            stretch={fabric.stretch}
+            wind={wind}
+            pulled={pulled}
+          />
+        ) : (
+          <FabricPanel
+            spec={spec}
+            tier={capability.tier}
+            flow={fabric.flow}
+            stretch={fabric.stretch}
+            wind={wind}
+            pulled={pulled}
+            width={rolled ? 0.42 : 0.9}
+            height={rolled ? 1.5 : 1.35}
+          />
+        )}
       </Turntable>
     </Stage>
   );

@@ -150,6 +150,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
               shine={tests.shine}
               free={tests.d3}
               rolled={isRoll}
+              garment={studio.garment}
               label={`${f.name} in ${col.name}, rendered in three dimensions`}
               fallback={
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
