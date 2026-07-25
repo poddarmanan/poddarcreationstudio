@@ -86,7 +86,7 @@ export function Entrance({ studio }: { studio: Studio }) {
   const hasResults = !!(results.length || asst);
 
   return (
-    <div style={{ position: 'relative', minHeight: 'calc(100vh - 64px)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div className="pc-view" style={{ position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div
         style={{
           position: 'absolute', inset: 0,
@@ -121,21 +121,28 @@ export function Entrance({ studio }: { studio: Studio }) {
         />
       ))}
       <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(90% 90% at 50% 50%, transparent 55%, rgba(28,25,23,.07))' }} />
-      <div style={{ position: 'relative', textAlign: 'center', padding: '56px 24px', animation: 'rise 1.2s cubic-bezier(.2,.8,.2,1) both' }}>
-        <div style={{ marginBottom: 16 }}>
+      {/* The vertical rhythm is written as clamps rather than fixed pixels so the whole
+          entrance — mark, title, promise, call to action and search — fits a phone screen
+          without scrolling. Every value reaches its original number at about 615px wide, so
+          nothing above a large phone moves. */}
+      <div style={{ position: 'relative', width: '100%', maxWidth: 640, textAlign: 'center', padding: 'clamp(16px,4vw,56px) 20px', animation: 'rise 1.2s cubic-bezier(.2,.8,.2,1) both' }}>
+        <div style={{ marginBottom: 'clamp(10px,2.6vw,16px)' }}>
           <WeaveMark size={22} />
         </div>
-        <div style={{ fontSize: 11, letterSpacing: '.55em', color: '#8A6D45', marginBottom: 14 }}>{t.est}</div>
-        <Selvage style={{ margin: '0 auto 26px' }} />
+        {/* Tracking this wide is 350px of text on a 360px screen — it was the one thing making
+            the hero block wider than the phone, which shoved the search bar to the very edges.
+            Back to .55em at 550px and up. */}
+        <div style={{ fontSize: 11, letterSpacing: 'clamp(.18em,1.1vw,.55em)', color: '#8A6D45', marginBottom: 'clamp(10px,2.3vw,14px)' }}>{t.est}</div>
+        <Selvage style={{ margin: '0 auto clamp(18px,4.3vw,26px)' }} />
         <h1 style={{ margin: 0, fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(52px,8.5vw,120px)', lineHeight: 1 }}>
           Poddar
           <br />
           <em style={{ fontWeight: 400 }}>Creation</em>
         </h1>
-        <p style={{ maxWidth: 400, margin: '26px auto 0', fontSize: 15, fontWeight: 300, lineHeight: 1.8, letterSpacing: '.02em', color: 'rgba(28,25,23,.6)', textWrap: 'balance' }}>
+        <p style={{ maxWidth: 400, margin: 'clamp(18px,4.3vw,26px) auto 0', fontSize: 15, fontWeight: 300, lineHeight: 1.8, letterSpacing: '.02em', color: 'rgba(28,25,23,.6)', textWrap: 'balance' }}>
           {t.heroSub}
         </p>
-        <div style={{ marginTop: 40 }}>
+        <div style={{ marginTop: 'clamp(26px,6.5vw,40px)' }}>
           <button
             onClick={() => studio.go('showroom')}
             className="pc-hv-gold-fill"
@@ -148,7 +155,7 @@ export function Entrance({ studio }: { studio: Studio }) {
             {t.enter}
           </button>
         </div>
-        <div style={{ display: 'flex', gap: 26, justifyContent: 'center', marginTop: 26, fontSize: 12, letterSpacing: '.2em' }}>
+        <div style={{ display: 'flex', gap: 26, justifyContent: 'center', marginTop: 'clamp(18px,4.3vw,26px)', fontSize: 12, letterSpacing: '.2em' }}>
           {[
             { label: t.collection, go: () => studio.go('collection') },
             { label: t.explore, go: () => studio.go('colours') },
@@ -166,7 +173,7 @@ export function Entrance({ studio }: { studio: Studio }) {
             </button>
           ))}
         </div>
-        <div style={{ position: 'relative', maxWidth: 520, margin: '44px auto 0' }}>
+        <div style={{ position: 'relative', maxWidth: 520, margin: 'clamp(26px,7.2vw,44px) auto 0' }}>
           <div
             style={{
               display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,.65)', backdropFilter: 'blur(14px)',

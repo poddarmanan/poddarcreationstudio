@@ -4,6 +4,11 @@
   --pc-ink: #1c1917;
   --pc-cream: #faf8f5;
   --pc-gold: #8a6d45;
+
+  /* The two chrome bars, as measured values. Views subtract them to size themselves
+     against the space a person can actually see. On desktop there is no bottom bar. */
+  --pc-topbar: 64px;
+  --pc-bottombar: 0px;
 }
 
 * { box-sizing: border-box; }
@@ -36,9 +41,144 @@ button:focus-visible, a:focus-visible, input:focus-visible {
 .pc-nav { scrollbar-width: none; }
 .pc-nav::-webkit-scrollbar { display: none; }
 
-/* Header nav row: shares the bar on desktop, drops to its own full-width row on phones. */
-.pc-hdrnav { order: 0; flex: 1 1 auto; }
-@media (max-width: 680px) { .pc-hdrnav { order: 3; flex: 1 1 100%; } }
+/* ── Shell ──────────────────────────────────────────────────────────────────
+   A view fills the gap between the two bars — no more, no less. Getting this
+   wrong is what produced the dead band under the header on phones: the hero
+   asked for `100vh - 64px` while the header was really 155px tall, so its
+   centred contents were pushed down by half the difference and the search bar
+   fell off the bottom of the screen. Sizing from the same variables the bars
+   are built from keeps the two honest. */
+.pc-shell { padding-bottom: var(--pc-bottombar); }
+
+/* A full-height view runs to the bottom of the screen — the cloth should reach the edge, not
+   stop in a band above the navigation — and reserves the pill's space *inside* itself, so its
+   contents still centre in what is actually visible. The scrolling views are not `.pc-view`
+   and keep the shell's padding instead. */
+.pc-shell:has(> .pc-view) { padding-bottom: 0; }
+.pc-view { min-height: calc(100vh - var(--pc-topbar)); padding-bottom: var(--pc-bottombar); }
+/* Small-viewport units measure the screen with the browser's own chrome showing,
+   so the hero does not jump when the URL bar collapses. */
+@supports (height: 100svh) {
+  .pc-view { min-height: calc(100svh - var(--pc-topbar)); }
+}
+
+/* These four live here rather than inline on the elements because a media query cannot
+   override an inline style — that is exactly how the header's link row stayed visible on
+   phones while `@media` insisted it was hidden. */
+.pc-topbar { padding: 8px clamp(12px, 3vw, 40px); min-height: 48px; }
+.pc-hdrnav { display: flex; order: 0; flex: 1 1 auto; }
+.pc-hdricon { width: 32px; height: 32px; }
+.pc-hdrbtn { padding: 5px 10px; }
+
+/* ── Phones ─────────────────────────────────────────────────────────────────
+   Navigation moves from a link row at the top to a floating pill at the bottom,
+   where the thumb already is. The top bar keeps only identity and account, in a
+   single 50px line, which returns roughly 105px of cloth to the screen. */
+@media (max-width: 767px) {
+  :root { --pc-topbar: 50px; --pc-bottombar: 78px; }
+
+  .pc-topbar { padding: 5px 14px; min-height: 40px; }
+  .pc-hdrnav { display: none; }
+  .pc-hdricon { width: 36px; height: 36px; }
+  .pc-hdrbtn { min-height: 34px; padding: 7px 12px; }
+
+  /* A 36px circle is the right *look* for a 50px bar, and the wrong size for a thumb.
+     The pseudo-element grows the hit area past 44px without touching the drawn control —
+     the two need not be the same rectangle. */
+  .pc-hdricon, .pc-hdrbtn { position: relative; }
+  .pc-hdricon::after, .pc-hdrbtn::after { content: ''; position: absolute; inset: -6px; }
+
+  .pc-bottomnav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: max(10px, env(safe-area-inset-bottom));
+    z-index: 60;
+    padding: 0 8px;
+    /* The gutter either side of the pill must not swallow taps meant for the page. */
+    pointer-events: none;
+  }
+  .pc-bottomnav-pill {
+    pointer-events: auto;
+    display: flex;
+    justify-content: space-between;
+    max-width: 460px;
+    margin: 0 auto;
+    padding: 5px 4px;
+    background: rgba(250, 248, 245, .93);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(28, 25, 23, .09);
+    border-radius: 26px;
+    box-shadow: 0 12px 34px rgba(28, 25, 23, .16), 0 2px 6px rgba(28, 25, 23, .06);
+  }
+  .pc-bottomnav-item {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    /* 4 + 28 + 2 + 9 + 6 = 49px tall — above the 44px minimum for a thumb. */
+    padding: 4px 1px 6px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: color .2s;
+  }
+  .pc-bottomnav-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 28px;
+    border-radius: 999px;
+    transition: background .2s;
+  }
+  .pc-bottomnav-badge {
+    position: absolute;
+    top: -1px;
+    right: 1px;
+    min-width: 14px;
+    height: 14px;
+    padding: 0 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--pc-gold);
+    color: var(--pc-cream);
+    font-size: 9px;
+    line-height: 1;
+    border-radius: 999px;
+  }
+  .pc-bottomnav-label {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    /* Sized so "Collection" — the longest label in either language — sets whole on a
+       360px screen. An ellipsis in a six-item bar reads as breakage, not as economy. */
+    font-size: 8px;
+    line-height: 1;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+  }
+  .pc-bottomnav-dot {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+  }
+}
+
+/* On a desktop the pill is never rendered — the header carries the navigation. */
+@media (min-width: 768px) { .pc-bottomnav { display: none; } }
 
 @keyframes heroDrift { 0% { background-position: 0% 0%, 100% 100%, 50% 0%; } 100% { background-position: 100% 50%, 0% 40%, 60% 100%; } }
 @keyframes sway { 0%, 100% { transform: rotate(calc(var(--amp) * -1)) skewX(calc(var(--amp) * -.4)); } 50% { transform: rotate(var(--amp)) skewX(calc(var(--amp) * .4)); } }
@@ -56,6 +196,21 @@ button:focus-visible, a:focus-visible, input:focus-visible {
 @keyframes threadUp { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
 @keyframes modelIn { from { opacity: 0; transform: translate(-50%, -18px); } to { opacity: 1; transform: translate(-50%, 0); } }
 @keyframes tileIn { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: none; } }
+
+/* The view-entry tilt has to go on phones. `rotateX` under a perspective makes the element's
+   visual box wider than the screen for the length of the animation, and a mobile browser
+   answers an over-wide page by zooming the whole thing out — then never zooms back in. Every
+   view after the entrance was rendering at 0.8–0.9×, text and all. The lift and the fade
+   carry the same gesture at 1×.
+
+   This has to sit *after* the definition it replaces: two `@keyframes` of the same name are
+   resolved by source order, not by how specific their media query is. */
+@media (max-width: 767px) {
+  @keyframes layCloth {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: none; }
+  }
+}
 
 /* Pinked (zigzag) swatch edge — the Studio's signature "mill sample" cut */
 .pc-pink {
@@ -86,4 +241,5 @@ button:focus-visible, a:focus-visible, input:focus-visible {
 
 @media print {
   nav, .pc-no-print { display: none !important; }
+  .pc-shell { padding-bottom: 0; }
 }

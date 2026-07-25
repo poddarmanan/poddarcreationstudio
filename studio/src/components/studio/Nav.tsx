@@ -21,9 +21,10 @@ export function Nav({ studio }: { studio: Studio }) {
 
   return (
     <nav
+      className="pc-topbar"
       style={{
         position: 'sticky', top: 0, zIndex: 50, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 12px',
-        padding: '8px clamp(12px,3vw,40px)', minHeight: 48, background: 'rgba(250,248,245,.86)',
+        background: 'rgba(250,248,245,.86)',
         backdropFilter: 'blur(18px)', borderBottom: '1px solid rgba(28,25,23,.08)',
       }}
     >
@@ -36,7 +37,7 @@ export function Nav({ studio }: { studio: Studio }) {
       </div>
       <div
         className="pc-nav pc-hdrnav"
-        style={{ display: 'flex', gap: 0, justifyContent: 'safe center', flexWrap: 'nowrap', minWidth: 0, overflowX: 'auto' }}
+        style={{ gap: 0, justifyContent: 'safe center', flexWrap: 'nowrap', minWidth: 0, overflowX: 'auto' }}
       >
         {items.filter((n) => !n.hidden).map((n) => (
           <button
@@ -59,21 +60,21 @@ export function Nav({ studio }: { studio: Studio }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 'none', marginLeft: 'auto' }}>
         <button
           onClick={studio.toggleLang}
-          className="pc-hv-border-ink"
+          className="pc-hv-border-ink pc-hdrbtn"
           style={{
             cursor: 'pointer', background: 'none', border: '1px solid rgba(28,25,23,.15)', borderRadius: 999,
-            padding: '5px 10px', fontFamily: FONT_BODY, fontSize: 11.5, color: '#1C1917', whiteSpace: 'nowrap', transition: 'border-color .25s',
+            fontFamily: FONT_BODY, fontSize: 11.5, color: '#1C1917', whiteSpace: 'nowrap', transition: 'border-color .25s',
           }}
         >
           {studio.lang === 'en' ? 'EN · हिं' : 'हिं · EN'}
         </button>
         <button
           onClick={() => (signedIn ? studio.doSignOut() : studio.openSignIn())}
-          className="pc-hv-gold-fill-cream"
+          className="pc-hv-gold-fill-cream pc-hdricon"
           title={signedIn ? `${signLabel} — sign out` : signLabel}
           aria-label={signedIn ? 'Sign out' : 'Sign in'}
           style={{
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32,
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none',
             background: signedIn ? '#1C1917' : 'transparent',
             color: signedIn ? '#FAF8F5' : '#1C1917',
             border: '1px solid rgba(28,25,23,.85)', borderRadius: '50%', transition: 'background .25s,color .25s',

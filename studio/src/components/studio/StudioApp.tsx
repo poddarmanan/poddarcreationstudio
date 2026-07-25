@@ -3,6 +3,7 @@
 import type { FabricRow } from '@/lib/types';
 import { useStudio } from './state';
 import { Nav } from './Nav';
+import { BottomNav } from './BottomNav';
 import { Entrance } from './Entrance';
 import { Showroom } from './Showroom';
 import { Collection } from './Collection';
@@ -17,7 +18,7 @@ export function StudioApp({ fabrics }: { fabrics: FabricRow[] }) {
   const studio = useStudio(fabrics);
 
   return (
-    <div style={{ minHeight: '100vh' }}>
+    <div className="pc-shell" style={{ minHeight: '100vh' }}>
       <Nav studio={studio} />
       {studio.view === 'home' && <Entrance studio={studio} />}
       {studio.view === 'showroom' && <Showroom studio={studio} />}
@@ -27,6 +28,7 @@ export function StudioApp({ fabrics }: { fabrics: FabricRow[] }) {
       {studio.view === 'compare' && <Compare studio={studio} />}
       {studio.view === 'book' && <SwatchBook studio={studio} />}
       {studio.view === 'admin' && <Admin studio={studio} />}
+      <BottomNav studio={studio} />
       <UnrollTransition studio={studio} />
       <ScopeModal studio={studio} />
       <SceneModal studio={studio} />

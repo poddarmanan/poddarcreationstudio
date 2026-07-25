@@ -19,11 +19,16 @@ async function main() {
   await prisma.searchQuery.deleteMany({ where: { normalized: { in: [shades[0].name.toLowerCase(), 'organza'] } } });
 
   // ---- Views: signed-in and anonymous ------------------------------------------
-  for (let i = 0; i < 5; i++) await svc.recordView('rayon14', shades[0].id, buyer.id, '203.0.113.7');
+  // Anything else that touched this database in the last day — a browser-driven screenshot
+  // run, a demo, a person clicking around — also recorded views. Take the lead by
+  // construction rather than by luck, or the ranking assertion below is a coin toss.
+  const since = new Date(Date.now() - 86_400_000);
+  const rivals = await svc.topViewedFabrics(since);
+  const lead = Math.max(5, (rivals.find((r) => r.id !== 'rayon14')?.value ?? 0) + 2);
+
+  for (let i = 0; i < lead; i++) await svc.recordView('rayon14', shades[0].id, buyer.id, '203.0.113.7');
   for (let i = 0; i < 3; i++) await svc.recordView('gajji', null, null, '198.51.100.2');
   await svc.recordView('gajji', null, null, '198.51.100.9');
-
-  const since = new Date(Date.now() - 86_400_000);
   const viewed = await svc.topViewedFabrics(since);
   assert(viewed[0].id === 'rayon14' && viewed[0].value >= 5, `the most-viewed fabric leads (${JSON.stringify(viewed[0])})`);
   assert(viewed.some((r) => r.id === 'gajji' && r.value >= 4), 'anonymous views count too');

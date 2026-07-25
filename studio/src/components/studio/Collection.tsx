@@ -13,7 +13,9 @@ export function Collection({ studio }: { studio: Studio }) {
 
   return (
     <div style={{ padding: 'clamp(30px,5vw,56px) clamp(16px,5vw,64px) 60px', animation: 'layCloth .55s cubic-bezier(.2,.8,.2,1) both' }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, marginBottom: 32 }}>
+      {/* Wraps on a phone: the shade count squeezed beside the title breaks "PODDAR CREATION"
+          across two lines and reads as damage. The Swatch Book header already does this. */}
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 32 }}>
         <div>
           <div style={{ fontSize: 10, letterSpacing: '.5em', color: '#8A6D45', marginBottom: 8 }}>PODDAR CREATION</div>
           <h1 style={{ margin: 0, fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(32px,4vw,52px)' }}>{t.collection}</h1>

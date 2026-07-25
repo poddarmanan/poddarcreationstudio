@@ -37,8 +37,9 @@ export function Showroom({ studio }: { studio: Studio }) {
 
   return (
     <div
+      className="pc-view"
       style={{
-        position: 'relative', minHeight: 'calc(100vh - 64px)', background: room.bg, overflow: 'hidden',
+        position: 'relative', background: room.bg, overflow: 'hidden',
         transition: 'background 1s', animation: 'layCloth .55s cubic-bezier(.2,.8,.2,1) both',
       }}
     >
