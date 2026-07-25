@@ -5,6 +5,7 @@ import type { Studio } from './state';
 import { Selvage } from './brand';
 import { FabricViewer } from '@/components/three/FabricViewer';
 import { MetamerismStrip } from '@/components/three/MetamerismStrip';
+import { ExportView } from '@/components/three/ExportView';
 import { oklchToHex } from '@/lib/three/colour';
 import { FONT_DISPLAY, FONT_BODY, fabricTex, fabricWeave, colourCss, colourFg, colourShade, chipStyle, heroColour } from './helpers';
 import { useDragScroll, scrollByEl } from './interactions';
@@ -156,6 +157,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
               free={tests.d3}
               rolled={isRoll}
               garment={studio.garment}
+              captureId="fabric-lab"
               label={`${f.name} in ${col.name}, rendered in three dimensions`}
               fallback={
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -458,6 +460,13 @@ export function FabricLab({ studio }: { studio: Studio }) {
                 <span className="pc-hv-border-ink" style={{ border: '1px solid rgba(28,25,23,.15)', borderRadius: 999, padding: '6px 14px', fontSize: 12, cursor: 'pointer' }}>
                   ↓ {t.cat}
                 </span>
+                {/* The frame itself, not a screenshot of a browser window — named so it is
+                    still identifiable in a folder of forty images a week later. */}
+                <ExportView
+                  captureId="fabric-lab"
+                  filename={`${f.name}-${col.name}`.replace(/[^\w-]+/g, '-').toLowerCase()}
+                  label={`Save this view of ${f.name} in ${col.name} as an image`}
+                />
               </div>
             </div>
             <div style={{ marginLeft: 'auto', textAlign: 'center' }}>

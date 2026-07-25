@@ -79,9 +79,11 @@ export interface StageProps {
   onFallback?: (reason: FallbackReason) => void;
   className?: string;
   style?: React.CSSProperties;
+  /** Name this stage so its frame can be exported (M30). */
+  captureId?: string;
 }
 
-export function Stage({ fallback, children, animate = false, label, onStats, onFallback, className, style }: StageProps) {
+export function Stage({ fallback, children, animate = false, label, onStats, onFallback, className, style, captureId }: StageProps) {
   const detected = useCapability();
   const [lost, setLost] = useState(false);
 
@@ -161,6 +163,7 @@ export function Stage({ fallback, children, animate = false, label, onStats, onF
           onContextLost={onContextLost}
           onContextRestored={onContextRestored}
           onReady={onReady}
+          captureId={captureId}
         >
           {children}
         </StageCanvas>

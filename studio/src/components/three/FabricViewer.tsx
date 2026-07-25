@@ -45,6 +45,8 @@ export interface FabricViewerProps {
   rolled?: boolean;
   /** Cut the cloth into a garment silhouette (M25). `roll` keeps the hanging panel. */
   garment?: GarmentKey;
+  /** Name this viewer so its frame can be exported (M30). */
+  captureId?: string;
 }
 
 /** Drag to turn, wheel to come closer. Cloth is judged at an angle, so turning is the point. */
@@ -159,6 +161,7 @@ export function FabricViewer({
   shine = false,
   free = false,
   garment,
+  captureId,
   fallback,
   label,
   onStats,
@@ -184,6 +187,7 @@ export function FabricViewer({
       animate
       fallback={fallback}
       onStats={handleStats}
+      captureId={captureId}
       style={{ position: 'absolute', inset: 0 }}
     >
       <Exposure light={light} />

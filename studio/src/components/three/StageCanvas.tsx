@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import type { Capability } from '@/lib/three/capability';
 import { shadowsAllowed } from '@/lib/three/capability';
 import { getTextureCache } from '@/lib/three/texture-cache';
+import { registerCapture } from './capture';
 import type { StageStats } from './Stage';
 
 /**
@@ -85,6 +86,35 @@ function ContextGuard({ onLost, onRestored }: { onLost: () => void; onRestored: 
  * unmount VRAM. Without this, walking through a dozen fabrics leaves a dozen render targets
  * and their textures resident until the tab is closed.
  */
+/**
+ * Lets the page ask for a PNG of the current view (M30).
+ *
+ * The render and the read have to happen in one synchronous turn. With
+ * `preserveDrawingBuffer: false` the pixels are only guaranteed to exist between the draw call
+ * and the browser presenting the frame, so anything asynchronous in between returns a blank
+ * image — and blank is exactly what you get if you reach for `toDataURL` from the outside.
+ */
+function Capturable({ id }: { id?: string }) {
+  const gl = useThree((s) => s.gl);
+  const scene = useThree((s) => s.scene);
+  const camera = useThree((s) => s.camera);
+
+  useEffect(() => {
+    if (!id) return;
+    return registerCapture(id, () => {
+      try {
+        gl.render(scene, camera);
+        return gl.domElement.toDataURL('image/png');
+      } catch {
+        // A tainted or lost context refuses; the caller falls back to the flat rendering.
+        return null;
+      }
+    });
+  }, [id, gl, scene, camera]);
+
+  return null;
+}
+
 function Reclaim() {
   const gl = useThree((s) => s.gl);
   useEffect(
@@ -141,6 +171,8 @@ export interface StageCanvasProps {
   onContextLost: () => void;
   onContextRestored: () => void;
   onReady?: () => void;
+  /** Name this stage so its frame can be exported (M30). */
+  captureId?: string;
 }
 
 export default function StageCanvas({
@@ -151,6 +183,7 @@ export default function StageCanvas({
   onContextLost,
   onContextRestored,
   onReady,
+  captureId,
 }: StageCanvasProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const visible = useVisible(hostRef);
@@ -181,6 +214,7 @@ export default function StageCanvas({
         }}
       >
         <ContextGuard onLost={onContextLost} onRestored={onContextRestored} />
+        <Capturable id={captureId} />
         <Reclaim />
         <FrameStats onStats={onStats} />
         {children}
