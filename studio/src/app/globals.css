@@ -88,6 +88,158 @@ button:focus-visible, a:focus-visible, input:focus-visible {
   .pc-hdricon, .pc-hdrbtn { position: relative; }
   .pc-hdricon::after, .pc-hdrbtn::after { content: ''; position: absolute; inset: -6px; }
 
+  /* ── Header search ──────────────────────────────────────────────────────
+     Collapsed it is a 36px icon in the corner; open it is a full-width pill. Both states are
+     the same element, so the bar unfurls leftward from under an icon that never moves. */
+  .pc-msearch-slot { display: block; width: 36px; flex: none; }
+  .pc-msearch-root {
+    position: absolute;
+    top: 7px;
+    left: 14px;
+    right: 14px;
+    /* The strip beside the pill belongs to the logo underneath it. */
+    pointer-events: none;
+  }
+  .pc-msearch {
+    pointer-events: auto;
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    /* Collapsed, the bar is narrower than its contents. Ending the row at the right edge makes
+       the overflow spill leftwards under the clip, so the icon stays put in the corner and the
+       field appears to come out from behind it. Start alignment pushes the icon off instead. */
+    justify-content: flex-end;
+    width: 36px;
+    height: 36px;
+    background: transparent;
+    /* Pill and shadow, no border — the bar should read as floating above the header,
+       not as another boxed control in it. */
+    border: none;
+    border-radius: 999px;
+    box-shadow: none;
+    overflow: hidden;
+    transition: width .34s cubic-bezier(.2, .8, .2, 1), background-color .26s ease, box-shadow .26s ease;
+  }
+  .pc-msearch.is-open {
+    width: 100%;
+    background: #fff;
+    box-shadow: 0 10px 30px rgba(28, 25, 23, .16), 0 1px 3px rgba(28, 25, 23, .07);
+  }
+
+  .pc-msearch-glyph {
+    display: flex;
+    flex: none;
+    margin-left: 15px;
+    opacity: 0;
+    transition: opacity .18s ease;
+  }
+  .pc-msearch.is-open .pc-msearch-glyph { opacity: 1; transition-delay: .13s; }
+
+  .pc-msearch-input {
+    flex: 1 1 auto;
+    width: 0;
+    min-width: 0;
+    padding: 0 4px 0 10px;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--pc-ink);
+    /* 16px exactly: iOS zooms the whole page in when a focused field is any smaller, and
+       once it has zoomed, the header and the pill are both off-screen. */
+    font-size: 16px;
+    opacity: 0;
+    transition: opacity .18s ease;
+  }
+  .pc-msearch.is-open .pc-msearch-input { opacity: 1; transition-delay: .11s; }
+  .pc-msearch-input::placeholder { color: rgba(28, 25, 23, .45); }
+  /* The field fills the pill, so a rounded rectangle drawn around the text reads as a second
+     control inside the first. The focus indicator moves to the pill itself — still visible,
+     still keyboard-only, and the right shape. */
+  .pc-msearch-input:focus-visible { outline: none; }
+  /* Softer than the studio's standard 2px focus ring: a text field always matches
+     `:focus-visible`, so on a phone this is drawn every single time the bar opens. It has to
+     mark focus without becoming the border the design does not want. */
+  .pc-msearch:has(.pc-msearch-input:focus-visible) {
+    box-shadow: 0 0 0 1.5px rgba(138, 109, 69, .45), 0 10px 30px rgba(28, 25, 23, .16);
+  }
+
+  .pc-msearch-image {
+    flex: none;
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    margin-right: -2px;
+    border: none;
+    background: none;
+    color: rgba(28, 25, 23, .55);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity .18s ease .11s;
+  }
+  .pc-msearch.is-open .pc-msearch-image { opacity: 1; }
+  .pc-msearch-image::after { content: ''; position: absolute; inset: -6px; }
+
+  .pc-msearch-toggle {
+    flex: none;
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: none;
+    color: var(--pc-ink);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Grown to a 48px target without changing the 36px the eye sees. */
+  .pc-msearch-toggle::after { content: ''; position: absolute; inset: -6px; }
+  .pc-msearch-icon {
+    grid-area: 1 / 1;
+    display: flex;
+    transition: opacity .2s ease, transform .3s cubic-bezier(.2, .8, .2, 1);
+  }
+  .pc-msearch-icon-close { opacity: 0; transform: rotate(-90deg); }
+  .pc-msearch.is-open .pc-msearch-icon-search { opacity: 0; transform: rotate(90deg); }
+  .pc-msearch.is-open .pc-msearch-icon-close { opacity: 1; transform: none; }
+
+  .pc-msearch-results {
+    pointer-events: auto;
+    position: absolute;
+    top: 44px;
+    left: 0;
+    right: 0;
+    max-height: calc(100svh - 120px);
+    overflow-y: auto;
+    background: rgba(255, 255, 255, .97);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: 18px;
+    box-shadow: 0 24px 60px rgba(28, 25, 23, .18);
+    text-align: left;
+    animation: rise .22s cubic-bezier(.2, .8, .2, 1) both;
+  }
+  .pc-msearch-result {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    width: 100%;
+    padding: 11px 16px;
+    border: none;
+    border-bottom: 1px solid rgba(28, 25, 23, .05);
+    background: none;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  /* The entrance's own search bar stands down — the header carries it on every view now,
+     and two search fields on one screen is one too many. */
+  .pc-hero-search { display: none; }
+
   .pc-bottomnav {
     position: fixed;
     left: 0;
@@ -177,8 +329,12 @@ button:focus-visible, a:focus-visible, input:focus-visible {
   }
 }
 
-/* On a desktop the pill is never rendered — the header carries the navigation. */
-@media (min-width: 768px) { .pc-bottomnav { display: none; } }
+/* On a desktop neither the pill nor the header search exists — the header carries the
+   navigation and the hero carries the search, exactly as they always have. */
+@media (min-width: 768px) {
+  .pc-bottomnav { display: none; }
+  .pc-msearch-root, .pc-msearch-slot { display: none; }
+}
 
 @keyframes heroDrift { 0% { background-position: 0% 0%, 100% 100%, 50% 0%; } 100% { background-position: 100% 50%, 0% 40%, 60% 100%; } }
 @keyframes sway { 0%, 100% { transform: rotate(calc(var(--amp) * -1)) skewX(calc(var(--amp) * -.4)); } 50% { transform: rotate(var(--amp)) skewX(calc(var(--amp) * .4)); } }

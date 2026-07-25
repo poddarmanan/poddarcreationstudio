@@ -104,30 +104,93 @@ async function main() {
   await page.waitForSelector('.pc-bottomnav-pill', { timeout: 15_000 });
   await shot(page, '01-entrance');
 
-  // The entrance is the one screen that must land whole: title, promise, call to action and
-  // search, all above the pill, with nothing to scroll for.
+  // The entrance must land whole — title, promise and call to action above the pill, with
+  // nothing to scroll for — and the hero's own search bar must be gone, because the header
+  // carries it now and two search fields on one screen is one too many.
   const entrance = await page.evaluate(() => {
-    const search = document.querySelector('.pc-view input');
+    const heroSearch = document.querySelector('.pc-hero-search');
+    const cta = [...document.querySelectorAll('.pc-view button')].pop();
     const pill = document.querySelector('.pc-bottomnav-pill');
-    const bar = search ? search.closest('div').getBoundingClientRect() : null;
     return {
-      searchBottom: bar ? Math.round(bar.bottom) : null,
-      searchLeft: bar ? Math.round(bar.left) : null,
-      searchRight: bar ? Math.round(bar.right) : null,
+      heroSearchShown: heroSearch ? heroSearch.getBoundingClientRect().height > 0 : false,
+      ctaBottom: cta ? Math.round(cta.getBoundingClientRect().bottom) : null,
       pillTop: Math.round(pill.getBoundingClientRect().top),
-      width: window.innerWidth,
+      scrolls: document.documentElement.scrollHeight - window.innerHeight,
     };
   });
-  if (entrance.searchBottom === null) problems.push('entrance: the search bar is missing');
-  else {
-    if (entrance.searchBottom > entrance.pillTop) {
-      problems.push(`entrance: the search bar runs ${entrance.searchBottom - entrance.pillTop}px under the navigation pill`);
-    }
-    // A full-bleed search bar means the hero block outgrew the screen and its padding collapsed.
-    if (entrance.searchLeft < 12 || entrance.searchRight > entrance.width - 12) {
-      problems.push(`entrance: the search bar reaches the screen edge (${entrance.searchLeft}px … ${entrance.width - entrance.searchRight}px margins)`);
-    }
+  if (entrance.heroSearchShown) problems.push("entrance: the hero's search bar is still showing alongside the header's");
+  if (entrance.ctaBottom !== null && entrance.ctaBottom > entrance.pillTop) {
+    problems.push(`entrance: content runs ${entrance.ctaBottom - entrance.pillTop}px under the navigation pill`);
   }
+  if (entrance.scrolls > 2) problems.push(`entrance: does not fit — ${entrance.scrolls}px of scroll`);
+
+  // ---- The header search, end to end -------------------------------------------------
+  const collapsed = await page.evaluate(() => {
+    const bar = document.querySelector('.pc-msearch');
+    const r = bar.getBoundingClientRect();
+    const icon = document.querySelector('.pc-msearch-toggle').getBoundingClientRect();
+    return {
+      width: Math.round(r.width),
+      right: Math.round(window.innerWidth - r.right),
+      // The bar clips its overflow, so the button can be laid out entirely outside the box
+      // and simply not be drawn. Measure how much of it survives the clip.
+      visible: Math.round(Math.max(0, Math.min(r.right, icon.right) - Math.max(r.left, icon.left))),
+      iconWidth: Math.round(icon.width),
+    };
+  });
+  if (collapsed.width > 48) problems.push(`search: the collapsed icon is ${collapsed.width}px wide — it should be an icon, not a bar`);
+  if (collapsed.right > 20) problems.push(`search: the icon is ${collapsed.right}px from the right edge, not in the corner`);
+  if (collapsed.visible < collapsed.iconWidth - 1) {
+    problems.push(`search: only ${collapsed.visible}px of the ${collapsed.iconWidth}px icon is inside the clip — it is cut off or invisible`);
+  }
+
+  await page.locator('.pc-msearch-toggle').tap();
+  await page.waitForTimeout(450); // the width transition is 340ms
+  const expanded = await page.evaluate(() => {
+    const bar = document.querySelector('.pc-msearch');
+    const r = bar.getBoundingClientRect();
+    const input = document.querySelector('.pc-msearch-input');
+    return {
+      width: Math.round(r.width),
+      right: Math.round(window.innerWidth - r.right),
+      available: window.innerWidth - 28,
+      focused: document.activeElement === input,
+      fontSize: Math.round(parseFloat(getComputedStyle(input).fontSize)),
+      shadow: getComputedStyle(bar).boxShadow,
+      radius: getComputedStyle(bar).borderTopLeftRadius,
+      border: getComputedStyle(bar).borderTopWidth,
+    };
+  });
+  if (expanded.width < expanded.available - 2) problems.push(`search: opened to ${expanded.width}px of an available ${expanded.available}px`);
+  if (Math.abs(expanded.right - collapsed.right) > 1) problems.push('search: the bar moved sideways as it opened — it should grow from under the icon');
+  if (!expanded.focused) problems.push('search: the field is not focused after opening, so the keyboard will not appear');
+  // Under 16px, iOS zooms the page in on focus and never zooms back.
+  if (expanded.fontSize < 16) problems.push(`search: the field is ${expanded.fontSize}px — iOS will zoom the page in on focus`);
+  if (expanded.shadow === 'none') problems.push('search: the open bar has no shadow');
+  if (parseFloat(expanded.radius) < 16) problems.push(`search: the open bar is not a pill (radius ${expanded.radius})`);
+  if (parseFloat(expanded.border) > 0) problems.push(`search: the open bar has a ${expanded.border} border — shadow only`);
+
+  await page.locator('.pc-msearch-input').fill('gulab');
+  await page.waitForSelector('.pc-msearch-result', { timeout: 10_000 }).catch(() => {});
+  const found = await page.locator('.pc-msearch-result').count();
+  if (found === 0) problems.push('search: typing a known shade produced no results');
+  await shot(page, '11-search-open');
+
+  // Choosing a result has to actually navigate and put the bar away.
+  if (found > 0) {
+    await page.locator('.pc-msearch-result').first().tap();
+    await page.waitForTimeout(900);
+    const after = await page.evaluate(() => ({
+      open: document.querySelector('.pc-msearch').classList.contains('is-open'),
+      lab: !!document.body.textContent.includes('FABRIC LAB'),
+    }));
+    if (after.open) problems.push('search: the bar stayed open after a result was chosen');
+    if (!after.lab) problems.push('search: choosing a result did not open the fabric');
+    await shot(page, '12-search-result');
+  }
+
+  await page.goto(BASE, { waitUntil: 'networkidle' });
+  await page.waitForSelector('.pc-bottomnav-pill', { timeout: 15_000 });
 
   for (const [label, name] of [
     ['Showroom', '02-showroom'],

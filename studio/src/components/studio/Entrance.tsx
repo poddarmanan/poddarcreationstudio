@@ -1,10 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import type { Studio } from './state';
 import { WeaveMark, Selvage } from './brand';
-import { FONT_DISPLAY, FONT_BODY, fabricTex, colourCss, heroColour } from './helpers';
-import { assistant } from '@/lib/fabric-generator';
+import { FONT_DISPLAY, FONT_BODY, fabricTex, heroColour } from './helpers';
 
 export function Entrance({ studio }: { studio: Studio }) {
   const { t, fabrics, q, setQ, reduceMotion } = studio;
@@ -24,66 +23,7 @@ export function Entrance({ studio }: { studio: Studio }) {
     []
   );
 
-  const query = q.trim();
-  const asst = query ? assistant(query) : null;
-
-  type ResultItem = { key: string; label: string; sub: string; dot: string; go: () => void };
-
-  // Instant, offline-safe baseline (in-memory substring/prefix match over loaded fabrics).
-  const localResults = useMemo<ResultItem[]>(() => {
-    if (!query) return [];
-    const ql = query.toLowerCase();
-    const out: ResultItem[] = [];
-    fabrics.forEach((f) => {
-      if ((f.name + ' ' + f.comp + ' ' + f.weight + ' ' + f.width).toLowerCase().includes(ql)) {
-        out.push({ key: `f-${f.id}`, label: f.name, sub: `${f.weight} · ${f.width}`, dot: colourCss(heroColour(f)), go: () => { setQ(''); studio.openFabric(f.id); } });
-      }
-      f.colours.forEach((c, j) => {
-        if (c.name.toLowerCase().startsWith(ql)) {
-          out.push({ key: `c-${f.id}-${j}`, label: c.name, sub: f.name, dot: colourCss(c), go: () => { setQ(''); studio.openFabric(f.id, j); } });
-        }
-      });
-    });
-    return out.slice(0, 6);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, fabrics]);
-
-  // Typo-tolerant results from the search service (Meilisearch / Postgres trigram). Falls
-  // back to the instant local list until the request resolves, and if it ever fails.
-  // Keyed by the query they answer, so a stale response never renders against a newer
-  // query and the short-query case needs no state reset.
-  const [apiResults, setApiResults] = useState<{ query: string; items: ResultItem[] } | null>(null);
-  useEffect(() => {
-    if (query.length < 2) return;
-    const ctrl = new AbortController();
-    const timer = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}&limit=6`, { signal: ctrl.signal });
-        if (!res.ok) return;
-        const data = (await res.json()) as { hits: Array<{ type: string; name: string; fabricId: string; colourId?: string; hex?: string }> };
-        const items: ResultItem[] = data.hits.map((h) => {
-          const fab = fabrics.find((f) => f.id === h.fabricId);
-          if (h.type === 'colour' && fab) {
-            const j = fab.colours.findIndex((c) => c.id === h.colourId);
-            const col = j >= 0 ? fab.colours[j] : fab.colours[0];
-            return { key: `a-c-${h.colourId}`, label: h.name, sub: fab.name, dot: h.hex ?? colourCss(col), go: () => { setQ(''); studio.openFabric(fab.id, Math.max(0, j)); } };
-          }
-          return { key: `a-f-${h.fabricId}`, label: h.name, sub: fab ? `${fab.weight} · ${fab.width}` : '', dot: fab ? colourCss(heroColour(fab)) : '#8A6D45', go: () => { setQ(''); studio.openFabric(h.fabricId); } };
-        });
-        setApiResults({ query, items });
-      } catch {
-        /* aborted or offline — keep the instant local results */
-      }
-    }, 180);
-    return () => {
-      clearTimeout(timer);
-      ctrl.abort();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, fabrics]);
-
-  const results = apiResults?.query === query ? apiResults.items : localResults;
-  const hasResults = !!(results.length || asst);
+  const { results, asst, hasResults } = studio.search;
 
   return (
     <div className="pc-view" style={{ position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -173,7 +113,7 @@ export function Entrance({ studio }: { studio: Studio }) {
             </button>
           ))}
         </div>
-        <div style={{ position: 'relative', maxWidth: 520, margin: 'clamp(26px,7.2vw,44px) auto 0' }}>
+        <div className="pc-hero-search" style={{ position: 'relative', maxWidth: 520, margin: 'clamp(26px,7.2vw,44px) auto 0' }}>
           <div
             style={{
               display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,.65)', backdropFilter: 'blur(14px)',

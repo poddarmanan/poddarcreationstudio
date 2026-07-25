@@ -2,6 +2,7 @@
 
 import type { Studio, View } from './state';
 import { WeaveMark } from './brand';
+import { MobileSearch } from './MobileSearch';
 import { FONT_DISPLAY, FONT_BODY } from './helpers';
 
 export function Nav({ studio }: { studio: Studio }) {
@@ -85,7 +86,11 @@ export function Nav({ studio }: { studio: Studio }) {
             <path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" />
           </svg>
         </button>
+        {/* Holds the corner open for the phone's search icon, which is positioned against the
+            header rather than laid out in this row. Nothing on a desktop. */}
+        <span className="pc-msearch-slot" aria-hidden />
       </div>
+      <MobileSearch studio={studio} />
     </nav>
   );
 }

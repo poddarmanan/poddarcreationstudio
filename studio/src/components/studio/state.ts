@@ -5,6 +5,7 @@ import { useSession, signIn, signOut } from 'next-auth/react';
 import type { FabricRow, ColourRow } from '@/lib/types';
 import { dict, type Dict, type Lang, type GarmentKey, type LightKey, type RoomKey } from '@/lib/fabric-generator';
 import { fabricTex, heroColour } from './helpers';
+import { useSearch, type Search } from './search';
 import { FABRIC_STORIES } from '@/lib/fabric-generator';
 
 export type View = 'home' | 'showroom' | 'collection' | 'fabric' | 'colours' | 'compare' | 'book' | 'admin';
@@ -66,6 +67,8 @@ export interface Studio {
   removePin: (pin: Pin) => void;
   q: string;
   setQ: (q: string) => void;
+  /** Results, and the assistant's reading, for whatever is in `q`. */
+  search: Search;
   wallFab: string | null;
   setWallFab: (id: string | null) => void;
   scope: boolean;
@@ -210,6 +213,10 @@ export function useStudio(fabrics: FabricRow[]): Studio {
     },
     [fab, go]
   );
+
+  // One search for the whole studio: the hero bar and the phone's header pill render the
+  // same answer, so only one debounce and one request happen per keystroke.
+  const search = useSearch(fabrics, q, setQ, openFabric);
 
   const unroll = useCallback(
     (f: FabricRow) => {
@@ -394,6 +401,7 @@ export function useStudio(fabrics: FabricRow[]): Studio {
     removePin,
     q,
     setQ,
+    search,
     wallFab,
     setWallFab,
     scope,
