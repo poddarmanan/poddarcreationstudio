@@ -1,0 +1,93 @@
+import { chromium } from 'playwright-core';
+import { decodePng } from './lib/png.mjs';
+
+/**
+ * M27 — the Digital Microscope.
+ *
+ * The claim is that magnification buys *detail*, not bigger pixels. That is the entire argument
+ * for generating the weave rather than shipping photographs, so it is worth measuring rather
+ * than asserting: a bitmap magnified past its resolution gets smoother, and a regenerated weave
+ * does not.
+ */
+const BASE = process.argv[2] ?? 'http://localhost:3000';
+const CHROME = process.env.CHROME_PATH ?? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+const problems = [];
+const ok = (m) => console.log(`  ✓ ${m}`);
+const bad = (m) => { problems.push(m); console.error(`  ✗ ${m}`); };
+
+/**
+ * Mean absolute difference between neighbouring pixels — how much structure a picture has.
+ * A weave full of resolved threads scores high; the same weave blurred by magnification
+ * scores low. This is the measurement that separates "more detail" from "bigger pixels".
+ */
+function detail(png) {
+  const { width, height, channels, data } = png;
+  let total = 0;
+  let n = 0;
+  for (let y = 1; y < height - 1; y += 1) {
+    for (let x = 1; x < width - 1; x += 2) {
+      const o = (y * width + x) * channels;
+      const right = o + channels;
+      const down = o + width * channels;
+      total += Math.abs(data[o] - data[right]) + Math.abs(data[o] - data[down]);
+      n += 2;
+    }
+  }
+  return total / n;
+}
+
+async function openScope(page, label) {
+  const button = page.getByRole('button', { name: new RegExp(`^${label}$`, 'i') }).first();
+  await button.click();
+  await page.waitForSelector('[data-stage] canvas', { timeout: 20_000 });
+  await page.waitForTimeout(1600);
+  const png = decodePng(await page.locator('[data-stage] canvas').last().screenshot());
+  await page.keyboard.press('Escape').catch(() => {});
+  await page.mouse.click(12, 12).catch(() => {});
+  await page.waitForTimeout(500);
+  return png;
+}
+
+async function main() {
+  console.log('base:', BASE);
+  const browser = await chromium.launch({ executablePath: CHROME, args: ['--no-sandbox', '--use-gl=swiftshader', '--enable-unsafe-swiftshader'] });
+  const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+
+  await page.goto(BASE, { waitUntil: 'networkidle' });
+  await page.getByRole('button', { name: /^Collection$/i }).first().click();
+  await page.waitForTimeout(700);
+  // A slub is the right fabric to inspect: irregular yarn is exactly what a microscope is for.
+  await page.locator('[class*="pc-hv-lift"]').nth(6).click({ force: true });
+  await page.waitForSelector('[data-stage="canvas"]', { timeout: 20_000 });
+  ok('the lab opened');
+
+  const at100 = await openScope(page, '100×');
+  const at500 = await openScope(page, '500×');
+
+  const d100 = detail(at100);
+  const d500 = detail(at500);
+  ok(`100× structure ${d100.toFixed(2)}, 500× structure ${d500.toFixed(2)}`);
+
+  // The failure this guards against is magnifying a fixed-resolution image: the picture gets
+  // smoother as you go in, because there is nothing more to show.
+  if (d500 < d100 * 0.6) {
+    bad(`500× is markedly smoother than 100× (${d500.toFixed(2)} vs ${d100.toFixed(2)}) — magnification is enlarging pixels, not resolving threads`);
+  } else ok('500× resolves structure rather than enlarging pixels');
+
+  // And the two magnifications must genuinely differ, or the control does nothing.
+  const change = Math.abs(d500 - d100) / Math.max(d100, 0.01);
+  if (change < 0.05) bad(`100× and 500× render near-identically (${(change * 100).toFixed(1)}% apart) — the scope control may be inert`);
+  else ok(`the magnification control changes the view (${(change * 100).toFixed(0)}% apart)`);
+
+  // Neither view may be blank — a microscope showing a flat field is worse than none.
+  for (const [name, png] of [['100×', at100], ['500×', at500]]) {
+    if (detail(png) < 0.4) bad(`${name} is a flat field — nothing resolved`);
+  }
+  if (!problems.length) ok('both magnifications show resolved weave');
+
+  await browser.close();
+  if (problems.length) { console.error(`\nM27 SMOKE FAILED — ${problems.length} problem(s)`); process.exit(1); }
+  console.log('\nM27 SMOKE PASSED');
+}
+
+main().catch((e) => { console.error('M27 SMOKE FAILED:', e.message); process.exit(1); });

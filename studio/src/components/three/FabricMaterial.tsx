@@ -29,17 +29,22 @@ export interface FabricMaterialProps {
   tier: QualityTier;
   /** How many times the weave tiles across the surface. */
   repeat?: number;
-  /** Overrides for special cases — the microscope (M27) wants no tiling at all. */
   side?: THREE.Side;
+  /**
+   * Map resolution override, in pixels. The tier normally decides this, but magnification
+   * changes the question: the microscope (M27) has one surface filling the frame at 500×, and
+   * a 256px map that is right for a whole garment is porridge at 20mm.
+   */
+  size?: number;
 }
 
-export function FabricMaterial({ spec, tier, repeat = 1, side = THREE.DoubleSide }: FabricMaterialProps) {
+export function FabricMaterial({ spec, tier, repeat = 1, side = THREE.DoubleSide, size: sizeOverride }: FabricMaterialProps) {
   const gl = useThree((s) => s.gl);
   const capabilities = gl.capabilities;
 
   const size = useMemo(
-    () => textureSizeFor(tier, capabilities.maxTextureSize ?? 2048),
-    [tier, capabilities.maxTextureSize]
+    () => Math.min(sizeOverride ?? textureSizeFor(tier, capabilities.maxTextureSize ?? 2048), capabilities.maxTextureSize ?? 4096),
+    [tier, sizeOverride, capabilities.maxTextureSize]
   );
   const anisotropy = useMemo(() => Math.min(8, capabilities.getMaxAnisotropy?.() ?? 1), [capabilities]);
 

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import type { Studio } from './state';
+import { MicroscopeView } from '@/components/three/MicroscopeView';
 import { FONT_DISPLAY, FONT_BODY, fabricTex, colourCss, colourFg } from './helpers';
 
 export function UnrollTransition({ studio }: { studio: Studio }) {
@@ -42,7 +43,16 @@ export function ScopeModal({ studio }: { studio: Studio }) {
           animation: 'rise .4s cubic-bezier(.2,.8,.2,1) both',
         }}
       >
-        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 50% 45%, transparent 40%, rgba(28,25,23,.55) 95%)' }} />
+        {/* The weave is regenerated at the resolution the magnification needs, so 500× is more
+            detail rather than bigger pixels. The flat texture behind stays as the fallback. */}
+        <MicroscopeView
+          fabric={f}
+          colour={col}
+          power={scopeP}
+          label={`${f.name} in ${col.name} at ${level}`}
+          fallback={<div style={{ position: 'absolute', inset: 0, background: fabricTex(f, col, scopeP) }} />}
+        />
+        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(circle at 50% 45%, transparent 40%, rgba(28,25,23,.55) 95%)' }} />
         <span style={{ position: 'absolute', top: 16, left: 18, fontSize: 11, letterSpacing: '.3em', color: '#FAF8F5' }}>
           {f.name} · {col.name} · {level}
         </span>

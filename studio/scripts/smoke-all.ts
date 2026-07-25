@@ -28,6 +28,7 @@ const HTTP_SCRIPTS = [
   'smoke-three.mjs',
   'smoke-m24.mjs',
   'smoke-m25.mjs',
+  'smoke-m27.mjs',
 ];
 
 async function main() {
