@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // The rendered static preview is a copy of the build output, not source.
     "demo-site/**",
+    // Vendored Draco decoder from three.js, served as-is for glTF garment models.
+    "public/draco/**",
   ]),
 ]);
 

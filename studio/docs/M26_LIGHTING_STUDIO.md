@@ -21,6 +21,25 @@ and the canvas cannot disagree. The rig numbers live in `src/lib/three/rig-light
 both the React component that turns them into lights and the model that computes colours without
 a GPU — one definition, two consumers.
 
+## The room
+
+Physically based cloth is lit by everything around it, and the first rig lit it with two lamps
+in a void. Sheen — the reason a rayon reads as rayon — is a grazing-angle reflection of the
+*room*, and with no room to reflect it was dead; the cloth looked painted.
+
+`LightingRig` now builds a room the way a product photographer does, from light panels
+(`drei`'s `Environment` with `Lightformer`s, rendered once per rig to a cube map, no download):
+a large soft source in front and above, a dimmer panel straight ahead at cloth height, softboxes
+either side with one dominant, a rim from behind, a dark floor. Each rig tints and scales the
+panels (`ROOM`), and the key and fill still come from `rig-light.ts`, so the metamerism readout
+and the render describe the same light.
+
+Soft shadow maps are on at every tier that has a GPU (only the software tier goes without), and
+a contact shadow sits under the hem so the garment stands on something.
+
+`?quality=high|medium|low` on the URL forces a tier and locks adaptation — the way to check a
+tier on the device it is meant for.
+
 ## What this is not
 
 Real metamerism is spectral: two dyes with different reflectance curves match under one

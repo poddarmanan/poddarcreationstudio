@@ -34,10 +34,10 @@ import { FabricMaterial } from './FabricMaterial';
  * Two things stop it reading as a paper cut-out — which is what a flat shape turned in 3D is,
  * and what the first version looked like:
  *
- * **Volume.** The silhouette is drawn twice, front and back, each bowed outward on a shallow
- * ellipse that closes at the garment's own edge at every height, so the garment is a closed
- * shell around a body that is not there. Turned side-on it has a width; turned round it shows
- * a back rather than the inside of the front.
+ * **Volume.** The silhouette is drawn twice, front and back, each inflated like a cushion —
+ * depth rising with distance from the nearest edge — so the garment is a closed shell around
+ * a body that is not there. Turned side-on it has a width; turned round it shows a back rather
+ * than the inside of the front.
  *
  * **Uniform triangles.** A triangulated outline is made of long slivers spanning the whole
  * shape. Displace those per vertex and the recomputed normals skew along the sliver — a hard
@@ -92,49 +92,59 @@ function buildGeometry(pathData: string, metres: number, maxEdge: number) {
   const tessellated = mergeVertices(new TessellateModifier(maxEdge, 16).modify(geometry), 1e-5);
   tessellated.computeVertexNormals();
   geometry.dispose();
-  return { geometry: tessellated, edge: localHalfWidths(tessellated) };
+
+  // The outline, in the same metres-and-y-up space as the vertices, for the inflation below.
+  const outline = shapes.flatMap((shape) =>
+    shape.getPoints(segments).map((pt) => new THREE.Vector2((pt.x - (box.min.x + width / 2)) * scale, -(pt.y - (box.min.y + height / 2)) * scale))
+  );
+  return { geometry: tessellated, room: inflation(tessellated, outline, metres) };
 }
 
 /**
- * For every vertex, how far the silhouette extends from the centre line *at that height*.
+ * How much of the shell's full depth each vertex gets: 0 on the outline, rising smoothly to 1
+ * about `REACH` metres in from it.
  *
- * The shell's bow has to reach zero at the garment's own edge, wherever that edge is. Measured
- * against the bounding box it reached zero only at the sleeve tips, so down the whole torso the
- * front and back were two separate sheets a hand apart, and side-on you looked straight through
- * the body between them.
+ * This is how a flat cut becomes a garment with a body in it: inflate it like a cushion, so the
+ * depth is a function of distance to the *nearest edge* — side seam, armhole, neckline or slit
+ * alike. Earlier versions bowed each row on its own width, which put a cliff under every
+ * armhole and, because rows and the outline never quite agreed, a sawtooth down every seam.
+ *
+ * The hem is left out of the distance: a garment is open at the bottom, and a cushion is not.
  */
-function localHalfWidths(geometry: THREE.BufferGeometry): Float32Array {
+const REACH = 0.12;
+
+function inflation(geometry: THREE.BufferGeometry, outline: THREE.Vector2[], metres: number): Float32Array {
   const position = geometry.attributes.position;
-  const band = 0.01;
-  const widest = new Map<number, number>();
-  for (let i = 0; i < position.count; i++) {
-    const key = Math.round(position.getY(i) / band);
-    widest.set(key, Math.max(widest.get(key) ?? 0, Math.abs(position.getX(i))));
+  const hem = -metres / 2 + 0.02;
+  const segments: [THREE.Vector2, THREE.Vector2][] = [];
+  for (let i = 0; i < outline.length; i++) {
+    const a = outline[i];
+    const b = outline[(i + 1) % outline.length];
+    if (a.distanceTo(b) < 1e-6) continue;
+    // Skip the hem: near-horizontal edges along the bottom of the garment.
+    if (a.y < hem && b.y < hem && Math.abs(a.y - b.y) < Math.abs(a.x - b.x) * 0.3) continue;
+    segments.push([a, b]);
   }
-  // Smoothed over a few centimetres either way: where a sleeve meets the torso the silhouette
-  // narrows by a hand's width in one row, and a shell that follows that step exactly opens a
-  // visible notch at the armpit. A short slope reads as a seam instead.
+  const p = new THREE.Vector2();
+  const q = new THREE.Vector2();
   const out = new Float32Array(position.count);
   for (let i = 0; i < position.count; i++) {
-    const key = Math.round(position.getY(i) / band);
-    let sum = 0;
-    let n = 0;
-    for (let k = key - 3; k <= key + 3; k++) {
-      const w = widest.get(k);
-      if (w !== undefined) { sum += w; n += 1; }
+    p.set(position.getX(i), position.getY(i));
+    let nearest = Infinity;
+    for (const [a, b] of segments) {
+      q.subVectors(b, a);
+      const len2 = q.lengthSq();
+      const t = Math.max(0, Math.min(1, ((p.x - a.x) * q.x + (p.y - a.y) * q.y) / len2));
+      const dx = a.x + q.x * t - p.x;
+      const dy = a.y + q.y * t - p.y;
+      const d2 = dx * dx + dy * dy;
+      if (d2 < nearest) nearest = d2;
     }
-    out[i] = Math.max(0.01, n ? sum / n : 0);
+    const d = Math.min(1, Math.sqrt(nearest) / REACH);
+    // Quick rise from the edge, flat across the middle: a cushion, not a cone.
+    out[i] = 1 - (1 - d) * (1 - d);
   }
   return out;
-}
-
-/**
- * How far the shell bows out at a given distance from the centre line: an ellipse in
- * cross-section, full depth at the middle and nothing at the sides so front and back meet.
- */
-function bulge(x: number, halfWidth: number, depth: number) {
-  const t = Math.min(1, Math.abs(x) / halfWidth);
-  return depth * Math.sqrt(1 - t * t);
 }
 
 export function GarmentMesh({ garment, spec, tier, flow, stretch, wind = 0, pulled = false, metres = 1.15, depth = 0.09 }: GarmentMeshProps) {
@@ -156,7 +166,7 @@ export function GarmentMesh({ garment, spec, tier, flow, stretch, wind = 0, pull
       front: result.geometry,
       back: result.geometry.clone(),
       rest: Float32Array.from(result.geometry.attributes.position.array),
-      edge: result.edge,
+      room: result.room,
     };
   }, [garment, metres, tier]);
 
@@ -185,13 +195,13 @@ export function GarmentMesh({ garment, spec, tier, flow, stretch, wind = 0, pull
         pull: pull.current,
         time: state.clock.elapsedTime,
       });
-      const body = bulge(rx, built.edge[i], depth);
+      const room = built.room[i];
+      const body = depth * room;
       // Folds are scaled by how much room the shell has at that point: full depth down the
       // middle, nothing at the side seams. Without this the front's folds and the back's cross
       // each other near the edges, and from any oblique angle the garment reads as shredded.
-      // A garment on a form also folds less than a length hung free, hence the 0.6.
-      const room = body / depth;
-      const fold = (d.z - d.gust) * 0.6 * room;
+      // A garment on a form folds a little less than a length hung free, hence the 0.9.
+      const fold = (d.z - d.gust) * 0.9 * room;
       // Wind does two things to a garment on a form. It pushes the whole thing — applied
       // undamped and with the same sign to both shells, so it can never make them cross — and
       // it agitates the cloth: short, quick ripples that grow towards the hem, where the cloth
@@ -199,11 +209,17 @@ export function GarmentMesh({ garment, spec, tier, flow, stretch, wind = 0, pull
       // not what wind looks like.
       const t = state.clock.elapsedTime;
       const hang = Math.max(0, 0.5 - built.rest[i * 3 + 1] / metres);
-      const flutter = wind * 0.02 * Math.sin(rx * 18 + t * 5 + built.rest[i * 3 + 1] * 4) * hang * room;
-      fp.setXYZ(i, d.x, d.y, body + fold + flutter + d.gust);
+      const flutter = wind * 0.03 * Math.sin(rx * 18 + t * 5 + built.rest[i * 3 + 1] * 4) * hang * room;
+      // And the hem swings: the loose lower part of a garment moves sideways in a gust, more the
+      // further from the shoulders it hangs. Both shells together, so nothing crosses.
+      const swing = wind * 0.02 * Math.sin(t * 1.1) * hang * hang;
+      // `drape` was handed half the x for the fold frequency; its x output is scaled the same
+      // way, so it is doubled back. (Left as-is, every garment rendered at half its width.)
+      const x = d.x * 2;
+      fp.setXYZ(i, x + swing, d.y, body + fold + flutter + d.gust);
       // The back carries the same folds, shallower and mirrored, so the two halves stay a
       // closed shell at the sides whatever the cloth is doing.
-      bp.setXYZ(i, d.x, d.y, -body - (fold + flutter) * 0.5 + d.gust);
+      bp.setXYZ(i, x + swing, d.y, -body - (fold + flutter) * 0.5 + d.gust);
     }
     fp.needsUpdate = true;
     bp.needsUpdate = true;

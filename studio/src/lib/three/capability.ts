@@ -25,6 +25,8 @@ export interface Capability {
   reducedMotion: boolean;
   renderer: string;
   reason?: string;
+  /** The tier was asked for (`?quality=`), so adaptation must not move it. */
+  forced?: boolean;
 }
 
 const SERVER: Capability = {
@@ -74,18 +76,24 @@ export function detectCapability(): Capability {
     // magnitude slower than a GPU, so it gets the lowest tier rather than a broken experience.
     const software = /swiftshader|llvmpipe|software|microsoft basic/i.test(renderer);
 
-    const tier: QualityTier = software ? 'low' : mobile ? 'medium' : gl2 ? 'high' : 'medium';
+    const detected: QualityTier = software ? 'low' : mobile ? 'medium' : gl2 ? 'high' : 'medium';
+    // A stated preference wins over the guess: `?quality=high` on the URL, or `pc:quality` in
+    // localStorage for a whole session. This is how a tier is checked on the device it is
+    // meant for — and how a buyer with a strong phone and a weak default gets the better one.
+    const forced = qualityOverride();
+    const tier = forced ?? detected;
 
     cached = {
       webgl: gl2 ? 2 : 1,
       tier,
       maxTextureSize: Math.min(maxTextureSize, 4096),
       // Retina at full DPR quadruples the fragment cost for a difference few people can see on
-      // fabric; 2 is the ceiling and mobile stays at 1.5.
-      pixelRatio: Math.min(window.devicePixelRatio || 1, mobile ? 1.5 : 2),
+      // fabric; 2 is the ceiling and mobile stays at 1.5 unless the tier was asked for.
+      pixelRatio: Math.min(window.devicePixelRatio || 1, mobile && !forced ? 1.5 : 2),
       mobile,
       reducedMotion,
       renderer,
+      forced: forced !== null,
       ...(software ? { reason: 'Software rendering detected — running at reduced quality' } : {}),
     };
     return cached;
@@ -95,6 +103,21 @@ export function detectCapability(): Capability {
   } finally {
     // Free the probe context immediately; browsers cap simultaneous WebGL contexts.
     canvas?.getContext('webgl2')?.getExtension('WEBGL_lose_context')?.loseContext();
+  }
+}
+
+const TIERS_BY_NAME = new Set<QualityTier>(['low', 'medium', 'high']);
+
+/** `?quality=` on the URL, else `pc:quality` in localStorage, else nothing. */
+function qualityOverride(): QualityTier | null {
+  try {
+    const fromUrl = new URLSearchParams(window.location.search).get('quality');
+    const fromStorage = window.localStorage?.getItem('pc:quality');
+    const value = (fromUrl ?? fromStorage ?? '').toLowerCase() as QualityTier;
+    if (fromUrl && TIERS_BY_NAME.has(value)) window.localStorage?.setItem('pc:quality', value);
+    return TIERS_BY_NAME.has(value) ? value : null;
+  } catch {
+    return null;
   }
 }
 
@@ -109,9 +132,13 @@ export function textureSizeFor(tier: QualityTier, maxTextureSize: number): numbe
   return Math.min(wanted, maxTextureSize || wanted);
 }
 
-/** Whether a tier can afford shadow maps at all. */
+/**
+ * Whether a tier can afford shadow maps. One 1024px map from the key light is a single extra
+ * pass over two or three meshes; a phone GPU does that comfortably, and cloth without a
+ * shadow under its folds reads as a picture of cloth. Only the software tier goes without.
+ */
 export function shadowsAllowed(tier: QualityTier): boolean {
-  return tier === 'high';
+  return tier !== 'low';
 }
 
 /** Target frame budget in ms. Anything slower triggers adaptive quality (M29). */

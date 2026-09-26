@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { GarmentKey, LightKey } from '@/lib/fabric-generator';
@@ -13,6 +13,7 @@ import { FabricPanel } from './FabricPanel';
 import { LightingRig, RIGS } from './LightingRig';
 import { ShineSweep } from './ShineSweep';
 import { GarmentMesh } from './GarmentMesh';
+import { ModelledGarment, useGarmentModel } from './GarmentModel';
 
 /**
  * Fabric Viewer 2.0 (Phase 4 M23).
@@ -76,91 +77,137 @@ function Stand({ hem }: { hem: number }) {
   );
 }
 
+/** Shortest signed distance from `a` round to `b`, so a return trip never goes the long way. */
+function shortestTurn(a: number, b: number): number {
+  return Math.atan2(Math.sin(b - a), Math.cos(b - a));
+}
+
+/**
+ * The turntable: hold and spin.
+ *
+ * The drag lives on the canvas element rather than on the mesh, so it works wherever a thumb
+ * lands on the stage — a buyer does not aim for the cloth — and it captures the pointer, so a
+ * fast flick that leaves the stage still finishes. Release carries momentum that decays over a
+ * second or so, which is what makes a spin feel like a spin rather than a slider.
+ *
+ * Left alone for a few seconds it eases back into its own motion: a gentle rock in the ordinary
+ * view (a merchant rocks a bolt under the light; nobody turns it through 360°, and doing so
+ * shows the back of a surface that has no back), or a slow full turn when "Watch in 3D" is on.
+ * Any touch takes over instantly and completely; the automatic motion only ever resumes, never
+ * competes.
+ */
 function Turntable({ children, idle, free = false }: { children: ReactNode; idle: boolean; free?: boolean }) {
   const group = useRef<THREE.Group>(null);
-  const target = useRef({ x: 0, y: 0 });
   const gl = useThree((s) => s.gl);
   const invalidate = useThree((s) => s.invalidate);
-  const dragging = useRef(false);
-  const last = useRef({ x: 0, y: 0 });
+
+  const angle = useRef({ x: 0, y: 0 });
+  const drag = useRef({ active: false, id: -1, lastX: 0, lastY: 0, lastT: 0, vx: 0 });
+  const velocity = useRef(0);
+  const idleFor = useRef(3);
   const rock = useRef(0);
-
-  const onDown = useCallback((e: PointerEvent) => {
-    dragging.current = true;
-    last.current = { x: e.clientX, y: e.clientY };
-    gl.domElement.setPointerCapture(e.pointerId);
-  }, [gl]);
-
-  const onMove = useCallback(
-    (e: PointerEvent) => {
-      if (!dragging.current) return;
-      const next = target.current.y + (e.clientX - last.current.x) * 0.006;
-      // "Watch in 3D" is the one case where turning all the way round is the point; otherwise
-      // the arc is clamped to the one a bolt is actually rocked through.
-      target.current.y = free ? next : Math.max(-1.2, Math.min(1.2, next));
-      // Clamped: letting a buyer tumble the cloth past vertical does not help them judge it.
-      target.current.x = Math.max(-0.5, Math.min(0.5, target.current.x + (e.clientY - last.current.y) * 0.004));
-      last.current = { x: e.clientX, y: e.clientY };
-      invalidate();
-    },
-    [invalidate, free]
-  );
-
-  const onUp = useCallback((e: PointerEvent) => {
-    dragging.current = false;
-    gl.domElement.releasePointerCapture?.(e.pointerId);
-  }, [gl]);
-
   const wasFree = useRef(free);
 
-  useFrame((state, delta) => {
+  useEffect(() => {
+    // `touch-action: pan-y` and the cursor are set on the stage's host element by StageCanvas.
+    const el = gl.domElement;
+
+    const down = (e: PointerEvent) => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      drag.current = { active: true, id: e.pointerId, lastX: e.clientX, lastY: e.clientY, lastT: performance.now(), vx: 0 };
+      velocity.current = 0;
+      idleFor.current = 0;
+      el.setPointerCapture?.(e.pointerId);
+      invalidate();
+    };
+    const move = (e: PointerEvent) => {
+      const d = drag.current;
+      if (!d.active || e.pointerId !== d.id) return;
+      const now = performance.now();
+      const dt = Math.max(1, now - d.lastT) / 1000;
+      const dx = e.clientX - d.lastX;
+      const dy = e.clientY - d.lastY;
+      // Radians per pixel: a full turn is about a hand's width of screen on a phone.
+      angle.current.y += dx * 0.008;
+      // Tilt is clamped: tumbling the cloth past vertical does not help anyone judge it.
+      angle.current.x = Math.max(-0.55, Math.min(0.55, angle.current.x + dy * 0.004));
+      // Velocity is smoothed over the last few events so one jittery sample cannot launch it.
+      d.vx = d.vx * 0.6 + ((dx * 0.008) / dt) * 0.4;
+      d.lastX = e.clientX;
+      d.lastY = e.clientY;
+      d.lastT = now;
+      idleFor.current = 0;
+      invalidate();
+    };
+    const up = (e: PointerEvent) => {
+      const d = drag.current;
+      if (!d.active || e.pointerId !== d.id) return;
+      d.active = false;
+      // A hold-and-release (no movement in the last 80ms) stops dead; a flick carries on.
+      velocity.current = performance.now() - d.lastT > 80 ? 0 : Math.max(-14, Math.min(14, d.vx));
+      el.releasePointerCapture?.(e.pointerId);
+      invalidate();
+    };
+
+    el.addEventListener('pointerdown', down);
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+    return () => {
+      el.removeEventListener('pointerdown', down);
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+    };
+  }, [gl, invalidate]);
+
+  useFrame((_, rawDelta) => {
     const g = group.current;
     if (!g) return;
+    const delta = Math.min(rawDelta, 0.05);
+    const a = angle.current;
 
-    // Switching modes must change what happens *next*, not where the cloth is *now*. The rock
-    // counter has been running since the lab opened, so reading it straight into the free-turn
-    // formula on the frame the toggle lands would set a target several revolutions away, and
-    // the eased follow turned that into a half-second whip — the "glitch" on tapping the pill.
-    // Re-basing the counter to the current angle on each transition makes the toggle seamless
-    // in both directions.
+    // Switching modes changes what happens *next*, not where the cloth is *now*.
     if (wasFree.current !== free) {
-      if (free) {
-        rock.current = g.rotation.y / 0.7;
-      } else {
-        // Bring the accumulated turn back into one revolution, then resume the rock from the
-        // phase nearest to where the cloth is, so it settles rather than snaps.
-        g.rotation.y = Math.atan2(Math.sin(g.rotation.y), Math.cos(g.rotation.y));
-        rock.current = Math.asin(Math.max(-1, Math.min(1, g.rotation.y / 0.34)));
-      }
-      target.current.y = g.rotation.y;
       wasFree.current = free;
+      idleFor.current = 3;
+      // Back into one revolution, so a later return to the rock takes the short way round.
+      a.y = Math.atan2(Math.sin(a.y), Math.cos(a.y));
+      rock.current = Math.asin(Math.max(-1, Math.min(1, a.y / 0.34)));
     }
 
-    // Left alone, the cloth *rocks* rather than spins. A merchant rocks a bolt under the light
-    // through maybe forty degrees to watch the shade shift; nobody turns it through 360°, and
-    // letting it do so shows the back of a surface that has no back.
-    if (idle && !dragging.current) {
-      rock.current += delta * 0.5;
-      // "Watch in 3D" is the one case where a full turn is the point — the buyer asked to see
-      // the whole thing. Otherwise it rocks through the arc a bolt is actually rocked through.
-      target.current.y = free ? rock.current * 0.7 : Math.sin(rock.current) * 0.34;
+    if (!drag.current.active) {
+      if (Math.abs(velocity.current) > 0.02) {
+        // Momentum, with friction. Exponential decay reads as a real bearing running down.
+        a.y += velocity.current * delta;
+        velocity.current *= Math.exp(-delta * 2.4);
+        idleFor.current = 0;
+      } else {
+        velocity.current = 0;
+        idleFor.current += delta;
+        if (idle && idleFor.current > 3) {
+          // Ease the automatic motion back in over two seconds rather than jerking into it.
+          const ease = Math.min(1, (idleFor.current - 3) / 2);
+          if (free) {
+            a.y += 0.35 * ease * delta;
+          } else {
+            rock.current += delta * 0.5 * ease;
+            a.y += shortestTurn(a.y, Math.sin(rock.current) * 0.34) * Math.min(1, delta * 1.5 * ease);
+          }
+          a.x += (0 - a.x) * Math.min(1, delta * 1.5 * ease);
+          invalidate();
+        }
+      }
     }
-    g.rotation.y += (target.current.y - g.rotation.y) * Math.min(1, delta * 6);
-    g.rotation.x += (target.current.x - g.rotation.x) * Math.min(1, delta * 6);
-    void state;
+
+    // The finger is followed directly; everything else is lightly smoothed.
+    const follow = drag.current.active ? 1 : Math.min(1, delta * 14);
+    g.rotation.y += (a.y - g.rotation.y) * follow;
+    g.rotation.x += (a.x - g.rotation.x) * follow;
+    if (Math.abs(velocity.current) > 0.02 || drag.current.active) invalidate();
   });
 
-  return (
-    <group
-      ref={group}
-      onPointerDown={(e) => onDown(e.nativeEvent)}
-      onPointerMove={(e) => onMove(e.nativeEvent)}
-      onPointerUp={(e) => onUp(e.nativeEvent)}
-      onPointerLeave={(e) => onUp(e.nativeEvent)}
-    >
-      {children}
-    </group>
-  );
+  return <group ref={group}>{children}</group>;
 }
 
 /**
@@ -201,6 +248,9 @@ export function FabricViewer({
   const [, setStats] = useState<StageStats | null>(null);
   const spec = useMemo(() => fabricMaterialSpec(fabric, colour), [fabric, colour]);
   const onGarment = !!garment && garment !== 'roll';
+  // A supplied model for this cut, if the owner has put one in public/models/.
+  const modelUrl = useGarmentModel(onGarment ? garment : undefined);
+  const hem = onGarment ? GARMENT_LIFT - GARMENT_METRES / 2 : -(rolled ? 1.5 : 1.35) / 2;
 
   const handleStats = useCallback(
     (s: StageStats) => {
@@ -220,24 +270,29 @@ export function FabricViewer({
       style={{ position: 'absolute', inset: 0 }}
     >
       <Exposure light={light} />
-      <LightingRig light={light} tier={tier} />
+      <LightingRig light={light} tier={tier} floor={hem - 0.125} />
       <ShineSweep active={shine} sheen={fabric.sheen} />
-      {free && <Stand hem={onGarment ? GARMENT_LIFT - GARMENT_METRES / 2 : -(rolled ? 1.5 : 1.35) / 2} />}
+      {free && <Stand hem={hem} />}
       <Turntable idle={!pulled} free={free}>
         {onGarment ? (
           // Lifted a little: the lab's test pills sit over the bottom of the stage on a phone,
           // and a hem hidden behind them reads as a garment cut off.
           <group position={[0, GARMENT_LIFT, 0]}>
-            <GarmentMesh
-              garment={garment}
-              spec={spec}
-              tier={tier}
-              flow={fabric.flow}
-              stretch={fabric.stretch}
-              wind={wind}
-              pulled={pulled}
-              metres={GARMENT_METRES}
-            />
+            {(() => {
+              const procedural = (
+                <GarmentMesh
+                  garment={garment}
+                  spec={spec}
+                  tier={tier}
+                  flow={fabric.flow}
+                  stretch={fabric.stretch}
+                  wind={wind}
+                  pulled={pulled}
+                  metres={GARMENT_METRES}
+                />
+              );
+              return modelUrl ? <ModelledGarment url={modelUrl} spec={spec} tier={tier} wind={wind} metres={GARMENT_METRES} fallback={procedural} /> : procedural;
+            })()}
           </group>
         ) : (
           <FabricPanel

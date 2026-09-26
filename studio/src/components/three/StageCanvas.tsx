@@ -193,13 +193,20 @@ export default function StageCanvas({
   const frameloop = animate && visible && !capability.reducedMotion ? 'always' : 'demand';
 
   return (
-    <div ref={hostRef} style={{ position: 'absolute', inset: 0 }}>
+    // `touch-action: pan-y`: a horizontal drag on the stage turns the cloth, a vertical one still
+    // scrolls the page. Without it a phone treats the first horizontal movement as a scroll and
+    // the turntable never sees it.
+    <div ref={hostRef} style={{ position: 'absolute', inset: 0, touchAction: 'pan-y', cursor: 'grab' }}>
       <Canvas
         frameloop={frameloop}
         dpr={capability.pixelRatio}
-        shadows={shadowsAllowed(capability.tier)}
+        // Soft (PCF) shadow maps: hard-edged shadows under cloth folds look like cut paper.
+        shadows={shadowsAllowed(capability.tier) ? 'soft' : false}
         gl={{
-          antialias: capability.tier !== 'low',
+          // Multisampling stays on at every tier. It is close to free on a GPU, and the one tier
+          // that is not on a GPU is looking at a still image, where a jagged edge costs more
+          // than a slow frame.
+          antialias: true,
           alpha: true,
           powerPreference: 'high-performance',
           // Keeping the drawing buffer costs memory and is only needed to read pixels back;

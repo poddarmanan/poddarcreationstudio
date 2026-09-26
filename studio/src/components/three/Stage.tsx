@@ -110,7 +110,7 @@ export function Stage({ fallback, children, animate = false, label, onStats, onF
   const onError = useCallback((err: Error) => fail('error', { message: err.message.slice(0, 200) }), [fail]);
 
   const onReady = useCallback(() => {
-    primeQuality(detected.tier);
+    primeQuality(detected.tier, !!detected.forced);
     reportClientEvent('three.ready', {
       tier: capability.tier,
       webgl: capability.webgl,
@@ -119,7 +119,7 @@ export function Stage({ fallback, children, animate = false, label, onStats, onF
       pixelRatio: capability.pixelRatio,
       mobile: capability.mobile,
     });
-  }, [capability, detected.tier]);
+  }, [capability, detected.tier, detected.forced]);
 
   // `webgl: 0` covers both the server snapshot and a browser without WebGL, so the first
   // paint is always the flat rendering and 3D arrives after hydration if the device can.

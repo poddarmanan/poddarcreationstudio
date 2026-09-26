@@ -16,6 +16,40 @@ What the 3D adds is the judgement a wholesale buyer is actually making: **this c
 shape, moving**. A fluid rayon in a dress falls quite differently from a crisp PC/PC in the same
 cut, and choosing between two qualities for one style is exactly that comparison.
 
+## A garment has a body in it
+
+The first version drew the silhouette once, flat. Face-on it passed; turned, it was a paper
+cut-out — no width side-on, gone edge-on, and a dark crease across the shoulders where the
+outline's long sliver triangles skewed the displaced normals. Three changes, in the order they
+mattered:
+
+**Inflation.** The cut is drawn twice, front and back, and each is pushed out like a cushion:
+depth is a function of distance to the *nearest edge* of the outline (`inflation()`), rising
+from nothing at a seam to full about 12cm in. That one rule handles side seams, armholes,
+necklines and slits alike. Two earlier attempts bowed each row on its own width, which put a
+cliff under every armhole and a sawtooth down every seam where rows and outline disagreed. The
+hem is left out of the distance, because a garment is open at the bottom and a cushion is not.
+
+**Uniform triangles.** `TessellateModifier` splits the outline's slivers to a bounded edge
+length before displacement (3–5cm by tier), then `mergeVertices` re-shares vertices so the
+per-frame normals are smooth. Folds also need several vertices per wavelength or they render as
+flat slats; garments use half the panel's fold frequency for that reason and because a torso
+shows three or four broad folds, not nine.
+
+**Wind is not a fold.** `drape()` now exposes its gust separately. Folds are damped towards the
+seams so the two shells can never cross; the gust is applied to both shells together; and a
+short quick flutter, growing towards the hem, is what makes a strong wind *look* like wind
+rather than a garment sliding sideways.
+
+## Supplied models
+
+`public/models/<cut>.glb` overrides the procedural cut with a real garment model, re-dressed in
+the same `FabricMaterial` so cloth, shade and light stay the studio's (`GarmentModel.tsx`).
+Presence is probed once with a HEAD request; a model that fails to load falls back to the
+silhouette through an error boundary and the procedural cut shows while a model downloads.
+`public/models/README.md` covers filenames, size and licence attribution. The Draco decoder is
+vendored under `public/draco/`.
+
 ## UVs come from the silhouette's bounding box
 
 `ShapeGeometry` writes raw model coordinates into `uv`, so the weave would tile at whatever scale

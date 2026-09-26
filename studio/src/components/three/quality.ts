@@ -17,20 +17,27 @@ import { reportClientEvent } from '@/lib/telemetry-client';
 let state: AdaptiveState | null = null;
 let ceiling: QualityTier = 'high';
 let current: QualityTier = 'high';
+let locked = false;
 const listeners = new Set<() => void>();
 
 const emit = () => listeners.forEach((l) => l());
 
-export function primeQuality(tier: QualityTier): void {
+/**
+ * `locked` is for a tier that was asked for by name. Adaptation exists to protect a visitor
+ * from a guess that was wrong; a stated preference is not a guess, and a QA pass that asked
+ * for `high` on a slow machine needs to see high, not what the machine would rather draw.
+ */
+export function primeQuality(tier: QualityTier, lock = false): void {
   if (state) return;
   ceiling = tier;
   current = tier;
+  locked = lock;
   state = initialState(tier);
 }
 
 /** Feed one second of measurement in. Returns true when the tier moved. */
 export function recordFrameSample(worstFrameMs: number): boolean {
-  if (!state) return false;
+  if (!state || locked) return false;
   const decision = step(state, worstFrameMs, ceiling);
   state = decision.state;
   if (!decision.changed) return false;
@@ -51,6 +58,7 @@ function subscribe(listener: () => void): () => void {
 /** Test seam, so a smoke can put the tab back to a known state. */
 export function __resetQuality(): void {
   state = null;
+  locked = false;
   ceiling = 'high';
   current = 'high';
   emit();

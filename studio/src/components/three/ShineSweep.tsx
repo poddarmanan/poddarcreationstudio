@@ -30,8 +30,9 @@ export function ShineSweep({ active, sheen }: { active: boolean; sheen: number }
     const phase = ((state.clock.elapsedTime % PERIOD) / PERIOD) * 2 - 1;
     l.position.set(phase * 1.6, 0.35, 1.15);
     // A shinier cloth deserves a brighter raking light: the point of the test is to make the
-    // difference between qualities visible, not to light them all identically.
-    l.intensity = level.current * (1.2 + sheen * 3.4);
+    // difference between qualities visible, not to light them all identically. Scaled up when
+    // the stage gained a lit room, or the sweep disappeared into the ambient light.
+    l.intensity = level.current * (2.6 + sheen * 6);
   });
 
   return <pointLight ref={light} color="#FFFFFF" distance={4} decay={1.6} intensity={0} />;

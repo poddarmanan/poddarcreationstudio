@@ -14,6 +14,19 @@ The cloth **rocks** rather than spins. A merchant rocks a bolt through maybe for
 watch the shade move; nobody turns it through 360°, and letting it do so shows the back of a
 surface that has no back. Dragging is clamped to ±69° for the same reason.
 
+## Hold and spin
+
+The turntable listens on the canvas element, not the mesh, so a drag works wherever a thumb
+lands on the stage, and it captures the pointer so a flick that leaves the stage still finishes.
+Release carries momentum with exponential friction; a hold-and-release stops dead. Left alone
+for three seconds it eases back into its own motion — the rock, or a slow full turn under
+"Watch in 3D" — and any touch takes over instantly. `touch-action: pan-y` on the stage lets a
+vertical swipe still scroll the page on a phone.
+
+The "Watch in 3D" toggle used to whip the cloth through a turn or more, because the rock counter
+had been running since the lab opened and was read straight into the free-turn formula; it is
+now re-based to the current angle on each transition.
+
 ## Drape comes from the spec sheet
 
 `src/lib/three/drape.ts` sums standing waves whose wavelength and amplitude come from the

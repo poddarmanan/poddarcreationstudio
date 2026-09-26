@@ -27,6 +27,23 @@ async function signature(page) {
 
 const distance = colourDistance;
 
+/**
+ * Mean colour averaged over a few moments. The shine sweep crosses the cloth on a 2.4s period
+ * and the turntable rocks, so one frame carries the phase of both; three frames spread over the
+ * period take most of that out.
+ */
+async function signatureOver(page, samples = 3, gapMs = 800) {
+  const acc = { r: 0, g: 0, b: 0 };
+  for (let i = 0; i < samples; i++) {
+    if (i) await page.waitForTimeout(gapMs);
+    const s = await signature(page);
+    acc.r += s.r / samples;
+    acc.g += s.g / samples;
+    acc.b += s.b / samples;
+  }
+  return acc;
+}
+
 /** A decoded frame of the stage, for pixel-level comparison. */
 async function frame(page) {
   await page.waitForTimeout(700);
@@ -103,12 +120,16 @@ async function main() {
   await page.getByRole('button', { name: /^Stretch$/i }).first().click();
   await page.waitForTimeout(1200);
 
+  // Compared against a fresh still reading, over the sweep's period, so neither the rock nor
+  // the moment the light happens to be at the edge of its travel decides the answer.
+  const unlit = await signatureOver(page);
   await page.getByRole('button', { name: /^Shine$/i }).first().click();
   await page.waitForTimeout(900);
-  const shine = await signature(page);
-  if (shine.r + shine.g + shine.b <= rest.r + rest.g + rest.b) {
-    bad('the shine test should put more light on the cloth, not less');
-  } else ok('shine walks a light across the cloth');
+  const shine = await signatureOver(page);
+  const gain = shine.r + shine.g + shine.b - (unlit.r + unlit.g + unlit.b);
+  if (gain <= 0) {
+    bad(`the shine test should put more light on the cloth, not less (${gain.toFixed(1)})`);
+  } else ok(`shine walks a light across the cloth (+${gain.toFixed(1)})`);
   await page.getByRole('button', { name: /^Shine$/i }).first().click();
 
   // ---- Wind ------------------------------------------------------------------------------
