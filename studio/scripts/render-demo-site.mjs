@@ -32,9 +32,10 @@ await mkdir(path.join(out, '_next'), { recursive: true });
 await writeFile(path.join(out, 'index.html'), html);
 await cp('.next/static', path.join(out, '_next/static'), { recursive: true });
 await cp('src/app/favicon.ico', path.join(out, 'favicon.ico')).catch(() => {});
-// Garment models and the Draco decoder they may need, when the owner has supplied models.
+// The Draco decoder the garment models may need. The models themselves are not copied: they
+// are large and already committed once under public/models, so the Pages workflow copies them
+// into the upload at deploy time rather than the repository carrying a second copy.
 await cp('public/draco', path.join(out, 'draco'), { recursive: true }).catch(() => {});
-await cp('public/models', path.join(out, 'models'), { recursive: true }).catch(() => {});
 
 // GitHub Pages runs Jekyll by default, and Jekyll silently drops every directory whose name
 // starts with an underscore — which is to say, `_next`. This empty file switches it off.

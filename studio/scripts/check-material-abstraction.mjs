@@ -21,7 +21,8 @@ const ROOT = 'src';
 const SHADING_MATERIALS = /<mesh(Physical|Standard|Phong|Lambert|Toon)Material|new THREE\.Mesh(Physical|Standard|Phong|Lambert|Toon)Material/;
 
 /** The one file allowed to name them, plus the presets it reads. */
-const ALLOWED = new Set(['src/components/three/FabricMaterial.tsx']);
+// Mannequin.tsx shades a dress form, not cloth — the one thing on the stage that is not fabric.
+const ALLOWED = new Set(['src/components/three/FabricMaterial.tsx', 'src/components/three/Mannequin.tsx']);
 
 async function walk(dir) {
   const out = [];

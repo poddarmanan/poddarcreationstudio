@@ -10,6 +10,9 @@ import { shadowsAllowed } from '@/lib/three/capability';
 import type { FabricMaterialSpec } from '@/lib/three/fabric-spec';
 import { tileRepeat } from '@/lib/three/fabric-spec';
 import { FabricMaterial } from './FabricMaterial';
+import { Mannequin } from './Mannequin';
+import { FORM_SEX } from './GarmentMesh';
+import { fitForm } from '@/lib/three/mannequin';
 
 /**
  * Modelled garments (Phase 4 M25, extended).
@@ -73,6 +76,9 @@ export function useGarmentModel(garment: GarmentKey | undefined): string | null 
 
 export interface GarmentModelProps {
   url: string;
+  garment: GarmentKey;
+  /** World y of the floor the form's pole stands on. Omit for no mannequin. */
+  floor?: number;
   spec: FabricMaterialSpec;
   tier: QualityTier;
   wind?: number;
@@ -81,7 +87,7 @@ export interface GarmentModelProps {
 }
 
 /** A supplied model, re-dressed in the studio's cloth. Suspends while loading; throws on failure. */
-export function GarmentModel({ url, spec, tier, wind = 0, metres = 1.15 }: GarmentModelProps) {
+export function GarmentModel({ url, garment, spec, tier, wind = 0, metres = 1.15, floor }: GarmentModelProps) {
   const gltf = useGLTF(url, `${BASE}/draco/`);
   const group = useRef<THREE.Group>(null);
 
@@ -89,8 +95,16 @@ export function GarmentModel({ url, spec, tier, wind = 0, metres = 1.15 }: Garme
     const scene = gltf.scene;
     scene.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(scene);
-    const size = box.getSize(new THREE.Vector3());
-    const centre = box.getCenter(new THREE.Vector3());
+    const raw = box.getSize(new THREE.Vector3());
+    const rawCentre = box.getCenter(new THREE.Vector3());
+    // Modellers do not agree on which way is forward. A garment is wider than it is deep, so
+    // if the model's x extent is the smaller of the two it is standing side-on to the camera
+    // and is turned a quarter to face it. The scene itself is left untouched (it is cached and
+    // shared); the turn is applied by a group, and the box is turned with it: a quarter turn
+    // about y maps (x, z) to (z, -x).
+    const turn = raw.x < raw.z ? Math.PI / 2 : 0;
+    const size = turn ? new THREE.Vector3(raw.z, raw.y, raw.x) : raw;
+    const centre = turn ? new THREE.Vector3(rawCentre.z, rawCentre.y, -rawCentre.x) : rawCentre;
     const scale = size.y > 0 ? metres / size.y : 1;
     const parts: { geometry: THREE.BufferGeometry; matrix: THREE.Matrix4 }[] = [];
     scene.traverse((o) => {
@@ -100,8 +114,21 @@ export function GarmentModel({ url, spec, tier, wind = 0, metres = 1.15 }: Garme
       if (!geometry.attributes.normal) geometry.computeVertexNormals();
       parts.push({ geometry, matrix: mesh.matrixWorld.clone() });
     });
-    return { parts, scale, centre };
-  }, [gltf, metres]);
+    // A sample of the garment's vertices in stage space, for fitting the form inside it.
+    const sample: number[] = [];
+    const v = new THREE.Vector3();
+    for (const part of parts) {
+      const pos = part.geometry.attributes.position;
+      const step = Math.max(1, Math.floor(pos.count / 4000));
+      for (let i = 0; i < pos.count; i += step) {
+        v.fromBufferAttribute(pos, i).applyMatrix4(part.matrix);
+        if (turn) v.set(v.z, v.y, -v.x);
+        v.sub(centre).multiplyScalar(scale);
+        sample.push(v.x, v.y, v.z);
+      }
+    }
+    return { parts, scale, centre, turn, fit: fitForm(sample, FORM_SEX[garment]) };
+  }, [gltf, metres, garment]);
 
   const repeat = useMemo(() => tileRepeat(spec, metres), [spec, metres]);
   const shadows = shadowsAllowed(tier);
@@ -117,12 +144,15 @@ export function GarmentModel({ url, spec, tier, wind = 0, metres = 1.15 }: Garme
 
   return (
     <group ref={group}>
+      {built.fit && floor !== undefined && <Mannequin fit={built.fit} floor={floor} />}
       <group scale={built.scale} position={[-built.centre.x * built.scale, -built.centre.y * built.scale, -built.centre.z * built.scale]}>
-        {built.parts.map((part, i) => (
-          <mesh key={i} geometry={part.geometry} matrix={part.matrix} matrixAutoUpdate={false} castShadow={shadows} receiveShadow={shadows}>
-            <FabricMaterial spec={spec} tier={tier} repeat={repeat} />
-          </mesh>
-        ))}
+        <group rotation-y={built.turn}>
+          {built.parts.map((part, i) => (
+            <mesh key={i} geometry={part.geometry} matrix={part.matrix} matrixAutoUpdate={false} castShadow={shadows} receiveShadow={shadows}>
+              <FabricMaterial spec={spec} tier={tier} repeat={repeat} />
+            </mesh>
+          ))}
+        </group>
       </group>
     </group>
   );

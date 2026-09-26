@@ -15,9 +15,11 @@ What happens to a model: its own materials are thrown away and every surface is 
 the studio's fabric material, so the cloth, the shade and the light are the studio's. It is
 scaled to a garment's real height (about 1.15 m) and centred, whatever units it was built in.
 
-What a model needs: UV coordinates (the weave tiles across them), a single garment with no
-mannequin or hanger baked in, and ideally under ~10 MB — it is downloaded by every visitor who
-opens the cut. Draco-compressed files are fine; the decoder is served from `/draco/`.
+What a model needs: UV coordinates (the weave tiles across them), **a single garment with no
+mannequin or hanger baked in** — the whole file is re-dressed as cloth, so a torso modelled
+into the same mesh comes out wearing the fabric too — and ideally under ~10 MB, since it is
+downloaded by every visitor who opens the cut. Draco-compressed files are fine; the decoder is
+served from `/draco/`. The studio adds its own black dress form under every cut.
 
 Licences: models from Sketchfab and similar carry a licence (commonly CC-BY, which requires
 naming the author). Keep the attribution here, one line per model, before publishing.

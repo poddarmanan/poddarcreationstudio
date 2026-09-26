@@ -14,6 +14,12 @@ import { drape } from '@/lib/three/drape';
 import type { FabricMaterialSpec } from '@/lib/three/fabric-spec';
 import { tileRepeat } from '@/lib/three/fabric-spec';
 import { FabricMaterial } from './FabricMaterial';
+import { Mannequin } from './Mannequin';
+import { fitForm, formRadii, type FormFit, type FormSex } from '@/lib/three/mannequin';
+import { Cloth, bendEdgesOf, edgesOf, type Collider } from '@/lib/three/cloth';
+
+/** Whose form each cut is shown on. */
+export const FORM_SEX: Record<GarmentKey, FormSex> = { shirt: 'male', tshirt: 'male', kurti: 'female', dress: 'female', top: 'female', roll: 'female' };
 
 /**
  * The Garment Visualiser (Phase 4 M25).
@@ -57,6 +63,8 @@ export interface GarmentMeshProps {
   metres?: number;
   /** Half the front-to-back depth of the shell, metres. A torso is about 0.2m deep. */
   depth?: number;
+  /** World y of the floor the form's pole stands on. Omit for no mannequin. */
+  floor?: number;
 }
 
 /** SVG paths are in a y-down space of unknown extent; three.js is y-up and wants metres. */
@@ -147,10 +155,73 @@ function inflation(geometry: THREE.BufferGeometry, outline: THREE.Vector2[], met
   return out;
 }
 
-export function GarmentMesh({ garment, spec, tier, flow, stretch, wind = 0, pulled = false, metres = 1.15, depth = 0.09 }: GarmentMeshProps) {
+/** How high on the cloth the pins go: the top 5cm, which is the shoulder line and the neck. */
+const PIN_BAND = 0.05;
+
+/**
+ * Builds the simulation for a cut: both shells as one cloth, the outline tied front-to-back so
+ * the seams stay closed, struts across the interior so the garment keeps its volume when it is
+ * off the form, and the shoulder line pinned.
+ */
+function buildCloth(geometry: THREE.BufferGeometry, rest: Float32Array, room: Float32Array, depth: number) {
+  const n = rest.length / 3;
+  const all = new Float32Array(n * 6);
+  const pinned = new Uint8Array(n * 2);
+  let top = -Infinity;
+  for (let i = 1; i < rest.length; i += 3) top = Math.max(top, rest[i]);
+  for (let i = 0; i < n; i++) {
+    const o = i * 3;
+    const body = depth * room[i];
+    all[o] = rest[o];
+    all[o + 1] = rest[o + 1];
+    all[o + 2] = body;
+    all[n * 3 + o] = rest[o];
+    all[n * 3 + o + 1] = rest[o + 1];
+    all[n * 3 + o + 2] = -body;
+    if (rest[o + 1] > top - PIN_BAND) pinned[i] = pinned[n + i] = 1;
+  }
+  // Edges keep the cloth from stretching; bending springs keep it from crumpling.
+  const index = geometry.index!.array;
+  const shell = new Uint32Array([...edgesOf(index), ...bendEdgesOf(index)]);
+  const edges = new Uint32Array(shell.length * 2 + n * 2);
+  edges.set(shell, 0);
+  for (let e = 0; e < shell.length; e++) edges[shell.length + e] = shell[e] + n;
+  // Seam ties (zero length on the outline) and volume struts (2 × depth inside) are the same
+  // constraint at different rest lengths, and the rest length is simply the rest distance.
+  for (let i = 0; i < n; i++) {
+    edges[shell.length * 2 + i * 2] = i;
+    edges[shell.length * 2 + i * 2 + 1] = n + i;
+  }
+  const cloth = new Cloth(all, edges, pinned);
+  // Settle before the first frame, so a garment does not visibly drop onto its form on load.
+  for (let i = 0; i < 40; i++) cloth.step(1 / 60, { gravity: 3, wind: [0, 0, 0], spin: { omega: 0, alpha: 0 }, tug: 0 }, null);
+  return cloth;
+}
+
+/** Pushes a point out of the form, with a little clearance for the cloth's own thickness. */
+function colliderFor(fit: FormFit | null): Collider | null {
+  if (!fit) return null;
+  const clearance = 0.01;
+  return (x, y, z, out) => {
+    const r = formRadii(fit, y);
+    if (!r) return false;
+    const rx = r.rx + clearance;
+    const rz = r.rz + clearance;
+    const d = (x * x) / (rx * rx) + (z * z) / (rz * rz);
+    if (d >= 1) return false;
+    const k = 1 / Math.sqrt(d || 1e-9);
+    out[0] = x * k;
+    out[1] = y;
+    out[2] = z * k;
+    return true;
+  };
+}
+
+export function GarmentMesh({ garment, spec, tier, flow, stretch, wind = 0, pulled = false, metres = 1.15, depth = 0.09, floor }: GarmentMeshProps) {
   const front = useRef<THREE.Mesh>(null);
   const back = useRef<THREE.Mesh>(null);
   const pull = useRef(0);
+  const spin = useRef({ angle: 0, omega: 0, seeded: false });
 
   const built = useMemo(() => {
     const path = GARMENTS[garment]?.d;
@@ -162,64 +233,85 @@ export function GarmentMesh({ garment, spec, tier, flow, stretch, wind = 0, pull
     const maxEdge = tier === 'high' ? 0.03 : tier === 'medium' ? 0.035 : 0.05;
     const result = buildGeometry(path, metres, maxEdge);
     if (!result) return null;
+    const rest = Float32Array.from(result.geometry.attributes.position.array);
     return {
       front: result.geometry,
       back: result.geometry.clone(),
-      rest: Float32Array.from(result.geometry.attributes.position.array),
+      rest,
       room: result.room,
+      cloth: buildCloth(result.geometry, rest, result.room, depth),
     };
-  }, [garment, metres, tier]);
+  }, [garment, metres, tier, depth]);
 
   const repeat = useMemo(() => tileRepeat(spec, metres), [spec, metres]);
+  // The cloth is `depth` deep at most, so the form is capped a little inside that.
+  const fit = useMemo(() => (built ? fitForm(built.rest, FORM_SEX[garment], depth * 0.62) : null), [built, garment, depth]);
+  const collider = useMemo(() => colliderFor(fit), [fit]);
 
   useFrame((state, delta) => {
     const f = front.current;
     const b = back.current;
     if (!f || !b || !built) return;
+    const dt = Math.min(delta, 1 / 30);
+    const t = state.clock.elapsedTime;
+    pull.current += ((pulled ? 1 : 0) - pull.current) * Math.min(1, dt * 4);
+
+    // What the turntable is doing, read from the group that turns us: the cloth feels a spin
+    // as centrifugal flare and a change of speed as a sideways kick.
+    let turntable: THREE.Object3D | null = f.parent;
+    for (let depthUp = 0; depthUp < 4 && turntable && turntable.rotation.y === 0; depthUp++) turntable = turntable.parent;
+    const angle = turntable?.rotation.y ?? 0;
+    const sp = spin.current;
+    if (!sp.seeded) {
+      sp.angle = angle;
+      sp.seeded = true;
+    }
+    // Derivatives use the real frame time, not the clamped one: after a hitch (a tab switch, a
+    // slow machine) the clamped step would read a modest turn as a violent one and fling the
+    // garment off its form. A gap over a fifth of a second is simply not a measurement.
+    const measurable = delta > 0 && delta < 0.2;
+    const turned = Math.atan2(Math.sin(angle - sp.angle), Math.cos(angle - sp.angle));
+    const omega = measurable ? Math.max(-4, Math.min(4, turned / delta)) : 0;
+    const alpha = measurable ? Math.max(-25, Math.min(25, (omega - sp.omega) / delta)) : 0;
+    sp.angle = angle;
+    sp.omega = omega;
+
+    // Wind as a force: a steady push that breathes, plus a little turbulence. Sized against
+    // the reduced gravity so that "Low" stirs the hem and "Strong" lifts it, and nothing lays
+    // the garment out flat.
+    const gust = wind * 0.32 * (0.9 + 0.5 * Math.sin(t * 1.4) + 0.2 * Math.sin(t * 3.7));
+    built.cloth.step(
+      dt,
+      {
+        gravity: 3,
+        wind: [gust * 0.15 * Math.sin(t * 0.7), 0, gust],
+        spin: { omega: omega * 0.6, alpha: alpha * 0.6 },
+        tug: pull.current * 5,
+      },
+      collider,
+      2,
+      tier === 'high' ? 7 : 5
+    );
+
+    // The simulation says where the cloth is; the drape function still supplies the folds, as
+    // a detail layer along the shell's thickness. Folds are scaled by how much room the shell
+    // has, so they never cross the seams.
+    const n = built.rest.length / 3;
+    const pos = built.cloth.pos;
     const fp = f.geometry.attributes.position;
     const bp = b.geometry.attributes.position;
-    pull.current += ((pulled ? 1 : 0) - pull.current) * Math.min(1, delta * 4);
-
-    for (let i = 0; i < fp.count; i++) {
-      const rx = built.rest[i * 3];
-      const d = drape({
-        // Half the fold frequency of a free-hanging length. Cloth on a body settles into three
-        // or four broad folds across a torso, not the eight or nine a hanging panel of the same
-        // quality shows — and broad folds are also the ones the tessellation can carry.
-        x: rx * 0.5,
-        y: built.rest[i * 3 + 1],
-        height: metres,
-        flow,
-        stretch,
-        wind,
-        pull: pull.current,
-        time: state.clock.elapsedTime,
-      });
+    for (let i = 0; i < n; i++) {
+      const o = i * 3;
+      const rx = built.rest[o];
+      const ry = built.rest[o + 1];
       const room = built.room[i];
-      const body = depth * room;
-      // Folds are scaled by how much room the shell has at that point: full depth down the
-      // middle, nothing at the side seams. Without this the front's folds and the back's cross
-      // each other near the edges, and from any oblique angle the garment reads as shredded.
-      // A garment on a form folds a little less than a length hung free, hence the 0.9.
-      const fold = (d.z - d.gust) * 0.9 * room;
-      // Wind does two things to a garment on a form. It pushes the whole thing — applied
-      // undamped and with the same sign to both shells, so it can never make them cross — and
-      // it agitates the cloth: short, quick ripples that grow towards the hem, where the cloth
-      // is loose. The push alone moves the garment without changing how it is lit, which is
-      // not what wind looks like.
-      const t = state.clock.elapsedTime;
-      const hang = Math.max(0, 0.5 - built.rest[i * 3 + 1] / metres);
-      const flutter = wind * 0.03 * Math.sin(rx * 18 + t * 5 + built.rest[i * 3 + 1] * 4) * hang * room;
-      // And the hem swings: the loose lower part of a garment moves sideways in a gust, more the
-      // further from the shoulders it hangs. Both shells together, so nothing crosses.
-      const swing = wind * 0.02 * Math.sin(t * 1.1) * hang * hang;
-      // `drape` was handed half the x for the fold frequency; its x output is scaled the same
-      // way, so it is doubled back. (Left as-is, every garment rendered at half its width.)
-      const x = d.x * 2;
-      fp.setXYZ(i, x + swing, d.y, body + fold + flutter + d.gust);
-      // The back carries the same folds, shallower and mirrored, so the two halves stay a
-      // closed shell at the sides whatever the cloth is doing.
-      bp.setXYZ(i, x + swing, d.y, -body - (fold + flutter) * 0.5 + d.gust);
+      const d = drape({ x: rx * 0.5, y: ry, height: metres, flow, stretch, wind, pull: pull.current, time: t });
+      const hang = Math.max(0, 0.5 - ry / metres);
+      const flutter = wind * 0.03 * Math.sin(rx * 18 + t * 5 + ry * 4) * hang * room;
+      const fold = ((d.z - d.gust) * 0.9 + flutter) * room;
+      fp.setXYZ(i, pos[o], pos[o + 1], pos[o + 2] + fold);
+      const q = n * 3 + o;
+      bp.setXYZ(i, pos[q], pos[q + 1], pos[q + 2] - fold * 0.5);
     }
     fp.needsUpdate = true;
     bp.needsUpdate = true;
@@ -232,6 +324,7 @@ export function GarmentMesh({ garment, spec, tier, flow, stretch, wind = 0, pull
 
   return (
     <group>
+      {fit && floor !== undefined && <Mannequin fit={fit} floor={floor} />}
       <mesh ref={front} geometry={built.front} castShadow={shadows} receiveShadow={shadows}>
         <FabricMaterial spec={spec} tier={tier} repeat={repeat} />
       </mesh>

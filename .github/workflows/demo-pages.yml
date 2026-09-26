@@ -34,6 +34,11 @@ jobs:
       - uses: actions/configure-pages@v5
         with:
           enablement: true
+      # Garment models live once, in public/models; they join the upload here rather than
+      # being committed a second time inside demo-site.
+      - run: |
+          mkdir -p studio/demo-site/models
+          cp -r studio/public/models/. studio/demo-site/models/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: studio/demo-site

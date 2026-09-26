@@ -41,6 +41,27 @@ seams so the two shells can never cross; the gust is applied to both shells toge
 short quick flutter, growing towards the hem, is what makes a strong wind *look* like wind
 rather than a garment sliding sideways.
 
+## On a form, and simulated
+
+Every garment now hangs on a black dress form — a man's for the shirt and t-shirt, a woman's
+for the kurti, dress and top (`lib/three/mannequin.ts`, `Mannequin.tsx`). The form is measured
+from the garment itself: width at the garment's *narrowest* band between underarm and waist,
+read at a percentile so a sleeve hanging at the side does not count as torso; depth the same
+way, capped by how deep the cloth actually is. That is why one profile fits a procedural cut
+and a supplied model alike.
+
+The procedural cuts are then run by a cloth simulation (`lib/three/cloth.ts`): position-based
+dynamics, both shells as one cloth, the outline tied front to back so the seams stay closed,
+struts across the interior so the garment keeps its volume, the shoulder line pinned. It hangs
+under gravity, is kept outside the form by a collider built from the profile, feels the
+turntable — centrifugal flare on a spin, a sideways kick on a flick — and is pushed about by
+the wind as a force. The drape function's folds ride on top as detail. `smoke-m42.ts` steps
+the simulation without a renderer and checks the things a position-based cloth gets wrong:
+melting off its pins, ringing forever, tearing through a collider.
+
+Supplied models are rigid; they get the form and the lean, not the simulation. A 200,000-vertex
+t-shirt is not something a phone can relax every frame.
+
 ## Supplied models
 
 `public/models/<cut>.glb` overrides the procedural cut with a real garment model, re-dressed in

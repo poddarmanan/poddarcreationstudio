@@ -50,9 +50,12 @@ export interface FabricViewerProps {
   captureId?: string;
 }
 
-/** A finished garment is about 1.15m tall; how far it is raised on the stage. */
-const GARMENT_METRES = 1.15;
-const GARMENT_LIFT = 0.07;
+/** Real garment heights, metres — a kurti is not a t-shirt. */
+const GARMENT_METRES: Record<string, number> = { kurti: 1.15, dress: 1.3, shirt: 0.8, tshirt: 0.74, top: 0.62 };
+/** Where the shoulder line sits on the stage, whatever the cut, so the form's neck stays put. */
+const SHOULDER_Y = 0.6;
+/** The floor every pole stands on. */
+const FLOOR_Y = -0.74;
 
 /**
  * The stand the cloth hangs from once "Watch in 3D" is on. A length of fabric floating in
@@ -250,7 +253,10 @@ export function FabricViewer({
   const onGarment = !!garment && garment !== 'roll';
   // A supplied model for this cut, if the owner has put one in public/models/.
   const modelUrl = useGarmentModel(onGarment ? garment : undefined);
-  const hem = onGarment ? GARMENT_LIFT - GARMENT_METRES / 2 : -(rolled ? 1.5 : 1.35) / 2;
+  const metres = onGarment ? (GARMENT_METRES[garment] ?? 1.15) : 0;
+  // Garments hang from a fixed shoulder line; the panel and roll are centred as before.
+  const lift = onGarment ? SHOULDER_Y - metres / 2 : 0;
+  const hem = onGarment ? lift - metres / 2 : -(rolled ? 1.5 : 1.35) / 2;
 
   const handleStats = useCallback(
     (s: StageStats) => {
@@ -270,15 +276,17 @@ export function FabricViewer({
       style={{ position: 'absolute', inset: 0 }}
     >
       <Exposure light={light} />
-      <LightingRig light={light} tier={tier} floor={hem - 0.125} />
+      <LightingRig light={light} tier={tier} floor={onGarment ? FLOOR_Y : hem - 0.125} />
       <ShineSweep active={shine} sheen={fabric.sheen} />
-      {free && <Stand hem={hem} />}
+      {free && !onGarment && <Stand hem={hem} />}
       <Turntable idle={!pulled} free={free}>
         {onGarment ? (
           // Lifted a little: the lab's test pills sit over the bottom of the stage on a phone,
           // and a hem hidden behind them reads as a garment cut off.
-          <group position={[0, GARMENT_LIFT, 0]}>
+          <group position={[0, lift, 0]}>
             {(() => {
+              // The form's floor, in the garment group's own space.
+              const floor = FLOOR_Y - lift;
               const procedural = (
                 <GarmentMesh
                   garment={garment}
@@ -288,10 +296,15 @@ export function FabricViewer({
                   stretch={fabric.stretch}
                   wind={wind}
                   pulled={pulled}
-                  metres={GARMENT_METRES}
+                  metres={metres}
+                  floor={floor}
                 />
               );
-              return modelUrl ? <ModelledGarment url={modelUrl} spec={spec} tier={tier} wind={wind} metres={GARMENT_METRES} fallback={procedural} /> : procedural;
+              return modelUrl ? (
+                <ModelledGarment url={modelUrl} garment={garment} spec={spec} tier={tier} wind={wind} metres={metres} floor={floor} fallback={procedural} />
+              ) : (
+                procedural
+              );
             })()}
           </group>
         ) : (
