@@ -1,0 +1,41 @@
+# Publishes the pre-rendered showroom preview (studio/demo-site) to GitHub Pages.
+#
+# The folder is produced by `studio/scripts/render-demo-site.mjs` against a running build and
+# committed, so this workflow has nothing to build and no database to bring up: it uploads the
+# files and asks Pages to serve them. Temporary by intent — delete the folder and this file
+# when the preview has done its job.
+name: Preview (GitHub Pages)
+
+on:
+  push:
+    branches: [claude/customer-platform-phase-3-n2pvf1]
+    paths:
+      - 'studio/demo-site/**'
+      - '.github/workflows/demo-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: studio/demo-site
+      - id: deployment
+        uses: actions/deploy-pages@v4

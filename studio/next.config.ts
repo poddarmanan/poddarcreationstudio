@@ -32,7 +32,15 @@ function remoteImagePatterns() {
   });
 }
 
+/**
+ * Optional URL prefix, for hosting the rendered studio under a sub-path — GitHub Pages serves a
+ * project at `/<repo>/`, and every asset URL Next emits has to know that at build time. Unset
+ * (the normal case) the app lives at `/` exactly as before.
+ */
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || undefined;
+
 const nextConfig: NextConfig = {
+  ...(basePath ? { basePath, assetPrefix: basePath } : {}),
   /**
    * Standalone output for container deployment (Phase 5 M31): Next traces the modules the
    * server actually needs into `.next/standalone`, so the runtime image carries about 150MB
