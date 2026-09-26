@@ -33,8 +33,14 @@ export interface DrapeInput {
 }
 
 export interface DrapeOutput {
-  /** Displacement out of the plane. */
+  /** Displacement out of the plane: folds, drift and gust together. */
   z: number;
+  /**
+   * The wind's share of `z` on its own. A garment on a form damps its folds towards the side
+   * seams but is pushed by the wind as a whole, so it needs the two apart; a hanging panel
+   * uses `z` and never reads this.
+   */
+  gust: number;
   /** Where the vertex ends up once stretch has narrowed and lengthened the cloth. */
   x: number;
   y: number;
@@ -61,6 +67,7 @@ export function drape({ x, y, height, flow, stretch, wind, pull, time }: DrapeIn
 
   return {
     z: fold + drift + gust,
+    gust,
     // Stretch narrows and lengthens, and the fabric's own recovery figure decides how much: a
     // cotton lycra pulls far and springs back, a gajji barely moves.
     x: x * (1 - pull * stretch * 0.22),

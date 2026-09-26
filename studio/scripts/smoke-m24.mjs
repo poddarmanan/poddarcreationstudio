@@ -27,6 +27,34 @@ async function signature(page) {
 
 const distance = colourDistance;
 
+/** A decoded frame of the stage, for pixel-level comparison. */
+async function frame(page) {
+  await page.waitForTimeout(700);
+  return decodePng(await page.locator('[data-stage] canvas').first().screenshot());
+}
+
+/**
+ * Fraction of pixels that changed between two frames of the same size.
+ *
+ * Movement is asked about here, and a mean colour is a poor witness to movement: cloth that
+ * flutters brightens some folds and darkens others and leaves the mean where it was — which is
+ * how a garment visibly rippling in a strong wind once measured as Δ0.5 and "did not move".
+ * Counting changed pixels sees any motion; the caller compares it against two still frames so
+ * the idle rock and the folds' own drift are not mistaken for wind.
+ */
+function changedFraction(a, b) {
+  if (a.width !== b.width || a.height !== b.height) return 1;
+  let changed = 0;
+  const n = a.width * a.height;
+  for (let i = 0; i < n; i++) {
+    const o = i * a.channels;
+    const p = i * b.channels;
+    const d = Math.abs(a.data[o] - b.data[p]) + Math.abs(a.data[o + 1] - b.data[p + 1]) + Math.abs(a.data[o + 2] - b.data[p + 2]);
+    if (d > 20) changed += 1;
+  }
+  return changed / n;
+}
+
 async function main() {
   console.log('base:', BASE);
   const browser = await chromium.launch({ executablePath: CHROME, args: ['--no-sandbox', '--use-gl=swiftshader', '--enable-unsafe-swiftshader'] });
@@ -84,10 +112,17 @@ async function main() {
   await page.getByRole('button', { name: /^Shine$/i }).first().click();
 
   // ---- Wind ------------------------------------------------------------------------------
+  // Two still frames first, so the cloth's own idle motion is measured rather than assumed.
+  const stillA = await frame(page);
+  const stillB = await frame(page);
+  const baseline = changedFraction(stillA, stillB);
   await page.getByRole('button', { name: /^Strong$/i }).first().click();
-  const windy = await signature(page);
-  if (distance(rest, windy) < 1) bad(`the wind rail did not move the cloth (Δ${distance(rest, windy).toFixed(1)})`);
-  else ok(`the wind rail moves the cloth (Δ${distance(rest, windy).toFixed(1)})`);
+  const windy = await frame(page);
+  const moved = changedFraction(stillB, windy);
+  // Strong wind has to add at least two fifths again to the cloth's own idle motion — the rock
+  // and the folds' drift are not nothing — and at least a full point of the frame.
+  if (moved < baseline * 1.4 || moved < baseline + 0.01) bad(`the wind rail did not move the cloth (${(moved * 100).toFixed(1)}% of pixels changed vs ${(baseline * 100).toFixed(1)}% at rest)`);
+  else ok(`the wind rail moves the cloth (${(moved * 100).toFixed(1)}% of pixels changed vs ${(baseline * 100).toFixed(1)}% at rest)`);
 
   // ---- Every quality renders as itself ----------------------------------------------------
   // The failure mode that looks fine is a viewer that shows the same cloth whatever you open.

@@ -49,15 +49,21 @@ export interface FabricViewerProps {
   captureId?: string;
 }
 
-/** Drag to turn, wheel to come closer. Cloth is judged at an angle, so turning is the point. */
+/** A finished garment is about 1.15m tall; how far it is raised on the stage. */
+const GARMENT_METRES = 1.15;
+const GARMENT_LIFT = 0.07;
+
 /**
  * The stand the cloth hangs from once "Watch in 3D" is on. A length of fabric floating in
  * space has no scale; a stand of a known height gives the eye something to measure against,
  * which is the same reason a showroom drapes cloth over a rail rather than holding it up.
  */
-function Stand() {
+function Stand({ hem }: { hem: number }) {
+  // Placed under the hem of whatever is on the turntable rather than at a fixed height: a
+  // stand that floats a hand's breadth below a kurti, or pokes up through a long panel, is
+  // worse than no stand at all.
   return (
-    <group position={[0, -0.72, 0]}>
+    <group position={[0, hem - 0.125, 0]}>
       <mesh position={[0, 0.06, 0]}>
         <cylinderGeometry args={[0.012, 0.012, 0.12, 12]} />
         <meshBasicMaterial color="#B9A88E" />
@@ -105,9 +111,31 @@ function Turntable({ children, idle, free = false }: { children: ReactNode; idle
     gl.domElement.releasePointerCapture?.(e.pointerId);
   }, [gl]);
 
+  const wasFree = useRef(free);
+
   useFrame((state, delta) => {
     const g = group.current;
     if (!g) return;
+
+    // Switching modes must change what happens *next*, not where the cloth is *now*. The rock
+    // counter has been running since the lab opened, so reading it straight into the free-turn
+    // formula on the frame the toggle lands would set a target several revolutions away, and
+    // the eased follow turned that into a half-second whip — the "glitch" on tapping the pill.
+    // Re-basing the counter to the current angle on each transition makes the toggle seamless
+    // in both directions.
+    if (wasFree.current !== free) {
+      if (free) {
+        rock.current = g.rotation.y / 0.7;
+      } else {
+        // Bring the accumulated turn back into one revolution, then resume the rock from the
+        // phase nearest to where the cloth is, so it settles rather than snaps.
+        g.rotation.y = Math.atan2(Math.sin(g.rotation.y), Math.cos(g.rotation.y));
+        rock.current = Math.asin(Math.max(-1, Math.min(1, g.rotation.y / 0.34)));
+      }
+      target.current.y = g.rotation.y;
+      wasFree.current = free;
+    }
+
     // Left alone, the cloth *rocks* rather than spins. A merchant rocks a bolt under the light
     // through maybe forty degrees to watch the shade shift; nobody turns it through 360°, and
     // letting it do so shows the back of a surface that has no back.
@@ -172,6 +200,7 @@ export function FabricViewer({
   const tier = useEffectiveTier(detected.tier);
   const [, setStats] = useState<StageStats | null>(null);
   const spec = useMemo(() => fabricMaterialSpec(fabric, colour), [fabric, colour]);
+  const onGarment = !!garment && garment !== 'roll';
 
   const handleStats = useCallback(
     (s: StageStats) => {
@@ -193,18 +222,23 @@ export function FabricViewer({
       <Exposure light={light} />
       <LightingRig light={light} tier={tier} />
       <ShineSweep active={shine} sheen={fabric.sheen} />
-      {free && <Stand />}
+      {free && <Stand hem={onGarment ? GARMENT_LIFT - GARMENT_METRES / 2 : -(rolled ? 1.5 : 1.35) / 2} />}
       <Turntable idle={!pulled} free={free}>
-        {garment && garment !== 'roll' ? (
-          <GarmentMesh
-            garment={garment}
-            spec={spec}
-            tier={tier}
-            flow={fabric.flow}
-            stretch={fabric.stretch}
-            wind={wind}
-            pulled={pulled}
-          />
+        {onGarment ? (
+          // Lifted a little: the lab's test pills sit over the bottom of the stage on a phone,
+          // and a hem hidden behind them reads as a garment cut off.
+          <group position={[0, GARMENT_LIFT, 0]}>
+            <GarmentMesh
+              garment={garment}
+              spec={spec}
+              tier={tier}
+              flow={fabric.flow}
+              stretch={fabric.stretch}
+              wind={wind}
+              pulled={pulled}
+              metres={GARMENT_METRES}
+            />
+          </group>
         ) : (
           <FabricPanel
             spec={spec}

@@ -21,7 +21,28 @@ const bad = (m) => { problems.push(m); console.error(`  ✗ ${m}`); };
  * screenshot onto an opaque backing, so the transparent parts of a WebGL canvas come back as
  * solid RGB and an alpha test silently matches nothing at all.
  */
+/**
+ * One capture, averaged over three moments of the turntable's idle rock. A garment with volume
+ * changes its outline as it turns — a flat sheet did not — and a single frame's profile carries
+ * the rock's phase in it. Three frames spread over a third of the rock period take most of that
+ * out, and the noise floor below is measured the same way, so the comparison stays honest.
+ */
 async function silhouette(page) {
+  const samples = [];
+  for (let i = 0; i < 3; i++) {
+    if (i) await page.waitForTimeout(2100);
+    samples.push(await silhouetteOnce(page));
+  }
+  const rows = new Map();
+  for (const s of samples) for (const r of s.rowWidths) rows.set(r.y, (rows.get(r.y) ?? 0) + r.w / samples.length);
+  return {
+    ...samples[0],
+    coverage: samples.reduce((a, s) => a + s.coverage, 0) / samples.length,
+    rowWidths: [...rows.entries()].sort((a, b) => a[0] - b[0]).map(([y, w]) => ({ y, w })),
+  };
+}
+
+async function silhouetteOnce(page) {
   await page.waitForTimeout(900);
   const png = decodePng(await page.locator('[data-stage] canvas').first().screenshot());
   const { width, height, channels, data } = png;
@@ -29,11 +50,14 @@ async function silhouette(page) {
     const o = (y * width + x) * channels;
     return [data[o], data[o + 1], data[o + 2]];
   };
-  // The top-left corner is always backdrop — the cloth is centred and never reaches it.
-  const bg = at(1, 1);
+  // Cloth is told from backdrop by hue, not by distance from a corner pixel. The backdrop is a
+  // soft radial gradient, and a distance threshold against one corner classified about half of
+  // the *empty* stage as cloth — which is why every garment used to report ~50% coverage and an
+  // identical shape. The measurement shade is a blue; the backdrop is warm, so red exceeds blue
+  // everywhere on it, and blue exceeds red on the cloth however it is lit.
   const isCloth = (x, y) => {
-    const [r, g, b] = at(x, y);
-    return Math.abs(r - bg[0]) + Math.abs(g - bg[1]) + Math.abs(b - bg[2]) > 26;
+    const [r, , b] = at(x, y);
+    return b - r > 24;
   };
 
   let covered = 0;
@@ -53,13 +77,46 @@ async function silhouette(page) {
   return { coverage: covered / (width * (height / 2)), rowWidths, width, height, mean: meanColour(png) };
 }
 
-/** How much a silhouette's width varies down its length — a rectangle is flat, a dress flares. */
+/**
+ * The silhouette's width down its length, resampled into a fixed number of bands and normalised
+ * to its widest point — a shape, independent of how big it is on screen or where it sits.
+ *
+ * Replaces a max-minus-min "taper" that saturated at ~99% for every garment (one thin row at a
+ * neckline or hem is enough), and so could not tell a kurti from a dress except by the area
+ * they covered. Area moved when the garments gained volume and perspective; shape did not.
+ */
+function profile(s, bands = 24) {
+  const rows = s.rowWidths;
+  if (rows.length < 8) return null;
+  const top = rows[0].y;
+  const span = rows[rows.length - 1].y - top || 1;
+  const sums = new Array(bands).fill(0);
+  const counts = new Array(bands).fill(0);
+  for (const r of rows) {
+    const b = Math.min(bands - 1, Math.floor(((r.y - top) / span) * bands));
+    sums[b] += r.w;
+    counts[b] += 1;
+  }
+  const means = sums.map((v, i) => (counts[i] ? v / counts[i] : 0));
+  const max = Math.max(...means) || 1;
+  return means.map((m) => m / max);
+}
+
+/** How far from a rectangle, judged on the middle of the garment — hems and necklines are noisy. */
 function taper(s) {
-  if (s.rowWidths.length < 8) return 0;
-  const widths = s.rowWidths.map((r) => r.w);
-  const max = Math.max(...widths);
-  const min = Math.min(...widths);
-  return max > 0 ? (max - min) / max : 0;
+  const p = profile(s);
+  if (!p) return 0;
+  const inner = p.slice(2, -2).filter((v) => v > 0);
+  if (inner.length < 4) return 0;
+  return 1 - Math.min(...inner) / Math.max(...inner);
+}
+
+/** Mean absolute difference between two shape profiles. Zero is identical; a sleeve is about 0.05. */
+function shapeDelta(a, b) {
+  const pa = profile(a);
+  const pb = profile(b);
+  if (!pa || !pb) return 0;
+  return pa.reduce((acc, v, i) => acc + Math.abs(v - pb[i]), 0) / pa.length;
 }
 
 async function main() {
@@ -72,6 +129,14 @@ async function main() {
   await page.waitForTimeout(700);
   await page.locator('[class*="pc-hv-lift"]').first().click({ force: true });
   await page.waitForSelector('[data-stage="canvas"]', { timeout: 20_000 });
+
+  // Measure in a blue. The silhouette is found by hue against a warm backdrop (see
+  // `silhouette`), and the collection opens on whichever shade comes first — often an ivory
+  // that no threshold can separate from the backdrop.
+  for (const shade of ['Peacock', 'Firozi', 'Neel', 'Aasmani']) {
+    const chip = page.getByRole('button', { name: new RegExp(`^${shade}$`, 'i') }).first();
+    if (await chip.count()) { await chip.click(); await page.waitForTimeout(600); break; }
+  }
 
   const shapes = {};
   for (const name of ['Kurti', 'Shirt', 'Dress', 'T-Shirt', 'Roll']) {
@@ -90,12 +155,17 @@ async function main() {
   }
   if (!problems.length) ok('every garment renders as a shaped silhouette, not a rectangle');
 
-  // And the cuts must differ from each other.
+  // And the cuts must differ from each other — by shape, with the noise floor measured rather
+  // than assumed: the same cut captured twice sets what "the same" looks like on this machine.
+  await page.getByRole('button', { name: /^Kurti$/i }).first().click();
+  const kurtiAgain = await silhouette(page);
+  const noise = shapeDelta(shapes.Kurti, kurtiAgain);
+  ok(`noise floor: the same cut twice differs by Δ${noise.toFixed(3)}`);
   const pairs = [['Kurti', 'Dress'], ['Shirt', 'T-Shirt']];
   for (const [a, b] of pairs) {
     if (!shapes[a] || !shapes[b]) continue;
-    const delta = Math.abs(shapes[a].coverage - shapes[b].coverage) + Math.abs(taper(shapes[a]) - taper(shapes[b]));
-    if (delta < 0.02) bad(`${a} and ${b} render as the same shape (Δ${delta.toFixed(3)})`);
+    const delta = shapeDelta(shapes[a], shapes[b]);
+    if (delta < Math.max(0.03, noise * 3)) bad(`${a} and ${b} render as the same shape (Δ${delta.toFixed(3)}, noise ${noise.toFixed(3)})`);
     else ok(`${a} and ${b} are different cuts (Δ${delta.toFixed(3)})`);
   }
 
