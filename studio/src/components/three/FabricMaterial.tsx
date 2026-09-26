@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
-import { useThree } from '@react-three/fiber';
+import { useEffect, useMemo, useCallback, useRef } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { QualityTier } from '@/lib/three/capability';
 import { textureSizeFor } from '@/lib/three/capability';
@@ -36,11 +36,63 @@ export interface FabricMaterialProps {
    * a 256px map that is right for a whole garment is porridge at 20mm.
    */
   size?: number;
+  /**
+   * Gentle motion for cloth that is not simulated — a supplied garment model with too many
+   * vertices to relax every frame. Ripples along the surface normal, growing from `top` (still)
+   * to `hem` (loose), in stage-space y; `amount` is 0–1 and rises with the wind. Done in the
+   * vertex shader, so it costs nothing on the CPU whatever the vertex count.
+   */
+  sway?: { top: number; hem: number; amount: number };
 }
 
-export function FabricMaterial({ spec, tier, repeat = 1, side = THREE.DoubleSide, size: sizeOverride }: FabricMaterialProps) {
+/** Vertex-shader ripple for rigid cloth. Uniform names are prefixed so nothing in three's own shader can collide. */
+const SWAY_UNIFORMS = `
+uniform float pcSwayTime;
+uniform float pcSwayAmount;
+uniform float pcSwayTop;
+uniform float pcSwayHem;
+`;
+const SWAY_VERTEX = `
+#include <begin_vertex>
+{
+  vec4 pcWorld = modelMatrix * vec4(position, 1.0);
+  float pcHang = clamp((pcSwayTop - pcWorld.y) / max(0.001, pcSwayTop - pcSwayHem), 0.0, 1.0);
+  float pcWave = 0.012 * sin(pcWorld.y * 7.0 + pcSwayTime * 1.3 + pcWorld.x * 3.0)
+               + 0.008 * sin(pcWorld.x * 11.0 - pcSwayTime * 0.9 + pcWorld.y * 2.0)
+               + 0.003 * sin(pcSwayTime * 0.7);
+  // Displacement is in metres; the mesh may be modelled in any unit, so divide by its scale.
+  float pcScale = max(0.001, length(vec3(modelMatrix[0])));
+  transformed += normal * (pcSwayAmount * pcHang * pcHang * pcWave / pcScale);
+}
+`;
+
+export function FabricMaterial({ spec, tier, repeat = 1, side = THREE.DoubleSide, size: sizeOverride, sway }: FabricMaterialProps) {
   const gl = useThree((s) => s.gl);
   const capabilities = gl.capabilities;
+  const swayUniforms = useRef<{ pcSwayTime: { value: number }; pcSwayAmount: { value: number }; pcSwayTop: { value: number }; pcSwayHem: { value: number } } | null>(null);
+  const swayOn = !!sway;
+
+  // Installs the ripple into whichever material is in use, keeping a handle on its uniforms.
+  const onBeforeCompile = useCallback(
+    (shader: { uniforms: Record<string, { value: unknown }>; vertexShader: string }) => {
+      if (!swayOn) return;
+      const u = { pcSwayTime: { value: 0 }, pcSwayAmount: { value: 0 }, pcSwayTop: { value: 0 }, pcSwayHem: { value: -1 } };
+      Object.assign(shader.uniforms, u);
+      shader.vertexShader = SWAY_UNIFORMS + shader.vertexShader.replace('#include <begin_vertex>', SWAY_VERTEX);
+      swayUniforms.current = u;
+    },
+    [swayOn]
+  );
+  const cacheKey = useCallback(() => (swayOn ? 'pc-fabric-sway' : 'pc-fabric'), [swayOn]);
+
+  useFrame((state) => {
+    const u = swayUniforms.current;
+    if (!u || !sway) return;
+    u.pcSwayTime.value = state.clock.elapsedTime;
+    u.pcSwayAmount.value = sway.amount;
+    u.pcSwayTop.value = sway.top;
+    u.pcSwayHem.value = sway.hem;
+  });
 
   const size = useMemo(
     () => Math.min(sizeOverride ?? textureSizeFor(tier, capabilities.maxTextureSize ?? 2048), capabilities.maxTextureSize ?? 4096),
@@ -90,6 +142,8 @@ export function FabricMaterial({ spec, tier, repeat = 1, side = THREE.DoubleSide
   if (tier === 'low') {
     return (
       <meshStandardMaterial
+        onBeforeCompile={onBeforeCompile}
+        customProgramCacheKey={cacheKey}
         map={tiled.map}
         normalMap={tiled.normalMap}
         normalScale={new THREE.Vector2(spec.normalScale, spec.normalScale)}
@@ -104,6 +158,8 @@ export function FabricMaterial({ spec, tier, repeat = 1, side = THREE.DoubleSide
 
   return (
     <meshPhysicalMaterial
+      onBeforeCompile={onBeforeCompile}
+      customProgramCacheKey={cacheKey}
       map={tiled.map}
       normalMap={tiled.normalMap}
       normalScale={new THREE.Vector2(spec.normalScale, spec.normalScale)}

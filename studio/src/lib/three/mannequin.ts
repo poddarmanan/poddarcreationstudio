@@ -55,7 +55,19 @@ export interface FormFit {
  * caller knows how deep the cloth actually is (the procedural cuts do). `positions` are xyz
  * triples of the garment's vertices in stage space.
  */
-export function fitForm(positions: ArrayLike<number>, sex: FormSex, maxDepth = Infinity): FormFit | null {
+export interface FitOptions {
+  /** Ceiling on the form's half-depth, metres, where the caller knows how deep the cloth is. */
+  maxDepth?: number;
+  /** Which percentile of a band's |x| and |z| to read as the torso. Lower excludes sleeves. */
+  percentile?: number;
+  /** Fraction of the measured torso the form fills. */
+  ease?: number;
+  /** How far below the garment's top the form's shoulder line sits, as a fraction of height. */
+  shoulderDrop?: number;
+}
+
+export function fitForm(positions: ArrayLike<number>, sex: FormSex, options: FitOptions = {}): FormFit | null {
+  const { maxDepth = Infinity, percentile = 0.6, ease = 0.84, shoulderDrop = 0.07 } = options;
   let top = -Infinity;
   let bottom = Infinity;
   for (let i = 1; i < positions.length; i += 3) {
@@ -73,7 +85,7 @@ export function fitForm(positions: ArrayLike<number>, sex: FormSex, maxDepth = I
     }
     if (values.length < 8) return null;
     values.sort((a, b) => a - b);
-    return values[Math.floor(values.length * 0.6)];
+    return values[Math.floor(values.length * percentile)];
   };
 
   let width = Infinity;
@@ -88,9 +100,9 @@ export function fitForm(positions: ArrayLike<number>, sex: FormSex, maxDepth = I
   if (!Number.isFinite(width)) return null;
   if (!Number.isFinite(depth)) depth = width * 0.6;
 
-  const chest = width * 0.84;
+  const chest = width * ease;
   return {
-    shoulderY: top - height * 0.07,
+    shoulderY: top - height * shoulderDrop,
     hipY: Math.max(bottom + 0.02, top - Math.min(height * 0.6, 0.62)),
     chest,
     depth: Math.min(depth * 0.8, maxDepth, chest * 0.72),

@@ -39,11 +39,11 @@ export { RIG_LIGHT as RIGS };
  * rig's ambient colour tints the panels and its ambient intensity scales them.
  */
 const ROOM: Record<LightKey, { intensity: number; top: string; side: string; floor: string }> = {
-  daylight: { intensity: 1.2, top: '#EAF2FF', side: '#FFF6E6', floor: '#C9C2B6' },
+  daylight: { intensity: 1.0, top: '#EAF2FF', side: '#FFF6E6', floor: '#C9C2B6' },
   golden: { intensity: 1.1, top: '#FFD9A6', side: '#FFB877', floor: '#8C6E52' },
-  studio: { intensity: 1.3, top: '#FFFFFF', side: '#F4F4F4', floor: '#B9B4AC' },
-  boutique: { intensity: 0.6, top: '#FFE7C2', side: '#3A342E', floor: '#1E1B18' },
-  white: { intensity: 1.6, top: '#FFFFFF', side: '#FFFFFF', floor: '#E6E6E6' },
+  studio: { intensity: 1.1, top: '#FFFFFF', side: '#F4F4F4', floor: '#B9B4AC' },
+  boutique: { intensity: 0.5, top: '#FFE7C2', side: '#3A342E', floor: '#1E1B18' },
+  white: { intensity: 1.35, top: '#FFFFFF', side: '#FFFFFF', floor: '#E6E6E6' },
 };
 
 export function LightingRig({ light, tier, floor = -0.7 }: { light: LightKey; tier: QualityTier; floor?: number }) {
@@ -73,7 +73,7 @@ export function LightingRig({ light, tier, floor = -0.7 }: { light: LightKey; ti
       </Environment>
 
       {/* A little ambient remains for the shadowed side of a fold; the room does the rest. */}
-      <ambientLight color={new THREE.Color(rig.ambient.colour)} intensity={rig.ambient.intensity * 0.5} />
+      <ambientLight color={new THREE.Color(rig.ambient.colour)} intensity={rig.ambient.intensity * 0.15} />
       <directionalLight
         color={keyColour}
         intensity={rig.key.intensity}

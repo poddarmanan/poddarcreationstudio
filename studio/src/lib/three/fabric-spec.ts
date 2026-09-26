@@ -196,12 +196,17 @@ export function fabricMaterialSpec(fabric: FabricLike, colour: ColourLike): Fabr
   // family's character rather than across it: a shinier cotton is still cotton.
   const lustre = Math.min(1, Math.max(0, fabric.sheen / 0.5));
 
+  // The sheen is the shade's own colour lifted towards the preset's, not a white veil laid
+  // over it. A near-white sheen at full strength desaturated every dye — a sky blue rendered
+  // as milk — and is why the cloth on the stage did not match the swatch beside it.
+  const sheenColor = mixHex(weave.hex, preset.sheenColor, 0.3);
+
   return {
     weave,
     roughness: Math.max(0.45, preset.roughness - lustre * 0.22),
-    sheen: preset.sheen,
+    sheen: preset.sheen * 0.15,
     sheenRoughness: preset.sheenRoughness,
-    sheenColor: preset.sheenColor,
+    sheenColor,
     anisotropy: preset.anisotropy * (0.6 + lustre * 0.6),
     anisotropyRotation: preset.anisotropyRotation,
     transmission: kg < preset.transmitsBelowKg ? Math.min(0.25, (preset.transmitsBelowKg - kg) / 40) : 0,
@@ -210,6 +215,14 @@ export function fabricMaterialSpec(fabric: FabricLike, colour: ColourLike): Fabr
     // believable when the camera comes close in the microscope (M27).
     tileMetres: 0.05 * (60 / Math.max(24, threadCount)),
   };
+}
+
+/** Linear blend of two #rrggbb colours, `t` towards the second. */
+function mixHex(a: string, b: string, t: number): string {
+  const pa = parseInt(a.slice(1), 16);
+  const pb = parseInt(b.slice(1), 16);
+  const ch = (shift: number) => Math.round(((pa >> shift) & 255) * (1 - t) + ((pb >> shift) & 255) * t);
+  return `#${((ch(16) << 16) | (ch(8) << 8) | ch(0)).toString(16).padStart(6, '0')}`;
 }
 
 /** How many times the weave tiles across a surface of a given size, in metres. */

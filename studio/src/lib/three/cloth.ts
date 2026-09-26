@@ -27,6 +27,8 @@ export interface ClothForces {
   spin: { omega: number; alpha: number };
   /** Extra downward acceleration on the lowest part of the cloth — the stretch test's tug. */
   tug: number;
+  /** Velocity damping per second; 2.2 if omitted. Higher settles faster and swings less. */
+  damping?: number;
 }
 
 /** Returns the corrected position if `p` is inside a solid, or null if it is clear. */
@@ -67,6 +69,12 @@ export class Cloth {
     for (let i = 0; i < this.count; i++) this.bottom[i] = (top - rest[i * 3 + 1]) / (top - low || 1);
   }
 
+  /** True if any vertex has stopped being a number — the one failure a solver cannot recover from on its own. */
+  broken(): boolean {
+    for (let i = 0; i < this.pos.length; i++) if (!Number.isFinite(this.pos[i])) return true;
+    return false;
+  }
+
   /** Puts every vertex back where it started. */
   reset(): void {
     this.pos.set(this.rest);
@@ -82,7 +90,7 @@ export class Cloth {
    */
   step(dt: number, forces: ClothForces, collide: Collider | null, substeps = 2, iterations = 8): void {
     const h = Math.min(dt, 1 / 30) / substeps;
-    const damping = 1 - Math.min(0.5, 2.2 * h);
+    const damping = 1 - Math.min(0.5, (forces.damping ?? 2.2) * h);
     const { pos, prev, pinned, edges, lengths, count, bottom, scratch } = this;
     const [wx, wy, wz] = forces.wind;
     const { omega, alpha } = forces.spin;

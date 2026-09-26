@@ -193,8 +193,9 @@ function buildCloth(geometry: THREE.BufferGeometry, rest: Float32Array, room: Fl
     edges[shell.length * 2 + i * 2 + 1] = n + i;
   }
   const cloth = new Cloth(all, edges, pinned);
-  // Settle before the first frame, so a garment does not visibly drop onto its form on load.
-  for (let i = 0; i < 40; i++) cloth.step(1 / 60, { gravity: 3, wind: [0, 0, 0], spin: { omega: 0, alpha: 0 }, tug: 0 }, null);
+  // Settle before the first frame — two and a half seconds of it — so a garment does not
+  // visibly drop onto its form on load, nor keep creeping for the first seconds it is seen.
+  for (let i = 0; i < 150; i++) cloth.step(1 / 60, { gravity: 3, wind: [0, 0, 0], spin: { omega: 0, alpha: 0 }, tug: 0, damping: 3.6 }, null);
   return cloth;
 }
 
@@ -234,18 +235,28 @@ export function GarmentMesh({ garment, spec, tier, flow, stretch, wind = 0, pull
     const result = buildGeometry(path, metres, maxEdge);
     if (!result) return null;
     const rest = Float32Array.from(result.geometry.attributes.position.array);
+    // The simulation is a layer on top of a garment that already renders. If building it fails
+    // on some device, or `?physics=off` is on the URL, the garment is drawn from its rest shape
+    // — which is the garment as it was before there was a simulation, not a blank stage.
+    let cloth: Cloth | null = null;
+    try {
+      const off = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('physics') === 'off';
+      if (!off) cloth = buildCloth(result.geometry, rest, result.room, depth);
+    } catch (err) {
+      console.error('Garment simulation unavailable, drawing the rest shape', err);
+    }
     return {
       front: result.geometry,
       back: result.geometry.clone(),
       rest,
       room: result.room,
-      cloth: buildCloth(result.geometry, rest, result.room, depth),
+      cloth,
     };
   }, [garment, metres, tier, depth]);
 
   const repeat = useMemo(() => tileRepeat(spec, metres), [spec, metres]);
   // The cloth is `depth` deep at most, so the form is capped a little inside that.
-  const fit = useMemo(() => (built ? fitForm(built.rest, FORM_SEX[garment], depth * 0.62) : null), [built, garment, depth]);
+  const fit = useMemo(() => (built ? fitForm(built.rest, FORM_SEX[garment], { maxDepth: depth * 0.62 }) : null), [built, garment, depth]);
   const collider = useMemo(() => colliderFor(fit), [fit]);
 
   useFrame((state, delta) => {
@@ -276,28 +287,35 @@ export function GarmentMesh({ garment, spec, tier, flow, stretch, wind = 0, pull
     sp.angle = angle;
     sp.omega = omega;
 
-    // Wind as a force: a steady push that breathes, plus a little turbulence. Sized against
-    // the reduced gravity so that "Low" stirs the hem and "Strong" lifts it, and nothing lays
-    // the garment out flat.
-    const gust = wind * 0.32 * (0.9 + 0.5 * Math.sin(t * 1.4) + 0.2 * Math.sin(t * 3.7));
-    built.cloth.step(
-      dt,
-      {
-        gravity: 3,
-        wind: [gust * 0.15 * Math.sin(t * 0.7), 0, gust],
-        spin: { omega: omega * 0.6, alpha: alpha * 0.6 },
-        tug: pull.current * 5,
-      },
-      collider,
-      2,
-      tier === 'high' ? 7 : 5
-    );
+    // Wind as a force, rising with the square of the rail so "Low" barely stirs a hem and
+    // "Strong" lifts it. A steady push that breathes, plus a little turbulence — and heavy
+    // damping, because a garment on a form that never stops moving reads as nervous, not alive.
+    const breeze = (wind * wind) / 9;
+    const gust = breeze * 0.95 * (0.9 + 0.4 * Math.sin(t * 1.1) + 0.15 * Math.sin(t * 2.9));
+    const sim = built.cloth;
+    if (sim) {
+      sim.step(
+        dt,
+        {
+          gravity: 3,
+          wind: [gust * 0.12 * Math.sin(t * 0.6), 0, gust],
+          spin: { omega: omega * 0.6, alpha: alpha * 0.6 },
+          tug: pull.current * 5,
+          damping: 3.6,
+        },
+        collider,
+        tier === 'low' ? 1 : 2,
+        tier === 'high' ? 6 : tier === 'medium' ? 4 : 3
+      );
+      if (sim.broken()) sim.reset();
+    }
 
     // The simulation says where the cloth is; the drape function still supplies the folds, as
-    // a detail layer along the shell's thickness. Folds are scaled by how much room the shell
-    // has, so they never cross the seams.
+    // a detail layer along the shell's thickness — slowed down, because folds on a garment
+    // settle rather than travel. Folds are scaled by how much room the shell has, so they never
+    // cross the seams.
     const n = built.rest.length / 3;
-    const pos = built.cloth.pos;
+    const pos = sim ? sim.pos : null;
     const fp = f.geometry.attributes.position;
     const bp = b.geometry.attributes.position;
     for (let i = 0; i < n; i++) {
@@ -305,13 +323,18 @@ export function GarmentMesh({ garment, spec, tier, flow, stretch, wind = 0, pull
       const rx = built.rest[o];
       const ry = built.rest[o + 1];
       const room = built.room[i];
-      const d = drape({ x: rx * 0.5, y: ry, height: metres, flow, stretch, wind, pull: pull.current, time: t });
+      const d = drape({ x: rx * 0.5, y: ry, height: metres, flow, stretch, wind, pull: pull.current, time: t * 0.45 });
       const hang = Math.max(0, 0.5 - ry / metres);
-      const flutter = wind * 0.03 * Math.sin(rx * 18 + t * 5 + ry * 4) * hang * room;
+      // Flutter only once the wind is past a breeze; a "Low" setting should not shiver.
+      const flutter = Math.max(0, wind - 1) * 0.02 * Math.sin(rx * 18 + t * 4 + ry * 4) * hang * room;
       const fold = ((d.z - d.gust) * 0.9 + flutter) * room;
-      fp.setXYZ(i, pos[o], pos[o + 1], pos[o + 2] + fold);
+      const body = depth * room;
+      const fx = pos ? pos[o] : rx;
+      const fy = pos ? pos[o + 1] : ry;
+      const fz = pos ? pos[o + 2] : body;
+      fp.setXYZ(i, fx, fy, fz + fold);
       const q = n * 3 + o;
-      bp.setXYZ(i, pos[q], pos[q + 1], pos[q + 2] - fold * 0.5);
+      bp.setXYZ(i, pos ? pos[q] : rx, pos ? pos[q + 1] : ry, (pos ? pos[q + 2] : -body) - fold * 0.5);
     }
     fp.needsUpdate = true;
     bp.needsUpdate = true;

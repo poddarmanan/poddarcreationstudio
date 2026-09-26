@@ -1,0 +1,68 @@
+import { chromium } from 'playwright-core';
+import { decodePng } from './lib/png.mjs';
+
+/**
+ * M43 — colour fidelity: the cloth on the stage is the colour of the swatch beside it.
+ *
+ * The complaint this guards against was exact: "the colours look not what it's shown on the
+ * colour shade". The causes were a film tone curve, a near-white sheen laid over every dye and a
+ * room lit about half a stop too bright, and each of them moved the render away from the sRGB
+ * value the chip is painted in. Under the white cyc — the rig with no lighting opinion — and
+ * with the wind off, the middle of the hanging panel is compared with the chip for four shades
+ * across the gamut: a teal, a red, a yellow and an off-white.
+ *
+ * A folded cloth is never a flat swatch (highlights and shadows pull both ways), so the bound is
+ * generous; what it forbids is the systematic drift that was there.
+ */
+const BASE = process.argv[2] ?? 'http://localhost:3000';
+const CHROME = '/opt/pw-browsers/chromium';
+const SHADES = ['Peacock', 'Surkh', 'Haldi', 'Kapaas'];
+const MAX_DISTANCE = 40;
+
+const problems = [];
+const ok = (m) => console.log(`  ✓ ${m}`);
+const bad = (m) => { problems.push(m); console.log(`  ✗ ${m}`); };
+
+async function main() {
+  console.log('base:', BASE);
+  const browser = await chromium.launch({ executablePath: CHROME, args: ['--no-sandbox', '--use-gl=swiftshader', '--enable-unsafe-swiftshader'] });
+  const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  await page.goto(`${BASE}/?quality=medium`, { waitUntil: 'networkidle' });
+  await page.getByRole('button', { name: /^Collection$/i }).first().click();
+  await page.waitForTimeout(700);
+  await page.locator('[class*="pc-hv-lift"]').first().click({ force: true });
+  await page.waitForSelector('[data-stage="canvas"]', { timeout: 20_000 });
+  const click = (re) => page.getByRole('button', { name: re }).first().evaluate((el) => el.click());
+  await click(/^Roll$/i);
+  await click(/^White Cyc$/i);
+  await click(/^None$/i);
+  await page.waitForTimeout(3000);
+  ok('the lab opened on the hanging panel under the white cyc');
+
+  for (const shade of SHADES) {
+    const chip = page.getByRole('button', { name: new RegExp(`^${shade}$`, 'i') }).first();
+    if (!(await chip.count())) { console.log(`  – ${shade} (not in this quality)`); continue; }
+    // The chip is painted in oklch(); a 2D canvas converts it to the sRGB bytes a screenshot has.
+    const chipRgb = await chip.evaluate((el) => {
+      const c = document.createElement('canvas'); c.width = c.height = 1;
+      const ctx = c.getContext('2d'); ctx.fillStyle = getComputedStyle(el).backgroundColor; ctx.fillRect(0, 0, 1, 1);
+      return Array.from(ctx.getImageData(0, 0, 1, 1).data.slice(0, 3));
+    });
+    await chip.evaluate((el) => el.click());
+    await page.waitForTimeout(3000);
+    const png = decodePng(await page.locator('[data-stage] canvas').first().screenshot());
+    const cx = Math.floor(png.width / 2), cy = Math.floor(png.height / 2);
+    let r = 0, g = 0, b = 0, n = 0;
+    for (let y = cy - 100; y < cy + 100; y += 2) for (let x = cx - 30; x < cx + 30; x += 2) { const o = (y * png.width + x) * png.channels; r += png.data[o]; g += png.data[o + 1]; b += png.data[o + 2]; n++; }
+    const cloth = [r / n, g / n, b / n].map(Math.round);
+    const distance = Math.hypot(cloth[0] - chipRgb[0], cloth[1] - chipRgb[1], cloth[2] - chipRgb[2]);
+    if (distance > MAX_DISTANCE) bad(`${shade}: cloth rgb(${cloth}) is Δ${distance.toFixed(0)} from its chip rgb(${chipRgb})`);
+    else ok(`${shade}: cloth rgb(${cloth}) vs chip rgb(${chipRgb}) — Δ${distance.toFixed(0)}`);
+  }
+
+  await browser.close();
+  if (problems.length) { console.log(`\nM43 SMOKE FAILED — ${problems.length} problem(s)`); process.exit(1); }
+  console.log('\nM43 SMOKE PASSED');
+}
+
+main().catch((err) => { console.error('M43 SMOKE FAILED:', err); process.exit(1); });

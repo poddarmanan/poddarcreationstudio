@@ -215,7 +215,10 @@ export default function StageCanvas({
         }}
         camera={{ position: [0, 0, 2.6], fov: 35 }}
         onCreated={({ gl }) => {
-          gl.toneMapping = THREE.ACESFilmicToneMapping;
+          // Khronos PBR Neutral: built for showing a product in its own colour. ACES is a film
+          // look — it desaturates and shifts hue in the highlights, which on a dyed cloth meant
+          // the render never matched the swatch beside it.
+          gl.toneMapping = THREE.NeutralToneMapping;
           gl.toneMappingExposure = 1;
           onReady?.();
         }}

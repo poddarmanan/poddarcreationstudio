@@ -127,20 +127,23 @@ export function GarmentModel({ url, garment, spec, tier, wind = 0, metres = 1.15
         sample.push(v.x, v.y, v.z);
       }
     }
-    return { parts, scale, centre, turn, fit: fitForm(sample, FORM_SEX[garment]) };
+    // A modelled garment has real sleeves hanging beside the torso and a real collar above it,
+    // so the form is read lower down the band, filled less, and hung lower than for a flat cut.
+    return { parts, scale, centre, turn, fit: fitForm(sample, FORM_SEX[garment], { percentile: 0.45, ease: 0.72, shoulderDrop: 0.13 }) };
   }, [gltf, metres, garment]);
 
   const repeat = useMemo(() => tileRepeat(spec, metres), [spec, metres]);
   const shadows = shadowsAllowed(tier);
 
-  // A rigid model does not drape, but it can still answer the wind rail: a gentle lean that
-  // grows with the wind, so the garment is not the one thing on the stage standing perfectly
-  // still in a gale.
+  // A rigid model does not drape, but it need not stand like a statue: the material ripples
+  // its surface a little, more towards the hem and more in the wind (see FabricMaterial's
+  // `sway`), and the whole garment leans slightly with a gust.
   useFrame((state) => {
     const g = group.current;
     if (!g) return;
-    g.rotation.x = Math.sin(state.clock.elapsedTime * 1.3) * 0.012 * wind;
+    g.rotation.x = Math.sin(state.clock.elapsedTime * 1.1) * 0.006 * wind;
   });
+  const sway = useMemo(() => ({ top: metres / 2, hem: -metres / 2, amount: 0.35 + 0.65 * Math.min(1, wind / 3) }), [metres, wind]);
 
   return (
     <group ref={group}>
@@ -149,7 +152,7 @@ export function GarmentModel({ url, garment, spec, tier, wind = 0, metres = 1.15
         <group rotation-y={built.turn}>
           {built.parts.map((part, i) => (
             <mesh key={i} geometry={part.geometry} matrix={part.matrix} matrixAutoUpdate={false} castShadow={shadows} receiveShadow={shadows}>
-              <FabricMaterial spec={spec} tier={tier} repeat={repeat} />
+              <FabricMaterial spec={spec} tier={tier} repeat={repeat} sway={sway} />
             </mesh>
           ))}
         </group>
