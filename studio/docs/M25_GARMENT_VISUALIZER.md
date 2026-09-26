@@ -59,8 +59,18 @@ the wind as a force. The drape function's folds ride on top as detail. `smoke-m4
 the simulation without a renderer and checks the things a position-based cloth gets wrong:
 melting off its pins, ringing forever, tearing through a collider.
 
-Supplied models are rigid; they get the form and the lean, not the simulation. A 200,000-vertex
-t-shirt is not something a phone can relax every frame.
+A fresh cloth is given two and a half seconds of still air to settle on to its form — but from
+the frame loop, a few steps per frame within an 8 ms budget, never all at once before the
+first frame. At a few thousand vertices one step costs a phone tens of milliseconds, and the
+seconds of blocked main thread that the original pre-settle spent on load are exactly what a
+phone browser kills a page for: the kurti and the top, the two cuts with no model, showed
+nothing at all on one. The garment is drawn throughout and settles in front of the viewer.
+
+Supplied models are rigid; they get the form, the lean and the wind, not the simulation. A
+200,000-vertex t-shirt is not something a phone can relax every frame. The wind reaches them
+through the vertex shader (`FabricMaterial`'s `sway`): the loose lower part of the garment is
+pushed back and swung sideways, more the further it hangs from the shoulders and more with the
+rail, so a shirt's hem and cuffs answer the same "Strong" the kurti does.
 
 ## Supplied models
 
@@ -69,7 +79,35 @@ the same `FabricMaterial` so cloth, shade and light stay the studio's (`GarmentM
 Presence is probed once with a HEAD request; a model that fails to load falls back to the
 silhouette through an error boundary and the procedural cut shows while a model downloads.
 `public/models/README.md` covers filenames, size and licence attribution. The Draco decoder is
-vendored under `public/draco/`.
+vendored under `public/draco/`; it is WebAssembly, so the content security policy in
+`proxy.ts` admits `'wasm-unsafe-eval'` (WebAssembly only, not `eval()`) and `connect-src blob:`
+for the textures a loader unpacks from the file. Without both, a compressed model never loads
+behind the policy, while the static preview — which has no policy — shows it, which is the kind
+of difference that gets reported as "works on one phone, not the other".
+
+Every part of a model is baked into a fresh geometry in stage space (turned to face the camera
+if modelled side-on, centred, scaled to garment height), its own normals carried along rather
+than recomputed — a modeller's winding is not always consistent, and a normal computed from it
+can point inward, which under the shadow map's normal bias reads as a dark stain on the cloth.
+
+### Sleeves let down
+
+A garment model is saved as it was worn: sleeves bent at the elbow with the hands forward, or
+held out. On a dress form there are no arms in them, so `lib/three/relax.ts` lets them down
+from the geometry alone. A part whose vertices lie mostly beyond the torso's width on one side
+is a sleeve (a stray piece of collar in the same mesh stays body); its centreline is found by
+binning its vertices on distance from the shoulder seam; a sharp turn in the middle of that
+line is the elbow. The upper arm is rotated about the shoulder to hang a little outward, the
+forearm about the elbow to continue straight down, the armhole blended over a few centimetres
+so the seam does not tear, and below the shoulder cap the tube is flattened front-to-back into
+the oval an empty sleeve settles into. The form is then fitted again to the garment as it now
+is.
+
+Only a model whose sleeves are their own meshes is touched. From the width test alone the
+chest's sides read as sleeve too, and moving those distorts the body — so a model saved as
+arbitrary chunks (the t-shirt is four 65,532-vertex pieces) keeps its sleeves as modelled.
+`smoke-m44.ts` runs the relaxation on the shirt file and checks the sleeves end lower, reach
+no further out, and read as straight afterwards; and that the t-shirt is left alone.
 
 ## UVs come from the silhouette's bounding box
 

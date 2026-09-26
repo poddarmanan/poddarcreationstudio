@@ -68,7 +68,7 @@ export interface GarmentMeshProps {
 }
 
 /** SVG paths are in a y-down space of unknown extent; three.js is y-up and wants metres. */
-function buildGeometry(pathData: string, metres: number, maxEdge: number) {
+export function buildGeometry(pathData: string, metres: number, maxEdge: number) {
   const segments = 12;
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 260"><path d="${pathData}"/></svg>`;
   const parsed = new SVGLoader().parse(svg);
@@ -163,7 +163,7 @@ const PIN_BAND = 0.05;
  * the seams stay closed, struts across the interior so the garment keeps its volume when it is
  * off the form, and the shoulder line pinned.
  */
-function buildCloth(geometry: THREE.BufferGeometry, rest: Float32Array, room: Float32Array, depth: number) {
+export function buildCloth(geometry: THREE.BufferGeometry, rest: Float32Array, room: Float32Array, depth: number) {
   const n = rest.length / 3;
   const all = new Float32Array(n * 6);
   const pinned = new Uint8Array(n * 2);
@@ -192,12 +192,19 @@ function buildCloth(geometry: THREE.BufferGeometry, rest: Float32Array, room: Fl
     edges[shell.length * 2 + i * 2] = i;
     edges[shell.length * 2 + i * 2 + 1] = n + i;
   }
-  const cloth = new Cloth(all, edges, pinned);
-  // Settle before the first frame — two and a half seconds of it — so a garment does not
-  // visibly drop onto its form on load, nor keep creeping for the first seconds it is seen.
-  for (let i = 0; i < 150; i++) cloth.step(1 / 60, { gravity: 3, wind: [0, 0, 0], spin: { omega: 0, alpha: 0 }, tug: 0, damping: 3.6 }, null);
-  return cloth;
+  return new Cloth(all, edges, pinned);
 }
+
+/**
+ * How many steps of still air a fresh cloth is given before it is treated as settled — two and
+ * a half seconds of simulation, so a garment does not keep creeping for the first seconds it is
+ * seen. They are run from the frame loop, a few per frame within a time budget, never all at
+ * once: at a few thousand vertices a step costs a phone tens of milliseconds, and seconds of
+ * blocked main thread on load is what a browser kills the page for. The garment is drawn
+ * throughout, settling on to its form in front of the viewer.
+ */
+const SETTLE_STEPS = 150;
+const SETTLE_BUDGET_MS = 8;
 
 /** Pushes a point out of the form, with a little clearance for the cloth's own thickness. */
 function colliderFor(fit: FormFit | null): Collider | null {
@@ -251,6 +258,7 @@ export function GarmentMesh({ garment, spec, tier, flow, stretch, wind = 0, pull
       rest,
       room: result.room,
       cloth,
+      settle: cloth ? SETTLE_STEPS : 0,
     };
   }, [garment, metres, tier, depth]);
 
@@ -293,7 +301,16 @@ export function GarmentMesh({ garment, spec, tier, flow, stretch, wind = 0, pull
     const breeze = (wind * wind) / 9;
     const gust = breeze * 0.95 * (0.9 + 0.4 * Math.sin(t * 1.1) + 0.15 * Math.sin(t * 2.9));
     const sim = built.cloth;
-    if (sim) {
+    const substeps = tier === 'low' ? 1 : 2;
+    const iterations = tier === 'high' ? 6 : tier === 'medium' ? 4 : 3;
+    if (sim && built.settle > 0) {
+      const until = performance.now() + SETTLE_BUDGET_MS;
+      do {
+        sim.step(1 / 60, { gravity: 3, wind: [0, 0, 0], spin: { omega: 0, alpha: 0 }, tug: 0, damping: 3.6 }, collider, substeps, iterations);
+        built.settle -= 1;
+      } while (built.settle > 0 && performance.now() < until);
+      if (sim.broken()) sim.reset();
+    } else if (sim) {
       sim.step(
         dt,
         {
@@ -304,8 +321,8 @@ export function GarmentMesh({ garment, spec, tier, flow, stretch, wind = 0, pull
           damping: 3.6,
         },
         collider,
-        tier === 'low' ? 1 : 2,
-        tier === 'high' ? 6 : tier === 'medium' ? 4 : 3
+        substeps,
+        iterations
       );
       if (sim.broken()) sim.reset();
     }

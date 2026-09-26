@@ -83,7 +83,7 @@ BACKUP VERIFICATION PASSED — the dump restores to an identical database
 `npm run preflight [baseUrl]` runs the environment report, every dependency check, and the
 checks that can only be made **over the wire**:
 
-- CSP with `default-src 'self'` and `frame-ancestors 'none'`, `nosniff`, `X-Frame-Options`;
+- CSP with `default-src 'self'` and `frame-ancestors 'none'` (`script-src` nonce-based plus `'wasm-unsafe-eval'` for the garment models' Draco decoder; `connect-src` admits `blob:` for their textures), `nosniff`, `X-Frame-Options`;
 - both probe endpoints;
 - that the public readiness body leaks nothing;
 - that three staff/portal APIs answer **401** to an anonymous caller;

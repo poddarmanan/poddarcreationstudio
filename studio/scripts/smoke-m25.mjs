@@ -42,6 +42,23 @@ async function silhouette(page) {
   };
 }
 
+/**
+ * Waits for a garment to hang still. A simulated garment settles on to its form from the
+ * frame loop after mounting — a few steps per frame, so how long that takes depends on the
+ * machine (seconds here, under a software renderer). Measuring a shape while it is still
+ * landing would compare two moments of one cut, so the cut is sampled until two consecutive
+ * samples agree, and only then measured.
+ */
+async function settled(page) {
+  let previous = null;
+  for (let i = 0; i < 25; i++) {
+    const sample = await silhouetteOnce(page);
+    if (previous && shapeDelta(previous, sample) < 0.02) return;
+    previous = sample;
+    await page.waitForTimeout(1500);
+  }
+}
+
 async function silhouetteOnce(page) {
   await page.waitForTimeout(900);
   const png = decodePng(await page.locator('[data-stage] canvas').first().screenshot());
@@ -148,7 +165,7 @@ async function main() {
     if (!(await button.count())) { console.log(`  – ${name} (no control)`); continue; }
     await button.click();
     // A simulated garment settles onto its form after mounting; measure it hanging, not landing.
-    await page.waitForTimeout(3000);
+    await settled(page);
     shapes[name] = await silhouette(page);
     ok(`${name}: ${(shapes[name].coverage * 100).toFixed(1)}% coverage, taper ${(taper(shapes[name]) * 100).toFixed(0)}%`);
   }
@@ -164,7 +181,7 @@ async function main() {
   // And the cuts must differ from each other — by shape, with the noise floor measured rather
   // than assumed: the same cut captured twice sets what "the same" looks like on this machine.
   await page.getByRole('button', { name: /^Kurti$/i }).first().click();
-  await page.waitForTimeout(3000);
+  await settled(page);
   const kurtiAgain = await silhouette(page);
   const noise = shapeDelta(shapes.Kurti, kurtiAgain);
   ok(`noise floor: the same cut twice differs by Δ${noise.toFixed(3)}`);

@@ -26,11 +26,14 @@ export function proxy(request: NextRequest) {
 
   const csp = [
     `default-src 'self'`,
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ''}`,
+    // 'wasm-unsafe-eval' admits WebAssembly alone, not eval(): the Draco decoder that unpacks
+    // compressed garment models is WebAssembly, and without this a compressed model never loads.
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'wasm-unsafe-eval'${isDev ? " 'unsafe-eval'" : ''}`,
     `style-src 'self' 'unsafe-inline'`,
     `img-src 'self' blob: data:`,
     `font-src 'self' data:`,
-    `connect-src 'self'${isDev ? ' ws: wss:' : ''}`,
+    // blob: because a model's textures are unpacked from the file into blob URLs and fetched back.
+    `connect-src 'self' blob:${isDev ? ' ws: wss:' : ''}`,
     `object-src 'none'`,
     `base-uri 'self'`,
     `form-action 'self'`,

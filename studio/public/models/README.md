@@ -21,6 +21,18 @@ into the same mesh comes out wearing the fabric too — and ideally under ~10 MB
 downloaded by every visitor who opens the cut. Draco-compressed files are fine; the decoder is
 served from `/draco/`. The studio adds its own black dress form under every cut.
 
+Size: run `node scripts/slim-model.mjs public/models/<cut>.glb` after adding a file. It drops the
+textures the model shipped with (the studio never draws them; they are usually most of the
+file) — the top went from 13.8 MB to 0.4 MB. For a heavy mesh, Draco compression on top of that
+(`npx @gltf-transform/cli draco in.glb out.glb`) took the t-shirt from 10.9 MB to 0.7 MB.
+
+Sleeves: a model saved with its arms bent or held out has them let down to hang, **if each
+sleeve is its own mesh** (as `shirt.glb` is). A model saved as arbitrary chunks (`tshirt.glb`)
+keeps its sleeves as modelled — when exporting, keep sleeves as separate objects.
+
+A model whose texture cuts parts away (transparent texels, alpha mode BLEND or MASK) keeps that
+cut-out; the studio's cloth honours it and measures the garment from the visible vertices only.
+
 Licences: models from Sketchfab and similar carry a licence (commonly CC-BY, which requires
 naming the author). Keep the attribution here, one line per model, before publishing.
 
