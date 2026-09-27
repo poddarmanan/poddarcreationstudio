@@ -35,6 +35,18 @@ async function setWind(page, on) {
   await page.waitForTimeout(400);
 }
 
+
+/** Cuts are chosen through the picker on the stage: the "Garment" button opens it, a chip picks. */
+async function pick(page, name) {
+  await page.getByRole('button', { name: /^Garment$/i }).first().evaluate((el) => el.click());
+  await page.waitForTimeout(500);
+  const chip = page.getByRole('button', { name: new RegExp(`^${name}$`, 'i') }).first();
+  if (!(await chip.count())) return false;
+  await chip.evaluate((el) => el.click());
+  await page.waitForTimeout(400);
+  return true;
+}
+
 async function silhouette(page) {
   const samples = [];
   for (let i = 0; i < 3; i++) {
@@ -61,7 +73,8 @@ async function settled(page) {
   let previous = null;
   for (let i = 0; i < 25; i++) {
     const sample = await silhouetteOnce(page);
-    if (previous && shapeDelta(previous, sample) < 0.02) return;
+    // An empty stage — a model still on its way — is not a settled garment.
+    if (sample.rowWidths.length >= 8 && previous && shapeDelta(previous, sample) < 0.02) return;
     previous = sample;
     await page.waitForTimeout(1500);
   }
@@ -169,9 +182,7 @@ async function main() {
 
   const shapes = {};
   for (const name of ['Kurti', 'Shirt', 'Dress', 'T-Shirt', 'Roll']) {
-    const button = page.getByRole('button', { name: new RegExp(`^${name}$`, 'i') }).first();
-    if (!(await button.count())) { console.log(`  – ${name} (no control)`); continue; }
-    await button.click();
+    if (!(await pick(page, name))) { console.log(`  – ${name} (no control)`); continue; }
     // A simulated garment settles onto its form after mounting; measure it hanging, not landing.
     await settled(page);
     shapes[name] = await silhouette(page);
@@ -188,7 +199,7 @@ async function main() {
 
   // And the cuts must differ from each other — by shape, with the noise floor measured rather
   // than assumed: the same cut captured twice sets what "the same" looks like on this machine.
-  await page.getByRole('button', { name: /^Kurti$/i }).first().click();
+  await pick(page, 'Kurti');
   await settled(page);
   const kurtiAgain = await silhouette(page);
   const noise = shapeDelta(shapes.Kurti, kurtiAgain);
@@ -211,7 +222,7 @@ async function main() {
 
   // Changing fabric under one cut must still change the render: same shape, different cloth.
   const kurtiBefore = shapes.Kurti;
-  await page.getByRole('button', { name: /^Kurti$/i }).first().click();
+  await pick(page, 'Kurti');
   const chip = page.getByRole('button', { name: /^Firozi$/i }).first();
   if (await chip.count()) {
     await chip.click();

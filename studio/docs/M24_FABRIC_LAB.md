@@ -6,7 +6,7 @@ The Lab's controls drive the real scene: pressing them alters physics rather tha
 |---|---|---|
 | Lighting rail | Below the stage | Swaps the actual three-light rig and the renderer's exposure (`LightingRig`) |
 | Wind | On the stage, bottom right | A round glass button with a wind mark; it opens into On and Off. On is the strong setting, and the lab opens with it on |
-| Garment | On the stage, bottom left | A small glass button naming the cut; a tap veils the stage in frosted glass and lays the six cuts out as silhouettes. The rotary dial in the right column still works too |
+| Garment | On the stage, bottom left | A small glass button naming the cut; a tap veils the stage in frosted glass and lays the six cuts out as silhouettes. It is the only garment control — the rotary dial that used to sit in the right column is gone |
 | Stretch | Pill, bottom centre | Pulls the cloth from the hem — the shoulders are held, the lower cloth draws taut and in on to the body — by the fabric's own recovery figure |
 | Shine | Pill, bottom centre | Walks a point light across the cloth, timed to a 2.4s period |
 
@@ -15,6 +15,12 @@ the "Watch in 3D" pill (the turntable is always live; hold and spin), the four-s
 (a buyer wants to see the cloth move, not choose a breeze), and a screen-wide bright band that
 used to sweep the whole stage with the shine — the shine is the raking light on the cloth, and
 nothing else should light up.
+
+**A model arrives to a loader, not to the old cut.** While a supplied model is checked for,
+fetched and decoded, the stage is empty but for a small glass loader — a thread drawn round a
+ring and "Draping the kurti" — and the built-in cut is not shown first. It used to stand in, and
+read as the wrong garment appearing and then being swapped. The built-in cut now appears only
+for a cut that has no model file at all (the dress, until one is uploaded).
 
 **The roll hangs from a bolt.** The Roll cut shows the cloth coming off a bolt of itself laid
 across the top of the panel, on a cardboard core, turning very slowly — cloth being unrolled,

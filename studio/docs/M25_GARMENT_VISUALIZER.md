@@ -90,7 +90,9 @@ square it was made "Low" invisible, and "Low" is what the lab opens on.
 `public/models/<cut>.glb` overrides the procedural cut with a real garment model, re-dressed in
 the same `FabricMaterial` so cloth, shade and light stay the studio's (`GarmentModel.tsx`).
 Presence is probed once with a HEAD request; a model that fails to load falls back to the
-silhouette through an error boundary and the procedural cut shows while a model downloads.
+silhouette through an error boundary. While a model is probed for or downloads the stage stays
+empty and the lab shows a loader — the procedural cut no longer stands in, since it read as the
+wrong garment appearing first.
 `public/models/README.md` covers filenames, size and licence attribution. The Draco decoder is
 vendored under `public/draco/`; it is WebAssembly, so the content security policy in
 `proxy.ts` admits `'wasm-unsafe-eval'` (WebAssembly only, not `eval()`) and `connect-src blob:`

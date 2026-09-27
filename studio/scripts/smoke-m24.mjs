@@ -20,6 +20,18 @@ const bad = (m) => { problems.push(m); console.error(`  ✗ ${m}`); };
 
 /** Mean colour of the canvas, from decoded pixels — never from the encoded PNG's bytes. */
 
+
+/** Cuts are chosen through the picker on the stage: the "Garment" button opens it, a chip picks. */
+async function pick(page, name) {
+  await page.getByRole('button', { name: /^Garment$/i }).first().evaluate((el) => el.click());
+  await page.waitForTimeout(500);
+  const chip = page.getByRole('button', { name: new RegExp(`^${name}$`, 'i') }).first();
+  if (!(await chip.count())) return false;
+  await chip.evaluate((el) => el.click());
+  await page.waitForTimeout(400);
+  return true;
+}
+
 /** The wind is a toggle on the stage: a "Wind" button that opens into On and Off. */
 async function setWind(page, on) {
   await page.getByRole('button', { name: /^Wind$/i }).first().evaluate((el) => el.click());
@@ -148,7 +160,7 @@ async function main() {
   // the cloth; a supplied model answers the wind in its shader, more quietly. Two still frames
   // first, so the cloth's own idle motion is measured rather than assumed — after the cut has
   // settled on to its form.
-  await page.getByRole('button', { name: /^Dress$/i }).first().evaluate((el) => el.click());
+  await pick(page, 'Dress');
   await page.waitForTimeout(6000);
   const stillA = await frame(page);
   const stillB = await frame(page);

@@ -50,6 +50,8 @@ export interface FabricViewerProps {
   garment?: GarmentKey;
   /** Name this viewer so its frame can be exported (M30). */
   captureId?: string;
+  /** Told when a supplied model is being fetched or decoded, so the lab can show a loader. */
+  onLoading?: (loading: boolean) => void;
 }
 
 /** Real garment heights, metres — a kurti is not a t-shirt. */
@@ -276,6 +278,7 @@ export function FabricViewer({
   fallback,
   label,
   onStats,
+  onLoading,
   rolled = false,
 }: FabricViewerProps) {
   const detected = useCapability();
@@ -285,7 +288,15 @@ export function FabricViewer({
   const spec = useMemo(() => fabricMaterialSpec(fabric, colour), [fabric, colour]);
   const onGarment = !!garment && garment !== 'roll';
   // A supplied model for this cut, if the owner has put one in public/models/.
-  const modelUrl = useGarmentModel(onGarment ? garment : undefined);
+  const model = useGarmentModel(onGarment ? garment : undefined);
+  // While the model's presence is being checked, nothing stands on the stage and the lab is
+  // told; the built-in cut only appears for a cut that has no model at all.
+  const checking = model.status === 'checking';
+  useEffect(() => {
+    if (!checking) return;
+    onLoading?.(true);
+    return () => onLoading?.(false);
+  }, [checking, onLoading]);
   const metres = onGarment ? (GARMENT_METRES[garment] ?? 1.15) : 0;
   // Garments hang from a fixed shoulder line; the panel and roll are centred as before.
   const lift = onGarment ? SHOULDER_Y - metres / 2 : 0;
@@ -333,8 +344,9 @@ export function FabricViewer({
                   floor={floor}
                 />
               );
-              return modelUrl ? (
-                <ModelledGarment url={modelUrl} garment={garment} spec={spec} tier={tier} wind={wind} metres={metres} floor={floor} fallback={procedural} />
+              if (model.status === 'checking') return null;
+              return model.url ? (
+                <ModelledGarment url={model.url} garment={garment} spec={spec} tier={tier} wind={wind} metres={metres} floor={floor} fallback={procedural} onLoading={onLoading} />
               ) : (
                 procedural
               );

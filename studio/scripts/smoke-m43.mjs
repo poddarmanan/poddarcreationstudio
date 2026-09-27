@@ -31,6 +31,18 @@ async function setWind(page, on) {
   await page.waitForTimeout(400);
 }
 
+
+/** Cuts are chosen through the picker on the stage: the "Garment" button opens it, a chip picks. */
+async function pick(page, name) {
+  await page.getByRole('button', { name: /^Garment$/i }).first().evaluate((el) => el.click());
+  await page.waitForTimeout(500);
+  const chip = page.getByRole('button', { name: new RegExp(`^${name}$`, 'i') }).first();
+  if (!(await chip.count())) return false;
+  await chip.evaluate((el) => el.click());
+  await page.waitForTimeout(400);
+  return true;
+}
+
 async function main() {
   console.log('base:', BASE);
   const browser = await chromium.launch({ executablePath: CHROME, args: ['--no-sandbox', '--use-gl=swiftshader', '--enable-unsafe-swiftshader'] });
@@ -41,7 +53,7 @@ async function main() {
   await page.locator('[class*="pc-hv-lift"]').first().click({ force: true });
   await page.waitForSelector('[data-stage="canvas"]', { timeout: 20_000 });
   const click = (re) => page.getByRole('button', { name: re }).first().evaluate((el) => el.click());
-  await click(/^Roll$/i);
+  await pick(page, 'Roll');
   await click(/^White Cyc$/i);
   await setWind(page, false);
   await page.waitForTimeout(3000);

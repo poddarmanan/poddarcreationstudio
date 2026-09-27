@@ -116,8 +116,14 @@ function isAvailable(url: string): Promise<boolean> {
   return pending;
 }
 
-/** The model URL for a cut, once it is known to exist; null while unknown or absent. */
-export function useGarmentModel(garment: GarmentKey | undefined): string | null {
+export type GarmentModelStatus = 'checking' | 'present' | 'absent';
+
+/**
+ * Whether a cut has a model: `checking` until the HEAD request answers, then `present` with
+ * its URL or `absent`. The distinction matters on the stage — while checking, nothing is drawn
+ * rather than the built-in cut, which would only be replaced a moment later.
+ */
+export function useGarmentModel(garment: GarmentKey | undefined): { status: GarmentModelStatus; url: string | null } {
   const url = garment ? GARMENT_MODEL_FILES[garment] : undefined;
   // Keyed by URL so a stale answer for the previous cut is never read as this one's.
   const [known, setKnown] = useState<{ url: string; ok: boolean } | null>(null);
@@ -131,7 +137,18 @@ export function useGarmentModel(garment: GarmentKey | undefined): string | null 
       live = false;
     };
   }, [url]);
-  return url && known?.url === url && known.ok ? url : null;
+  if (!url) return { status: 'absent', url: null };
+  if (known?.url !== url) return { status: 'checking', url: null };
+  return known.ok ? { status: 'present', url } : { status: 'absent', url: null };
+}
+
+/** Rendered in place of a model while it loads: says so to whoever is listening, draws nothing. */
+function LoadingSignal({ onLoading }: { onLoading?: (loading: boolean) => void }) {
+  useEffect(() => {
+    onLoading?.(true);
+    return () => onLoading?.(false);
+  }, [onLoading]);
+  return null;
 }
 
 export interface GarmentModelProps {
@@ -345,11 +362,15 @@ export class GarmentModelBoundary extends Component<{ fallback: ReactNode; child
   }
 }
 
-/** Loading shows the procedural cut, so the stage is never empty while a model arrives. */
-export function ModelledGarment({ url, fallback, ...props }: GarmentModelProps & { fallback: ReactNode }) {
+/**
+ * While a model loads the stage stays empty and `onLoading` is told, so the lab can show a
+ * loader rather than the built-in cut (which used to stand in, and read as the wrong garment
+ * appearing first). `fallback` is for a model that fails to load.
+ */
+export function ModelledGarment({ url, fallback, onLoading, ...props }: GarmentModelProps & { fallback: ReactNode; onLoading?: (loading: boolean) => void }) {
   return (
     <GarmentModelBoundary fallback={fallback}>
-      <Suspense fallback={fallback}>
+      <Suspense fallback={<LoadingSignal onLoading={onLoading} />}>
         <GarmentModel url={url} {...props} />
       </Suspense>
     </GarmentModelBoundary>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { Studio } from './state';
 import { Selvage } from './brand';
 import { FabricViewer } from '@/components/three/FabricViewer';
@@ -40,43 +40,10 @@ export function FabricLab({ studio }: { studio: Studio }) {
   // The two controls that live on the stage itself: the wind toggle and the garment picker.
   const [windOpen, setWindOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
-
-  // Garment rotary dial — a drag rotates the disc and snaps the selection through the six
-  // garment keys; a tap on any labelled chip jumps straight to it (spring-eased).
-  const [dialAngle, setDialAngle] = useState<number | null>(null);
-  const dialDrag = useRef<{ x: number; id: number; captured: boolean; start: number } | null>(null);
-  const gi = GARMENT_KEYS.indexOf(garment);
-  const restAngle = -80 + gi * 32;
-  const dialRot = `${dialAngle != null ? dialAngle : restAngle}deg`;
-  const dialTrans = dialAngle != null ? 'none' : 'transform .7s cubic-bezier(.34,1.3,.4,1)';
-
-  const dialDown = (e: ReactPointerEvent<HTMLDivElement>) => {
-    dialDrag.current = { x: e.clientX, id: e.pointerId, captured: false, start: dialAngle != null ? dialAngle : restAngle };
-  };
-  const dialMove = (e: ReactPointerEvent<HTMLDivElement>) => {
-    const d = dialDrag.current;
-    if (!d) return;
-    const dx = e.clientX - d.x;
-    if (Math.abs(dx) > 4 && !d.captured) {
-      d.captured = true;
-      try { e.currentTarget.setPointerCapture(d.id); } catch { /* best-effort */ }
-    }
-    if (!d.captured) return;
-    const ang = Math.max(-80, Math.min(80, d.start + dx * 0.8));
-    const i = Math.max(0, Math.min(5, Math.round((ang + 80) / 32)));
-    const k = GARMENT_KEYS[i];
-    setDialAngle(ang);
-    if (garment !== k) studio.setGarment(k);
-  };
-  const dialUp = () => {
-    if (!dialDrag.current) return;
-    dialDrag.current = null;
-    setDialAngle(null);
-  };
-  const garmentDial = GARMENT_KEYS.map((k, i) => {
-    const th = ((170 - i * 32) * Math.PI) / 180;
-    return { k, label: DIAL_LABELS[k], x: `${(148 + 118 * Math.cos(th)).toFixed(0)}px`, y: `${(176 - 118 * Math.sin(th)).toFixed(0)}px`, on: garment === k };
-  });
+  // True while a supplied model is on its way; the stage shows a loader rather than the
+  // built-in cut, which used to stand in and read as the wrong garment appearing first.
+  const [modelLoading, setModelLoading] = useState(false);
+  const onModelLoading = useCallback((loading: boolean) => setModelLoading(loading), []);
 
   const sceneDefs: { label: string; css: string; moving?: boolean }[] = [
     { label: 'Flat Lay', css: `radial-gradient(120% 90% at 50% -10%, rgba(255,255,255,.35), transparent 60%), ${fabricTex(f, col, 4)}` },
@@ -152,6 +119,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
               rolled={isRoll}
               garment={studio.garment}
               captureId="fabric-lab"
+              onLoading={onModelLoading}
               label={`${f.name} in ${col.name}, rendered in three dimensions`}
               fallback={
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -260,6 +228,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
               ))}
             </div>
             </div>
+            {modelLoading && !isRoll && <StageLoader label={`Draping the ${DIAL_LABELS[garment].toLowerCase()}`} />}
             <GarmentPicker garment={garment} setGarment={studio.setGarment} open={pickerOpen} setOpen={setPickerOpen} />
             <WindControl wind={wind} setWind={studio.setWind} open={windOpen} setOpen={setWindOpen} />
             {testNoteOn && (
@@ -289,58 +258,35 @@ export function FabricLab({ studio }: { studio: Studio }) {
             <div style={{ display: 'flex', gap: 12, marginTop: 12, paddingLeft: 74 }}>
               <MetamerismStrip albedoHex={renderHex} current={lightKey} />
             </div>
+            {/* The shade chart, just under the light it is judged in. */}
+            <div style={{ marginTop: 10, paddingTop: 18, borderTop: '1px solid rgba(28,25,23,.08)' }}>
+          <div>
+              <div style={{ fontSize: 10.5, letterSpacing: '.22em', color: 'rgba(28,25,23,.45)', textTransform: 'uppercase', marginBottom: 10 }}>{f.nc} {t.shades}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(52px,1fr))', gap: 6 }}>
+                {f.colours.map((c, j) => (
+                  <button
+                    key={j}
+                    onClick={() => studio.setCi(j)}
+                    title={c.name}
+                    className="pc-pink pc-hv-scale-15"
+                    style={{
+                      cursor: 'pointer', aspectRatio: '1', border: 'none', borderRadius: '3px 3px 0 0', background: colourCss(c),
+                      boxShadow: j === studio.ci ? 'inset 0 0 0 3px #1C1917' : 'inset 0 0 0 1px rgba(28,25,23,.1)',
+                      padding: '0 2px 7px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+                      animation: `tileIn .4s ${j * 22}ms both`, transition: 'transform .25s',
+                    }}
+                  >
+                    <span style={{ fontSize: 8.5, letterSpacing: '.03em', color: colourFg(c), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            </div>
           </div>
         </div>
 
         {/* Controls: garment dial, scope, physics, shades */}
-        <div style={{ padding: 'clamp(24px,3.5vw,44px)', display: 'flex', flexDirection: 'column', gap: 22, justifyContent: 'center', background: '#FAF8F5' }}>
-          <div>
-            <div style={{ fontSize: 10.5, letterSpacing: '.22em', color: 'rgba(28,25,23,.45)', textTransform: 'uppercase', marginBottom: 4 }}>{t.garment}</div>
-            <div
-              onPointerDown={dialDown}
-              onPointerMove={dialMove}
-              onPointerUp={dialUp}
-              onPointerCancel={dialUp}
-              style={{ position: 'relative', width: 296, maxWidth: '100%', height: 176, margin: '0 auto', touchAction: 'none', cursor: 'grab', userSelect: 'none', overflow: 'hidden' }}
-            >
-              <div
-                style={{
-                  position: 'absolute', left: 52, top: 80, width: 192, height: 192, borderRadius: '50%',
-                  background: 'radial-gradient(circle at 50% 40%, #F0EDE7, #DFDAD1 68%, #CEC8BD)',
-                  boxShadow: 'inset 0 2px 6px rgba(255,255,255,.9),inset 0 -8px 16px rgba(28,25,23,.14),0 10px 26px rgba(28,25,23,.16)',
-                  transform: `rotate(${dialRot})`, transition: dialTrans, pointerEvents: 'none',
-                }}
-              >
-                <div
-                  style={{
-                    position: 'absolute', inset: 5, borderRadius: '50%',
-                    background: 'repeating-conic-gradient(rgba(28,25,23,.14) 0deg 1deg, transparent 1deg 7.5deg)',
-                    WebkitMask: 'radial-gradient(circle, transparent 70%, #000 71%)', mask: 'radial-gradient(circle, transparent 70%, #000 71%)',
-                  }}
-                />
-                <span style={{ position: 'absolute', top: 11, left: '50%', transform: 'translateX(-50%)', width: 11, height: 11, borderRadius: '50%', background: '#8A6D45', boxShadow: '0 1px 3px rgba(28,25,23,.35)' }} />
-                <span style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: 34, height: 34, borderRadius: '50%', background: 'rgba(255,255,255,.55)', boxShadow: 'inset 0 1px 3px rgba(28,25,23,.12)' }} />
-              </div>
-              {garmentDial.map((g) => {
-                const cs = chipStyle(g.on);
-                return (
-                  <button
-                    key={g.k}
-                    onClick={() => studio.setGarment(g.k)}
-                    className="pc-hv-gold-border"
-                    style={{
-                      position: 'absolute', left: g.x, top: g.y, transform: 'translate(-50%,-50%)', cursor: 'pointer',
-                      background: cs.background, color: cs.color, border: `1px solid ${cs.borderColor}`, borderRadius: 999,
-                      padding: '6px 11px', fontFamily: FONT_BODY, fontSize: 10.5, letterSpacing: '.04em', whiteSpace: 'nowrap',
-                      transition: 'background .25s,border-color .25s,color .25s',
-                    }}
-                  >
-                    {g.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+        <div style={{ padding: 'clamp(24px,3.5vw,44px)', display: 'flex', flexDirection: 'column', gap: 26, justifyContent: 'flex-start', background: '#FAF8F5' }}>
           <ChipGroup label={t.scope}>
             {SCOPE_LEVELS.map(([label, p]) => (
               <Chip key={label} on={false} onClick={() => studio.openScope(p)}>
@@ -351,27 +297,6 @@ export function FabricLab({ studio }: { studio: Studio }) {
           <p style={{ margin: 0, fontSize: 13.5, fontWeight: 300, lineHeight: 1.7, color: 'rgba(28,25,23,.6)', maxWidth: 420, textWrap: 'pretty' }}>
             {PHYSICS_NOTES[f.family]}
           </p>
-          <div>
-            <div style={{ fontSize: 10.5, letterSpacing: '.22em', color: 'rgba(28,25,23,.45)', textTransform: 'uppercase', marginBottom: 10 }}>{f.nc} {t.shades}</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(52px,1fr))', gap: 6 }}>
-              {f.colours.map((c, j) => (
-                <button
-                  key={j}
-                  onClick={() => studio.setCi(j)}
-                  title={c.name}
-                  className="pc-pink pc-hv-scale-15"
-                  style={{
-                    cursor: 'pointer', aspectRatio: '1', border: 'none', borderRadius: '3px 3px 0 0', background: colourCss(c),
-                    boxShadow: j === studio.ci ? 'inset 0 0 0 3px #1C1917' : 'inset 0 0 0 1px rgba(28,25,23,.1)',
-                    padding: '0 2px 7px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-                    animation: `tileIn .4s ${j * 22}ms both`, transition: 'transform .25s',
-                  }}
-                >
-                  <span style={{ fontSize: 8.5, letterSpacing: '.03em', color: colourFg(c), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
 
@@ -594,6 +519,29 @@ function WindControl({ wind, setWind, open, setOpen }: { wind: number; setWind: 
       >
         <WindIcon on={on} />
       </button>
+    </div>
+  );
+}
+
+/**
+ * The loader for a supplied model: a single thread being drawn round a ring, and a word about
+ * what is coming. Delayed a third of a second so a model already in the cache never flashes it.
+ */
+function StageLoader({ label }: { label: string }) {
+  return (
+    <div role="status" aria-live="polite" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 5 }}>
+      <div
+        style={{
+          display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px 12px 14px', borderRadius: 999,
+          ...GLASS, WebkitBackdropFilter: GLASS.backdropFilter, animation: 'pcPop .6s .3s cubic-bezier(.2,.8,.2,1) both',
+        }}
+      >
+        <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden style={{ animation: 'pcSpin 1.8s linear infinite' }}>
+          <circle cx="13" cy="13" r="10" fill="none" stroke="rgba(28,25,23,.14)" strokeWidth="1.5" />
+          <circle cx="13" cy="13" r="10" fill="none" stroke="#8A6D45" strokeWidth="1.5" strokeLinecap="round" strokeDasharray="18 45" />
+        </svg>
+        <span style={{ fontFamily: FONT_BODY, fontSize: 11, letterSpacing: '.12em', textTransform: 'uppercase', color: 'rgba(28,25,23,.7)' }}>{label}</span>
+      </div>
     </div>
   );
 }
