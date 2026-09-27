@@ -4,14 +4,14 @@ import { useCallback, useEffect, useState } from 'react';
 import type { Studio } from './state';
 import { Selvage } from './brand';
 import { FabricViewer } from '@/components/three/FabricViewer';
-import { MetamerismStrip } from '@/components/three/MetamerismStrip';
 import { ExportView } from '@/components/three/ExportView';
 import { oklchToHex } from '@/lib/three/colour';
+import { metamerism, shiftVerdict } from '@/lib/three/metamerism';
 import { FONT_DISPLAY, FONT_BODY, fabricTex, fabricWeave, colourCss, colourFg, colourShade, chipStyle, heroColour } from './helpers';
 import { useDragScroll, scrollByEl } from './interactions';
 import {
   GARMENTS, LIGHTS, FABRIC_STORIES, PHYSICS_NOTES, STRETCH_TEST_NOTES,
-  type GarmentKey,
+  type GarmentKey, type LightKey,
 } from '@/lib/fabric-generator';
 
 const SCOPE_LEVELS: [string, number][] = [['100×', 26], ['200×', 48], ['500×', 96]];
@@ -32,7 +32,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
   const fg = col.l > 0.62 ? '#1C1917' : '#FAF8F5';
   const isRoll = garment === 'roll';
   const modelOn = tests.d3 && !isRoll;
-  const testNoteOn = tests.stretch;
+  const testNoteOn = tests.stretch && isRoll;
   const testNote = STRETCH_TEST_NOTES[f.family];
 
   const moreDrag = useDragScroll();
@@ -43,6 +43,29 @@ export function FabricLab({ studio }: { studio: Studio }) {
   // built-in cut, which used to stand in and read as the wrong garment appearing first.
   const [modelLoading, setModelLoading] = useState(false);
   const onModelLoading = useCallback((loading: boolean) => setModelLoading(loading), []);
+  // Every change of cut shows the loader for a moment, cached model or not: a garment that
+  // simply snaps into place reads as a glitch, one that is announced reads as a change.
+  const [settling, setSettling] = useState(false);
+  useEffect(() => {
+    const on = window.setTimeout(() => setSettling(true), 0);
+    const off = window.setTimeout(() => setSettling(false), 1100);
+    return () => {
+      window.clearTimeout(on);
+      window.clearTimeout(off);
+    };
+  }, [garment]);
+  // The stretch test is the roll's: a length of cloth can be pulled, a made-up garment cannot.
+  // Choosing the roll points the button out for a few seconds.
+  const [stretchHint, setStretchHint] = useState(false);
+  useEffect(() => {
+    if (!isRoll) return;
+    const show = window.setTimeout(() => setStretchHint(true), 400);
+    const hide = window.setTimeout(() => setStretchHint(false), 7400);
+    return () => {
+      window.clearTimeout(show);
+      window.clearTimeout(hide);
+    };
+  }, [isRoll]);
 
   const sceneDefs: { label: string; css: string; moving?: boolean }[] = [
     { label: 'Flat Lay', css: `radial-gradient(120% 90% at 50% -10%, rgba(255,255,255,.35), transparent 60%), ${fabricTex(f, col, 4)}` },
@@ -74,6 +97,32 @@ export function FabricLab({ studio }: { studio: Studio }) {
       const o = heroColour(x);
       return { id: x.id, name: x.name, meta: `${x.weight} · ${x.width} · ${x.nc} ${t.shades}`, tex: fabricTex(x, o, 3), dl: `${i * 45}ms` };
     });
+
+  const shadeChart = (
+            <div>
+          <div>
+              <div style={{ fontSize: 10.5, letterSpacing: '.22em', color: 'rgba(28,25,23,.45)', textTransform: 'uppercase', marginBottom: 10 }}>{f.nc} {t.shades}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(52px,1fr))', gap: 6 }}>
+                {f.colours.map((c, j) => (
+                  <button
+                    key={j}
+                    onClick={() => studio.setCi(j)}
+                    title={c.name}
+                    className="pc-pink pc-hv-scale-15"
+                    style={{
+                      cursor: 'pointer', aspectRatio: '1', border: 'none', borderRadius: '3px 3px 0 0', background: colourCss(c),
+                      boxShadow: j === studio.ci ? 'inset 0 0 0 3px #1C1917' : 'inset 0 0 0 1px rgba(28,25,23,.1)',
+                      padding: '0 2px 7px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+                      animation: `tileIn .4s ${j * 22}ms both`, transition: 'transform .25s',
+                    }}
+                  >
+                    <span style={{ fontSize: 8.5, letterSpacing: '.03em', color: colourFg(c), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            </div>
+  );
 
   return (
     <div style={{ paddingBottom: 80, animation: 'layCloth .55s cubic-bezier(.2,.8,.2,1) both' }}>
@@ -113,12 +162,13 @@ export function FabricLab({ studio }: { studio: Studio }) {
               colour={col}
               light={studio.light}
               wind={wind}
-              pulled={tests.stretch}
+              pulled={tests.stretch && isRoll}
               shine={tests.shine}
               rolled={isRoll}
               garment={studio.garment}
               captureId="fabric-lab"
               onLoading={onModelLoading}
+              curtain={settling}
               label={`${f.name} in ${col.name}, rendered in three dimensions`}
               fallback={
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -195,56 +245,42 @@ export function FabricLab({ studio }: { studio: Studio }) {
                 </div>
               }
             />
-            <span style={{ position: 'absolute', top: 14, left: 16, fontSize: 10.5, letterSpacing: '.22em', color: light.fg, opacity: 0.75, transition: 'color 1.2s ease' }}>
+            <span style={{ position: 'absolute', top: 14, left: 16, fontSize: 'clamp(7.5px, 1.1vw, 9.5px)', letterSpacing: '.2em', color: light.fg, opacity: 0.7, transition: 'color 1.2s ease', maxWidth: '55%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {light.en.toUpperCase()} · {wind ? 'WIND' : 'STILL'}
             </span>
-            {/* Centred by the outer element and animated by the inner one: an entrance animation
-                that sets `transform` would otherwise overwrite the centring translate. */}
-            <div style={{ position: 'absolute', bottom: 14, left: '50%', transform: 'translateX(-50%)', zIndex: 6 }}>
-            <div
-              style={{
-                display: 'flex', gap: 4,
-                background: GLASS.background, backdropFilter: GLASS.backdropFilter, WebkitBackdropFilter: GLASS.backdropFilter, border: GLASS.border, borderRadius: 999, padding: 4,
-                boxShadow: GLASS.boxShadow, animation: 'pcPop .7s .1s cubic-bezier(.2,.8,.2,1) both',
-              }}
-            >
-              {([['stretch', 'Stretch'], ['shine', 'Shine']] as const).map(([k, label]) => (
-                <button
-                  key={k}
-                  onClick={() => studio.toggleTest(k)}
-                  aria-pressed={tests[k]}
-                  className="pc-hv-scale-06"
-                  style={{
-                    cursor: 'pointer',
-                    background: tests[k] ? '#1C1917' : 'transparent',
-                    color: tests[k] ? '#FAF8F5' : '#1C1917',
-                    border: 'none', borderRadius: 999, padding: '9px 16px', fontFamily: FONT_BODY, fontSize: 11, letterSpacing: '.08em',
-                    transition: 'background .45s ease, color .45s ease, transform .5s cubic-bezier(.2,.8,.2,1)',
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            </div>
-            {modelLoading && !isRoll && <StageLoader label={`Draping the ${DIAL_LABELS[garment].toLowerCase()}`} />}
-            {/* The lighting, on the stage's right edge: the shade under each light, stacked; a tap
-                on one sets the light. The rail of light names this replaces overflowed a phone. */}
-            <div
-              style={{
-                position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', zIndex: 6,
-              }}
-            >
-              <div style={{ padding: 8, borderRadius: 999, ...GLASS, WebkitBackdropFilter: GLASS.backdropFilter, animation: 'pcPop .7s .25s cubic-bezier(.2,.8,.2,1) both' }}>
-                <MetamerismStrip albedoHex={renderHex} current={lightKey} onSelect={studio.setLight} vertical />
-              </div>
+            {(modelLoading || settling) && <StageLoader label={isRoll ? 'Unrolling the cloth' : `Draping the ${DIAL_LABELS[garment].toLowerCase()}`} />}
+            <LightControl albedoHex={renderHex} current={lightKey} setLight={studio.setLight} />
+            <div style={{ position: 'absolute', right: 14, bottom: 14, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, zIndex: 6 }}>
+              {isRoll && (
+                <div style={{ position: 'relative', display: 'flex' }}>
+                  {stretchHint && !tests.stretch && (
+                    <div
+                      role="note"
+                      style={{
+                        position: 'absolute', right: 54, top: '50%', transform: 'translateY(-50%)', whiteSpace: 'nowrap',
+                        padding: '8px 12px', borderRadius: 999, ...GLASS, WebkitBackdropFilter: GLASS.backdropFilter,
+                        fontFamily: FONT_BODY, fontSize: 10.5, letterSpacing: '.08em', color: '#1C1917',
+                        animation: 'pcSlideIn .5s .6s cubic-bezier(.2,.8,.2,1) both', pointerEvents: 'none',
+                      }}
+                    >
+                      Pull the cloth · Stretch →
+                    </div>
+                  )}
+                  <IconToggle label="Stretch" on={tests.stretch} onClick={() => { setStretchHint(false); studio.toggleTest('stretch'); }} delay={0.1}>
+                    <StretchIcon />
+                  </IconToggle>
+                </div>
+              )}
+              <IconToggle label="Shine" on={tests.shine} onClick={() => studio.toggleTest('shine')} delay={0.15}>
+                <ShineIcon />
+              </IconToggle>
+              <WindControl wind={wind} setWind={studio.setWind} open={windOpen} setOpen={setWindOpen} />
             </div>
             <GarmentPicker garment={garment} setGarment={studio.setGarment} open={pickerOpen} setOpen={setPickerOpen} />
-            <WindControl wind={wind} setWind={studio.setWind} open={windOpen} setOpen={setWindOpen} />
             {testNoteOn && (
               <div
                 style={{
-                  position: 'absolute', top: 14, right: 16, maxWidth: 230, background: 'rgba(250,248,245,.85)', backdropFilter: 'blur(10px)',
+                  position: 'absolute', top: 14, left: '50%', transform: 'translateX(-50%)', maxWidth: 'min(240px, 52%)', background: 'rgba(250,248,245,.85)', backdropFilter: 'blur(10px)',
                   border: '1px solid rgba(28,25,23,.1)', borderRadius: 10, padding: '10px 13px', fontSize: 11.5, fontWeight: 300, lineHeight: 1.55, color: 'rgba(28,25,23,.75)',
                 }}
               >
@@ -252,31 +288,9 @@ export function FabricLab({ studio }: { studio: Studio }) {
               </div>
             )}
           </div>
-          {/* The shade chart, just under the stage. */}
-          <div style={{ padding: '18px clamp(16px,2.5vw,28px) 20px', borderTop: '1px solid rgba(28,25,23,.08)', background: '#FAF8F5' }}>
-            <div>
-          <div>
-              <div style={{ fontSize: 10.5, letterSpacing: '.22em', color: 'rgba(28,25,23,.45)', textTransform: 'uppercase', marginBottom: 10 }}>{f.nc} {t.shades}</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(52px,1fr))', gap: 6 }}>
-                {f.colours.map((c, j) => (
-                  <button
-                    key={j}
-                    onClick={() => studio.setCi(j)}
-                    title={c.name}
-                    className="pc-pink pc-hv-scale-15"
-                    style={{
-                      cursor: 'pointer', aspectRatio: '1', border: 'none', borderRadius: '3px 3px 0 0', background: colourCss(c),
-                      boxShadow: j === studio.ci ? 'inset 0 0 0 3px #1C1917' : 'inset 0 0 0 1px rgba(28,25,23,.1)',
-                      padding: '0 2px 7px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-                      animation: `tileIn .4s ${j * 22}ms both`, transition: 'transform .25s',
-                    }}
-                  >
-                    <span style={{ fontSize: 8.5, letterSpacing: '.03em', color: colourFg(c), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-            </div>
+          {/* The shade chart: under the stage on a phone, in the right column on a desktop. */}
+          <div className="pc-shades-mobile" style={{ padding: '18px clamp(16px,2.5vw,28px) 20px', borderTop: '1px solid rgba(28,25,23,.08)', background: '#FAF8F5' }}>
+            {shadeChart}
           </div>
         </div>
 
@@ -292,6 +306,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
           <p style={{ margin: 0, fontSize: 13.5, fontWeight: 300, lineHeight: 1.7, color: 'rgba(28,25,23,.6)', maxWidth: 420, textWrap: 'pretty' }}>
             {PHYSICS_NOTES[f.family]}
           </p>
+          <div className="pc-shades-desktop">{shadeChart}</div>
         </div>
       </div>
 
@@ -459,6 +474,116 @@ const GLASS = {
   boxShadow: '0 10px 30px rgba(28,25,23,.12)',
 };
 
+/** Ink that reads on a given colour: dark on a light shade, cream on a dark one. */
+function inkOn(hex: string): string {
+  const n = parseInt(hex.slice(1), 16);
+  const r = (n >> 16) & 255;
+  const g = (n >> 8) & 255;
+  const b = n & 255;
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 150 ? '#1C1917' : '#FAF8F5';
+}
+
+/** A round glass button on the stage that is either on or off — the stretch and shine tests. */
+function IconToggle({ label, on, onClick, delay = 0, children }: { label: string; on: boolean; onClick: () => void; delay?: number; children: React.ReactNode }) {
+  return (
+    <button
+      aria-label={label}
+      aria-pressed={on}
+      title={label}
+      onClick={onClick}
+      className="pc-hv-scale-06"
+      style={{
+        cursor: 'pointer', width: 44, height: 44, borderRadius: '50%', display: 'grid', placeItems: 'center',
+        ...GLASS, WebkitBackdropFilter: GLASS.backdropFilter,
+        background: on ? '#1C1917' : GLASS.background, color: on ? '#FAF8F5' : '#1C1917',
+        transition: 'transform .5s cubic-bezier(.2,.8,.2,1), color .45s ease, background .45s ease',
+        animation: `pcPop .7s ${delay}s cubic-bezier(.2,.8,.2,1) both`,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function StretchIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M7 4h10M7 20h10" />
+      <path d="M12 7v10M9.5 9.5 12 7l2.5 2.5M9.5 14.5 12 17l2.5-2.5" />
+    </svg>
+  );
+}
+
+function ShineIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden>
+      <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" />
+      <circle cx="12" cy="12" r="3.2" />
+    </svg>
+  );
+}
+
+/**
+ * The light, top right: a round button painted the shade as it renders under the current light,
+ * which opens into the five lights — each a button painted the shade under that light, named.
+ * The lighting control and the metamerism reading are one thing: choosing a light is choosing
+ * which of those five to look at. The worst shift is in the button's tooltip.
+ */
+function LightControl({ albedoHex, current, setLight }: { albedoHex: string; current: LightKey; setLight: (l: LightKey) => void }) {
+  const [open, setOpen] = useState(false);
+  const { readings, worst } = metamerism(albedoHex);
+  const now = readings.find((r) => r.light === current) ?? readings[0];
+  const verdict = shiftVerdict(worst);
+  return (
+    <div style={{ position: 'absolute', right: 14, top: 14, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, zIndex: 6, animation: 'pcPop .7s .2s cubic-bezier(.2,.8,.2,1) both' }}>
+      <button
+        aria-label="Light"
+        aria-expanded={open}
+        title={`${LIGHTS[current].en} — the shade ${verdict === 'steady' ? 'holds its colour' : verdict === 'noticeable' ? 'shifts noticeably' : 'shifts strongly'} between lights (${worst.toFixed(1)})`}
+        onClick={() => setOpen(!open)}
+        className="pc-hv-scale-06"
+        style={{
+          cursor: 'pointer', width: 44, height: 44, borderRadius: '50%', display: 'grid', placeItems: 'center',
+          background: now.hex, color: inkOn(now.hex), border: '1px solid rgba(28,25,23,.12)',
+          boxShadow: `0 0 0 2px #FAF8F5, 0 0 0 3px rgba(28,25,23,.12), ${GLASS.boxShadow}`,
+          transition: 'transform .5s cubic-bezier(.2,.8,.2,1), background .8s ease, color .8s ease',
+          transform: open ? 'rotate(15deg)' : 'none',
+        }}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden>
+          <path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2h5c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3Z" />
+        </svg>
+      </button>
+      {open && (
+        <div role="group" aria-label="Light setting" style={{ display: 'flex', flexDirection: 'column', gap: 4, ...GLASS, WebkitBackdropFilter: GLASS.backdropFilter, borderRadius: 18, padding: 5, animation: 'pcPop .45s cubic-bezier(.2,.8,.2,1) both' }}>
+          {readings.map((r, i) => {
+            const key = r.light as LightKey;
+            const on = key === current;
+            return (
+              <button
+                key={key}
+                onClick={() => { setLight(key); setOpen(false); }}
+                aria-label={LIGHTS[key].en}
+                aria-pressed={on}
+                title={`${LIGHTS[key].en} — ${r.shiftFromNeutral.toFixed(1)} from neutral`}
+                style={{
+                  cursor: 'pointer', minWidth: 112, padding: '9px 14px', borderRadius: 999, border: 'none', textAlign: 'left',
+                  background: r.hex, color: inkOn(r.hex), fontFamily: FONT_BODY, fontSize: 11, letterSpacing: '.08em',
+                  boxShadow: on ? '0 0 0 2px #FAF8F5, 0 0 0 3.5px #8A6D45' : 'inset 0 0 0 1px rgba(28,25,23,.1)',
+                  animation: `pcPop .5s ${i * 45}ms cubic-bezier(.2,.8,.2,1) both`,
+                  transition: 'box-shadow .45s ease, transform .5s cubic-bezier(.2,.8,.2,1)',
+                }}
+              >
+                {LIGHTS[key].en}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function WindIcon({ on }: { on: boolean }) {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden style={{ animation: on ? 'pcBreathe 2.8s ease-in-out infinite' : 'none' }}>
@@ -477,9 +602,9 @@ function WindIcon({ on }: { on: boolean }) {
 function WindControl({ wind, setWind, open, setOpen }: { wind: number; setWind: (w: number) => void; open: boolean; setOpen: (o: boolean) => void }) {
   const on = wind > 0;
   return (
-    <div style={{ position: 'absolute', right: 14, bottom: 14, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, zIndex: 6, animation: 'pcPop .7s .2s cubic-bezier(.2,.8,.2,1) both' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, animation: 'pcPop .7s .2s cubic-bezier(.2,.8,.2,1) both' }}>
       {open && (
-        <div role="group" aria-label="Wind setting" style={{ display: 'flex', flexDirection: 'column', gap: 2, ...GLASS, WebkitBackdropFilter: GLASS.backdropFilter, borderRadius: 22, padding: 4, animation: 'pcPop .45s cubic-bezier(.2,.8,.2,1) both' }}>
+        <div role="group" aria-label="Wind setting" style={{ display: 'flex', gap: 2, ...GLASS, WebkitBackdropFilter: GLASS.backdropFilter, borderRadius: 999, padding: 4, animation: 'pcSlideIn .45s cubic-bezier(.2,.8,.2,1) both' }}>
           {([['On', 3], ['Off', 0]] as const).map(([label, value]) => {
             const active = on === value > 0;
             return (

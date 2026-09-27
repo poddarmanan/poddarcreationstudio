@@ -4,11 +4,11 @@ The Lab's controls drive the real scene: pressing them alters physics rather tha
 
 | Control | Where | What it does |
 |---|---|---|
-| Lighting | On the stage, right edge | The shade under each of the five lights, stacked as chips; a tap on one sets the light (swapping the three-light rig and the exposure, `LightingRig`). The chips are the metamerism strip (M26) — choosing a light is choosing which of them to look at. The rail of light names this replaces overflowed a phone |
+| Light | On the stage, top right | A round button painted the shade as it renders under the current light; it opens into the five lights, each a button painted the shade under that light and named. Choosing one swaps the three-light rig and the exposure (`LightingRig`). The buttons are the metamerism strip (M26) — choosing a light is choosing which of them to look at; the worst shift is in the tooltip. The rail of light names this replaces overflowed a phone |
 | Wind | On the stage, bottom right | A round glass button with a wind mark; it opens into On and Off. On is the strong setting, and the lab opens with it on |
 | Garment | On the stage, bottom left | A small glass button naming the cut; a tap veils the stage in frosted glass and lays the six cuts out as silhouettes. It is the only garment control — the rotary dial that used to sit in the right column is gone |
-| Stretch | Pill, bottom centre | Pulls the cloth from the hem — the shoulders are held, the lower cloth draws taut and in on to the body — by the fabric's own recovery figure |
-| Shine | Pill, bottom centre | Walks a point light across the cloth, timed to a 2.4s period |
+| Stretch | On the stage, right, above the wind — on the Roll only | A round button: pulls the length of cloth, which draws in from both sides and lengthens downward from the bolt it hangs on, the bolt turning faster as it gives; every cloth shows the pull, the fabric's own recovery figure decides how much more. A made-up garment cannot be pulled, so the button is not offered on one; choosing the roll points it out for a few seconds |
+| Shine | On the stage, right, above the wind | A round button: walks a point light across the cloth, timed to a 2.4s period |
 
 Three things that were there are gone, on the owner's instruction after using it on a phone:
 the "Watch in 3D" pill (the turntable is always live; hold and spin), the four-step wind rail
@@ -16,11 +16,19 @@ the "Watch in 3D" pill (the turntable is always live; hold and spin), the four-s
 used to sweep the whole stage with the shine — the shine is the raking light on the cloth, and
 nothing else should light up.
 
+**Every change of cut is announced.** The loader shows for about a second on any change of cut,
+cached model or not, with the stage curtained behind it: a garment that simply snaps into place
+reads as a glitch; one that is announced reads as a change.
+
 **A model arrives to a loader, not to the old cut.** While a supplied model is checked for,
 fetched and decoded, the stage is empty but for a small glass loader — a thread drawn round a
 ring and "Draping the kurti" — and the built-in cut is not shown first. It used to stand in, and
 read as the wrong garment appearing and then being swapped. The built-in cut now appears only
 for a cut that has no model file at all (the dress, until one is uploaded).
+
+**The roll rocks as one thing.** Bolt, wires and cloth hang from the wires' top and swing front
+and back together in the wind, in the phase of the cloth's own gust, so the top of the cloth and
+the bolt move as one; the hem rests on the floor rather than hanging in the air.
 
 **The roll hangs from a bolt on a rod.** The Roll cut shows the cloth coming off a bolt of
 itself laid across the top of the panel, on a cardboard core, on a brass rod hung from two

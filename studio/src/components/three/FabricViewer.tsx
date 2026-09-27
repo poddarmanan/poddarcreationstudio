@@ -52,6 +52,8 @@ export interface FabricViewerProps {
   captureId?: string;
   /** Told when a supplied model is being fetched or decoded, so the lab can show a loader. */
   onLoading?: (loading: boolean) => void;
+  /** Draws no garment while true — the lab's loader is up and the stage waits behind it. */
+  curtain?: boolean;
 }
 
 /** Real garment heights, metres — a kurti is not a t-shirt. */
@@ -89,13 +91,16 @@ function Stand({ hem }: { hem: number }) {
  * top of the panel, so the panel reads as fabric coming off a roll rather than a sheet pinned
  * to nothing. It turns very slowly, as a bolt being unrolled does.
  */
-function Bolt({ spec, tier, width, top }: { spec: FabricMaterialSpec; tier: QualityTier; width: number; top: number }) {
+function Bolt({ spec, tier, width, top, pulled = false }: { spec: FabricMaterialSpec; tier: QualityTier; width: number; top: number; pulled?: boolean }) {
   const roll = useRef<THREE.Mesh>(null);
+  const pull = useRef(0);
   const radius = 0.07;
   const length = width + 0.08;
   const repeat = useMemo(() => tileRepeat(spec, length), [spec, length]);
   useFrame((_, delta) => {
-    if (roll.current) roll.current.rotation.y -= delta * 0.12;
+    // Turning slowly on its own; faster while the cloth is pulled, as a bolt being unrolled.
+    pull.current += ((pulled ? 1 : 0) - pull.current) * Math.min(1, delta * 4);
+    if (roll.current) roll.current.rotation.y -= delta * (0.12 + pull.current * 1.6);
   });
   return (
     // Laid across by the group; the bolt itself turns about its own axis inside it. It sits on
@@ -131,6 +136,30 @@ function Bolt({ spec, tier, width, top }: { spec: FabricMaterialSpec; tier: Qual
           <meshBasicMaterial color="#6E6459" />
         </mesh>
       ))}
+    </group>
+  );
+}
+
+/**
+ * The roll as one thing: bolt, wires and cloth hung from the wires' top, rocking front and back
+ * together in the wind. The cloth's own drape sways more the further down it hangs; what this
+ * adds is the swing of the rod it hangs from, in the same phase, so the top of the cloth and
+ * the bolt move as one and nothing reads as pinned to a fixed point in the air.
+ */
+function RollRig({ children, top, wind }: { children: ReactNode; top: number; wind: number }) {
+  const swing = useRef<THREE.Group>(null);
+  const pivot = top + 0.45;
+  useFrame((state) => {
+    const g = swing.current;
+    if (!g) return;
+    // Matches the drape function's gust at the top edge (sin(t·1.4 + y·3.1)), eased in with the rail.
+    g.rotation.x = Math.min(1, wind / 3) * 0.022 * Math.sin(state.clock.elapsedTime * 1.4 + top * 3.1);
+  });
+  return (
+    <group position={[0, pivot, 0]}>
+      <group ref={swing}>
+        <group position={[0, -pivot, 0]}>{children}</group>
+      </group>
     </group>
   );
 }
@@ -299,6 +328,7 @@ export function FabricViewer({
   label,
   onStats,
   onLoading,
+  curtain = false,
   rolled = false,
 }: FabricViewerProps) {
   const detected = useCapability();
@@ -320,7 +350,12 @@ export function FabricViewer({
   const metres = onGarment ? (GARMENT_METRES[garment] ?? 1.15) : 0;
   // Garments hang from a fixed shoulder line; the panel and roll are centred as before.
   const lift = onGarment ? SHOULDER_Y - metres / 2 : 0;
-  const hem = onGarment ? lift - metres / 2 : -(rolled ? 1.5 : 1.35) / 2;
+  // The roll is a little shorter and sits a little lower, to leave room for the bolt across its
+  // top, and its hem meets the floor: a length of cloth off a roll rests on the ground.
+  const rollHeight = 1.3;
+  const rollDrop = 0.1;
+  const hem = onGarment ? lift - metres / 2 : -(rolled ? rollHeight : 1.35) / 2;
+  const floorY = onGarment ? FLOOR_Y : rolled ? hem - rollDrop : hem - 0.125;
 
   const handleStats = useCallback(
     (s: StageStats) => {
@@ -340,11 +375,11 @@ export function FabricViewer({
       style={{ position: 'absolute', inset: 0 }}
     >
       <Exposure light={light} />
-      <LightingRig light={light} tier={tier} floor={onGarment ? FLOOR_Y : hem - 0.125} />
+      <LightingRig light={light} tier={tier} floor={floorY} />
       <ShineSweep active={shine} sheen={fabric.sheen} />
       {free && !onGarment && <Stand hem={hem} />}
       <Turntable idle={!pulled} free={free}>
-        {onGarment ? (
+        {curtain ? null : onGarment ? (
           // Lifted a little: the lab's test pills sit over the bottom of the stage on a phone,
           // and a hem hidden behind them reads as a garment cut off.
           <group position={[0, lift, 0]}>
@@ -373,19 +408,15 @@ export function FabricViewer({
             })()}
           </group>
         ) : (
-          // The roll sits a little lower, to leave room for the bolt across its top.
-          <group position={[0, rolled ? -0.1 : 0, 0]}>
-            {rolled && <Bolt spec={spec} tier={tier} width={0.5} top={0.75} />}
-            <FabricPanel
-              spec={spec}
-              tier={tier}
-              flow={fabric.flow}
-              stretch={fabric.stretch}
-              wind={wind}
-              pulled={pulled}
-              width={rolled ? 0.5 : 0.9}
-              height={rolled ? 1.5 : 1.35}
-            />
+          <group position={[0, rolled ? -rollDrop : 0, 0]}>
+            {rolled ? (
+              <RollRig top={rollHeight / 2} wind={wind}>
+                <Bolt spec={spec} tier={tier} width={0.5} top={rollHeight / 2} pulled={pulled} />
+                <FabricPanel spec={spec} tier={tier} flow={fabric.flow} stretch={fabric.stretch} wind={wind} pulled={pulled} width={0.5} height={rollHeight} />
+              </RollRig>
+            ) : (
+              <FabricPanel spec={spec} tier={tier} flow={fabric.flow} stretch={fabric.stretch} wind={wind} pulled={pulled} width={0.9} height={1.35} />
+            )}
           </group>
         )}
       </Turntable>

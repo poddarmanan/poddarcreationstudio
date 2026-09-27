@@ -82,7 +82,7 @@ async function settled(page) {
 
 async function silhouetteOnce(page) {
   await page.waitForTimeout(900);
-  const png = decodePng(await page.locator('[data-stage] canvas').first().screenshot());
+  const png = decodePng(await page.locator('[data-stage] canvas').first().screenshot({ timeout: 60_000 }));
   const { width, height, channels, data } = png;
   const at = (x, y) => {
     const o = (y * width + x) * channels;
@@ -162,7 +162,10 @@ async function main() {
   const browser = await chromium.launch({ executablePath: CHROME, args: ['--no-sandbox', '--use-gl=swiftshader', '--enable-unsafe-swiftshader'] });
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
 
-  await page.goto(BASE, { waitUntil: 'networkidle' });
+  // Low quality: a silhouette is the same shape at any tier, and a software renderer at the
+  // high tier draws a 300,000-triangle model at a frame a second, which is what a screenshot
+  // times out on.
+  await page.goto(`${BASE}/?quality=low`, { waitUntil: 'networkidle' });
   await page.getByRole('button', { name: /^Collection$/i }).first().click();
   await page.waitForTimeout(700);
   await page.locator('[class*="pc-hv-lift"]').first().click({ force: true });
@@ -172,7 +175,7 @@ async function main() {
   // `silhouette`), and the collection opens on whichever shade comes first — often an ivory
   // that no threshold can separate from the backdrop.
   for (const shade of ['Peacock', 'Firozi', 'Neel', 'Aasmani']) {
-    const chip = page.getByRole('button', { name: new RegExp(`^${shade}$`, 'i') }).first();
+    const chip = page.getByRole('button', { name: new RegExp(`^${shade}$`, 'i') }).filter({ visible: true }).first();
     if (await chip.count()) { await chip.click(); await page.waitForTimeout(600); break; }
   }
   // Wind off. The garments are simulated now, and even a low breeze keeps a hem moving; a
@@ -223,7 +226,7 @@ async function main() {
   // Changing fabric under one cut must still change the render: same shape, different cloth.
   const kurtiBefore = shapes.Kurti;
   await pick(page, 'Kurti');
-  const chip = page.getByRole('button', { name: /^Firozi$/i }).first();
+  const chip = page.getByRole('button', { name: /^Firozi$/i }).filter({ visible: true }).first();
   if (await chip.count()) {
     await chip.click();
     const after = await silhouette(page);

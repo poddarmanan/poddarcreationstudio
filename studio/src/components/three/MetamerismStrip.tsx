@@ -30,40 +30,9 @@ const VERDICT: Record<ReturnType<typeof shiftVerdict>, { label: string; colour: 
   strong: { label: 'shifts strongly', colour: '#A33' },
 };
 
-export function MetamerismStrip({ albedoHex, current, onSelect, vertical = false }: { albedoHex: string; current: LightKey; onSelect?: (light: LightKey) => void; vertical?: boolean }) {
+export function MetamerismStrip({ albedoHex, current }: { albedoHex: string; current: LightKey }) {
   const { readings, worst } = useMemo(() => metamerism(albedoHex), [albedoHex]);
   const verdict = VERDICT[shiftVerdict(worst)];
-
-  if (vertical) {
-    // On the stage's right edge: the five chips stacked, each a button that sets the light —
-    // the lighting control and the metamerism reading are one thing, the shade under each
-    // light, and choosing a light is choosing which of them to look at.
-    return (
-      <div role="group" aria-label="Lighting" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-        {readings.map((r) => {
-          const name = LIGHTS[r.light as LightKey]?.en ?? r.light;
-          const on = r.light === current;
-          return (
-            <button
-              key={r.light}
-              onClick={() => onSelect?.(r.light as LightKey)}
-              title={`${name} — ${r.shiftFromNeutral.toFixed(1)} from neutral`}
-              aria-label={name}
-              aria-pressed={on}
-              className="pc-hv-scale-06"
-              style={{
-                cursor: 'pointer', width: 32, height: 32, borderRadius: 8, border: 'none', padding: 0, background: r.hex,
-                boxShadow: on ? `0 0 0 2px #FAF8F5, 0 0 0 3.5px ${GOLD}` : 'inset 0 0 0 1px rgba(28,25,23,.14)',
-                transform: on ? 'scale(1.08)' : 'none',
-                transition: 'box-shadow .45s ease, transform .5s cubic-bezier(.2,.8,.2,1)',
-              }}
-            />
-          );
-        })}
-        <span title={verdict.label} style={{ fontSize: 10, letterSpacing: '.06em', color: verdict.colour, marginTop: 2 }}>{worst.toFixed(1)}</span>
-      </div>
-    );
-  }
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>

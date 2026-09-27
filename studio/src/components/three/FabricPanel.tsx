@@ -82,8 +82,8 @@ export function FabricPanel({
     pull.current += ((pulled ? 1 : 0) - pull.current) * Math.min(1, delta * 4);
 
     for (let i = 0; i < position.count; i++) {
-      // The pull is from the hem: the top is held, and what hangs furthest below it moves most.
-      const hang = Math.max(0, 0.5 - base[i * 3 + 1] / height);
+      // The pull acts on the whole panel: the drape function holds the top edge and lengthens
+      // downward from it, so the cloth stays on its bolt while both sides draw in.
       const d = drape({
         x: base[i * 3],
         y: base[i * 3 + 1],
@@ -91,7 +91,7 @@ export function FabricPanel({
         flow,
         stretch,
         wind,
-        pull: pull.current * hang * hang * 2,
+        pull: pull.current,
         time: t,
       });
       position.setXYZ(i, d.x, d.y, d.z);

@@ -373,6 +373,14 @@ button:focus-visible, a:focus-visible, input:focus-visible {
   }
 }
 
+/* The Fabric Lab's shade chart lives under the stage on a phone and in the right column on a
+   desktop: one chart, two homes, the other hidden. */
+.pc-shades-desktop { display: none; }
+@media (min-width: 768px) {
+  .pc-shades-desktop { display: block; }
+  .pc-shades-mobile { display: none; }
+}
+
 /* Pinked (zigzag) swatch edge — the Studio's signature "mill sample" cut */
 .pc-pink {
   clip-path: polygon(0 0,100% 0,100% 95%,95% 100%,90% 95%,85% 100%,80% 95%,75% 100%,70% 95%,65% 100%,60% 95%,55% 100%,50% 95%,45% 100%,40% 95%,35% 100%,30% 95%,25% 100%,20% 95%,15% 100%,10% 95%,5% 100%,0 95%);

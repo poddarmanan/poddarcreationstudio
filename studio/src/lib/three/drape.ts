@@ -57,20 +57,26 @@ export function drape({ x, y, height, flow, stretch, wind, pull, time }: DrapeIn
   // `Math.max(0, …)` is load-bearing, not defensive. The top row's `y` comes out one ULP above
   // `height / 2`, so without it the base goes very slightly negative — and a negative base with
   // a fractional exponent is NaN.
-  const hang = 0.12 + Math.max(0, 0.5 - y / height) ** 1.15 * 0.88;
+  const hang = 0.04 + Math.max(0, 0.5 - y / height) ** 1.15 * 0.96;
 
   const fold = Math.sin(x * folds * Math.PI * 2 + time * 0.35) * depth * hang;
   // A second wave at an incommensurable wavelength stops the folds reading as a regular
   // corrugation. Real cloth never repeats exactly.
   const drift = Math.sin(x * folds * 1.61 * Math.PI + time * 0.21 + y * 2) * depth * 0.4 * hang;
   const gust = wind * 0.02 * Math.sin(time * 1.4 + y * 3.1) * hang;
+  // And a sideways swing on a slower beat, more the further the cloth hangs: a hanging length
+  // in a breeze does not only bow away from it, it sways across it — which is also the part of
+  // the motion a camera in front of it can see.
+  const swayX = wind * 0.016 * Math.sin(time * 0.9 + y * 1.5) * hang * hang;
 
   return {
     z: fold + drift + gust,
     gust,
-    // Stretch narrows and lengthens, and the fabric's own recovery figure decides how much: a
-    // cotton lycra pulls far and springs back, a gajji barely moves.
-    x: x * (1 - pull * stretch * 0.22),
-    y: y * (1 + pull * stretch * 0.3),
+    // Stretch narrows and lengthens — from the top edge, which is held, so the cloth grows
+    // downward and never leaves what it hangs from. Every cloth shows the pull; the fabric's own
+    // recovery figure decides how much more: a cotton lycra pulls far and springs back, a gajji
+    // barely moves beyond the base.
+    x: x * (1 - pull * (0.1 + stretch * 0.25)) + swayX,
+    y: height / 2 - (height / 2 - y) * (1 + pull * (0.08 + stretch * 0.3)),
   };
 }

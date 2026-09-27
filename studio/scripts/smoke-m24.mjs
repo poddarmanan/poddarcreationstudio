@@ -32,6 +32,15 @@ async function pick(page, name) {
   return true;
 }
 
+
+/** The light is a menu on the stage: the "Light" button opens it, a named button picks. */
+async function setLight(page, name) {
+  await page.getByRole('button', { name: /^Light$/i }).first().evaluate((el) => el.click());
+  await page.waitForTimeout(400);
+  await page.getByRole('button', { name: new RegExp(`^${name}$`, 'i') }).first().evaluate((el) => el.click());
+  await page.waitForTimeout(400);
+}
+
 /** The wind is a toggle on the stage: a "Wind" button that opens into On and Off. */
 async function setWind(page, on) {
   await page.getByRole('button', { name: /^Wind$/i }).first().evaluate((el) => el.click());
@@ -97,7 +106,9 @@ async function main() {
   const browser = await chromium.launch({ executablePath: CHROME, args: ['--no-sandbox', '--use-gl=swiftshader', '--enable-unsafe-swiftshader'] });
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
 
-  await page.goto(BASE, { waitUntil: 'networkidle' });
+  // Medium quality, as the colour smoke: what this measures is not the tier, and a software
+  // renderer at the high tier draws a supplied model at a frame a second.
+  await page.goto(`${BASE}/?quality=medium`, { waitUntil: 'networkidle' });
   await page.getByRole('button', { name: /^Collection$/i }).first().click();
   await page.waitForTimeout(700);
   await page.locator('[class*="pc-hv-lift"]').first().click({ force: true });
@@ -106,13 +117,18 @@ async function main() {
   // The lab opens with the wind on; the tests below want a still cloth, and the wind check
   // turns it back on itself.
   await setWind(page, false);
+  // On the roll from here: every check below is about the cloth and the light, not the cut, and
+  // the roll is a few thousand triangles where a supplied model is a few hundred thousand — the
+  // difference between a frame and a stall on a software renderer.
+  await pick(page, 'Roll');
+  await page.waitForTimeout(2500);
 
   const before = await signature(page);
 
   // ---- The lighting rail must change the light ----------------------------------------
   // Not a cosmetic claim: a wholesale buyer's first question about a dyed fabric is what it
   // does under their shop's lights, and a rail that does not change the render lies to them.
-  await page.getByRole('button', { name: /^Golden Hour$/i }).first().click();
+  await setLight(page, 'Golden Hour');
   const golden = await signature(page);
   if (distance(before, golden) < 3) bad(`golden hour barely changed the render (Δ${distance(before, golden).toFixed(1)})`);
   else ok(`the lighting rail changes the light (Δ${distance(before, golden).toFixed(1)})`);
@@ -124,62 +140,131 @@ async function main() {
   if (goldenWarmth <= beforeWarmth) bad(`golden hour is not warmer than studio (${goldenWarmth.toFixed(3)} vs ${beforeWarmth.toFixed(3)})`);
   else ok(`golden hour renders warmer than studio (${goldenWarmth.toFixed(3)} vs ${beforeWarmth.toFixed(3)})`);
 
-  await page.getByRole('button', { name: /^Boutique$/i }).first().click();
+  await setLight(page, 'Boutique');
   const boutique = await signature(page);
   if (boutique.r + boutique.g + boutique.b >= golden.r + golden.g + golden.b) {
     bad('boutique lighting should be darker than golden hour — it is a dark surround with tight spots');
   } else ok('boutique renders darker than golden hour');
 
-  await page.getByRole('button', { name: /^Studio$/i }).first().click();
+  await setLight(page, 'Studio');
   await page.waitForTimeout(500);
 
   // ---- The tests must do something ------------------------------------------------------
-  const rest = await signature(page);
-  await page.getByRole('button', { name: /^Stretch$/i }).first().click();
-  await page.waitForTimeout(1400); // the pull eases in rather than snapping
-  const pulled = await signature(page);
-  if (distance(rest, pulled) < 1.5) bad(`the stretch test did not change the cloth (Δ${distance(rest, pulled).toFixed(1)})`);
-  else ok(`stretch pulls the cloth taut (Δ${distance(rest, pulled).toFixed(1)})`);
-  await page.getByRole('button', { name: /^Stretch$/i }).first().click();
+  // The turntable rocks the cloth whenever it is left alone, and that rock moves more pixels
+  // than a test adds on top of it. A held pointer stops the turntable dead (hold-and-release
+  // is how a buyer stops it), so the stretch and the wind are measured with the stage held.
+  const canvas = page.locator('[data-stage] canvas').first();
+  const hold = async () => {
+    const box = await canvas.boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(1500);
+  };
+  const release = async () => page.mouse.up();
+  // A few held frames give the cloth's own residual motion (the folds drift, the bolt turns),
+  // averaged, because it breathes; the test has to add clearly to it.
+  const stillPair = async (pairs = 2) => {
+    let last = await frame(page);
+    let noise = 0;
+    for (let i = 0; i < pairs; i++) {
+      const next = await frame(page);
+      const c = changedFraction(last, next);
+      if (process.env.DEBUG) console.log(`      pair ${i}: ${(c * 100).toFixed(1)}%`);
+      noise += c / pairs;
+      last = next;
+    }
+    return { last, noise };
+  };
+
+  // The stretch test is the roll's: a length of cloth can be pulled, a made-up garment cannot.
+  await hold();
+  const restStill = await stillPair();
+  await page.getByRole('button', { name: /^Stretch$/i }).first().evaluate((el) => el.click());
+  await page.waitForTimeout(3000); // the pull eases in rather than snapping
+  const pulledFrame = await frame(page);
+  const stretched = changedFraction(restStill.last, pulledFrame);
+  if (stretched < restStill.noise * 1.5 || stretched < restStill.noise + 0.02) bad(`the stretch test did not change the cloth (${(stretched * 100).toFixed(1)}% of pixels changed vs ${(restStill.noise * 100).toFixed(1)}% at rest)`);
+  else ok(`stretch pulls the cloth taut (${(stretched * 100).toFixed(1)}% of pixels changed vs ${(restStill.noise * 100).toFixed(1)}% at rest)`);
+  await page.getByRole('button', { name: /^Stretch$/i }).first().evaluate((el) => el.click());
+  await release();
   await page.waitForTimeout(1200);
 
   // Compared against a fresh still reading, over the sweep's period, so neither the rock nor
   // the moment the light happens to be at the edge of its travel decides the answer.
+  const shineButton = page.getByRole('button', { name: /^Shine$/i }).first();
+  const states = async (label) => {
+    if (!process.env.DEBUG) return;
+    const st = await page.getByRole('button', { name: /^Stretch$/i }).first().getAttribute('aria-pressed');
+    const sh = await shineButton.getAttribute('aria-pressed');
+    const w = await page.getByRole('button', { name: /^Wind$/i }).first().getAttribute('title');
+    console.log(`      [${label}] stretch=${st} shine=${sh} ${w}`);
+  };
+  await states('before shine');
   const unlit = await signatureOver(page);
-  await page.getByRole('button', { name: /^Shine$/i }).first().click();
+  await shineButton.evaluate((el) => el.click());
   await page.waitForTimeout(900);
+  await states('shine on');
   const shine = await signatureOver(page);
   const gain = shine.r + shine.g + shine.b - (unlit.r + unlit.g + unlit.b);
   if (gain <= 0) {
     bad(`the shine test should put more light on the cloth, not less (${gain.toFixed(1)})`);
   } else ok(`shine walks a light across the cloth (+${gain.toFixed(1)})`);
-  await page.getByRole('button', { name: /^Shine$/i }).first().click();
+  await shineButton.evaluate((el) => el.click());
+  // A sweeping light left on would be read as wind by the next check; make sure it is off.
+  if ((await shineButton.getAttribute('aria-pressed')) === 'true') await shineButton.evaluate((el) => el.click());
+  await page.waitForTimeout(1500);
+  await states('before wind');
 
   // ---- Wind ------------------------------------------------------------------------------
-  // Measured on a simulated cut (the dress has no supplied model), where the wind is a force on
-  // the cloth; a supplied model answers the wind in its shader, more quietly. Two still frames
-  // first, so the cloth's own idle motion is measured rather than assumed — after the cut has
-  // settled on to its form.
-  await pick(page, 'Dress');
-  await page.waitForTimeout(6000);
-  const stillA = await frame(page);
-  const stillB = await frame(page);
-  const baseline = changedFraction(stillA, stillB);
+  // On the roll, held still. The wind sways the hanging length sideways, which moves the
+  // cloth's silhouette; the folds' own drift moves shading but not the silhouette, and under a
+  // software renderer frames are seconds apart, so shading is the wrong thing to count. The
+  // reading is the horizontal centre of the cloth over its lower rows, frame to frame.
+  const centreOf = (png) => {
+    const { width, height, channels, data } = png;
+    let sum = 0;
+    let rows = 0;
+    for (let y = Math.floor(height * 0.6); y < Math.floor(height * 0.9); y += 2) {
+      let left = -1;
+      let right = -1;
+      for (let x = 0; x < width; x++) {
+        const o = (y * width + x) * channels;
+        // Cloth is darker than the backdrop for every shade the lab opens on.
+        if (data[o] + data[o + 1] + data[o + 2] < 560) {
+          if (left < 0) left = x;
+          right = x;
+        }
+      }
+      if (right - left > 20) {
+        sum += (left + right) / 2;
+        rows++;
+      }
+    }
+    return rows ? sum / rows : NaN;
+  };
+  const spread = async (frames) => {
+    const centres = [];
+    for (let i = 0; i < frames; i++) centres.push(centreOf(await frame(page)));
+    const mean = centres.reduce((a, b) => a + b, 0) / centres.length;
+    if (process.env.DEBUG) console.log(`      centres: ${centres.map((c) => c.toFixed(1)).join(' ')}`);
+    return Math.max(...centres.map((c) => Math.abs(c - mean)));
+  };
+  await hold();
+  const stillSpread = await spread(4);
   await setWind(page, true);
-  // The wind is a force on a damped cloth, not a switch on its position: give it a moment.
-  await page.waitForTimeout(1500);
-  const windy = await frame(page);
-  const moved = changedFraction(stillB, windy);
-  // Strong wind has to add at least two fifths again to the cloth's own idle motion — the rock
-  // and the folds' drift are not nothing — and at least a full point of the frame.
-  if (moved < baseline * 1.4 || moved < baseline + 0.01) bad(`the wind rail did not move the cloth (${(moved * 100).toFixed(1)}% of pixels changed vs ${(baseline * 100).toFixed(1)}% at rest)`);
-  else ok(`the wind rail moves the cloth (${(moved * 100).toFixed(1)}% of pixels changed vs ${(baseline * 100).toFixed(1)}% at rest)`);
+  // The wind is a swell on a damped cloth, not a switch on its position: give it a moment.
+  await page.waitForTimeout(2000);
+  const windSpread = await spread(5);
+  await release();
+  // Strong wind has to swing the lower cloth by pixels the still cloth does not move.
+  if (!(windSpread >= 4 && windSpread >= stillSpread * 3)) bad(`the wind rail did not move the cloth (lower cloth swings ±${windSpread.toFixed(1)}px vs ±${stillSpread.toFixed(1)}px at rest)`);
+  else ok(`the wind rail moves the cloth (lower cloth swings ±${windSpread.toFixed(1)}px vs ±${stillSpread.toFixed(1)}px at rest)`);
 
   // ---- Every quality renders as itself ----------------------------------------------------
   // The failure mode that looks fine is a viewer that shows the same cloth whatever you open.
   const seen = [];
   for (const shade of ['Surkh', 'Firozi', 'Koyla']) {
-    const chip = page.getByRole('button', { name: new RegExp(`^${shade}$`, 'i') }).first();
+    const chip = page.getByRole('button', { name: new RegExp(`^${shade}$`, 'i') }).filter({ visible: true }).first();
     if (!(await chip.count())) continue;
     await chip.click();
     seen.push(await signature(page));

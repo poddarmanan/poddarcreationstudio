@@ -24,6 +24,15 @@ const ok = (m) => console.log(`  ✓ ${m}`);
 const bad = (m) => { problems.push(m); console.log(`  ✗ ${m}`); };
 
 
+
+/** The light is a menu on the stage: the "Light" button opens it, a named button picks. */
+async function setLight(page, name) {
+  await page.getByRole('button', { name: /^Light$/i }).first().evaluate((el) => el.click());
+  await page.waitForTimeout(400);
+  await page.getByRole('button', { name: new RegExp(`^${name}$`, 'i') }).first().evaluate((el) => el.click());
+  await page.waitForTimeout(400);
+}
+
 /** The wind is a toggle on the stage: a "Wind" button that opens into On and Off. */
 async function setWind(page, on) {
   await page.getByRole('button', { name: /^Wind$/i }).first().evaluate((el) => el.click());
@@ -52,15 +61,14 @@ async function main() {
   await page.waitForTimeout(700);
   await page.locator('[class*="pc-hv-lift"]').first().click({ force: true });
   await page.waitForSelector('[data-stage="canvas"]', { timeout: 20_000 });
-  const click = (re) => page.getByRole('button', { name: re }).first().evaluate((el) => el.click());
   await pick(page, 'Roll');
-  await click(/^White Cyc$/i);
+  await setLight(page, 'White Cyc');
   await setWind(page, false);
   await page.waitForTimeout(3000);
   ok('the lab opened on the hanging panel under the white cyc');
 
   for (const shade of SHADES) {
-    const chip = page.getByRole('button', { name: new RegExp(`^${shade}$`, 'i') }).first();
+    const chip = page.getByRole('button', { name: new RegExp(`^${shade}$`, 'i') }).filter({ visible: true }).first();
     if (!(await chip.count())) { console.log(`  – ${shade} (not in this quality)`); continue; }
     // The chip is painted in oklch(); a 2D canvas converts it to the sRGB bytes a screenshot has.
     const chipRgb = await chip.evaluate((el) => {
