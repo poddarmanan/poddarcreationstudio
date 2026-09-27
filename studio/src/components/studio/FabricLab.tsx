@@ -11,7 +11,7 @@ import { FONT_DISPLAY, FONT_BODY, fabricTex, fabricWeave, colourCss, colourFg, c
 import { useDragScroll, scrollByEl } from './interactions';
 import {
   GARMENTS, LIGHTS, FABRIC_STORIES, PHYSICS_NOTES, STRETCH_TEST_NOTES,
-  type GarmentKey, type LightKey,
+  type GarmentKey,
 } from '@/lib/fabric-generator';
 
 const SCOPE_LEVELS: [string, number][] = [['100×', 26], ['200×', 48], ['500×', 96]];
@@ -35,7 +35,6 @@ export function FabricLab({ studio }: { studio: Studio }) {
   const testNoteOn = tests.stretch;
   const testNote = STRETCH_TEST_NOTES[f.family];
 
-  const lightingDrag = useDragScroll();
   const moreDrag = useDragScroll();
   // The two controls that live on the stage itself: the wind toggle and the garment picker.
   const [windOpen, setWindOpen] = useState(false);
@@ -229,6 +228,17 @@ export function FabricLab({ studio }: { studio: Studio }) {
             </div>
             </div>
             {modelLoading && !isRoll && <StageLoader label={`Draping the ${DIAL_LABELS[garment].toLowerCase()}`} />}
+            {/* The lighting, on the stage's right edge: the shade under each light, stacked; a tap
+                on one sets the light. The rail of light names this replaces overflowed a phone. */}
+            <div
+              style={{
+                position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', zIndex: 6,
+              }}
+            >
+              <div style={{ padding: 8, borderRadius: 999, ...GLASS, WebkitBackdropFilter: GLASS.backdropFilter, animation: 'pcPop .7s .25s cubic-bezier(.2,.8,.2,1) both' }}>
+                <MetamerismStrip albedoHex={renderHex} current={lightKey} onSelect={studio.setLight} vertical />
+              </div>
+            </div>
             <GarmentPicker garment={garment} setGarment={studio.setGarment} open={pickerOpen} setOpen={setPickerOpen} />
             <WindControl wind={wind} setWind={studio.setWind} open={windOpen} setOpen={setWindOpen} />
             {testNoteOn && (
@@ -242,24 +252,9 @@ export function FabricLab({ studio }: { studio: Studio }) {
               </div>
             )}
           </div>
-          {/* Lighting + wind rails */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '18px clamp(16px,2.5vw,28px) 20px', borderTop: '1px solid rgba(28,25,23,.08)', background: '#FAF8F5' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
-              <span style={{ fontSize: 10, letterSpacing: '.22em', color: 'rgba(28,25,23,.45)', textTransform: 'uppercase', width: 64, flex: 'none' }}>{t.lighting}</span>
-              <div className="pc-nav" {...lightingDrag} style={{ display: 'flex', gap: 2, background: 'rgba(28,25,23,.05)', borderRadius: 999, padding: 3, overflowX: 'auto', minWidth: 0, cursor: 'grab', touchAction: 'pan-y' }}>
-                {(Object.keys(LIGHTS) as LightKey[]).map((k) => (
-                  <RailChip key={k} on={lightKey === k} onClick={() => studio.setLight(k)}>{LIGHTS[k].en}</RailChip>
-                ))}
-              </div>
-            </div>
-            {/* The lighting studio's actual product: what the shade does when the light
-                changes. A buyer approves under one light and the garment is worn under
-                another; when those disagree it comes back as a rejected lot. */}
-            <div style={{ display: 'flex', gap: 12, marginTop: 12, paddingLeft: 74 }}>
-              <MetamerismStrip albedoHex={renderHex} current={lightKey} />
-            </div>
-            {/* The shade chart, just under the light it is judged in. */}
-            <div style={{ marginTop: 10, paddingTop: 18, borderTop: '1px solid rgba(28,25,23,.08)' }}>
+          {/* The shade chart, just under the stage. */}
+          <div style={{ padding: '18px clamp(16px,2.5vw,28px) 20px', borderTop: '1px solid rgba(28,25,23,.08)', background: '#FAF8F5' }}>
+            <div>
           <div>
               <div style={{ fontSize: 10.5, letterSpacing: '.22em', color: 'rgba(28,25,23,.45)', textTransform: 'uppercase', marginBottom: 10 }}>{f.nc} {t.shades}</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(52px,1fr))', gap: 6 }}>
@@ -631,22 +626,6 @@ function GarmentPicker({ garment, setGarment, open, setOpen }: { garment: Garmen
         </div>
       )}
     </>
-  );
-}
-
-function RailChip({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      onClick={onClick}
-      className="pc-hv-gold-text"
-      style={{
-        cursor: 'pointer', background: on ? '#1C1917' : 'transparent', color: on ? '#FAF8F5' : 'rgba(28,25,23,.65)',
-        border: 'none', borderRadius: 999, padding: '7px 14px', fontFamily: FONT_BODY, fontSize: 11, letterSpacing: '.04em',
-        whiteSpace: 'nowrap', transition: 'background .25s,color .25s',
-      }}
-    >
-      {children}
-    </button>
   );
 }
 

@@ -98,7 +98,8 @@ function Bolt({ spec, tier, width, top }: { spec: FabricMaterialSpec; tier: Qual
     if (roll.current) roll.current.rotation.y -= delta * 0.12;
   });
   return (
-    // Laid across by the group; the bolt itself turns about its own axis inside it.
+    // Laid across by the group; the bolt itself turns about its own axis inside it. It sits on
+    // a brass rod through its core, hung from two wires — the way a bolt is displayed.
     <group position={[0, top, -radius]} rotation={[0, 0, Math.PI / 2]}>
       <mesh ref={roll} castShadow>
         <cylinderGeometry args={[radius, radius, length, 48, 1]} />
@@ -109,6 +110,25 @@ function Bolt({ spec, tier, width, top }: { spec: FabricMaterialSpec; tier: Qual
         <mesh key={side} position={[0, (side * length) / 2 + side * 0.001, 0]}>
           <cylinderGeometry args={[0.024, 0.024, 0.004, 24]} />
           <meshBasicMaterial color="#D8CDB9" />
+        </mesh>
+      ))}
+      {/* The rod, and its end caps. */}
+      <mesh>
+        <cylinderGeometry args={[0.009, 0.009, length + 0.22, 20]} />
+        <meshBasicMaterial color="#8F7A55" />
+      </mesh>
+      {[-1, 1].map((side) => (
+        <mesh key={`cap${side}`} position={[0, (side * (length + 0.22)) / 2, 0]}>
+          <sphereGeometry args={[0.016, 16, 12]} />
+          <meshBasicMaterial color="#A88E62" />
+        </mesh>
+      ))}
+      {/* Two wires up from the rod, out of the top of the frame. In the group's frame (turned a
+          quarter about z) the world's up is local +x, so each wire is turned the same quarter. */}
+      {[-1, 1].map((side) => (
+        <mesh key={`wire${side}`} position={[0.45, (side * (length + 0.14)) / 2, 0]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.0025, 0.0025, 0.9, 8]} />
+          <meshBasicMaterial color="#6E6459" />
         </mesh>
       ))}
     </group>

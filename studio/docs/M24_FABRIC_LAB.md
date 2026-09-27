@@ -4,7 +4,7 @@ The Lab's controls drive the real scene: pressing them alters physics rather tha
 
 | Control | Where | What it does |
 |---|---|---|
-| Lighting rail | Below the stage | Swaps the actual three-light rig and the renderer's exposure (`LightingRig`) |
+| Lighting | On the stage, right edge | The shade under each of the five lights, stacked as chips; a tap on one sets the light (swapping the three-light rig and the exposure, `LightingRig`). The chips are the metamerism strip (M26) — choosing a light is choosing which of them to look at. The rail of light names this replaces overflowed a phone |
 | Wind | On the stage, bottom right | A round glass button with a wind mark; it opens into On and Off. On is the strong setting, and the lab opens with it on |
 | Garment | On the stage, bottom left | A small glass button naming the cut; a tap veils the stage in frosted glass and lays the six cuts out as silhouettes. It is the only garment control — the rotary dial that used to sit in the right column is gone |
 | Stretch | Pill, bottom centre | Pulls the cloth from the hem — the shoulders are held, the lower cloth draws taut and in on to the body — by the fabric's own recovery figure |
@@ -22,9 +22,10 @@ ring and "Draping the kurti" — and the built-in cut is not shown first. It use
 read as the wrong garment appearing and then being swapped. The built-in cut now appears only
 for a cut that has no model file at all (the dress, until one is uploaded).
 
-**The roll hangs from a bolt.** The Roll cut shows the cloth coming off a bolt of itself laid
-across the top of the panel, on a cardboard core, turning very slowly — cloth being unrolled,
-not a sheet pinned to nothing (`Bolt` in `FabricViewer`).
+**The roll hangs from a bolt on a rod.** The Roll cut shows the cloth coming off a bolt of
+itself laid across the top of the panel, on a cardboard core, on a brass rod hung from two
+wires, turning very slowly — cloth being unrolled from a display rod, not a sheet pinned to
+nothing (`Bolt` in `FabricViewer`).
 
 **On a phone** the stage is taller (`clamp(440px, 62vh, 760px)`), the three stage controls
 share its bottom edge — garment left, pills centre, wind right — and every entrance and change
