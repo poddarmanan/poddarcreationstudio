@@ -36,6 +36,11 @@ cut-out; the studio's cloth honours it and measures the garment from the visible
 Licences: models from Sketchfab and similar carry a licence (commonly CC-BY, which requires
 naming the author). Keep the attribution here, one line per model, before publishing.
 
+What is in place now: `shirt.glb` (a poplin shirt saved arms-down, as four chunks, so its
+sleeves hang as modelled), `kurti.glb` (a kurta with palazzo, one mesh in three pieces, scaled
+together to the kurti's height), `top.glb` and `tshirt.glb` — all stripped of their textures and
+Draco-compressed, between 0.4 and 1.3 MB each.
+
 ## Attribution
 
 <!-- kurti.glb — "Title" by Author, licence, URL -->
