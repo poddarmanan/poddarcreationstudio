@@ -78,8 +78,8 @@ from "dependencies still coming up, retry".
 ## What to look at
 
 - **/** — the studio. Enter the showroom, open any fabric: the Lab's stage is a real 3D render.
-  Try the lighting rail (the shade genuinely shifts), the wind rail, Stretch, Shine, the garment
-  dial, and the microscope at 500×.
+  Try the lighting rail (the shade genuinely shifts), the wind toggle and garment picker on the
+  stage, Stretch, Shine, and the microscope at 500×.
 - **Compare** — put three qualities in and they hang side by side under one light.
 - **/portal** — sign in as the buyer: saved collections, quote tracking, recently viewed.
 - **/admin** — sign in as admin: sales workspace, quote desk, analytics.

@@ -362,8 +362,9 @@ export function GarmentMesh({ garment, spec, tier, flow, stretch, wind = 0, pull
       const rx = built.rest[o];
       const ry = built.rest[o + 1];
       const room = built.room[i];
-      const d = drape({ x: rx * 0.5, y: ry, height: metres, flow, stretch, wind, pull: pull.current, time: t * 0.45 });
       const hang = Math.max(0, 0.5 - ry / metres);
+      // The pull is from the hem: the shoulders are held, and what hangs furthest moves most.
+      const d = drape({ x: rx * 0.5, y: ry, height: metres, flow, stretch, wind, pull: pull.current * hang * hang * 2, time: t * 0.45 });
       // Flutter only once the wind is past a breeze; a "Low" setting should not shiver.
       const flutter = Math.max(0, wind - 1) * 0.02 * Math.sin(rx * 18 + t * 4 + ry * 4) * hang * room;
       const fold = ((d.z - d.gust) * 0.9 + flutter) * room;

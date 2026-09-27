@@ -134,7 +134,8 @@ export function useStudio(fabrics: FabricRow[]): Studio {
   const [ci, setCi] = useState(18);
   const [garment, setGarment] = useState<GarmentKey>('kurti');
   const [light, setLight] = useState<LightKey>('studio');
-  const [wind, setWind] = useState(1);
+  // Wind is on by default, and on means strong: the lab opens with the cloth moving.
+  const [wind, setWind] = useState(3);
   const [tests, setTests] = useState<Tests>({ stretch: false, shine: false, d3: false });
   const [compare, setCompare] = useState<string[]>(['rayon14', 'gajji']);
   const [pins, setPins] = useState<Pin[]>([]);

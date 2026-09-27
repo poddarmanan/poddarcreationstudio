@@ -27,6 +27,14 @@ const bad = (m) => { problems.push(m); console.error(`  ✗ ${m}`); };
  * the rock's phase in it. Three frames spread over a third of the rock period take most of that
  * out, and the noise floor below is measured the same way, so the comparison stays honest.
  */
+
+/** The wind is a toggle on the stage: a "Wind" button that opens into On and Off. */
+async function setWind(page, on) {
+  await page.getByRole('button', { name: /^Wind$/i }).first().evaluate((el) => el.click());
+  await page.getByRole('button', { name: on ? /^On$/i : /^Off$/i }).first().evaluate((el) => el.click());
+  await page.waitForTimeout(400);
+}
+
 async function silhouette(page) {
   const samples = [];
   for (let i = 0; i < 3; i++) {
@@ -156,7 +164,7 @@ async function main() {
   }
   // Wind off. The garments are simulated now, and even a low breeze keeps a hem moving; a
   // shape comparison wants the cloth hanging still.
-  await page.getByRole('button', { name: /^None$/i }).first().evaluate((el) => el.click());
+  await setWind(page, false);
   await page.waitForTimeout(2500);
 
   const shapes = {};

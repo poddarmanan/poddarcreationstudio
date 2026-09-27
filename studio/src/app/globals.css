@@ -352,6 +352,10 @@ button:focus-visible, a:focus-visible, input:focus-visible {
 @keyframes threadUp { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
 @keyframes modelIn { from { opacity: 0; transform: translate(-50%, -18px); } to { opacity: 1; transform: translate(-50%, 0); } }
 @keyframes tileIn { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: none; } }
+@keyframes pcVeil { from { opacity: 0; backdrop-filter: blur(0); -webkit-backdrop-filter: blur(0); } to { opacity: 1; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); } }
+@keyframes pcPop { from { opacity: 0; transform: translateY(10px) scale(.86); } to { opacity: 1; transform: none; } }
+@keyframes pcSlideIn { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+@keyframes pcBreathe { 0%, 100% { transform: translateX(0); opacity: .85; } 50% { transform: translateX(2px); opacity: 1; } }
 
 /* The view-entry tilt has to go on phones. `rotateX` under a perspective makes the element's
    visual box wider than the screen for the length of the animation, and a mobile browser

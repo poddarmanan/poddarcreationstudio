@@ -4,8 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { GarmentKey, LightKey } from '@/lib/fabric-generator';
-import type { ColourLike, FabricLike } from '@/lib/three/fabric-spec';
-import { fabricMaterialSpec } from '@/lib/three/fabric-spec';
+import type { ColourLike, FabricLike, FabricMaterialSpec } from '@/lib/three/fabric-spec';
+import { fabricMaterialSpec, tileRepeat } from '@/lib/three/fabric-spec';
+import type { QualityTier } from '@/lib/three/capability';
+import { FabricMaterial } from './FabricMaterial';
 import { useCapability } from './useCapability';
 import { useEffectiveTier } from './quality';
 import { Stage, type StageStats } from './Stage';
@@ -76,6 +78,37 @@ function Stand({ hem }: { hem: number }) {
         <cylinderGeometry args={[0.16, 0.16, 0.012, 24]} />
         <meshBasicMaterial color="#8F8069" />
       </mesh>
+    </group>
+  );
+}
+
+/**
+ * The bolt the roll hangs from: a length of the same cloth wound on a core, lying across the
+ * top of the panel, so the panel reads as fabric coming off a roll rather than a sheet pinned
+ * to nothing. It turns very slowly, as a bolt being unrolled does.
+ */
+function Bolt({ spec, tier, width, top }: { spec: FabricMaterialSpec; tier: QualityTier; width: number; top: number }) {
+  const roll = useRef<THREE.Mesh>(null);
+  const radius = 0.07;
+  const length = width + 0.08;
+  const repeat = useMemo(() => tileRepeat(spec, length), [spec, length]);
+  useFrame((_, delta) => {
+    if (roll.current) roll.current.rotation.y -= delta * 0.12;
+  });
+  return (
+    // Laid across by the group; the bolt itself turns about its own axis inside it.
+    <group position={[0, top, -radius]} rotation={[0, 0, Math.PI / 2]}>
+      <mesh ref={roll} castShadow>
+        <cylinderGeometry args={[radius, radius, length, 48, 1]} />
+        <FabricMaterial spec={spec} tier={tier} repeat={repeat} />
+      </mesh>
+      {/* The cardboard core, showing at each end. */}
+      {[-1, 1].map((side) => (
+        <mesh key={side} position={[0, (side * length) / 2 + side * 0.001, 0]}>
+          <cylinderGeometry args={[0.024, 0.024, 0.004, 24]} />
+          <meshBasicMaterial color="#D8CDB9" />
+        </mesh>
+      ))}
     </group>
   );
 }
@@ -308,16 +341,20 @@ export function FabricViewer({
             })()}
           </group>
         ) : (
-          <FabricPanel
-            spec={spec}
-            tier={tier}
-            flow={fabric.flow}
-            stretch={fabric.stretch}
-            wind={wind}
-            pulled={pulled}
-            width={rolled ? 0.42 : 0.9}
-            height={rolled ? 1.5 : 1.35}
-          />
+          // The roll sits a little lower, to leave room for the bolt across its top.
+          <group position={[0, rolled ? -0.1 : 0, 0]}>
+            {rolled && <Bolt spec={spec} tier={tier} width={0.5} top={0.75} />}
+            <FabricPanel
+              spec={spec}
+              tier={tier}
+              flow={fabric.flow}
+              stretch={fabric.stretch}
+              wind={wind}
+              pulled={pulled}
+              width={rolled ? 0.5 : 0.9}
+              height={rolled ? 1.5 : 1.35}
+            />
+          </group>
         )}
       </Turntable>
     </Stage>

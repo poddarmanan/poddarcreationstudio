@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import type { Studio } from './state';
 import { Selvage } from './brand';
 import { FabricViewer } from '@/components/three/FabricViewer';
@@ -14,7 +14,6 @@ import {
   type GarmentKey, type LightKey,
 } from '@/lib/fabric-generator';
 
-const WIND_NAMES = ['None', 'Low', 'Medium', 'Strong'];
 const SCOPE_LEVELS: [string, number][] = [['100×', 26], ['200×', 48], ['500×', 96]];
 const SCENE_SPANS: [number, number][] = [[2, 2], [1, 1], [1, 1], [1, 2], [1, 1], [1, 1], [2, 1], [1, 1], [1, 1]];
 const GARMENT_KEYS = Object.keys(GARMENTS) as GarmentKey[];
@@ -38,6 +37,9 @@ export function FabricLab({ studio }: { studio: Studio }) {
 
   const lightingDrag = useDragScroll();
   const moreDrag = useDragScroll();
+  // The two controls that live on the stage itself: the wind toggle and the garment picker.
+  const [windOpen, setWindOpen] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   // Garment rotary dial — a drag rotates the disc and snaps the selection through the six
   // garment keys; a tap on any labelled chip jumps straight to it (spring-eased).
@@ -135,18 +137,11 @@ export function FabricLab({ studio }: { studio: Studio }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,340px),1fr))', gap: 0, borderTop: '1px solid rgba(28,25,23,.08)', borderBottom: '1px solid rgba(28,25,23,.08)' }}>
         {/* Stage column: preview + lighting/wind rails */}
         <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, borderRight: '1px solid rgba(28,25,23,.06)' }}>
-          <div style={{ position: 'relative', flex: 1, minHeight: '56vh', background: light.bg, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .8s ease' }}>
-            <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(50% 40% at 50% 15%, ${light.glow}, transparent 70%)` }} />
+          <div style={{ position: 'relative', flex: 1, minHeight: 'clamp(440px, 62vh, 760px)', background: light.bg, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 1.2s ease' }}>
+            <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(50% 40% at 50% 15%, ${light.glow}, transparent 70%)`, transition: 'background 1.2s ease' }} />
             <div style={{ position: 'absolute', left: '15%', right: '15%', bottom: '7%', height: 26, borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(28,25,23,.3), transparent 70%)' }} />
-            {tests.shine && (
-              <div
-                style={{
-                  position: 'absolute', top: 0, bottom: 0, left: 0, width: '34%',
-                  background: `linear-gradient(100deg,transparent, rgba(255,255,255,${(0.25 + f.sheen * 0.6).toFixed(2)}), transparent)`,
-                  animation: 'shineSweep 2.4s ease-in-out infinite', zIndex: 5, pointerEvents: 'none',
-                }}
-              />
-            )}
+            {/* The shine is the raking light the stage walks across the cloth (ShineSweep); the
+                screen-wide band that used to sweep the whole stage with it is gone. */}
             <FabricViewer
               fabric={f}
               colour={col}
@@ -154,7 +149,6 @@ export function FabricLab({ studio }: { studio: Studio }) {
               wind={wind}
               pulled={tests.stretch}
               shine={tests.shine}
-              free={tests.d3}
               rolled={isRoll}
               garment={studio.garment}
               captureId="fabric-lab"
@@ -234,30 +228,40 @@ export function FabricLab({ studio }: { studio: Studio }) {
                 </div>
               }
             />
-            <span style={{ position: 'absolute', top: 14, left: 16, fontSize: 10.5, letterSpacing: '.22em', color: light.fg, opacity: 0.75 }}>
-              {light.en.toUpperCase()} · {WIND_NAMES[wind].toUpperCase()}
+            <span style={{ position: 'absolute', top: 14, left: 16, fontSize: 10.5, letterSpacing: '.22em', color: light.fg, opacity: 0.75, transition: 'color 1.2s ease' }}>
+              {light.en.toUpperCase()} · {wind ? 'WIND' : 'STILL'}
             </span>
+            {/* Centred by the outer element and animated by the inner one: an entrance animation
+                that sets `transform` would otherwise overwrite the centring translate. */}
+            <div style={{ position: 'absolute', bottom: 14, left: '50%', transform: 'translateX(-50%)', zIndex: 6 }}>
             <div
               style={{
-                position: 'absolute', bottom: 14, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 6,
-                background: 'rgba(250,248,245,.62)', backdropFilter: 'blur(12px)', border: '1px solid rgba(28,25,23,.1)', borderRadius: 999, padding: 5,
+                display: 'flex', gap: 4,
+                background: GLASS.background, backdropFilter: GLASS.backdropFilter, WebkitBackdropFilter: GLASS.backdropFilter, border: GLASS.border, borderRadius: 999, padding: 4,
+                boxShadow: GLASS.boxShadow, animation: 'pcPop .7s .1s cubic-bezier(.2,.8,.2,1) both',
               }}
             >
-              {([['stretch', 'Stretch'], ['shine', 'Shine'], ['d3', 'Watch in 3D']] as const).map(([k, label]) => (
+              {([['stretch', 'Stretch'], ['shine', 'Shine']] as const).map(([k, label]) => (
                 <button
                   key={k}
                   onClick={() => studio.toggleTest(k)}
+                  aria-pressed={tests[k]}
+                  className="pc-hv-scale-06"
                   style={{
                     cursor: 'pointer',
                     background: tests[k] ? '#1C1917' : 'transparent',
                     color: tests[k] ? '#FAF8F5' : '#1C1917',
-                    border: 'none', borderRadius: 999, padding: '8px 14px', fontFamily: FONT_BODY, fontSize: 11, letterSpacing: '.08em',
+                    border: 'none', borderRadius: 999, padding: '9px 16px', fontFamily: FONT_BODY, fontSize: 11, letterSpacing: '.08em',
+                    transition: 'background .45s ease, color .45s ease, transform .5s cubic-bezier(.2,.8,.2,1)',
                   }}
                 >
                   {label}
                 </button>
               ))}
             </div>
+            </div>
+            <GarmentPicker garment={garment} setGarment={studio.setGarment} open={pickerOpen} setOpen={setPickerOpen} />
+            <WindControl wind={wind} setWind={studio.setWind} open={windOpen} setOpen={setWindOpen} />
             {testNoteOn && (
               <div
                 style={{
@@ -276,14 +280,6 @@ export function FabricLab({ studio }: { studio: Studio }) {
               <div className="pc-nav" {...lightingDrag} style={{ display: 'flex', gap: 2, background: 'rgba(28,25,23,.05)', borderRadius: 999, padding: 3, overflowX: 'auto', minWidth: 0, cursor: 'grab', touchAction: 'pan-y' }}>
                 {(Object.keys(LIGHTS) as LightKey[]).map((k) => (
                   <RailChip key={k} on={lightKey === k} onClick={() => studio.setLight(k)}>{LIGHTS[k].en}</RailChip>
-                ))}
-              </div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
-              <span style={{ fontSize: 10, letterSpacing: '.22em', color: 'rgba(28,25,23,.45)', textTransform: 'uppercase', width: 64, flex: 'none' }}>{t.windL}</span>
-              <div className="pc-nav" style={{ display: 'inline-flex', gap: 2, background: 'rgba(28,25,23,.05)', borderRadius: 999, padding: 3, overflowX: 'auto', maxWidth: '100%' }}>
-                {WIND_NAMES.map((w, i) => (
-                  <RailChip key={w} on={wind === i} onClick={() => studio.setWind(i)}>{w}</RailChip>
                 ))}
               </div>
             </div>
@@ -532,6 +528,161 @@ export function FabricLab({ studio }: { studio: Studio }) {
         </div>
       </section>
     </div>
+  );
+}
+
+/** The frosted glass the stage's controls sit on. */
+const GLASS = {
+  background: 'rgba(250,248,245,.66)',
+  backdropFilter: 'blur(14px)',
+  border: '1px solid rgba(28,25,23,.1)',
+  boxShadow: '0 10px 30px rgba(28,25,23,.12)',
+};
+
+function WindIcon({ on }: { on: boolean }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden style={{ animation: on ? 'pcBreathe 2.8s ease-in-out infinite' : 'none' }}>
+      <path d="M3 8h9.5a2.5 2.5 0 1 0-2.4-3.2" />
+      <path d="M3 12.5h13.5a2.5 2.5 0 1 1-2.4 3.2" />
+      <path d="M3 17h7a2 2 0 1 1-1.9 2.6" />
+    </svg>
+  );
+}
+
+/**
+ * The wind, on the stage: a round glass button, bottom right, that opens into On and Off. On is
+ * the strong setting — a buyer wants to see the cloth move, not choose a breeze — and the lab
+ * opens with it on.
+ */
+function WindControl({ wind, setWind, open, setOpen }: { wind: number; setWind: (w: number) => void; open: boolean; setOpen: (o: boolean) => void }) {
+  const on = wind > 0;
+  return (
+    <div style={{ position: 'absolute', right: 14, bottom: 14, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, zIndex: 6, animation: 'pcPop .7s .2s cubic-bezier(.2,.8,.2,1) both' }}>
+      {open && (
+        <div role="group" aria-label="Wind setting" style={{ display: 'flex', flexDirection: 'column', gap: 2, ...GLASS, WebkitBackdropFilter: GLASS.backdropFilter, borderRadius: 22, padding: 4, animation: 'pcPop .45s cubic-bezier(.2,.8,.2,1) both' }}>
+          {([['On', 3], ['Off', 0]] as const).map(([label, value]) => {
+            const active = on === value > 0;
+            return (
+              <button
+                key={label}
+                onClick={() => { setWind(value); setOpen(false); }}
+                aria-pressed={active}
+                style={{
+                  cursor: 'pointer', background: active ? '#1C1917' : 'transparent', color: active ? '#FAF8F5' : '#1C1917',
+                  border: 'none', borderRadius: 999, padding: '9px 18px', fontFamily: FONT_BODY, fontSize: 11, letterSpacing: '.08em', minWidth: 64,
+                  transition: 'background .45s ease, color .45s ease',
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+      <button
+        aria-label="Wind"
+        aria-expanded={open}
+        title={on ? 'Wind on' : 'Wind off'}
+        onClick={() => setOpen(!open)}
+        className="pc-hv-scale-06"
+        style={{
+          cursor: 'pointer', width: 44, height: 44, borderRadius: '50%', display: 'grid', placeItems: 'center',
+          ...GLASS, WebkitBackdropFilter: GLASS.backdropFilter, color: on ? '#1C1917' : 'rgba(28,25,23,.42)',
+          transition: 'transform .5s cubic-bezier(.2,.8,.2,1), color .5s ease, background .5s ease',
+          transform: open ? 'rotate(-10deg)' : 'none',
+        }}
+      >
+        <WindIcon on={on} />
+      </button>
+    </div>
+  );
+}
+
+/** A garment's silhouette, drawn small; the roll has no path and gets a bolt. */
+function GarmentGlyph({ k, height }: { k: GarmentKey; height: number }) {
+  const d = GARMENTS[k].d;
+  if (!d) {
+    return (
+      <svg width={height * 0.77} height={height} viewBox="0 0 200 260" aria-hidden>
+        <ellipse cx="100" cy="34" rx="70" ry="22" fill="currentColor" opacity=".55" />
+        <rect x="30" y="34" width="140" height="196" rx="6" fill="currentColor" />
+        <ellipse cx="100" cy="34" rx="18" ry="6" fill="#FAF8F5" opacity=".8" />
+      </svg>
+    );
+  }
+  return (
+    <svg width={height * 0.77} height={height} viewBox="0 0 200 260" aria-hidden>
+      <path d={d} fill="currentColor" />
+    </svg>
+  );
+}
+
+/**
+ * The garment picker, on the stage: a small glass button, bottom left, naming the cut that is
+ * up; a tap veils the stage in frosted glass and lays the six cuts out as silhouettes. Choose
+ * one, or touch the veil, and it lifts.
+ */
+function GarmentPicker({ garment, setGarment, open, setOpen }: { garment: GarmentKey; setGarment: (g: GarmentKey) => void; open: boolean; setOpen: (o: boolean) => void }) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, setOpen]);
+  return (
+    <>
+      <button
+        aria-label="Garment"
+        aria-expanded={open}
+        onClick={() => setOpen(true)}
+        className="pc-hv-scale-06"
+        style={{
+          position: 'absolute', left: 14, bottom: 14, zIndex: 6, cursor: 'pointer', height: 44, borderRadius: 999, padding: '0 16px 0 10px',
+          display: 'flex', alignItems: 'center', gap: 8, ...GLASS, WebkitBackdropFilter: GLASS.backdropFilter, color: '#1C1917', fontFamily: FONT_BODY,
+          transition: 'transform .5s cubic-bezier(.2,.8,.2,1), background .5s ease', animation: 'pcPop .7s .15s cubic-bezier(.2,.8,.2,1) both',
+        }}
+      >
+        <span style={{ width: 26, height: 26, display: 'grid', placeItems: 'center' }}>
+          <GarmentGlyph k={garment} height={20} />
+        </span>
+        <span style={{ fontSize: 11, letterSpacing: '.08em' }}>{DIAL_LABELS[garment]}</span>
+      </button>
+      {open && (
+        <div
+          onClick={() => setOpen(false)}
+          style={{
+            position: 'absolute', inset: 0, zIndex: 7, background: 'rgba(250,248,245,.4)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
+            animation: 'pcVeil .55s ease both', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+          }}
+        >
+          <div role="group" aria-label="Choose a garment" onClick={(e) => e.stopPropagation()} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10, width: '100%', maxWidth: 400 }}>
+            {GARMENT_KEYS.map((k, i) => {
+              const on = k === garment;
+              return (
+                <button
+                  key={k}
+                  onClick={() => { setGarment(k); setOpen(false); }}
+                  aria-pressed={on}
+                  className="pc-hv-scale-06"
+                  style={{
+                    cursor: 'pointer', background: on ? '#1C1917' : 'rgba(255,255,255,.72)', color: on ? '#FAF8F5' : '#1C1917',
+                    border: '1px solid rgba(28,25,23,.1)', borderRadius: 18, padding: '16px 8px 13px', fontFamily: FONT_BODY,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+                    animation: `pcPop .6s ${i * 55}ms cubic-bezier(.2,.8,.2,1) both`,
+                    transition: 'transform .5s cubic-bezier(.2,.8,.2,1), background .45s ease, color .45s ease',
+                  }}
+                >
+                  <GarmentGlyph k={k} height={44} />
+                  <span style={{ fontSize: 11, letterSpacing: '.08em' }}>{DIAL_LABELS[k]}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

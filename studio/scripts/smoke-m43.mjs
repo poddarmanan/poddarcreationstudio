@@ -23,6 +23,14 @@ const problems = [];
 const ok = (m) => console.log(`  ✓ ${m}`);
 const bad = (m) => { problems.push(m); console.log(`  ✗ ${m}`); };
 
+
+/** The wind is a toggle on the stage: a "Wind" button that opens into On and Off. */
+async function setWind(page, on) {
+  await page.getByRole('button', { name: /^Wind$/i }).first().evaluate((el) => el.click());
+  await page.getByRole('button', { name: on ? /^On$/i : /^Off$/i }).first().evaluate((el) => el.click());
+  await page.waitForTimeout(400);
+}
+
 async function main() {
   console.log('base:', BASE);
   const browser = await chromium.launch({ executablePath: CHROME, args: ['--no-sandbox', '--use-gl=swiftshader', '--enable-unsafe-swiftshader'] });
@@ -35,7 +43,7 @@ async function main() {
   const click = (re) => page.getByRole('button', { name: re }).first().evaluate((el) => el.click());
   await click(/^Roll$/i);
   await click(/^White Cyc$/i);
-  await click(/^None$/i);
+  await setWind(page, false);
   await page.waitForTimeout(3000);
   ok('the lab opened on the hanging panel under the white cyc');
 

@@ -1,8 +1,8 @@
 # M23 — Fabric Viewer 2.0
 
 The Fabric Lab's stage now shows the real cloth: lit, draping, and turnable. The chrome around
-it — lighting rail, wind rail, test pills, specification, shade wall — is untouched. Only what
-stands on the stage changed.
+it — lighting rail, test pills, specification, shade wall — was untouched at the time; the
+stage's own controls came later (M24). Only what stands on the stage changed here.
 
 ## Why turning matters
 
@@ -23,9 +23,10 @@ for three seconds it eases back into its own motion — the rock, or a slow full
 "Watch in 3D" — and any touch takes over instantly. `touch-action: pan-y` on the stage lets a
 vertical swipe still scroll the page on a phone.
 
-The "Watch in 3D" toggle used to whip the cloth through a turn or more, because the rock counter
-had been running since the lab opened and was read straight into the free-turn formula; it is
-now re-based to the current angle on each transition.
+The "Watch in 3D" toggle (since removed — the turntable is simply always live) used to whip the
+cloth through a turn or more, because the rock counter had been running since the lab opened and
+was read straight into the free-turn formula; it was re-based to the current angle on each
+transition.
 
 ## Drape comes from the spec sheet
 

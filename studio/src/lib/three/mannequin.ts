@@ -172,10 +172,13 @@ export function bodyFromGarment(positions: ArrayLike<number>, membership: ArrayL
   if (!(top - bottom > 0.1)) return null;
   const lowest = Math.max(bottom + 0.03, top - reach);
 
-  // Vertices sorted into height bins once, so each ring is a slice rather than a scan.
+  // Vertices sorted into height bins once, so each ring is a slice rather than a scan. A dense
+  // model is sampled: forty thousand vertices describe a body as well as two hundred thousand,
+  // and this runs on the main thread of a phone the moment a model arrives.
   const bins: number[][] = [];
   const binOf = (y: number) => Math.floor((top - y) / step);
-  for (let i = 0; i < n; i++) {
+  const stride = Math.max(1, Math.floor(n / 40000));
+  for (let i = 0; i < n; i += stride) {
     if (membership && membership[i]) continue;
     const b = binOf(positions[i * 3 + 1]);
     (bins[b] ??= []).push(i);

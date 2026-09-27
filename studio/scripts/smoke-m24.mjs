@@ -19,6 +19,14 @@ const ok = (m) => console.log(`  ✓ ${m}`);
 const bad = (m) => { problems.push(m); console.error(`  ✗ ${m}`); };
 
 /** Mean colour of the canvas, from decoded pixels — never from the encoded PNG's bytes. */
+
+/** The wind is a toggle on the stage: a "Wind" button that opens into On and Off. */
+async function setWind(page, on) {
+  await page.getByRole('button', { name: /^Wind$/i }).first().evaluate((el) => el.click());
+  await page.getByRole('button', { name: on ? /^On$/i : /^Off$/i }).first().evaluate((el) => el.click());
+  await page.waitForTimeout(400);
+}
+
 async function signature(page) {
   await page.waitForTimeout(700);
   const shot = await page.locator('[data-stage] canvas').first().screenshot();
@@ -83,6 +91,9 @@ async function main() {
   await page.locator('[class*="pc-hv-lift"]').first().click({ force: true });
   await page.waitForSelector('[data-stage="canvas"]', { timeout: 20_000 });
   ok('the lab opened onto a live canvas');
+  // The lab opens with the wind on; the tests below want a still cloth, and the wind check
+  // turns it back on itself.
+  await setWind(page, false);
 
   const before = await signature(page);
 
@@ -133,11 +144,18 @@ async function main() {
   await page.getByRole('button', { name: /^Shine$/i }).first().click();
 
   // ---- Wind ------------------------------------------------------------------------------
-  // Two still frames first, so the cloth's own idle motion is measured rather than assumed.
+  // Measured on a simulated cut (the dress has no supplied model), where the wind is a force on
+  // the cloth; a supplied model answers the wind in its shader, more quietly. Two still frames
+  // first, so the cloth's own idle motion is measured rather than assumed — after the cut has
+  // settled on to its form.
+  await page.getByRole('button', { name: /^Dress$/i }).first().evaluate((el) => el.click());
+  await page.waitForTimeout(6000);
   const stillA = await frame(page);
   const stillB = await frame(page);
   const baseline = changedFraction(stillA, stillB);
-  await page.getByRole('button', { name: /^Strong$/i }).first().click();
+  await setWind(page, true);
+  // The wind is a force on a damped cloth, not a switch on its position: give it a moment.
+  await page.waitForTimeout(1500);
   const windy = await frame(page);
   const moved = changedFraction(stillB, windy);
   // Strong wind has to add at least two fifths again to the cloth's own idle motion — the rock
