@@ -59,6 +59,7 @@ uniform float pcSwayAmount;
 uniform float pcSwayTop;
 uniform float pcSwayHem;
 uniform float pcSwayWind;
+attribute float pcSleeve;
 `;
 const SWAY_VERTEX = `
 #include <begin_vertex>
@@ -73,10 +74,18 @@ const SWAY_VERTEX = `
   // Displacement is in metres; the mesh may be modelled in any unit, so divide by its scale.
   float pcScale = max(0.001, length(vec3(modelMatrix[0])));
   transformed += normal * (pcSwayAmount * pcHang * pcHang * pcWave / pcScale);
-  // The wind: the loose lower part of the garment is pushed back and swung sideways, more the
-  // further it hangs from the shoulders, and more with the rail. A world-space push, carried
-  // into the mesh's own frame (rotation only, so the transpose is the inverse).
-  vec3 pcPush = vec3(0.35 * sin(pcSwayTime * 0.9), 0.0, 0.8 + 0.4 * sin(pcSwayTime * 1.4)) * (pcSwayWind * 0.07 * pcHang * pcHang);
+  // The wind: the loose lower part of the garment is lifted forward and swung sideways, more
+  // the further it hangs from the shoulders, and more with the rail — a slow swell with a
+  // little turbulence on it. A world-space push, carried into the mesh's own frame (rotation
+  // only, so the transpose is the inverse).
+  float pcSwell = 0.55 + 0.45 * sin(pcSwayTime * 1.1) + 0.12 * sin(pcSwayTime * 2.7 + 1.0);
+  vec3 pcPush = vec3(0.3 * sin(pcSwayTime * 0.8), 0.0, pcSwell) * (pcSwayWind * 0.09 * pcHang * pcHang);
+  // A sleeve swings from its shoulder: out from the body and back, and a little fore and aft,
+  // the cuff most. pcSleeve is signed by side and grows to 1 at the cuff (0 on the body).
+  float pcSide = sign(pcSleeve);
+  float pcAlong = abs(pcSleeve);
+  float pcSwing = pcSwayWind * 0.09 * pcAlong * pcAlong;
+  pcPush += vec3(pcSide * pcSwing * (0.5 + 0.5 * sin(pcSwayTime * 1.15 + pcSide * 0.7)), 0.0, pcSwing * 0.6 * sin(pcSwayTime * 0.85 + 1.3));
   transformed += (transpose(mat3(modelMatrix)) * pcPush) / (pcScale * pcScale);
 }
 `;

@@ -3,7 +3,7 @@ import assert from 'node:assert';
 import { existsSync } from 'node:fs';
 import * as THREE from 'three';
 import { readGlb } from './lib/glb.mjs';
-import { fitForm } from '../src/lib/three/mannequin';
+import { bodyFromGarment, fitForm, ringMean } from '../src/lib/three/mannequin';
 import { relaxSleeves, sleevesByPart } from '../src/lib/three/relax';
 
 /**
@@ -94,14 +94,15 @@ async function main() {
       console.log(`${file.split('/').pop()}: sleeves are not their own meshes — left as modelled ✓`);
       continue;
     }
-    const report = relaxSleeves(p, params, membership);
+    const swing = new Float32Array(p.length / 3);
+    const report = relaxSleeves(p, params, membership, undefined, swing);
     // Run the analysis again on the relaxed cloth: a hanging sleeve has no elbow left in it.
     const again = relaxSleeves(Float32Array.from(p), params, membership);
     const after = sleeveExtent(p, torsoHalf, fit.shoulderY);
     for (let i = 0; i < p.length; i++) assert(Number.isFinite(p[i]), 'no vertex may become NaN');
-    console.log(`${file.split('/').pop()}: torso half-width ${(torsoHalf * 100).toFixed(0)}cm; sleeves ${report.sleeves.map((s) => `${s.side > 0 ? 'R' : 'L'} ${s.vertices}v ${(s.length * 100).toFixed(0)}cm long, elbow ${s.elbowAt === null ? 'none' : (s.elbowAt * 100).toFixed(0) + 'cm'}, turned ${(s.turnedBy * 57.3).toFixed(0)}°`).join(' · ')}`);
+    console.log(`${file.split('/').pop()}: torso half-width ${(torsoHalf * 100).toFixed(0)}cm; sleeves ${report.sleeves.map((s) => `${s.side > 0 ? 'R' : 'L'} ${s.vertices}v ${(s.length * 100).toFixed(0)}cm long, elbow ${s.elbowAt === null ? 'none' : (s.elbowAt * 100).toFixed(0) + 'cm'} (bend ${(s.bend * 57.3).toFixed(0)}°), turned ${(s.turnedBy * 57.3).toFixed(0)}°`).join(' · ')}`);
     console.log(`  reach: ${(before.maxX * 100).toFixed(0)}cm → ${(after.maxX * 100).toFixed(0)}cm out; cuff: ${(before.minY * 100).toFixed(0)}cm → ${(after.minY * 100).toFixed(0)}cm`);
-    console.log(`  after: ${again.sleeves.map((s) => `${s.side > 0 ? 'R' : 'L'} elbow ${s.elbowAt === null ? 'none' : (s.elbowAt * 100).toFixed(0) + 'cm'}, off vertical ${(s.turnedBy * 57.3).toFixed(0)}°`).join(' · ')}`);
+    console.log(`  after: ${again.sleeves.map((s) => `${s.side > 0 ? 'R' : 'L'} elbow ${s.elbowAt === null ? 'none' : (s.elbowAt * 100).toFixed(0) + 'cm'} (bend ${(s.bend * 57.3).toFixed(0)}°), off vertical ${(s.turnedBy * 57.3).toFixed(0)}°`).join(' · ')}`);
     assert(report.sleeves.length === 2, `${file}: both sleeves found (${report.sleeves.length})`);
     assert(after.minY <= before.minY + 0.005, `${file}: relaxed sleeves do not rise`);
     assert(after.maxX <= before.maxX + 0.005, `${file}: relaxed sleeves do not reach further out`);
@@ -110,6 +111,27 @@ async function main() {
       assert(s.turnedBy < 0.12, `${file}: a relaxed ${s.side > 0 ? 'right' : 'left'} sleeve hangs within 7° of its rest direction (${(s.turnedBy * 57.3).toFixed(0)}°)`);
     }
     console.log(`  hangs ✓`);
+    // The wind's handle on each sleeve: every sleeve vertex past the armhole says how far along
+    // it is, signed by side, and nothing on the body does.
+    let signed = 0, wrong = 0, onBody = 0;
+    for (let i = 0; i < swing.length; i++) {
+      if (membership[i] === 0) { if (swing[i] !== 0) onBody++; continue; }
+      if (Math.abs(swing[i]) > 0) { signed++; if (Math.sign(swing[i]) !== membership[i]) wrong++; }
+    }
+    assert(onBody === 0 && wrong === 0, `${file}: swing is only on sleeves and carries their side (${onBody} body, ${wrong} wrong side)`);
+    assert(signed > (report.sleeves[0].vertices + report.sleeves[1].vertices) * 0.8, `${file}: most sleeve vertices carry a swing (${signed})`);
+    // The body read from the relaxed garment: the collar becomes the neck, the rings below the
+    // shoulder stay inside the torso's width, and it reaches the hip.
+    const body = bodyFromGarment(p, membership, sex);
+    assert(body && body.rings.length >= 10, `${file}: a body is read from the garment`);
+    const rings = body!.rings;
+    assert(ringMean(rings[0]) < torsoHalf * 0.6, `${file}: the top ring is a neck, not a shoulder (${(ringMean(rings[0]) * 100).toFixed(0)}cm)`);
+    const below = rings.filter((r) => r.y < fit.shoulderY - 0.1);
+    const half = (r: (typeof rings)[number]) => Math.max(r.radii[0], r.radii[r.radii.length / 2]);
+    const deep = (r: (typeof rings)[number]) => Math.max(r.radii[r.radii.length / 4], r.radii[(r.radii.length * 3) / 4]);
+    const outside = below.filter((r) => !(half(r) <= torsoHalf + 0.05 && half(r) >= 0.05));
+    assert(outside.length === 0, `${file}: every ring below the shoulder is inside the torso and not collapsed (${outside.map((r) => `${(r.y * 100).toFixed(0)}cm: ${(half(r) * 100).toFixed(1)}`).join(', ')})`);
+    console.log(`  body: ${rings.length} rings, neck ${(body!.neckR * 100).toFixed(0)}cm, chest ${(Math.max(...below.map(half)) * 100).toFixed(0)}×${(Math.max(...below.map(deep)) * 100).toFixed(0)}cm half, hip at ${(rings[rings.length - 1].y * 100).toFixed(0)}cm ✓`);
   }
   console.log('\nM44 sleeve relaxation: all checks passed');
 }

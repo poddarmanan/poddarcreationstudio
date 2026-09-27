@@ -43,12 +43,21 @@ rather than a garment sliding sideways.
 
 ## On a form, and simulated
 
-Every garment now hangs on a black dress form — a man's for the shirt and t-shirt, a woman's
-for the kurti, dress and top (`lib/three/mannequin.ts`, `Mannequin.tsx`). The form is measured
-from the garment itself: width at the garment's *narrowest* band between underarm and waist,
-read at a percentile so a sleeve hanging at the side does not count as torso; depth the same
-way, capped by how deep the cloth actually is. That is why one profile fits a procedural cut
-and a supplied model alike.
+Every garment hangs on a black dress form (`lib/three/mannequin.ts`, `Mannequin.tsx`). The
+first form was a fixed profile — a man's or a woman's — scaled to a chest measured at the
+garment's narrowest band, and it sat well inside the cloth. From the front that read as a
+garment on a stand; turned, or looked at down a neckline or through an armhole, it read as a
+shell with nothing in it. A form in a showroom fills the garment, so the form is now the body
+read out of the garment itself (`bodyFromGarment`): at every two centimetres of height, in each
+of 32 directions round the axis, how far out the cloth is — sleeves left out, a low percentile
+so a fold that bulges does not push the body out with it — less the thickness of the cloth, is
+a point on the body. The collar becomes the neck, the shoulders the shoulders, the waist the
+waist, and a cross-section that is not an ellipse (a shirt is flatter across the chest than an
+ellipse through its extremes would be) is followed rather than overshot. The torso is a tube
+through those rings, with a neck stump above and a rounded hip below; the collider the cloth
+feels is the same rings. A drawn cut is read with more clearance than a model, because a drawn
+silhouette is a garment on a person with a garment's ease in it, and a body that held the
+cloth out at every vertex crumpled it.
 
 The procedural cuts are then run by a cloth simulation (`lib/three/cloth.ts`): position-based
 dynamics, both shells as one cloth, the outline tied front to back so the seams stay closed,
@@ -69,8 +78,12 @@ nothing at all on one. The garment is drawn throughout and settles in front of t
 Supplied models are rigid; they get the form, the lean and the wind, not the simulation. A
 200,000-vertex t-shirt is not something a phone can relax every frame. The wind reaches them
 through the vertex shader (`FabricMaterial`'s `sway`): the loose lower part of the garment is
-pushed back and swung sideways, more the further it hangs from the shoulders and more with the
-rail, so a shirt's hem and cuffs answer the same "Strong" the kurti does.
+lifted forward and swung sideways in a slow swell, more the further it hangs from the shoulders
+and more with the rail; and a sleeve swings from its shoulder — out from the body and back, a
+little fore and aft, the cuff most — by way of a per-vertex attribute (`pcSleeve`, signed by
+side, 0 at the shoulder seam and 1 at the cuff) that the relaxation writes. The wind rail is
+read linearly (a third per step) for the models and as a 1.5 power for the simulation: the
+square it was made "Low" invisible, and "Low" is what the lab opens on.
 
 ## Supplied models
 
@@ -97,11 +110,13 @@ held out. On a dress form there are no arms in them, so `lib/three/relax.ts` let
 from the geometry alone. A part whose vertices lie mostly beyond the torso's width on one side
 is a sleeve (a stray piece of collar in the same mesh stays body); its centreline is found by
 binning its vertices on distance from the shoulder seam; a sharp turn in the middle of that
-line is the elbow. The upper arm is rotated about the shoulder to hang a little outward, the
-forearm about the elbow to continue straight down, the armhole blended over a few centimetres
-so the seam does not tear, and below the shoulder cap the tube is flattened front-to-back into
-the oval an empty sleeve settles into. The form is then fitted again to the garment as it now
-is.
+line is the elbow (a turn of less than 29°, which the centreline of a straight sleeve wobbles
+by, is not one). The upper arm is rotated about the shoulder to hang almost straight down, the
+forearm about the elbow to continue, the armhole blended over a few centimetres so the seam
+does not tear, and below the shoulder cap the tube is let go: flattened front-to-back to less
+than half its depth and a little wider, tapered to the cuff (an empty cuff collapses), with the
+soft horizontal creases of cloth that is holding nothing up. The body is then read from the
+garment as it now hangs.
 
 Only a model whose sleeves are their own meshes is touched. From the width test alone the
 chest's sides read as sleeve too, and moving those distorts the body — so a model saved as

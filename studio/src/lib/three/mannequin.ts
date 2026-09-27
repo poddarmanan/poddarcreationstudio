@@ -3,36 +3,12 @@
  *
  * A black tailor's form, not a figure: torso from neck to hip on a pole. That is what a garment
  * is shown on in a showroom, and it has the advantage that it needs no arms or legs that would
- * have to be threaded through sleeves. Two profiles — a man's and a woman's — each a list of
- * (height, half-width, half-depth) rows from the hip up to the shoulder, relative to the chest
- * (which is 1 × 1), so one profile fits any garment once the chest has been measured.
+ * have to be threaded through sleeves. `fitForm` reads a garment's shoulder line and chest;
+ * `bodyFromGarment`, further down, reads the whole body out of the garment, and is what the
+ * form is built from.
  */
 
 export type FormSex = 'male' | 'female';
-
-/** [height fraction hip→shoulder, half-width ÷ chest half-width, half-depth ÷ chest half-depth] */
-export const FORM_PROFILE: Record<FormSex, [number, number, number][]> = {
-  male: [
-    [0.0, 0.86, 0.88],
-    [0.15, 0.88, 0.9],
-    [0.35, 0.9, 0.9],
-    [0.55, 0.96, 0.96],
-    [0.72, 1.0, 1.0],
-    [0.86, 1.0, 0.94],
-    [0.96, 0.92, 0.76],
-    [1.0, 0.7, 0.64],
-  ],
-  female: [
-    [0.0, 0.98, 0.94],
-    [0.14, 0.94, 0.88],
-    [0.32, 0.76, 0.72],
-    [0.5, 0.86, 0.86],
-    [0.64, 1.0, 1.0],
-    [0.78, 0.96, 0.86],
-    [0.92, 0.84, 0.66],
-    [1.0, 0.62, 0.54],
-  ],
-};
 
 export interface FormFit {
   /** World y of the shoulder line the form reaches up to. */
@@ -110,23 +86,200 @@ export function fitForm(positions: ArrayLike<number>, sex: FormSex, options: Fit
   };
 }
 
-/** Half-radii of the form at a height, for the cloth to collide against. */
-export function formRadii(fit: FormFit, y: number): { rx: number; rz: number } | null {
-  if (y < fit.hipY - 0.06 || y > fit.shoulderY + 0.02) return null;
-  const t = Math.max(0, Math.min(1, (y - fit.hipY) / (fit.shoulderY - fit.hipY)));
-  const rows = FORM_PROFILE[fit.sex];
-  let a = rows[0];
-  let b = rows[rows.length - 1];
-  for (let i = 0; i < rows.length - 1; i++) {
-    if (t >= rows[i][0] && t <= rows[i + 1][0]) {
-      a = rows[i];
-      b = rows[i + 1];
-      break;
+// ---------------------------------------------------------------------------------------------
+// A body measured from the garment, ring by ring and sector by sector.
+//
+// The profile above fits a form *inside* a garment with room to spare, and from most angles that
+// reads as a garment hanging on a stand. Turn it, look down a neckline or through an armhole,
+// and the gap shows: the cloth is a shell with nothing in it. A dress form in a showroom fills
+// the garment — the cloth lies on it. So the body is now read from the garment itself: at every
+// two centimetres of height, in each of 32 directions around the axis, how far out the cloth is
+// (sleeves left out), less a clearance, is a point on the body. The garment's collar becomes
+// the neck, its shoulders the shoulders, its waist the waist, whatever the cut, and a cross-
+// section that is not an ellipse — a shirt is flatter across the chest than an ellipse through
+// its extremes — is followed rather than overshot. Below the hip, the pole.
+// ---------------------------------------------------------------------------------------------
+
+export const BODY_SECTORS = 32;
+
+export interface FormRing {
+  y: number;
+  /** Centre of the ring front-to-back — a garment is not always modelled about its own axis. */
+  cz: number;
+  /** Radius in each of BODY_SECTORS directions, sector k at angle k·2π/SECTORS from +x towards +z. */
+  radii: Float32Array;
+}
+
+export interface FormBody {
+  /** Top ring first (the neck opening), hip last. */
+  rings: FormRing[];
+  /** Radius of the neck stump that rises out of the top ring. */
+  neckR: number;
+  sex: FormSex;
+}
+
+export interface BodyOptions {
+  /** How far inside the cloth the body sits, metres. */
+  clearance?: number;
+  /** Ring spacing, metres. */
+  step?: number;
+  /** How far below the garment's top the body may reach before the pole takes over, metres. */
+  reach?: number;
+}
+
+/** Mean radius of a ring. */
+export function ringMean(ring: FormRing): number {
+  let sum = 0;
+  for (let k = 0; k < ring.radii.length; k++) sum += ring.radii[k];
+  return sum / ring.radii.length;
+}
+
+/** Radius of a ring at an angle, interpolated between its sectors. */
+export function ringRadius(ring: FormRing, angle: number): number {
+  const n = ring.radii.length;
+  let f = (angle / (Math.PI * 2)) * n;
+  f = ((f % n) + n) % n;
+  const k = Math.floor(f);
+  const t = f - k;
+  return ring.radii[k] * (1 - t) + ring.radii[(k + 1) % n] * t;
+}
+
+function smoothRing(radii: Float32Array, passes: number): void {
+  const n = radii.length;
+  for (let pass = 0; pass < passes; pass++) {
+    const copy = Float32Array.from(radii);
+    for (let k = 0; k < n; k++) radii[k] = (copy[(k + n - 1) % n] + 2 * copy[k] + copy[(k + 1) % n]) / 4;
+  }
+}
+
+/**
+ * Reads the body inside a garment. `positions` are xyz triples in stage space; `membership`,
+ * when given, marks sleeve vertices (non-zero), which are not body. Returns null when there is
+ * not enough garment to read.
+ */
+export function bodyFromGarment(positions: ArrayLike<number>, membership: ArrayLike<number> | null, sex: FormSex, options: BodyOptions = {}): FormBody | null {
+  const { clearance = 0.012, step = 0.02, reach = 0.66 } = options;
+  const n = positions.length / 3;
+  const S = BODY_SECTORS;
+  let top = -Infinity;
+  let bottom = Infinity;
+  for (let i = 0; i < n; i++) {
+    if (membership && membership[i]) continue;
+    const y = positions[i * 3 + 1];
+    if (y > top) top = y;
+    if (y < bottom) bottom = y;
+  }
+  if (!(top - bottom > 0.1)) return null;
+  const lowest = Math.max(bottom + 0.03, top - reach);
+
+  // Vertices sorted into height bins once, so each ring is a slice rather than a scan.
+  const bins: number[][] = [];
+  const binOf = (y: number) => Math.floor((top - y) / step);
+  for (let i = 0; i < n; i++) {
+    if (membership && membership[i]) continue;
+    const b = binOf(positions[i * 3 + 1]);
+    (bins[b] ??= []).push(i);
+  }
+
+  const percentile = (values: number[], p: number) => {
+    values.sort((a, b) => a - b);
+    return values[Math.min(values.length - 1, Math.floor(values.length * p))];
+  };
+  const raw: (FormRing | null)[] = [];
+  for (let y = top - step / 2; y >= lowest; y -= step) {
+    const b = binOf(y);
+    const members = [...(bins[b - 1] ?? []), ...(bins[b] ?? []), ...(bins[b + 1] ?? [])].filter((i) => Math.abs(positions[i * 3 + 1] - y) < step * 0.75);
+    if (members.length < 6) {
+      raw.push(null);
+      continue;
+    }
+    // The ring's centre front-to-back is the middle of its z range; sideways it is the axis.
+    const zs = members.map((i) => positions[i * 3 + 2]);
+    const cz = (percentile(zs.slice(), 0.03) + percentile(zs.slice(), 0.97)) / 2;
+    // In each direction the cloth's distance from the centre: a low percentile, so a fold that
+    // bulges out does not push the body out with it — the dips are where the body is.
+    const sectors: number[][] = Array.from({ length: S }, () => []);
+    for (const i of members) {
+      const x = positions[i * 3];
+      const dz = positions[i * 3 + 2] - cz;
+      let angle = Math.atan2(dz, x);
+      if (angle < 0) angle += Math.PI * 2;
+      sectors[Math.min(S - 1, Math.floor((angle / (Math.PI * 2)) * S))].push(Math.hypot(x, dz));
+    }
+    const radii = new Float32Array(S).fill(NaN);
+    for (let k = 0; k < S; k++) if (sectors[k].length >= 3) radii[k] = percentile(sectors[k], 0.3);
+    // Directions with no cloth (an armhole, the gap at a placket) take their neighbours'.
+    const known = [...radii].some((r) => !Number.isNaN(r));
+    if (!known) {
+      raw.push(null);
+      continue;
+    }
+    for (let k = 0; k < S; k++) {
+      if (!Number.isNaN(radii[k])) continue;
+      let before = k;
+      let after = k;
+      let d1 = 0;
+      let d2 = 0;
+      while (Number.isNaN(radii[before])) { before = (before + S - 1) % S; d1++; }
+      while (Number.isNaN(radii[after])) { after = (after + 1) % S; d2++; }
+      radii[k] = (radii[before] * d2 + radii[after] * d1) / (d1 + d2);
+    }
+    for (let k = 0; k < S; k++) radii[k] = Math.max(0.015, radii[k] - clearance);
+    smoothRing(radii, 2);
+    raw.push({ y, cz, radii });
+  }
+  if (raw.filter(Boolean).length < 4) return null;
+
+  // Rings with too little cloth to read take their neighbours'.
+  const rings: FormRing[] = [];
+  for (let k = 0; k < raw.length; k++) {
+    const y = top - step / 2 - k * step;
+    const ring = raw[k];
+    if (ring) {
+      rings.push(ring);
+      continue;
+    }
+    let above = k - 1;
+    while (above >= 0 && !raw[above]) above--;
+    let below = k + 1;
+    while (below < raw.length && !raw[below]) below++;
+    const a = above >= 0 ? raw[above] : null;
+    const c = below < raw.length ? raw[below] : null;
+    if (a && c) rings.push({ y, cz: (a.cz + c.cz) / 2, radii: a.radii.map((r, i) => (r + c.radii[i]) / 2) });
+    else if (a ?? c) rings.push({ y, cz: (a ?? c)!.cz, radii: Float32Array.from((a ?? c)!.radii) });
+  }
+
+  // Seams and folds put bumps on the reading from ring to ring; a body has none. Two passes of
+  // a 3-tap average down the body, ends held.
+  for (let pass = 0; pass < 2; pass++) {
+    const copy = rings.map((r) => ({ cz: r.cz, radii: Float32Array.from(r.radii) }));
+    for (let k = 1; k < rings.length - 1; k++) {
+      rings[k].cz = (copy[k - 1].cz + 2 * copy[k].cz + copy[k + 1].cz) / 4;
+      for (let s2 = 0; s2 < S; s2++) rings[k].radii[s2] = (copy[k - 1].radii[s2] + 2 * copy[k].radii[s2] + copy[k + 1].radii[s2]) / 4;
     }
   }
-  const span = b[0] - a[0] || 1;
-  const k = (t - a[0]) / span;
-  // Below the hip the form rounds off to nothing over 6cm.
-  const round = y < fit.hipY ? Math.sqrt(Math.max(0, 1 - ((fit.hipY - y) / 0.06) ** 2)) : 1;
-  return { rx: fit.chest * (a[1] + (b[1] - a[1]) * k) * round, rz: fit.depth * (a[2] + (b[2] - a[2]) * k) * round };
+
+  const neckR = Math.min(0.06, Math.max(0.035, ringMean(rings[0]) * 0.9));
+  return { rings, neckR, sex };
+}
+
+/** The body's ring at a height, interpolated; null above the neck or well below the hip. */
+export function bodyRing(body: FormBody, y: number): FormRing | null {
+  const { rings } = body;
+  const top = rings[0].y;
+  const bottom = rings[rings.length - 1].y;
+  if (y > top + 0.02 || y < bottom - 0.06) return null;
+  if (y >= top) return rings[0];
+  if (y <= bottom) {
+    // Below the hip the body rounds off to nothing over 6cm.
+    const round = Math.sqrt(Math.max(0, 1 - ((bottom - y) / 0.06) ** 2));
+    const last = rings[rings.length - 1];
+    return { y, cz: last.cz, radii: last.radii.map((r) => r * round) };
+  }
+  const stepY = rings.length > 1 ? rings[0].y - rings[1].y : 1;
+  const k = Math.min(rings.length - 2, Math.max(0, Math.floor((top - y) / stepY)));
+  const a = rings[k];
+  const b = rings[k + 1];
+  const t = Math.max(0, Math.min(1, (a.y - y) / (a.y - b.y || 1)));
+  return { y, cz: a.cz + (b.cz - a.cz) * t, radii: a.radii.map((r, i) => r + (b.radii[i] - r) * t) };
 }

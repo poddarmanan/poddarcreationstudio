@@ -105,9 +105,13 @@ export class Cloth {
         const z = pos[o + 2];
         // The turntable's motion, felt in the cloth's own frame: centrifugal outward, and the
         // tangential kick of a change in speed. This is what makes a hem flare on a flick.
-        const ax = wx + omega * omega * x - alpha * -z;
-        const ay = wy - forces.gravity - forces.tug * bottom[i] * bottom[i];
-        const az = wz + omega * omega * z - alpha * x;
+        // The tug (the stretch test) pulls the lower cloth down and, as a garment pulled down
+        // does, draws it in towards the axis: the loose cloth cinches on to the body, which is
+        // what the eye reads as "pulled taut" on a form that fills the garment.
+        const tug = forces.tug * bottom[i] * bottom[i];
+        const ax = wx + omega * omega * x - alpha * -z - tug * 2.2 * x;
+        const ay = wy - forces.gravity - tug;
+        const az = wz + omega * omega * z - alpha * x - tug * 2.2 * z;
         const nx = x + (x - prev[o]) * damping + ax * h * h;
         const ny = y + (y - prev[o + 1]) * damping + ay * h * h;
         const nz = z + (z - prev[o + 2]) * damping + az * h * h;

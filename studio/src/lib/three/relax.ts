@@ -28,7 +28,7 @@ export interface RelaxParams {
 }
 
 export interface RelaxReport {
-  sleeves: { side: 1 | -1; vertices: number; length: number; elbowAt: number | null; turnedBy: number }[];
+  sleeves: { side: 1 | -1; vertices: number; length: number; elbowAt: number | null; /** Sharpest turn found in the centreline, radians. */ bend: number; turnedBy: number }[];
 }
 
 const BIN = 0.03;
@@ -138,8 +138,13 @@ export function sleevesByPart(positions: Float32Array, parts: [number, number][]
  * `normals`, when given, are the matching xyz triples of vertex normals and are turned with
  * their vertices — as the blend of the same rotations, which for shading is close enough.
  */
-export function relaxSleeves(positions: Float32Array, params: RelaxParams, membership?: SleeveMembership, normals?: Float32Array): RelaxReport {
-  const { torsoHalf, shoulderY, splay = 0.1 } = params;
+/**
+ * `swing`, when given, receives per vertex how far along its sleeve the vertex is (0 at the
+ * shoulder seam, 1 at the cuff), signed by side and 0 for the body — what the wind needs to
+ * swing a sleeve from its shoulder without knowing anything else about the mesh.
+ */
+export function relaxSleeves(positions: Float32Array, params: RelaxParams, membership?: SleeveMembership, normals?: Float32Array, swing?: Float32Array): RelaxReport {
+  const { torsoHalf, shoulderY, splay = 0.04 } = params;
   const report: RelaxReport = { sleeves: [] };
   const n = positions.length / 3;
   const v = new THREE.Vector3();
@@ -208,7 +213,7 @@ export function relaxSleeves(positions: Float32Array, params: RelaxParams, membe
         elbow = k;
       }
     }
-    if (sharpest < 0.35) elbow = null; // under 20°: a straight arm, or just noise
+    if (sharpest < 0.5) elbow = null; // under 29°: a straight arm; the centreline of a real one wobbles by up to 20°
 
     // 4. Rotate to hang.
     const hang = new THREE.Vector3(side * Math.sin(splay), -Math.cos(splay), 0.02).normalize();
@@ -246,10 +251,11 @@ export function relaxSleeves(positions: Float32Array, params: RelaxParams, membe
       turnedAll[m * 3 + 2] = turned.z;
     }
 
-    // 5. Flatten. A sleeve with no arm in it does not stay a tube: it settles front-to-back
-    // into a flattened oval, a little wider than it was round. About the hanging centreline,
-    // below the shoulder cap (which keeps its shape over the yoke), depth halves and width grows
-    // by 15%. The perimeter shrinks slightly, which reads as cloth lying flatter, not smaller.
+    // 5. Flatten, and let go. A sleeve with no arm in it does not stay a tube: it settles
+    // front-to-back into a flattened oval, a little wider than it was round, narrower towards
+    // the cuff (an empty cuff collapses), with the soft horizontal creases of cloth that is
+    // holding nothing up. About the hanging centreline, below the shoulder cap (which keeps its
+    // shape over the yoke): depth to 42%, width up 18%, a 10% taper to the cuff, a 5% crease.
     const rows: { sum: THREE.Vector3; count: number }[] = [];
     for (let m = 0; m < members.length; m++) {
       const b = Math.floor(Math.hypot(turnedAll[m * 3], turnedAll[m * 3 + 1], turnedAll[m * 3 + 2]) / BIN);
@@ -279,11 +285,14 @@ export function relaxSleeves(positions: Float32Array, params: RelaxParams, membe
       }
       const row = rows[Math.floor(r / BIN)];
       const flat = Math.min(1, Math.max(0, (r - 0.1) / 0.08)) * w;
+      const along = Math.min(1, r / Math.max(0.05, reach));
       if (row && flat > 0) {
         centre.copy(row.sum).divideScalar(row.count);
-        turned.x = centre.x + (turned.x - centre.x) * (1 + 0.15 * flat);
-        turned.z = centre.z + (turned.z - centre.z) * (1 - 0.5 * flat);
+        const crease = 1 - flat * (0.1 * along + 0.05 * (0.5 - 0.5 * Math.sin(r * 40)));
+        turned.x = centre.x + (turned.x - centre.x) * (1 + 0.18 * flat) * crease;
+        turned.z = centre.z + (turned.z - centre.z) * (1 - 0.58 * flat) * crease;
       }
+      if (swing) swing[i] = side * along * w;
       const rest = new THREE.Vector3(positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]).sub(pivot);
       rest.lerp(turned, w).add(pivot);
       positions[i * 3] = rest.x;
@@ -291,7 +300,7 @@ export function relaxSleeves(positions: Float32Array, params: RelaxParams, membe
       positions[i * 3 + 2] = rest.z;
     }
 
-    report.sleeves.push({ side, vertices: members.length, length: reach, elbowAt: elbow === null ? null : line[elbow].r, turnedBy });
+    report.sleeves.push({ side, vertices: members.length, length: reach, elbowAt: elbow === null ? null : line[elbow].r, bend: sharpest, turnedBy });
   }
   return report;
 }

@@ -12,7 +12,7 @@ import { tileRepeat } from '@/lib/three/fabric-spec';
 import { FabricMaterial } from './FabricMaterial';
 import { Mannequin } from './Mannequin';
 import { FORM_SEX } from './GarmentMesh';
-import { fitForm } from '@/lib/three/mannequin';
+import { bodyFromGarment, fitForm } from '@/lib/three/mannequin';
 import { relaxSleeves, sleevesByPart } from '@/lib/three/relax';
 
 /**
@@ -253,25 +253,32 @@ export function GarmentModel({ url, garment, spec, tier, wind = 0, metres = 1.15
     // A modelled garment has real sleeves hanging beside the torso and a real collar above it,
     // so the form is read lower down the band, filled less, and hung lower than for a flat cut.
     const fitOptions = { percentile: 0.45, ease: 0.72, shoulderDrop: 0.13 } as const;
-    let fit = fitForm(garmentOnly, FORM_SEX[garment], fitOptions);
+    const fit = fitForm(garmentOnly, FORM_SEX[garment], fitOptions);
     // The model was saved as it was worn — sleeves bent at the elbow, or held out. On a form
-    // there are no arms in them, so they are let down to hang, and the form is fitted again to
-    // the garment as it now is. Only a model whose sleeves are their own meshes is touched.
+    // there are no arms in them, so they are let down to hang. Only a model whose sleeves are
+    // their own meshes is touched. `swing` says, per vertex, how far along a sleeve it is, for
+    // the wind to swing it from the shoulder.
     let relaxed = false;
+    const swing = new Float32Array(total);
+    let membership: Int8Array | null = null;
     if (fit) {
       const sleeves = sleevesByPart(garmentOnly, ranges, fit.shoulderY);
+      membership = sleeves.membership;
       if (sleeves.confident) {
-        relaxSleeves(garmentOnly, { torsoHalf: sleeves.torsoHalf, shoulderY: fit.shoulderY }, sleeves.membership, normalsOnly);
+        const swingOnly = new Float32Array(index.length);
+        relaxSleeves(garmentOnly, { torsoHalf: sleeves.torsoHalf, shoulderY: fit.shoulderY }, sleeves.membership, normalsOnly, swingOnly);
         index.forEach((i, k) => {
           for (let c = 0; c < 3; c++) {
             all[i * 3 + c] = garmentOnly[k * 3 + c];
             normals[i * 3 + c] = normalsOnly[k * 3 + c];
           }
+          swing[i] = swingOnly[k];
         });
         relaxed = true;
-        fit = fitForm(garmentOnly, FORM_SEX[garment], fitOptions);
       }
     }
+    // The form is the body read out of the garment as it now hangs — the cloth lies on it.
+    const body = bodyFromGarment(garmentOnly, membership, FORM_SEX[garment]);
     at = 0;
     const parts = sources.map((source) => {
       const count = source.geometry.attributes.position.count;
@@ -283,9 +290,10 @@ export function GarmentModel({ url, garment, spec, tier, wind = 0, metres = 1.15
       if (source.geometry.index) geometry.setIndex(source.geometry.index);
       if (source.geometry.attributes.normal) geometry.setAttribute('normal', new THREE.BufferAttribute(normals.subarray((at - count) * 3, at * 3), 3));
       else geometry.computeVertexNormals();
+      geometry.setAttribute('pcSleeve', new THREE.BufferAttribute(swing.subarray(at - count, at), 1));
       return { geometry, mask: source.cutout?.mask };
     });
-    return { parts, fit, relaxed };
+    return { parts, body, relaxed };
   }, [gltf, metres, garment]);
   useEffect(
     () => () => {
@@ -306,13 +314,13 @@ export function GarmentModel({ url, garment, spec, tier, wind = 0, metres = 1.15
   useFrame((state) => {
     const g = group.current;
     if (!g) return;
-    g.rotation.x = Math.sin(state.clock.elapsedTime * 1.1) * 0.006 * wind;
+    g.rotation.x = Math.sin(state.clock.elapsedTime * 1.1) * 0.004 * wind;
   });
-  const sway = useMemo(() => ({ top: metres / 2, hem: -metres / 2, amount: 0.35 + 0.65 * Math.min(1, wind / 3), wind: (wind * wind) / 9 }), [metres, wind]);
+  const sway = useMemo(() => ({ top: metres / 2, hem: -metres / 2, amount: 0.35 + 0.65 * Math.min(1, wind / 3), wind: Math.min(1, wind / 3) }), [metres, wind]);
 
   return (
     <group ref={group}>
-      {built.fit && floor !== undefined && <Mannequin fit={built.fit} floor={floor} />}
+      {built.body && floor !== undefined && <Mannequin body={built.body} floor={floor} />}
       {built.parts.map((part, i) => (
         <mesh key={i} geometry={part.geometry} castShadow={shadows} receiveShadow={shadows}>
           <FabricMaterial spec={spec} tier={tier} repeat={repeat} sway={sway} mask={part.mask} />

@@ -15,7 +15,8 @@ import type { FabricMaterialSpec } from '@/lib/three/fabric-spec';
 import { tileRepeat } from '@/lib/three/fabric-spec';
 import { FabricMaterial } from './FabricMaterial';
 import { Mannequin } from './Mannequin';
-import { fitForm, formRadii, type FormFit, type FormSex } from '@/lib/three/mannequin';
+import { bodyFromGarment, bodyRing, ringRadius, type FormBody, type FormSex } from '@/lib/three/mannequin';
+import { sleevesByPart } from '@/lib/three/relax';
 import { Cloth, bendEdgesOf, edgesOf, type Collider } from '@/lib/three/cloth';
 
 /** Whose form each cut is shown on. */
@@ -163,12 +164,10 @@ const PIN_BAND = 0.05;
  * the seams stay closed, struts across the interior so the garment keeps its volume when it is
  * off the form, and the shoulder line pinned.
  */
-export function buildCloth(geometry: THREE.BufferGeometry, rest: Float32Array, room: Float32Array, depth: number) {
+/** Both shells of a cut at rest: the front at +depth, the back at -depth, scaled by the room field. */
+export function shellPositions(rest: Float32Array, room: Float32Array, depth: number): Float32Array {
   const n = rest.length / 3;
   const all = new Float32Array(n * 6);
-  const pinned = new Uint8Array(n * 2);
-  let top = -Infinity;
-  for (let i = 1; i < rest.length; i += 3) top = Math.max(top, rest[i]);
   for (let i = 0; i < n; i++) {
     const o = i * 3;
     const body = depth * room[i];
@@ -178,8 +177,17 @@ export function buildCloth(geometry: THREE.BufferGeometry, rest: Float32Array, r
     all[n * 3 + o] = rest[o];
     all[n * 3 + o + 1] = rest[o + 1];
     all[n * 3 + o + 2] = -body;
-    if (rest[o + 1] > top - PIN_BAND) pinned[i] = pinned[n + i] = 1;
   }
+  return all;
+}
+
+export function buildCloth(geometry: THREE.BufferGeometry, rest: Float32Array, room: Float32Array, depth: number) {
+  const n = rest.length / 3;
+  const all = shellPositions(rest, room, depth);
+  const pinned = new Uint8Array(n * 2);
+  let top = -Infinity;
+  for (let i = 1; i < rest.length; i += 3) top = Math.max(top, rest[i]);
+  for (let i = 0; i < n; i++) if (rest[i * 3 + 1] > top - PIN_BAND) pinned[i] = pinned[n + i] = 1;
   // Edges keep the cloth from stretching; bending springs keep it from crumpling.
   const index = geometry.index!.array;
   const shell = new Uint32Array([...edgesOf(index), ...bendEdgesOf(index)]);
@@ -206,21 +214,39 @@ export function buildCloth(geometry: THREE.BufferGeometry, rest: Float32Array, r
 const SETTLE_STEPS = 150;
 const SETTLE_BUDGET_MS = 8;
 
+/**
+ * The body inside a cut, read from its shells at rest with the sleeves left out — so the form
+ * fills the garment, and the cloth lies on it rather than hanging round it.
+ */
+function bodyFor(rest: Float32Array, room: Float32Array, depth: number, sex: FormSex): FormBody | null {
+  const all = shellPositions(rest, room, depth);
+  let top = -Infinity;
+  let bottom = Infinity;
+  for (let i = 1; i < rest.length; i += 3) {
+    top = Math.max(top, rest[i]);
+    bottom = Math.min(bottom, rest[i]);
+  }
+  const { membership } = sleevesByPart(all, [[0, all.length / 3]], top - (top - bottom) * 0.07);
+  // A drawn cut is a garment on a person, with the ease a garment has: the body sits a good
+  // way inside it and the cloth drapes on to it, rather than being held out at every vertex.
+  return bodyFromGarment(all, membership, sex, { clearance: 0.025 });
+}
+
 /** Pushes a point out of the form, with a little clearance for the cloth's own thickness. */
-function colliderFor(fit: FormFit | null): Collider | null {
-  if (!fit) return null;
-  const clearance = 0.01;
+function colliderFor(body: FormBody | null): Collider | null {
+  if (!body) return null;
+  const clearance = 0.006;
   return (x, y, z, out) => {
-    const r = formRadii(fit, y);
-    if (!r) return false;
-    const rx = r.rx + clearance;
-    const rz = r.rz + clearance;
-    const d = (x * x) / (rx * rx) + (z * z) / (rz * rz);
-    if (d >= 1) return false;
-    const k = 1 / Math.sqrt(d || 1e-9);
+    const ring = bodyRing(body, y);
+    if (!ring) return false;
+    const dz = z - ring.cz;
+    const dist = Math.hypot(x, dz);
+    const r = ringRadius(ring, Math.atan2(dz, x)) + clearance;
+    if (dist >= r) return false;
+    const k = r / (dist || 1e-9);
     out[0] = x * k;
     out[1] = y;
-    out[2] = z * k;
+    out[2] = ring.cz + dz * k;
     return true;
   };
 }
@@ -263,9 +289,8 @@ export function GarmentMesh({ garment, spec, tier, flow, stretch, wind = 0, pull
   }, [garment, metres, tier, depth]);
 
   const repeat = useMemo(() => tileRepeat(spec, metres), [spec, metres]);
-  // The cloth is `depth` deep at most, so the form is capped a little inside that.
-  const fit = useMemo(() => (built ? fitForm(built.rest, FORM_SEX[garment], { maxDepth: depth * 0.62 }) : null), [built, garment, depth]);
-  const collider = useMemo(() => colliderFor(fit), [fit]);
+  const body = useMemo(() => (built ? bodyFor(built.rest, built.room, depth, FORM_SEX[garment]) : null), [built, garment, depth]);
+  const collider = useMemo(() => colliderFor(body), [body]);
 
   useFrame((state, delta) => {
     const f = front.current;
@@ -295,35 +320,32 @@ export function GarmentMesh({ garment, spec, tier, flow, stretch, wind = 0, pull
     sp.angle = angle;
     sp.omega = omega;
 
-    // Wind as a force, rising with the square of the rail so "Low" barely stirs a hem and
-    // "Strong" lifts it. A steady push that breathes, plus a little turbulence — and heavy
+    // Wind as a force, rising a little faster than the rail so "Low" visibly stirs a hem and
+    // "Strong" lifts it. A slow swell that breathes, plus a little turbulence — and heavy
     // damping, because a garment on a form that never stops moving reads as nervous, not alive.
-    const breeze = (wind * wind) / 9;
-    const gust = breeze * 0.95 * (0.9 + 0.4 * Math.sin(t * 1.1) + 0.15 * Math.sin(t * 2.9));
+    const breeze = Math.pow(Math.min(1, wind / 3), 1.5);
+    const gust = breeze * (0.75 + 0.45 * Math.sin(t * 0.9) + 0.12 * Math.sin(t * 2.7));
     const sim = built.cloth;
     const substeps = tier === 'low' ? 1 : 2;
     const iterations = tier === 'high' ? 6 : tier === 'medium' ? 4 : 3;
+    const forces = {
+      gravity: 3,
+      wind: [gust * 0.12 * Math.sin(t * 0.6), 0, gust] as [number, number, number],
+      spin: { omega: omega * 0.6, alpha: alpha * 0.6 },
+      tug: pull.current * (4 + 4 * stretch),
+      damping: 3.6,
+    };
     if (sim && built.settle > 0) {
+      // Settling is extra steps, not a different regime: the wind and the stretch test act
+      // from the first frame, or on a slow device the first seconds would ignore the rails.
       const until = performance.now() + SETTLE_BUDGET_MS;
       do {
-        sim.step(1 / 60, { gravity: 3, wind: [0, 0, 0], spin: { omega: 0, alpha: 0 }, tug: 0, damping: 3.6 }, collider, substeps, iterations);
+        sim.step(1 / 60, forces, collider, substeps, iterations);
         built.settle -= 1;
       } while (built.settle > 0 && performance.now() < until);
       if (sim.broken()) sim.reset();
     } else if (sim) {
-      sim.step(
-        dt,
-        {
-          gravity: 3,
-          wind: [gust * 0.12 * Math.sin(t * 0.6), 0, gust],
-          spin: { omega: omega * 0.6, alpha: alpha * 0.6 },
-          tug: pull.current * 5,
-          damping: 3.6,
-        },
-        collider,
-        substeps,
-        iterations
-      );
+      sim.step(dt, forces, collider, substeps, iterations);
       if (sim.broken()) sim.reset();
     }
 
@@ -364,7 +386,7 @@ export function GarmentMesh({ garment, spec, tier, flow, stretch, wind = 0, pull
 
   return (
     <group>
-      {fit && floor !== undefined && <Mannequin fit={fit} floor={floor} />}
+      {body && floor !== undefined && <Mannequin body={body} floor={floor} />}
       <mesh ref={front} geometry={built.front} castShadow={shadows} receiveShadow={shadows}>
         <FabricMaterial spec={spec} tier={tier} repeat={repeat} />
       </mesh>
