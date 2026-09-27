@@ -144,7 +144,7 @@ export function sleevesByPart(positions: Float32Array, parts: [number, number][]
  * swing a sleeve from its shoulder without knowing anything else about the mesh.
  */
 export function relaxSleeves(positions: Float32Array, params: RelaxParams, membership?: SleeveMembership, normals?: Float32Array, swing?: Float32Array): RelaxReport {
-  const { torsoHalf, shoulderY, splay = 0.04 } = params;
+  const { torsoHalf, shoulderY, splay = 0.06 } = params;
   const report: RelaxReport = { sleeves: [] };
   const n = positions.length / 3;
   const v = new THREE.Vector3();
@@ -251,11 +251,11 @@ export function relaxSleeves(positions: Float32Array, params: RelaxParams, membe
       turnedAll[m * 3 + 2] = turned.z;
     }
 
-    // 5. Flatten, and let go. A sleeve with no arm in it does not stay a tube: it settles
-    // front-to-back into a flattened oval, a little wider than it was round, narrower towards
-    // the cuff (an empty cuff collapses), with the soft horizontal creases of cloth that is
-    // holding nothing up. About the hanging centreline, below the shoulder cap (which keeps its
-    // shape over the yoke): depth to 42%, width up 18%, a 10% taper to the cuff, a 5% crease.
+    // 5. Soften. A sleeve with no arm in it does not stay a perfect tube: it settles a little
+    // front-to-back into a full, soft oval, slightly narrower towards the cuff. About the
+    // hanging centreline, below the shoulder cap (which keeps its shape over the yoke): depth to
+    // 70%, width up 8%, a 4% taper to the cuff. No more than that — flattened to a strip with
+    // creases on it, a sleeve read as a ragged ribbon, not cloth with body in it.
     const rows: { sum: THREE.Vector3; count: number }[] = [];
     for (let m = 0; m < members.length; m++) {
       const b = Math.floor(Math.hypot(turnedAll[m * 3], turnedAll[m * 3 + 1], turnedAll[m * 3 + 2]) / BIN);
@@ -288,9 +288,9 @@ export function relaxSleeves(positions: Float32Array, params: RelaxParams, membe
       const along = Math.min(1, r / Math.max(0.05, reach));
       if (row && flat > 0) {
         centre.copy(row.sum).divideScalar(row.count);
-        const crease = 1 - flat * (0.1 * along + 0.05 * (0.5 - 0.5 * Math.sin(r * 40)));
-        turned.x = centre.x + (turned.x - centre.x) * (1 + 0.18 * flat) * crease;
-        turned.z = centre.z + (turned.z - centre.z) * (1 - 0.58 * flat) * crease;
+        const taper = 1 - flat * 0.04 * along;
+        turned.x = centre.x + (turned.x - centre.x) * (1 + 0.08 * flat) * taper;
+        turned.z = centre.z + (turned.z - centre.z) * (1 - 0.3 * flat) * taper;
       }
       if (swing) swing[i] = side * along * w;
       const rest = new THREE.Vector3(positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]).sub(pivot);

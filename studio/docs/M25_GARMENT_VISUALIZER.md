@@ -113,10 +113,10 @@ binning its vertices on distance from the shoulder seam; a sharp turn in the mid
 line is the elbow (a turn of less than 29°, which the centreline of a straight sleeve wobbles
 by, is not one). The upper arm is rotated about the shoulder to hang almost straight down, the
 forearm about the elbow to continue, the armhole blended over a few centimetres so the seam
-does not tear, and below the shoulder cap the tube is let go: flattened front-to-back to less
-than half its depth and a little wider, tapered to the cuff (an empty cuff collapses), with the
-soft horizontal creases of cloth that is holding nothing up. The body is then read from the
-garment as it now hangs.
+does not tear, and below the shoulder cap the tube is softened: settled front-to-back to
+about 70% of its depth and a little wider, slightly tapered to the cuff. Not more — a first
+attempt flattened it to a strip with creases on it, and from the side that read as a ragged
+ribbon rather than a sleeve. The body is then read from the garment as it now hangs.
 
 Only a model whose sleeves are their own meshes is touched. From the width test alone the
 chest's sides read as sleeve too, and moving those distorts the body — so a model saved as
