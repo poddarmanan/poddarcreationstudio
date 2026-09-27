@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { Studio } from './state';
 import { FabricViewer } from '@/components/three/FabricViewer';
 import { ExportView } from '@/components/three/ExportView';
@@ -32,6 +33,14 @@ export function FabricLab({ studio }: { studio: Studio }) {
   const story = FABRIC_STORIES[f.id] ?? '';
   // The catalogue's numbering: this fabric's plate number and the count, as "03 / 11".
   const fabricIndex = fabricNo(studio.fabrics, f.id);
+  const pinned = studio.pins.some((p) => p.fabricId === f.id && p.colourOrder === col.order);
+  // The floating "Add to book" is portalled to the body: the lab's root animates a transform
+  // while it lays in, and a transformed ancestor turns a fixed child into a page-positioned one.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => setMounted(true), 0);
+    return () => window.clearTimeout(t);
+  }, []);
   const fabricCount = String(studio.fabrics.length).padStart(2, '0');
   const colCssV = colourCss(col);
   const fg = col.l > 0.62 ? '#1C1917' : '#FAF8F5';
@@ -360,18 +369,46 @@ export function FabricLab({ studio }: { studio: Studio }) {
           </div>
         </div>
 
-        {/* Controls: garment dial, scope, physics, shades */}
+        {/* The buyer's column: the two ways to ask, the product sheet under them, and the shade
+            chart on a desktop. The microscope has moved down the page beside the downloads. */}
         <div style={{ padding: 'clamp(24px,3.5vw,44px)', display: 'flex', flexDirection: 'column', gap: 26, justifyContent: 'flex-start', background: '#FAF8F5' }}>
-          <ChipGroup label={t.scope}>
-            {SCOPE_LEVELS.map(([label, p]) => (
-              <Chip key={label} on={false} onClick={() => studio.openScope(p)}>
-                {label}
-              </Chip>
-            ))}
-          </ChipGroup>
-          <p style={{ margin: 0, fontSize: 13.5, fontWeight: 300, lineHeight: 1.7, color: 'rgba(28,25,23,.6)', maxWidth: 420, textWrap: 'pretty' }}>
-            {PHYSICS_NOTES[f.family]}
-          </p>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <button
+              onClick={studio.openQuote}
+              className="pc-hv-gold-fill"
+              style={{
+                cursor: 'pointer', background: '#1C1917', color: '#FAF8F5', border: '1px solid #1C1917', borderRadius: 999,
+                padding: '13px 28px', fontFamily: FONT_BODY, fontSize: 12.5, letterSpacing: '.14em', textTransform: 'uppercase',
+              }}
+            >
+              {t.quote}
+            </button>
+            <a
+              href={waFabric}
+              target="_blank"
+              rel="noreferrer"
+              className="pc-hv-border-ink"
+              style={{
+                display: 'inline-flex', alignItems: 'center', border: '1px solid rgba(28,25,23,.25)', borderRadius: 999,
+                padding: '13px 28px', fontSize: 12.5, letterSpacing: '.14em', textTransform: 'uppercase', color: '#1C1917',
+              }}
+            >
+              {t.whats}
+            </a>
+          </div>
+          <div>
+            <div style={{ fontSize: 10.5, letterSpacing: '.22em', color: 'rgba(28,25,23,.45)', textTransform: 'uppercase', marginBottom: 10 }}>{t.sheet}</div>
+            {/* Six cells: three across in the column on a desktop, two across on a phone, so the
+                grid is always full and no cell is left grey. */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 1, background: 'rgba(28,25,23,.08)', border: '1px solid rgba(28,25,23,.08)' }}>
+              {specRows.map((sRow) => (
+                <div key={sRow.k} style={{ background: '#FAF8F5', padding: '14px 16px' }}>
+                  <div style={{ fontSize: 10.5, letterSpacing: '.22em', color: 'rgba(28,25,23,.45)', textTransform: 'uppercase' }}>{sRow.k}</div>
+                  <div style={{ fontSize: 15, marginTop: 4 }}>{sRow.v}</div>
+                </div>
+              ))}
+            </div>
+          </div>
           <div className="pc-shades-desktop">{shadeChart}</div>
         </div>
       </div>
@@ -400,80 +437,46 @@ export function FabricLab({ studio }: { studio: Studio }) {
         </div>
       </section>
 
-      {/* Specs + actions */}
+      {/* Microscope + downloads */}
       <section style={{ padding: 'clamp(30px,4.5vw,54px) clamp(16px,5vw,64px) 0', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,300px),1fr))', gap: 36 }}>
-        <div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 1, background: 'rgba(28,25,23,.08)', border: '1px solid rgba(28,25,23,.08)' }}>
-            {specRows.map((sRow) => (
-              <div key={sRow.k} style={{ background: '#FAF8F5', padding: '14px 16px' }}>
-                <div style={{ fontSize: 10.5, letterSpacing: '.22em', color: 'rgba(28,25,23,.45)', textTransform: 'uppercase' }}>{sRow.k}</div>
-                <div style={{ fontSize: 15, marginTop: 4 }}>{sRow.v}</div>
-              </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <ChipGroup label={t.scope}>
+            {SCOPE_LEVELS.map(([label, p]) => (
+              <Chip key={label} on={false} onClick={() => studio.openScope(p)}>
+                {label}
+              </Chip>
             ))}
-          </div>
+          </ChipGroup>
+          <p style={{ margin: 0, fontSize: 13.5, fontWeight: 300, lineHeight: 1.7, color: 'rgba(28,25,23,.6)', maxWidth: 420, textWrap: 'pretty' }}>
+            {PHYSICS_NOTES[f.family]}
+          </p>
         </div>
-        <div>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <button
-              onClick={studio.openQuote}
-              className="pc-hv-gold-fill"
-              style={{
-                cursor: 'pointer', background: '#1C1917', color: '#FAF8F5', border: '1px solid #1C1917', borderRadius: 999,
-                padding: '13px 28px', fontFamily: FONT_BODY, fontSize: 12.5, letterSpacing: '.14em', textTransform: 'uppercase',
-              }}
-            >
-              {t.quote}
-            </button>
-            <a
-              href={waFabric}
-              target="_blank"
-              rel="noreferrer"
-              className="pc-hv-border-ink"
-              style={{
-                display: 'inline-flex', alignItems: 'center', border: '1px solid rgba(28,25,23,.25)', borderRadius: 999,
-                padding: '13px 28px', fontSize: 12.5, letterSpacing: '.14em', textTransform: 'uppercase', color: '#1C1917',
-              }}
-            >
-              {t.whats}
-            </a>
-            <button
-              onClick={() => studio.pinShade(f.id, col.order)}
-              className="pc-hv-gold-text-border"
-              style={{
-                cursor: 'pointer', background: 'transparent', border: '1px solid rgba(28,25,23,.25)', borderRadius: 999,
-                padding: '13px 22px', fontFamily: FONT_BODY, fontSize: 12.5, letterSpacing: '.14em', textTransform: 'uppercase', color: '#1C1917',
-              }}
-            >
-              ✦ {t.pin}
-            </button>
+        <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: 10.5, letterSpacing: '.22em', color: 'rgba(28,25,23,.45)', textTransform: 'uppercase', marginBottom: 8 }}>{t.downloads}</div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <span className="pc-hv-border-ink" style={{ border: '1px solid rgba(28,25,23,.15)', borderRadius: 999, padding: '6px 14px', fontSize: 12, cursor: 'pointer' }}>
+                ↓ {t.spec}
+              </span>
+              <span className="pc-hv-border-ink" style={{ border: '1px solid rgba(28,25,23,.15)', borderRadius: 999, padding: '6px 14px', fontSize: 12, cursor: 'pointer' }}>
+                ↓ {t.cat}
+              </span>
+              {/* The frame itself, not a screenshot of a browser window — named so it is
+                  still identifiable in a folder of forty images a week later. */}
+              <ExportView
+                captureId="fabric-lab"
+                filename={`${f.name}-${col.name}`.replace(/[^\w-]+/g, '-').toLowerCase()}
+                label={`Save this view of ${f.name} in ${col.name} as an image`}
+              />
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: 20, alignItems: 'center', marginTop: 26, paddingTop: 22, borderTop: '1px solid rgba(28,25,23,.08)' }}>
-            <div>
-              <div style={{ fontSize: 10.5, letterSpacing: '.22em', color: 'rgba(28,25,23,.45)', textTransform: 'uppercase', marginBottom: 8 }}>{t.downloads}</div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <span className="pc-hv-border-ink" style={{ border: '1px solid rgba(28,25,23,.15)', borderRadius: 999, padding: '6px 14px', fontSize: 12, cursor: 'pointer' }}>
-                  ↓ {t.spec}
-                </span>
-                <span className="pc-hv-border-ink" style={{ border: '1px solid rgba(28,25,23,.15)', borderRadius: 999, padding: '6px 14px', fontSize: 12, cursor: 'pointer' }}>
-                  ↓ {t.cat}
-                </span>
-                {/* The frame itself, not a screenshot of a browser window — named so it is
-                    still identifiable in a folder of forty images a week later. */}
-                <ExportView
-                  captureId="fabric-lab"
-                  filename={`${f.name}-${col.name}`.replace(/[^\w-]+/g, '-').toLowerCase()}
-                  label={`Save this view of ${f.name} in ${col.name} as an image`}
-                />
-              </div>
+          <div style={{ marginLeft: 'auto', textAlign: 'center' }}>
+            <div style={{ width: 64, height: 64, border: '1px solid rgba(28,25,23,.2)', padding: 5, display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 1 }}>
+              {qr.map((on, i) => (
+                <span key={i} style={{ background: on }} />
+              ))}
             </div>
-            <div style={{ marginLeft: 'auto', textAlign: 'center' }}>
-              <div style={{ width: 64, height: 64, border: '1px solid rgba(28,25,23,.2)', padding: 5, display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 1 }}>
-                {qr.map((on, i) => (
-                  <span key={i} style={{ background: on }} />
-                ))}
-              </div>
-              <div style={{ fontSize: 9.5, letterSpacing: '.16em', color: 'rgba(28,25,23,.45)', marginTop: 5 }}>{t.qr}</div>
-            </div>
+            <div style={{ fontSize: 9.5, letterSpacing: '.16em', color: 'rgba(28,25,23,.45)', marginTop: 5 }}>{t.qr}</div>
           </div>
         </div>
       </section>
@@ -531,6 +534,34 @@ export function FabricLab({ studio }: { studio: Studio }) {
           </button>
         </div>
       </section>
+      {mounted && createPortal(<BookButton pinned={pinned} onClick={() => studio.pinShade(f.id, col.order)} label={pinned ? t.inBook : t.pin} />, document.body)}
+    </div>
+  );
+}
+
+/**
+ * "Add to book", within reach from anywhere on the page: fixed at the bottom centre, above the
+ * phone's bottom bar, filled dark once the shade on the stage is in the book.
+ */
+function BookButton({ pinned, onClick, label }: { pinned: boolean; onClick: () => void; label: string }) {
+  return (
+    <div style={{ position: 'fixed', left: 0, right: 0, bottom: 'calc(var(--pc-bottombar) + 18px)', display: 'flex', justifyContent: 'center', pointerEvents: 'none', zIndex: 40 }}>
+      <button
+        onClick={onClick}
+        aria-pressed={pinned}
+        className="pc-hv-scale-06"
+        style={{
+          pointerEvents: 'auto', cursor: 'pointer', height: 46, padding: '0 22px', borderRadius: 999, display: 'inline-flex', alignItems: 'center', gap: 9,
+          fontFamily: FONT_BODY, fontSize: 11.5, letterSpacing: '.16em', textTransform: 'uppercase',
+          ...(pinned
+            ? { background: '#1C1917', color: '#FAF8F5', border: '1px solid #1C1917', boxShadow: '0 12px 30px rgba(28,25,23,.22)' }
+            : { ...GLASS, WebkitBackdropFilter: GLASS.backdropFilter, color: '#1C1917' }),
+          transition: 'background .5s ease, color .5s ease, transform .5s cubic-bezier(.2,.8,.2,1)', animation: 'pcPop .7s .3s cubic-bezier(.2,.8,.2,1) both',
+        }}
+      >
+        <span aria-hidden>{pinned ? '✓' : '✦'}</span>
+        {label}
+      </button>
     </div>
   );
 }

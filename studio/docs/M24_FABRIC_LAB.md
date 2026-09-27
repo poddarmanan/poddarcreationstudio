@@ -23,6 +23,14 @@ the stage), and at the right, from a tablet up, the lab's own mark, which scroll
 Every place a fabric is shown — the showroom's rolls, the collection's cards, the lab's
 "more fabrics" strip — carries the same plate number, so a buyer can say "the third one".
 
+**The buyer's column.** To the right of the stage (below it on a phone): Request a quote and
+Enquire on WhatsApp first, the product details sheet under them, and the shade chart under
+that on a desktop. The microscope, which used to head the column, sits further down the page
+beside the downloads. "Add to book" floats at the bottom centre of the viewport, above the
+phone's bottom bar, from anywhere on the page; it fills dark once the shade on the stage is in
+the book. It is portalled to the body because the lab's root animates a transform as it lays
+in, and a transformed ancestor turns a fixed child into a page-positioned one.
+
 **Every change of cut is a staged transition.** The garment on the stage fades out, the loader
 comes up and holds for at least three and a half seconds while the new cut is prepared under it
 (cached model or not), then the loader fades away as the new garment fades in over a second.
