@@ -64,7 +64,8 @@ async function main() {
   await pick(page, 'Roll');
   await setLight(page, 'White Cyc');
   await setWind(page, false);
-  await page.waitForTimeout(3000);
+  // The loader holds three and a half seconds on a change of cut, and the cut fades in after.
+  await page.waitForTimeout(5500);
   ok('the lab opened on the hanging panel under the white cyc');
 
   for (const shade of SHADES) {

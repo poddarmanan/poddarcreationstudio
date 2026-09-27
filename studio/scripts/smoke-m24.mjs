@@ -121,7 +121,9 @@ async function main() {
   // the roll is a few thousand triangles where a supplied model is a few hundred thousand — the
   // difference between a frame and a stall on a software renderer.
   await pick(page, 'Roll');
-  await page.waitForTimeout(2500);
+  // A change of cut is a staged transition: the loader holds for three and a half seconds and
+  // the new cut then fades in over another second. Measure the roll once it is fully on.
+  await page.waitForTimeout(5500);
 
   const before = await signature(page);
 

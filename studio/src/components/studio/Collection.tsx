@@ -2,7 +2,7 @@
 
 import type { Studio } from './state';
 import { Selvage } from './brand';
-import { FONT_DISPLAY, FONT_BODY, fabricTex, colourCss, colourFg, heroColour } from './helpers';
+import { FONT_DISPLAY, FONT_BODY, fabricTex, colourCss, colourFg, heroColour, fabricNo } from './helpers';
 
 const TRENDING: [number, number][] = [[4, 11], [9, 8], [1, 6], [8, 15], [2, 18], [6, 12], [10, 9], [5, 17], [0, 19], [3, 13]];
 
@@ -41,9 +41,18 @@ export function Collection({ studio }: { studio: Studio }) {
             >
               <div style={{ position: 'relative', aspectRatio: '4/3', background: fabricTex(f, heroColour(f), 4) }}>
                 <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent 55%,rgba(28,25,23,.14))', boxShadow: 'inset 0 0 0 1px rgba(28,25,23,.06)' }} />
+                {/* The plate number, as the catalogue prints it; the shade count moves to the right. */}
                 <span
                   style={{
-                    position: 'absolute', top: 12, left: 12, fontSize: 10, letterSpacing: '.24em',
+                    position: 'absolute', top: 12, left: 12, fontFamily: FONT_DISPLAY, fontSize: 15, fontWeight: 500, lineHeight: 1, letterSpacing: '.04em',
+                    background: 'rgba(250,248,245,.85)', backdropFilter: 'blur(6px)', padding: '6px 9px 5px', borderRadius: 999,
+                  }}
+                >
+                  {fabricNo(fabrics, f.id)}
+                </span>
+                <span
+                  style={{
+                    position: 'absolute', top: 12, right: 12, fontSize: 10, letterSpacing: '.24em',
                     background: 'rgba(250,248,245,.85)', backdropFilter: 'blur(6px)', padding: '5px 10px', borderRadius: 999,
                   }}
                 >

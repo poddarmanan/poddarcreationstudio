@@ -52,8 +52,6 @@ export interface FabricViewerProps {
   captureId?: string;
   /** Told when a supplied model is being fetched or decoded, so the lab can show a loader. */
   onLoading?: (loading: boolean) => void;
-  /** Draws no garment while true — the lab's loader is up and the stage waits behind it. */
-  curtain?: boolean;
 }
 
 /** Real garment heights, metres — a kurti is not a t-shirt. */
@@ -328,7 +326,6 @@ export function FabricViewer({
   label,
   onStats,
   onLoading,
-  curtain = false,
   rolled = false,
 }: FabricViewerProps) {
   const detected = useCapability();
@@ -379,7 +376,7 @@ export function FabricViewer({
       <ShineSweep active={shine} sheen={fabric.sheen} />
       {free && !onGarment && <Stand hem={hem} />}
       <Turntable idle={!pulled} free={free}>
-        {curtain ? null : onGarment ? (
+        {onGarment ? (
           // Lifted a little: the lab's test pills sit over the bottom of the stage on a phone,
           // and a hem hidden behind them reads as a garment cut off.
           <group position={[0, lift, 0]}>

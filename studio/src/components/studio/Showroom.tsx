@@ -2,7 +2,7 @@
 
 import type { Studio } from './state';
 import { Selvage } from './brand';
-import { FONT_DISPLAY, FONT_BODY, colourShade, fabricWeave, heroColour } from './helpers';
+import { FONT_DISPLAY, FONT_BODY, colourShade, fabricWeave, heroColour, fabricNo } from './helpers';
 import { useDragScroll, scrollByEl } from './interactions';
 import { ROOMS } from '@/lib/fabric-generator';
 
@@ -143,6 +143,7 @@ export function Showroom({ studio }: { studio: Studio }) {
                 />
               </div>
               <div style={{ marginTop: 32, textAlign: 'center', position: 'relative', zIndex: 2 }}>
+                <div style={{ fontFamily: FONT_DISPLAY, fontSize: 12.5, letterSpacing: '.14em', color: room.accent, marginBottom: 3 }}>{fabricNo(studio.fabrics, r.f.id)}</div>
                 <div style={{ fontFamily: FONT_DISPLAY, fontSize: 19, fontWeight: 600, color: room.fg }}>{r.f.name}</div>
                 <div style={{ fontSize: 11, letterSpacing: '.14em', color: room.sub, marginTop: 3 }}>
                   {r.f.weight} · {r.f.width}

@@ -16,9 +16,17 @@ the "Watch in 3D" pill (the turntable is always live; hold and spin), the four-s
 used to sweep the whole stage with the shine — the shine is the raking light on the cloth, and
 nothing else should light up.
 
-**Every change of cut is announced.** The loader shows for about a second on any change of cut,
-cached model or not, with the stage curtained behind it: a garment that simply snaps into place
-reads as a glitch; one that is announced reads as a change.
+**The head of the page is a catalogue plate.** Above a hairline, the way back to the fabric
+library and the plate number ("Fabric 03 / 11"); below it the number over its count, a rule,
+the fabric's name in display capitals with its spec line (composition · hand · the shade on
+the stage), and at the right, from a tablet up, the lab's own mark, which scrolls to the stage.
+Every place a fabric is shown — the showroom's rolls, the collection's cards, the lab's
+"more fabrics" strip — carries the same plate number, so a buyer can say "the third one".
+
+**Every change of cut is a staged transition.** The garment on the stage fades out, the loader
+comes up and holds for at least three and a half seconds while the new cut is prepared under it
+(cached model or not), then the loader fades away as the new garment fades in over a second.
+Nothing snaps: a garment that simply appeared read as a glitch. The lab opens the same way.
 
 **A model arrives to a loader, not to the old cut.** While a supplied model is checked for,
 fetched and decoded, the stage is empty but for a small glass loader — a thread drawn round a

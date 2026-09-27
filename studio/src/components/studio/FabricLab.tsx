@@ -2,12 +2,11 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { Studio } from './state';
-import { Selvage } from './brand';
 import { FabricViewer } from '@/components/three/FabricViewer';
 import { ExportView } from '@/components/three/ExportView';
 import { oklchToHex } from '@/lib/three/colour';
 import { metamerism, shiftVerdict } from '@/lib/three/metamerism';
-import { FONT_DISPLAY, FONT_BODY, fabricTex, fabricWeave, colourCss, colourFg, colourShade, chipStyle, heroColour } from './helpers';
+import { FONT_DISPLAY, FONT_BODY, fabricTex, fabricWeave, colourCss, colourFg, colourShade, chipStyle, heroColour, fabricNo } from './helpers';
 import { useDragScroll, scrollByEl } from './interactions';
 import {
   GARMENTS, LIGHTS, FABRIC_STORIES, PHYSICS_NOTES, STRETCH_TEST_NOTES,
@@ -17,6 +16,9 @@ import {
 const SCOPE_LEVELS: [string, number][] = [['100×', 26], ['200×', 48], ['500×', 96]];
 const SCENE_SPANS: [number, number][] = [[2, 2], [1, 1], [1, 1], [1, 2], [1, 1], [1, 1], [2, 1], [1, 1], [1, 1]];
 const GARMENT_KEYS = Object.keys(GARMENTS) as GarmentKey[];
+/** The loader holds at least this long on a change of cut, and the garment before it fades out first. */
+const HOLD_MS = 3500;
+const FADE_OUT_MS = 450;
 const DIAL_LABELS: Record<GarmentKey, string> = { kurti: 'Kurti', shirt: 'Shirt', dress: 'Dress', top: 'Top', tshirt: 'T-Shirt', roll: 'Roll' };
 
 export function FabricLab({ studio }: { studio: Studio }) {
@@ -28,6 +30,9 @@ export function FabricLab({ studio }: { studio: Studio }) {
   const priced = approved || isStaff;
   const amp = reduceMotion ? 0 : f.flow * wind * 1.5;
   const story = FABRIC_STORIES[f.id] ?? '';
+  // The catalogue's numbering: this fabric's plate number and the count, as "03 / 11".
+  const fabricIndex = fabricNo(studio.fabrics, f.id);
+  const fabricCount = String(studio.fabrics.length).padStart(2, '0');
   const colCssV = colourCss(col);
   const fg = col.l > 0.62 ? '#1C1917' : '#FAF8F5';
   const isRoll = garment === 'roll';
@@ -43,24 +48,49 @@ export function FabricLab({ studio }: { studio: Studio }) {
   // built-in cut, which used to stand in and read as the wrong garment appearing first.
   const [modelLoading, setModelLoading] = useState(false);
   const onModelLoading = useCallback((loading: boolean) => setModelLoading(loading), []);
-  // Every change of cut shows the loader for a moment, cached model or not: a garment that
-  // simply snaps into place reads as a glitch, one that is announced reads as a change.
-  const [settling, setSettling] = useState(false);
+  // Every change of cut is a staged transition, cached model or not: the garment on the stage
+  // fades out, the loader comes up and holds for a few seconds while the new cut is prepared
+  // under it, then the loader fades away as the new garment fades in. A garment that simply
+  // snapped into place read as a glitch. `shown` is the cut the stage is drawing, which lags
+  // the chosen cut by the fade-out; `veiled` hides the stage; the loader has its own phase so
+  // it can fade out rather than vanish.
+  const [shown, setShown] = useState<GarmentKey>(garment);
+  const [veiled, setVeiled] = useState(true);
+  const [loaderPhase, setLoaderPhase] = useState<'hidden' | 'in' | 'out'>('in');
+  const [holdUntil, setHoldUntil] = useState(0);
   useEffect(() => {
-    const on = window.setTimeout(() => setSettling(true), 0);
-    const off = window.setTimeout(() => setSettling(false), 1100);
-    return () => {
-      window.clearTimeout(on);
-      window.clearTimeout(off);
-    };
+    const timers = [
+      window.setTimeout(() => {
+        setVeiled(true);
+        setLoaderPhase('in');
+        setHoldUntil(Date.now() + HOLD_MS);
+      }, 0),
+      window.setTimeout(() => setShown(garment), FADE_OUT_MS),
+    ];
+    return () => timers.forEach((t) => window.clearTimeout(t));
   }, [garment]);
+  // The reveal: once the hold is over and nothing is still loading.
+  useEffect(() => {
+    if (!veiled || modelLoading || !holdUntil) return;
+    const wait = Math.max(0, holdUntil - Date.now());
+    const reveal = window.setTimeout(() => {
+      setVeiled(false);
+      setLoaderPhase('out');
+    }, wait);
+    return () => window.clearTimeout(reveal);
+  }, [veiled, modelLoading, holdUntil]);
+  useEffect(() => {
+    if (loaderPhase !== 'out') return;
+    const done = window.setTimeout(() => setLoaderPhase('hidden'), 700);
+    return () => window.clearTimeout(done);
+  }, [loaderPhase]);
   // The stretch test is the roll's: a length of cloth can be pulled, a made-up garment cannot.
-  // Choosing the roll points the button out for a few seconds.
+  // Choosing the roll points the button out for a few seconds, once the roll is on.
   const [stretchHint, setStretchHint] = useState(false);
   useEffect(() => {
     if (!isRoll) return;
-    const show = window.setTimeout(() => setStretchHint(true), 400);
-    const hide = window.setTimeout(() => setStretchHint(false), 7400);
+    const show = window.setTimeout(() => setStretchHint(true), HOLD_MS + 900);
+    const hide = window.setTimeout(() => setStretchHint(false), HOLD_MS + 7900);
     return () => {
       window.clearTimeout(show);
       window.clearTimeout(hide);
@@ -95,7 +125,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
     .filter((x) => x.id !== f.id)
     .map((x, i) => {
       const o = heroColour(x);
-      return { id: x.id, name: x.name, meta: `${x.weight} · ${x.width} · ${x.nc} ${t.shades}`, tex: fabricTex(x, o, 3), dl: `${i * 45}ms` };
+      return { id: x.id, no: fabricNo(studio.fabrics, x.id), name: x.name, meta: `${x.weight} · ${x.width} · ${x.nc} ${t.shades}`, tex: fabricTex(x, o, 3), dl: `${i * 45}ms` };
     });
 
   const shadeChart = (
@@ -126,27 +156,50 @@ export function FabricLab({ studio }: { studio: Studio }) {
 
   return (
     <div style={{ paddingBottom: 80, animation: 'layCloth .55s cubic-bezier(.2,.8,.2,1) both' }}>
-      {/* Header */}
-      <div style={{ padding: '26px clamp(16px,5vw,64px) 24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+      {/* Header: a catalogue plate. The back link and the plate number above a hairline; below
+          it the number, a rule, the name in display capitals with its spec line, and the lab's
+          own mark at the right (hidden on a phone, where the stage is a thumb away). */}
+      <div style={{ padding: '18px clamp(16px,5vw,64px) 0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, paddingBottom: 14, borderBottom: '1px solid rgba(28,25,23,.1)' }}>
           <button
-            onClick={() => studio.go('showroom')}
+            onClick={() => studio.go('collection')}
             className="pc-hv-ink"
-            style={{ cursor: 'pointer', background: 'none', border: 'none', padding: 0, fontFamily: FONT_BODY, fontSize: 11.5, letterSpacing: '.18em', color: '#8A6D45', textTransform: 'uppercase' }}
+            style={{ cursor: 'pointer', background: 'none', border: 'none', padding: 0, fontFamily: FONT_BODY, fontSize: 10.5, letterSpacing: '.28em', color: '#8A6D45', textTransform: 'uppercase' }}
           >
-            ← {t.showroom}
+            ← {t.library}
           </button>
-          <span style={{ fontSize: 10.5, letterSpacing: '.3em', color: '#8A6D45' }}>{t.lab}</span>
+          <span style={{ fontSize: 10.5, letterSpacing: '.28em', color: '#8A6D45', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+            {t.fabricN} {fabricIndex} / {fabricCount}
+          </span>
         </div>
-        <h1 style={{ margin: '14px 0 0', fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(34px,4.2vw,54px)', lineHeight: 1.05 }}>{f.name}</h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 10, fontSize: 13.5, letterSpacing: '.04em', color: 'rgba(28,25,23,.6)' }}>
-          <span style={{ width: 13, height: 13, borderRadius: '50%', background: colCssV, border: '1px solid rgba(28,25,23,.18)', flex: 'none' }} />
-          <span>{col.name}</span>
-          <span style={{ color: 'rgba(28,25,23,.3)' }}>·</span>
-          <span>{f.comp}</span>
+        <div className="pc-fab-plate">
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', alignSelf: 'stretch', paddingRight: 'clamp(14px,2.4vw,28px)', borderRight: '1px solid rgba(28,25,23,.14)' }}>
+            <span style={{ fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(26px,3vw,38px)', lineHeight: 1 }}>{fabricIndex}</span>
+            <span style={{ fontFamily: FONT_DISPLAY, fontSize: 13, color: 'rgba(28,25,23,.5)', marginTop: 4 }}>/{fabricCount}</span>
+          </div>
+          <div style={{ minWidth: 0, padding: '0 clamp(14px,2.4vw,28px)' }}>
+            <h1 style={{ margin: 0, fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(28px,4vw,50px)', lineHeight: 1.02, letterSpacing: '.02em', textTransform: 'uppercase', textWrap: 'balance' }}>{f.name}</h1>
+            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px 9px', marginTop: 10, fontSize: 10.5, letterSpacing: '.22em', color: 'rgba(28,25,23,.55)', textTransform: 'uppercase' }}>
+              <span>{f.comp}</span>
+              <span style={{ color: 'rgba(28,25,23,.3)' }}>·</span>
+              <span>{f.hand}</span>
+              <span style={{ color: 'rgba(28,25,23,.3)' }}>·</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+                <span style={{ width: 10, height: 10, borderRadius: '50%', background: colCssV, border: '1px solid rgba(28,25,23,.18)', flex: 'none' }} />
+                {col.name}
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={() => document.querySelector('[data-stage]')?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' })}
+            className="pc-fab-aside pc-hv-ink"
+            style={{ cursor: 'pointer', background: 'none', border: 'none', borderLeft: '1px solid rgba(28,25,23,.14)', padding: '6px 0 6px clamp(14px,2.4vw,28px)', alignSelf: 'stretch', textAlign: 'left', fontFamily: FONT_BODY, textTransform: 'uppercase', color: '#1C1917' }}
+          >
+            <span style={{ display: 'block', fontSize: 10.5, fontWeight: 600, letterSpacing: '.28em', whiteSpace: 'nowrap' }}>{t.lab} →</span>
+            <span style={{ display: 'block', fontSize: 9.5, letterSpacing: '.28em', color: 'rgba(28,25,23,.5)', marginTop: 4, whiteSpace: 'nowrap' }}>{t.study}</span>
+          </button>
         </div>
-        <div style={{ fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 17.5, color: 'rgba(28,25,23,.55)', marginTop: 14, maxWidth: 520, textWrap: 'pretty' }}>{story}</div>
-        <Selvage style={{ marginTop: 14 }} />
+        <div style={{ fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 16.5, color: 'rgba(28,25,23,.55)', margin: '0 0 22px', maxWidth: 560, textWrap: 'pretty' }}>{story}</div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,340px),1fr))', gap: 0, borderTop: '1px solid rgba(28,25,23,.08)', borderBottom: '1px solid rgba(28,25,23,.08)' }}>
@@ -162,13 +215,12 @@ export function FabricLab({ studio }: { studio: Studio }) {
               colour={col}
               light={studio.light}
               wind={wind}
-              pulled={tests.stretch && isRoll}
+              pulled={tests.stretch && shown === 'roll'}
               shine={tests.shine}
-              rolled={isRoll}
-              garment={studio.garment}
+              rolled={shown === 'roll'}
+              garment={shown}
               captureId="fabric-lab"
               onLoading={onModelLoading}
-              curtain={settling}
               label={`${f.name} in ${col.name}, rendered in three dimensions`}
               fallback={
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -245,10 +297,24 @@ export function FabricLab({ studio }: { studio: Studio }) {
                 </div>
               }
             />
-            <span style={{ position: 'absolute', top: 14, left: 16, fontSize: 'clamp(7.5px, 1.1vw, 9.5px)', letterSpacing: '.2em', color: light.fg, opacity: 0.7, transition: 'color 1.2s ease', maxWidth: '55%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {/* The curtain: the stage's own backdrop, drawn over the canvas and faded. It fades in
+                over a leaving garment and out over an arriving one. The garment is not faded by
+                putting the canvas in a CSS opacity group — Chromium composites a WebGL canvas in
+                an opacity group through an offscreen surface, and on a software renderer that
+                stalled the page outright. */}
+            <div
+              aria-hidden
+              style={{
+                position: 'absolute', inset: 0, zIndex: 4, pointerEvents: 'none',
+                opacity: veiled ? 1 : 0,
+                transition: `opacity ${veiled ? `${FADE_OUT_MS}ms ease` : '1.1s cubic-bezier(.2,.8,.2,1)'}, background 1.2s ease`,
+                background: `radial-gradient(35% 13px at 50% calc(93% - 13px), rgba(28,25,23,.3), transparent 70%), radial-gradient(50% 40% at 50% 15%, ${light.glow}, transparent 70%), ${light.bg}`,
+              }}
+            />
+            <span style={{ position: 'absolute', top: 14, left: 16, zIndex: 5, fontSize: 'clamp(7.5px, 1.1vw, 9.5px)', letterSpacing: '.2em', color: light.fg, opacity: 0.7, transition: 'color 1.2s ease', maxWidth: '55%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {light.en.toUpperCase()} · {wind ? 'WIND' : 'STILL'}
             </span>
-            {(modelLoading || settling) && <StageLoader label={isRoll ? 'Unrolling the cloth' : `Draping the ${DIAL_LABELS[garment].toLowerCase()}`} />}
+            {loaderPhase !== 'hidden' && <StageLoader label={isRoll ? 'Unrolling the cloth' : `Draping the ${DIAL_LABELS[garment].toLowerCase()}`} leaving={loaderPhase === 'out'} />}
             <LightControl albedoHex={renderHex} current={lightKey} setLight={studio.setLight} />
             <div style={{ position: 'absolute', right: 14, bottom: 14, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, zIndex: 6 }}>
               {isRoll && (
@@ -429,7 +495,10 @@ export function FabricLab({ studio }: { studio: Studio }) {
               >
                 <div className="pc-pink" style={{ height: 96, background: m.tex }} />
                 <div style={{ padding: '10px 12px 12px' }}>
-                  <div style={{ fontFamily: FONT_DISPLAY, fontSize: 17, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.name}</div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                    <span style={{ fontFamily: FONT_DISPLAY, fontSize: 12.5, color: '#8A6D45', letterSpacing: '.06em', flex: 'none' }}>{m.no}</span>
+                    <div style={{ fontFamily: FONT_DISPLAY, fontSize: 17, fontWeight: 600, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.name}</div>
+                  </div>
                   <div style={{ fontSize: 11, letterSpacing: '.06em', color: 'rgba(28,25,23,.5)', marginTop: 2 }}>{m.meta}</div>
                 </div>
               </div>
@@ -647,13 +716,14 @@ function WindControl({ wind, setWind, open, setOpen }: { wind: number; setWind: 
  * The loader for a supplied model: a single thread being drawn round a ring, and a word about
  * what is coming. Delayed a third of a second so a model already in the cache never flashes it.
  */
-function StageLoader({ label }: { label: string }) {
+function StageLoader({ label, leaving = false }: { label: string; leaving?: boolean }) {
   return (
     <div role="status" aria-live="polite" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 5 }}>
       <div
         style={{
           display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px 12px 14px', borderRadius: 999,
-          ...GLASS, WebkitBackdropFilter: GLASS.backdropFilter, animation: 'pcPop .6s .3s cubic-bezier(.2,.8,.2,1) both',
+          ...GLASS, WebkitBackdropFilter: GLASS.backdropFilter,
+          animation: leaving ? 'pcFadeOut .6s ease both' : 'pcPop .7s .2s cubic-bezier(.2,.8,.2,1) both',
         }}
       >
         <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden style={{ animation: 'pcSpin 1.8s linear infinite' }}>

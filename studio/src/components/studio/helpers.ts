@@ -25,6 +25,11 @@ export function heroColour(f: FabricRow): ColourRow {
   return f.colours[f.heroIndex] ?? f.colours[0];
 }
 
+/** A fabric's place in the catalogue, printed the way a catalogue prints it: "01" of "11". */
+export function fabricNo(fabrics: { id: string }[], id: string) {
+  return String(fabrics.findIndex((f) => f.id === id) + 1).padStart(2, '0');
+}
+
 export const SELVAGE_STITCH =
   'repeating-linear-gradient(90deg,#8A6D45 0 9px,transparent 9px 16px),repeating-linear-gradient(90deg,rgba(28,25,23,.65) 0 9px,transparent 9px 16px)';
 
