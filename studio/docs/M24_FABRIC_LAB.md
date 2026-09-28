@@ -33,9 +33,11 @@ a neighbouring number, or the arrow keys when it has focus moves to the next or 
 in catalogue order, wrapping round. The strip slides one place, and the switch is the Showroom's
 own: its full-screen unroll card, then the lab's staged reveal with the loader. The "more
 fabrics" strip switches the same way. A vertical drag over the plate still scrolls the page
-(`touch-action: pan-y`). The lab is not remounted for a switch — the staged reveal is keyed on
-the fabric as well as the cut — which keeps the canvas and makes the switch cheaper. On a
-desktop the strip shows two neighbours each side, on a phone one.
+(`touch-action: pan-y`). The lab is remounted for every fabric (keyed on the fabric in
+`StudioApp`), so a fabric opened from inside the lab — the strip, or a roll in "more fabrics" —
+gets the whole Fabric Hall arrival: the unroll card (which now fades out rather than vanishing),
+the page laying in from the top, and the stage's staged reveal with its loader. On a desktop the
+strip shows two neighbours each side, on a phone one.
 
 **Leaving the lab no longer throws.** drei's `Environment` disposes its cube render target after
 React Three Fiber has disposed the renderer, and three's dispose handler then reads framebuffers
@@ -68,6 +70,17 @@ On and Off pop out of the wind button, with the fabric's physics note.
 `FabricRoll` drawing: the bolt on its end, its core, the weave, the shadow and reflection, heavier
 cloth taller) standing on a small showroom floor, each opening through the Showroom's unroll —
 and then the downloads (spec sheet, colour catalogue, this view) and the share QR.
+
+**Arriving on a page.** Every change of page is announced by a cream curtain carrying the page's
+name ("The Fabric Hall"), which covers at once, holds a beat and lifts away as the page lays in
+(`ViewCurtain`; navigation itself is never delayed). In the Showroom the rolls then rise into
+place one after another as the curtain lifts; in the lab's "more fabrics" they rise the same way
+when the section scrolls into view, above the Showroom's own breathing "scroll · click a roll to
+unroll" hint. The strip drags like the Showroom's walk — hold and move, by mouse or finger — and
+has no scroll snapping, which fought the drag and pulled the strip back; its wall and floor fade
+out of the page at the top and back into it at the bottom, so hall and page read as one piece.
+On the Entrance, "Enter the Showroom" and "Explore colours" rise in, lift on hover and give when
+pressed, and a slow light crosses the main button now and then. The first page of a visit has no curtain, and a fabric has the unroll instead.
 
 **Motion.** Every panel, menu and popup now animates out as well as in — the scenes sheet slides
 down, the light and account menus fold up, the info card, the garment picker, the wind options,

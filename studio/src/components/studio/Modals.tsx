@@ -9,7 +9,9 @@ export function UnrollTransition({ studio }: { studio: Studio }) {
   const { trans } = studio;
   if (!trans) return null;
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 200, overflow: 'hidden', pointerEvents: 'none' }}>
+    // The card fades away at the end of its time rather than vanishing in a frame (1.25 s, the
+    // time the studio holds it for).
+    <div style={{ position: 'fixed', inset: 0, zIndex: 200, overflow: 'hidden', pointerEvents: 'none', animation: 'pcUnrollOut 1.25s linear both' }}>
       <div
         style={{
           position: 'absolute', inset: 0, background: trans.tex, transformOrigin: '50% 0',

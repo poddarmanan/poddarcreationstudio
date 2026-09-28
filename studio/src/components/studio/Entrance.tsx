@@ -85,11 +85,11 @@ export function Entrance({ studio }: { studio: Studio }) {
         <div style={{ marginTop: 'clamp(26px,6.5vw,40px)' }}>
           <button
             onClick={() => studio.go('showroom')}
-            className="pc-hv-gold-fill"
+            className="pc-hv-gold-fill pc-cta"
             style={{
               cursor: 'pointer', background: '#1C1917', color: '#FAF8F5', border: '1px solid #1C1917', borderRadius: 999,
               padding: '17px 44px', fontFamily: FONT_BODY, fontSize: 13, letterSpacing: '.22em', textTransform: 'uppercase',
-              boxShadow: '0 20px 50px rgba(28,25,23,.22)',
+              boxShadow: '0 20px 50px rgba(28,25,23,.22)', animation: 'rise 1.1s .45s cubic-bezier(.22,.8,.2,1) both',
             }}
           >
             {t.enter}
@@ -102,10 +102,11 @@ export function Entrance({ studio }: { studio: Studio }) {
             <button
               key={b.label}
               onClick={b.go}
-              className="pc-hv-ink-border"
+              className="pc-hv-ink-border pc-link-cta"
               style={{
                 cursor: 'pointer', background: 'none', border: 'none', color: 'rgba(28,25,23,.55)', fontFamily: FONT_BODY,
                 fontSize: 12, letterSpacing: '.2em', textTransform: 'uppercase', borderBottom: '1px solid rgba(28,25,23,.2)', padding: '0 0 3px',
+                animation: 'rise 1.1s .7s cubic-bezier(.22,.8,.2,1) both',
               }}
             >
               {b.label}

@@ -206,7 +206,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
 
   const moreFabrics = studio.fabrics
     .filter((x) => x.id !== f.id)
-    .map((x, i) => ({ id: x.id, no: fabricNo(studio.fabrics, x.id), dl: `${i * 80}ms` }));
+    .map((x, i) => ({ id: x.id, no: fabricNo(studio.fabrics, x.id), dl: `${200 + i * 90}ms` }));
 
   const shadeChart = (
             <div>
@@ -580,19 +580,23 @@ export function FabricLab({ studio }: { studio: Studio }) {
             className="pc-nav"
             {...moreDrag}
             style={{
-              display: 'flex', alignItems: 'flex-end', gap: 'clamp(30px,4.5vw,64px)', overflowX: 'auto', padding: '40px clamp(34px,7vw,100px) 30px',
-              cursor: 'grab', touchAction: 'pan-y', scrollSnapType: 'x proximity', scrollPaddingLeft: 'clamp(34px,7vw,100px)',
-              // The Showroom's hall, in miniature: a pale wall meeting a floor the rolls stand on.
-              background: 'linear-gradient(180deg,#F6F3EE 0%,#EFEAE2 64%,#E0DACE 64.2%,#D4CDBF 100%)',
+              display: 'flex', alignItems: 'flex-end', gap: 'clamp(30px,4.5vw,64px)', overflowX: 'auto', padding: '64px clamp(34px,7vw,100px) 56px',
+              cursor: 'grab', touchAction: 'pan-y',
+              // The Showroom's hall, in miniature: a pale wall meeting a floor the rolls stand on,
+              // fading out of the page at the top and back into it at the bottom so the hall and the
+              // page read as one piece. No scroll snapping: it fought the hold-and-drag, pulling
+              // the strip back as it moved, where the Fabric Hall's walk drags freely.
+              background: 'linear-gradient(180deg,#FAF8F5 0%,#F6F3EE 16%,#EFEAE2 60%,#E0DACE 60.3%,#D8D1C4 78%,#E8E3D9 90%,#FAF8F5 100%)',
             }}
           >
             {moreFabrics.map((m) => (
-              <div key={m.id} style={{ flex: 'none', scrollSnapAlign: 'start', animation: `tileIn .9s ${m.dl} cubic-bezier(.22,.8,.2,1) both` }}>
+              <div key={m.id} className="pc-roll-rise" style={{ flex: 'none', ['--d' as string]: m.dl }}>
                 <FabricRoll f={studio.fab(m.id)} no={m.no} onClick={() => studio.unroll(studio.fab(m.id))} fg="#1C1917" sub="rgba(28,25,23,.55)" accent="#8A6D45" shades={t.shades} />
               </div>
             ))}
           </div>
-          <div style={{ position: 'absolute', top: 0, bottom: 0, right: 0, width: 60, pointerEvents: 'none', background: 'linear-gradient(270deg,rgba(240,235,226,.85),transparent)' }} />
+          <div style={{ position: 'absolute', top: 0, bottom: 0, right: 0, width: 70, pointerEvents: 'none', background: 'linear-gradient(270deg,rgba(250,248,245,.9),transparent)' }} />
+          <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: 40, pointerEvents: 'none', background: 'linear-gradient(90deg,rgba(250,248,245,.75),transparent)' }} />
           <button
             onClick={() => scrollByEl('pc-morefab', -320)}
             aria-label="Scroll left"
@@ -617,6 +621,15 @@ export function FabricLab({ studio }: { studio: Studio }) {
           >
             ›
           </button>
+        </div>
+        {/* The Showroom's hint, as it is there: an arrow that breathes, and what to do. */}
+        <div style={{ textAlign: 'center', padding: '4px 16px 0', fontSize: 10.5, letterSpacing: '.24em', color: 'rgba(28,25,23,.5)' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, animation: 'pulse 3s infinite' }}>
+            <svg width="26" height="10" viewBox="0 0 26 10" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden style={{ animation: 'pcNudge 2.4s ease-in-out infinite' }}>
+              <path d="M0 5h22M18 1l4 4-4 4" />
+            </svg>
+            {t.scrollHint}
+          </span>
         </div>
       </Reveal>
 

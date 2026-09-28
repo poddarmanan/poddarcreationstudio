@@ -84,14 +84,17 @@ export function Showroom({ studio }: { studio: Studio }) {
       >
         <div
           key={room.k}
+          className="is-in"
           style={{
             display: 'flex', alignItems: 'flex-end', gap: 'clamp(30px,4.5vw,64px)', padding: '0 clamp(34px,7vw,100px)',
             minWidth: 'max-content', animation: 'roomIn 1.05s cubic-bezier(.22,.8,.2,1) both',
           }}
         >
-          {rolls.map((r) => (
+          {rolls.map((r, i) => (
             <FabricRoll
               key={r.f.id}
+              className="pc-hv-lift-14 pc-roll-rise"
+              style={{ ['--d' as string]: `${720 + i * 110}ms` }}
               f={r.f}
               no={fabricNo(studio.fabrics, r.f.id)}
               onClick={() => studio.unroll(r.f)}
