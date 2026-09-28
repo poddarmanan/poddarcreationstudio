@@ -166,9 +166,11 @@ async function main() {
   // high tier draws a 300,000-triangle model at a frame a second, which is what a screenshot
   // times out on.
   await page.goto(`${BASE}/?quality=low`, { waitUntil: 'networkidle' });
-  await page.getByRole('button', { name: /^Collection$/i }).first().click();
-  await page.waitForTimeout(700);
-  await page.locator('[class*="pc-hv-lift"]').first().click({ force: true });
+  // Fabrics open from the Showroom: its first room, the hall, hangs all eleven rolls in
+  // catalogue order, and clicking one unrolls it into the lab.
+  await page.getByRole('button', { name: /^Showroom$/i }).first().click();
+  await page.waitForTimeout(900);
+  await page.locator('[class*="pc-hv-lift-14"]').first().click({ force: true });
   await page.waitForSelector('[data-stage="canvas"]', { timeout: 20_000 });
 
   // Measure in a blue. The silhouette is found by hue against a warm backdrop (see

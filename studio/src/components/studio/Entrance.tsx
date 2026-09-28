@@ -97,7 +97,6 @@ export function Entrance({ studio }: { studio: Studio }) {
         </div>
         <div style={{ display: 'flex', gap: 26, justifyContent: 'center', marginTop: 'clamp(18px,4.3vw,26px)', fontSize: 12, letterSpacing: '.2em' }}>
           {[
-            { label: t.collection, go: () => studio.go('collection') },
             { label: t.explore, go: () => studio.go('colours') },
           ].map((b) => (
             <button

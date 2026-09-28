@@ -194,9 +194,7 @@ async function main() {
 
   for (const [label, name] of [
     ['Showroom', '02-showroom'],
-    ['Collection', '03-collection'],
     ['Colours', '04-colour-wall'],
-    ['Compare', '05-compare'],
     ['Swatch Book', '06-swatch-book'],
   ]) {
     if (await tap(page, label)) await shot(page, name);
@@ -204,15 +202,15 @@ async function main() {
   }
 
   // Open a fabric — the deepest view, and the one with the most chrome to fit on a phone.
-  await tap(page, 'Collection');
+  await tap(page, 'Showroom');
   await page.waitForTimeout(500);
-  const card = page.locator('[class*="pc-hv-lift"]').first();
+  const card = page.locator('[class*="pc-hv-lift-14"]').first();
   if (await card.count()) {
     await card.tap({ force: true }).catch(() => {});
     await shot(page, '07-fabric-lab');
   }
 
-  // The pill in its signed-in state: Admin replaces Compare for staff.
+  // The pill in its signed-in state: staff get Admin as a sixth item.
   await page.goto(`${BASE}/signin`, { waitUntil: 'networkidle' });
   await page.waitForSelector('input[type="email"]', { timeout: 15_000 });
   await page.fill('input[type="email"]', 'admin@poddarcreation.studio');

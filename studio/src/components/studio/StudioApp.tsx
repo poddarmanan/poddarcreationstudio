@@ -6,10 +6,8 @@ import { Nav } from './Nav';
 import { BottomNav } from './BottomNav';
 import { Entrance } from './Entrance';
 import { Showroom } from './Showroom';
-import { Collection } from './Collection';
 import { FabricLab } from './FabricLab';
 import { ColourWall } from './ColourWall';
-import { Compare } from './Compare';
 import { SwatchBook } from './SwatchBook';
 import { Admin } from './Admin';
 import { UnrollTransition, ScopeModal, SceneModal, QuoteModal, AiModal, SignInModal } from './Modals';
@@ -22,10 +20,8 @@ export function StudioApp({ fabrics }: { fabrics: FabricRow[] }) {
       <Nav studio={studio} />
       {studio.view === 'home' && <Entrance studio={studio} />}
       {studio.view === 'showroom' && <Showroom studio={studio} />}
-      {studio.view === 'collection' && <Collection studio={studio} />}
       {studio.view === 'fabric' && <FabricLab studio={studio} />}
       {studio.view === 'colours' && <ColourWall studio={studio} />}
-      {studio.view === 'compare' && <Compare studio={studio} />}
       {studio.view === 'book' && <SwatchBook studio={studio} />}
       {studio.view === 'admin' && <Admin studio={studio} />}
       <BottomNav studio={studio} />

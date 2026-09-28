@@ -57,14 +57,16 @@ async function main() {
   const browser = await chromium.launch({ executablePath: CHROME, args: ['--no-sandbox', '--use-gl=swiftshader', '--enable-unsafe-swiftshader'] });
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
   await page.goto(`${BASE}/?quality=medium`, { waitUntil: 'networkidle' });
-  await page.getByRole('button', { name: /^Collection$/i }).first().click();
-  await page.waitForTimeout(700);
-  await page.locator('[class*="pc-hv-lift"]').first().click({ force: true });
+  // Fabrics open from the Showroom: its first room, the hall, hangs all eleven rolls in
+  // catalogue order, and clicking one unrolls it into the lab.
+  await page.getByRole('button', { name: /^Showroom$/i }).first().click();
+  await page.waitForTimeout(900);
+  await page.locator('[class*="pc-hv-lift-14"]').first().click({ force: true });
   await page.waitForSelector('[data-stage="canvas"]', { timeout: 20_000 });
   await pick(page, 'Roll');
   await setLight(page, 'White Cyc');
   await setWind(page, false);
-  // The loader holds three and a half seconds on a change of cut, and the cut fades in after.
+  // The loader holds at least a second and a half on a change of cut, and the cut fades in after.
   await page.waitForTimeout(5500);
   ok('the lab opened on the hanging panel under the white cyc');
 

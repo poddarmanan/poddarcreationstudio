@@ -32,7 +32,7 @@ Above 768px none of this exists — the hero keeps its own search bar exactly as
 
 | Piece | Where | Note |
 |---|---|---|
-| `BottomNav` | `src/components/studio/BottomNav.tsx` | Six items; Admin replaces Compare for staff |
+| `BottomNav` | `src/components/studio/BottomNav.tsx` | Four items (Entrance, Showroom, Colours, Swatch Book); Admin added for staff |
 | `MobileSearch` | `src/components/studio/MobileSearch.tsx` | The header's expanding search pill |
 | `useSearch` | `src/components/studio/search.ts` | Called once in `useStudio`; both surfaces render its result |
 | `.pc-bottomnav*`, `.pc-msearch*` | `src/app/globals.css` | Everything inside `@media (max-width: 767px)` |

@@ -21,9 +21,11 @@ async function main() {
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
 
   await page.goto(BASE, { waitUntil: 'networkidle' });
-  await page.getByRole('button', { name: /^Collection$/i }).first().click();
-  await page.waitForTimeout(700);
-  await page.locator('[class*="pc-hv-lift"]').first().click({ force: true });
+  // Fabrics open from the Showroom: its first room, the hall, hangs all eleven rolls in
+  // catalogue order, and clicking one unrolls it into the lab.
+  await page.getByRole('button', { name: /^Showroom$/i }).first().click();
+  await page.waitForTimeout(900);
+  await page.locator('[class*="pc-hv-lift-14"]').first().click({ force: true });
   await page.waitForSelector('[data-stage="canvas"]', { timeout: 20_000 });
   await page.waitForTimeout(1800);
 

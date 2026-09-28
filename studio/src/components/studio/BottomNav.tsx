@@ -36,26 +36,11 @@ function Icon({ name }: { name: View }) {
           <path d="M9 20v-6a3 3 0 0 1 6 0v6" />
         </svg>
       );
-    case 'collection': // stacked bolts of cloth
-      return (
-        <svg {...common}>
-          <rect x="3" y="4" width="18" height="5" rx="1.5" />
-          <rect x="3" y="11" width="18" height="5" rx="1.5" />
-          <path d="M6 18h12" />
-        </svg>
-      );
     case 'colours': // the shade wall
       return (
         <svg {...common}>
           <circle cx="12" cy="12" r="8.5" />
           <path d="M12 3.5v17M3.5 12h17" />
-        </svg>
-      );
-    case 'compare': // two panels side by side
-      return (
-        <svg {...common}>
-          <rect x="3" y="5" width="7.5" height="14" rx="1.5" />
-          <rect x="13.5" y="5" width="7.5" height="14" rx="1.5" />
         </svg>
       );
     case 'book': // the swatch book
@@ -85,19 +70,16 @@ function Icon({ name }: { name: View }) {
 const short = (label: string) => label.split(' ')[0];
 
 export function BottomNav({ studio }: { studio: Studio }) {
-  const { t, view, go, compare, pins, isStaff } = studio;
+  const { t, view, go, pins, isStaff } = studio;
 
-  // Six is the most a pill can hold at a 44px target on a 360px screen without crowding.
-  // Admin replaces Compare for staff, who reach comparison from the fabric view anyway.
+  // Four for everyone: Entrance, Showroom, Colours and the Swatch Book. Staff get Admin as a
+  // fifth. (Six is the most a pill can hold at a 44px target on a 360px screen.)
   const items: { k: View; label: string; count?: number }[] = [
     { k: 'home', label: t.home },
     { k: 'showroom', label: t.showroom },
-    { k: 'collection', label: t.collection },
     { k: 'colours', label: t.colours },
-    ...(isStaff
-      ? [{ k: 'admin' as View, label: t.admin }]
-      : [{ k: 'compare' as View, label: t.compare, count: compare.length }]),
     { k: 'book', label: t.book, count: pins.length },
+    ...(isStaff ? [{ k: 'admin' as View, label: t.admin }] : []),
   ];
 
   return (

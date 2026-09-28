@@ -109,9 +109,11 @@ async function main() {
   // Medium quality, as the colour smoke: what this measures is not the tier, and a software
   // renderer at the high tier draws a supplied model at a frame a second.
   await page.goto(`${BASE}/?quality=medium`, { waitUntil: 'networkidle' });
-  await page.getByRole('button', { name: /^Collection$/i }).first().click();
-  await page.waitForTimeout(700);
-  await page.locator('[class*="pc-hv-lift"]').first().click({ force: true });
+  // Fabrics open from the Showroom: its first room, the hall, hangs all eleven rolls in
+  // catalogue order, and clicking one unrolls it into the lab.
+  await page.getByRole('button', { name: /^Showroom$/i }).first().click();
+  await page.waitForTimeout(900);
+  await page.locator('[class*="pc-hv-lift-14"]').first().click({ force: true });
   await page.waitForSelector('[data-stage="canvas"]', { timeout: 20_000 });
   ok('the lab opened onto a live canvas');
   // The lab opens with the wind on; the tests below want a still cloth, and the wind check
@@ -121,7 +123,7 @@ async function main() {
   // the roll is a few thousand triangles where a supplied model is a few hundred thousand — the
   // difference between a frame and a stall on a software renderer.
   await pick(page, 'Roll');
-  // A change of cut is a staged transition: the loader holds for three and a half seconds and
+  // A change of cut is a staged transition: the loader holds for at least a second and a half and
   // the new cut then fades in over another second. Measure the roll once it is fully on.
   await page.waitForTimeout(5500);
 

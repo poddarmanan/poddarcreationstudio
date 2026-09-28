@@ -8,7 +8,7 @@ import { fabricTex, heroColour } from './helpers';
 import { useSearch, type Search } from './search';
 import { FABRIC_STORIES } from '@/lib/fabric-generator';
 
-export type View = 'home' | 'showroom' | 'collection' | 'fabric' | 'colours' | 'compare' | 'book' | 'admin';
+export type View = 'home' | 'showroom' | 'fabric' | 'colours' | 'book' | 'admin';
 
 export interface Pin {
   id?: string;
@@ -59,9 +59,6 @@ export interface Studio {
   setWind: (w: number) => void;
   tests: Tests;
   toggleTest: (k: keyof Tests) => void;
-  compare: string[];
-  toggleCompare: (id: string) => void;
-  removeCompare: (id: string) => void;
   pins: Pin[];
   pinShade: (fabricId: string, colourOrder: number) => void;
   removePin: (pin: Pin) => void;
@@ -137,7 +134,6 @@ export function useStudio(fabrics: FabricRow[]): Studio {
   // Wind is on by default, and on means strong: the lab opens with the cloth moving.
   const [wind, setWind] = useState(3);
   const [tests, setTests] = useState<Tests>({ stretch: false, shine: false, d3: false });
-  const [compare, setCompare] = useState<string[]>(['rayon14', 'gajji']);
   const [pins, setPins] = useState<Pin[]>([]);
   const [q, setQ] = useState('');
   const [wallFab, setWallFab] = useState<string | null>(null);
@@ -238,15 +234,6 @@ export function useStudio(fabrics: FabricRow[]): Studio {
     setTests((prev) => ({ ...prev, [k]: !prev[k] }));
   }, []);
 
-  const toggleCompare = useCallback((id: string) => {
-    setCompare((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : prev.length < 4 ? [...prev, id] : prev
-    );
-  }, []);
-
-  const removeCompare = useCallback((id: string) => {
-    setCompare((prev) => prev.filter((x) => x !== id));
-  }, []);
 
   const pinShade = useCallback(
     (fabricId: string, colourOrder: number) => {
@@ -394,9 +381,6 @@ export function useStudio(fabrics: FabricRow[]): Studio {
     setWind,
     tests,
     toggleTest,
-    compare,
-    toggleCompare,
-    removeCompare,
     pins,
     pinShade,
     removePin,

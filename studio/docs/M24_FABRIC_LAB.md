@@ -16,12 +16,17 @@ the "Watch in 3D" pill (the turntable is always live; hold and spin), the four-s
 used to sweep the whole stage with the shine — the shine is the raking light on the cloth, and
 nothing else should light up.
 
-**The head of the page is a catalogue plate.** Above a hairline, the way back to the fabric
-library and the plate number ("Fabric 03 / 11"); below it the number over its count, a rule,
-the fabric's name in display capitals with its spec line (composition · hand · the shade on
-the stage), and at the right, from a tablet up, the lab's own mark, which scrolls to the stage.
-Every place a fabric is shown — the showroom's rolls, the collection's cards, the lab's
-"more fabrics" strip — carries the same plate number, so a buyer can say "the third one".
+**The head of the page is a catalogue plate.** The plate number over its count in the house
+gold, a rule, the fabric's name in display capitals with its spec line (composition · hand ·
+the shade on the stage), and at the right, from a tablet up, the lab's own mark, which scrolls
+to the stage. There is no back link or italic story line above or below it: the site nav and
+the Showroom are the way back. Every place a fabric is shown — the showroom's rolls and the
+lab's "more fabrics" strip — carries the same plate number, so a buyer can say "the third one".
+
+**Product information on the stage.** An "i" under the corner label opens the product
+details — name, the shade on the stage, weight, width, composition, hand, price and stock — as
+a near-opaque card over the stage, so a buyer can read the specifications without scrolling
+away from the garment. A second tap, Escape, or a tap outside closes it.
 
 **The buyer's column.** To the right of the stage (below it on a phone): Request a quote and
 Enquire on WhatsApp first, the product details sheet under them, and the shade chart under
@@ -31,9 +36,10 @@ phone's bottom bar, from anywhere on the page; it fills dark once the shade on t
 the book. It is portalled to the body because the lab's root animates a transform as it lays
 in, and a transformed ancestor turns a fixed child into a page-positioned one.
 
-**Every change of cut is a staged transition.** The garment on the stage fades out, the loader
-comes up and holds for at least three and a half seconds while the new cut is prepared under it
-(cached model or not), then the loader fades away as the new garment fades in over a second.
+**Every change of cut is a staged transition.** The garment on the stage fades out and the loader
+comes up. A cut already loaded is revealed after a second and a half; one that is still being
+fetched or decoded keeps the loader up until it has fully arrived, then a beat more so its first
+frames draw under cover. The loader then fades away as the new garment fades in over a second.
 Nothing snaps: a garment that simply appeared read as a glitch. The lab opens the same way.
 
 **A model arrives to a loader, not to the old cut.** While a supplied model is checked for,

@@ -46,9 +46,7 @@ async function main() {
   // The studio is a single-page experience — its views are nav buttons, not routes.
   for (const [label, name] of [
     ['Showroom', '02-showroom'],
-    ['Collection', '03-collection'],
     ['Colours', '04-colour-wall'],
-    ['Compare', '05-compare'],
     ['Swatch Book', '06-swatch-book'],
   ]) {
     const button = page.getByRole('button', { name: new RegExp(`^${label}$`, 'i') }).first();

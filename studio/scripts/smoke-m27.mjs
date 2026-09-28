@@ -37,8 +37,10 @@ function detail(png) {
 }
 
 async function openScope(page, label) {
+  // Clicked directly: the microscope sits below the Scenes grid, and a pointer click after the
+  // scroll can land on a scene tile while the page is still settling.
   const button = page.getByRole('button', { name: new RegExp(`^${label}$`, 'i') }).first();
-  await button.click();
+  await button.evaluate((el) => el.click());
   await page.waitForSelector('[data-stage] canvas', { timeout: 20_000 });
   await page.waitForTimeout(1600);
   const png = decodePng(await page.locator('[data-stage] canvas').last().screenshot());
@@ -54,10 +56,12 @@ async function main() {
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
 
   await page.goto(BASE, { waitUntil: 'networkidle' });
-  await page.getByRole('button', { name: /^Collection$/i }).first().click();
-  await page.waitForTimeout(700);
+  // Fabrics open from the Showroom: its first room, the hall, hangs all eleven rolls in
+  // catalogue order, and clicking one unrolls it into the lab.
+  await page.getByRole('button', { name: /^Showroom$/i }).first().click();
+  await page.waitForTimeout(900);
   // A slub is the right fabric to inspect: irregular yarn is exactly what a microscope is for.
-  await page.locator('[class*="pc-hv-lift"]').nth(6).click({ force: true });
+  await page.locator('[class*="pc-hv-lift-14"]').nth(6).click({ force: true });
   await page.waitForSelector('[data-stage="canvas"]', { timeout: 20_000 });
   ok('the lab opened');
 

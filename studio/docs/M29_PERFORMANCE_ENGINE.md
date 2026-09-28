@@ -29,8 +29,9 @@ adaptation is a statement about the moment.
 ## One verdict per tab
 
 `src/components/three/quality.ts` holds a single tier for the whole page. If each viewer adapted
-on its own, the Comparison Studio would end up showing four fabrics at four different qualities —
-destroying the fairness that view exists to provide. They share a GPU, so they share a verdict.
+on its own, two viewers on one page (the lab's stage and its microscope, say) could end up at two
+different qualities, and a shade compared across them would be compared unfairly. They share a
+GPU, so they share a verdict.
 
 A drop reports `three.slow` through the client telemetry channel, so how often real devices fail
 to hold their tier is answerable from the same pipeline as everything else.

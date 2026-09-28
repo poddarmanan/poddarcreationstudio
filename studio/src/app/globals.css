@@ -416,7 +416,7 @@ button:focus-visible, a:focus-visible, input:focus-visible {
 
 /* The fabric plate at the head of the lab: number | rule | name, with the lab's mark at the
    right from a tablet up. */
-.pc-fab-plate { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; padding: 18px 0 16px; }
+.pc-fab-plate { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; }
 .pc-fab-aside { display: none; }
 @media (min-width: 640px) {
   .pc-fab-plate { grid-template-columns: auto minmax(0, 1fr) auto; }

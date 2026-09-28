@@ -10,15 +10,20 @@ import { metamerism, shiftVerdict } from '@/lib/three/metamerism';
 import { FONT_DISPLAY, FONT_BODY, fabricTex, fabricWeave, colourCss, colourFg, colourShade, chipStyle, heroColour, fabricNo } from './helpers';
 import { useDragScroll, scrollByEl } from './interactions';
 import {
-  GARMENTS, LIGHTS, FABRIC_STORIES, PHYSICS_NOTES, STRETCH_TEST_NOTES,
+  GARMENTS, LIGHTS, PHYSICS_NOTES, STRETCH_TEST_NOTES,
   type GarmentKey, type LightKey,
 } from '@/lib/fabric-generator';
 
 const SCOPE_LEVELS: [string, number][] = [['100×', 26], ['200×', 48], ['500×', 96]];
 const SCENE_SPANS: [number, number][] = [[2, 2], [1, 1], [1, 1], [1, 2], [1, 1], [1, 1], [2, 1], [1, 1], [1, 1]];
 const GARMENT_KEYS = Object.keys(GARMENTS) as GarmentKey[];
-/** The loader holds at least this long on a change of cut, and the garment before it fades out first. */
-const HOLD_MS = 3500;
+/**
+ * The loader holds at least this long on a change of cut, cached model or not, and for as long as
+ * a model is still arriving; the garment before it fades out first. After a real load the reveal
+ * waits a beat more, so the new model's first frames draw under cover.
+ */
+const HOLD_MS = 1500;
+const AFTER_LOAD_MS = 300;
 const FADE_OUT_MS = 450;
 const DIAL_LABELS: Record<GarmentKey, string> = { kurti: 'Kurti', shirt: 'Shirt', dress: 'Dress', top: 'Top', tshirt: 'T-Shirt', roll: 'Roll' };
 
@@ -30,7 +35,6 @@ export function FabricLab({ studio }: { studio: Studio }) {
   const renderHex = oklchToHex(col.l, col.c, col.h);
   const priced = approved || isStaff;
   const amp = reduceMotion ? 0 : f.flow * wind * 1.5;
-  const story = FABRIC_STORIES[f.id] ?? '';
   // The catalogue's numbering: this fabric's plate number and the count, as "03 / 11".
   const fabricIndex = fabricNo(studio.fabrics, f.id);
   const pinned = studio.pins.some((p) => p.fabricId === f.id && p.colourOrder === col.order);
@@ -72,16 +76,30 @@ export function FabricLab({ studio }: { studio: Studio }) {
       window.setTimeout(() => {
         setVeiled(true);
         setLoaderPhase('in');
-        setHoldUntil(Date.now() + HOLD_MS);
+        setHoldUntil(0);
       }, 0),
       window.setTimeout(() => setShown(garment), FADE_OUT_MS),
     ];
     return () => timers.forEach((t) => window.clearTimeout(t));
   }, [garment]);
+  // The hold is timed from the first frame the loader is actually on screen, not from the tap:
+  // a phone busy for a moment after the tap would otherwise spend the hold before it painted,
+  // and the loader would flash rather than hold. Two frames: the one that paints, then the next.
+  useEffect(() => {
+    if (!veiled || holdUntil) return;
+    let second = 0;
+    const first = requestAnimationFrame(() => {
+      second = requestAnimationFrame(() => setHoldUntil(Date.now() + HOLD_MS));
+    });
+    return () => {
+      cancelAnimationFrame(first);
+      cancelAnimationFrame(second);
+    };
+  }, [veiled, holdUntil]);
   // The reveal: once the hold is over and nothing is still loading.
   useEffect(() => {
     if (!veiled || modelLoading || !holdUntil) return;
-    const wait = Math.max(0, holdUntil - Date.now());
+    const wait = Math.max(AFTER_LOAD_MS, holdUntil - Date.now());
     const reveal = window.setTimeout(() => {
       setVeiled(false);
       setLoaderPhase('out');
@@ -165,26 +183,14 @@ export function FabricLab({ studio }: { studio: Studio }) {
 
   return (
     <div style={{ paddingBottom: 80, animation: 'layCloth .55s cubic-bezier(.2,.8,.2,1) both' }}>
-      {/* Header: a catalogue plate. The back link and the plate number above a hairline; below
-          it the number, a rule, the name in display capitals with its spec line, and the lab's
-          own mark at the right (hidden on a phone, where the stage is a thumb away). */}
-      <div style={{ padding: '18px clamp(16px,5vw,64px) 0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, paddingBottom: 14, borderBottom: '1px solid rgba(28,25,23,.1)' }}>
-          <button
-            onClick={() => studio.go('collection')}
-            className="pc-hv-ink"
-            style={{ cursor: 'pointer', background: 'none', border: 'none', padding: 0, fontFamily: FONT_BODY, fontSize: 10.5, letterSpacing: '.28em', color: '#8A6D45', textTransform: 'uppercase' }}
-          >
-            ← {t.library}
-          </button>
-          <span style={{ fontSize: 10.5, letterSpacing: '.28em', color: '#8A6D45', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-            {t.fabricN} {fabricIndex} / {fabricCount}
-          </span>
-        </div>
+      {/* Header: a catalogue plate. The number over its count in the house gold, a rule, the
+          name in display capitals with its spec line, and the lab's own mark at the right
+          (hidden on a phone, where the stage is a thumb away). */}
+      <div style={{ padding: '22px clamp(16px,5vw,64px) 22px' }}>
         <div className="pc-fab-plate">
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', alignSelf: 'stretch', paddingRight: 'clamp(14px,2.4vw,28px)', borderRight: '1px solid rgba(28,25,23,.14)' }}>
-            <span style={{ fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(26px,3vw,38px)', lineHeight: 1 }}>{fabricIndex}</span>
-            <span style={{ fontFamily: FONT_DISPLAY, fontSize: 13, color: 'rgba(28,25,23,.5)', marginTop: 4 }}>/{fabricCount}</span>
+            <span style={{ fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(26px,3vw,38px)', lineHeight: 1, color: '#8A6D45' }}>{fabricIndex}</span>
+            <span style={{ fontFamily: FONT_DISPLAY, fontSize: 13, color: '#8A6D45', opacity: 0.75, marginTop: 4 }}>/{fabricCount}</span>
           </div>
           <div style={{ minWidth: 0, padding: '0 clamp(14px,2.4vw,28px)' }}>
             <h1 style={{ margin: 0, fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(28px,4vw,50px)', lineHeight: 1.02, letterSpacing: '.02em', textTransform: 'uppercase', textWrap: 'balance' }}>{f.name}</h1>
@@ -208,7 +214,6 @@ export function FabricLab({ studio }: { studio: Studio }) {
             <span style={{ display: 'block', fontSize: 9.5, letterSpacing: '.28em', color: 'rgba(28,25,23,.5)', marginTop: 4, whiteSpace: 'nowrap' }}>{t.study}</span>
           </button>
         </div>
-        <div style={{ fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 16.5, color: 'rgba(28,25,23,.55)', margin: '0 0 22px', maxWidth: 560, textWrap: 'pretty' }}>{story}</div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,340px),1fr))', gap: 0, borderTop: '1px solid rgba(28,25,23,.08)', borderBottom: '1px solid rgba(28,25,23,.08)' }}>
@@ -325,6 +330,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
             </span>
             {loaderPhase !== 'hidden' && <StageLoader label={isRoll ? 'Unrolling the cloth' : `Draping the ${DIAL_LABELS[garment].toLowerCase()}`} leaving={loaderPhase === 'out'} />}
             <LightControl albedoHex={renderHex} current={lightKey} setLight={studio.setLight} />
+            <InfoControl title={f.name} shade={col.name} shadeCss={colCssV} rows={specRows} heading={t.sheet} />
             <div style={{ position: 'absolute', right: 14, bottom: 14, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, zIndex: 6 }}>
               {isRoll && (
                 <div style={{ position: 'relative', display: 'flex' }}>
@@ -681,6 +687,70 @@ function LightControl({ albedoHex, current, setLight }: { albedoHex: string; cur
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * The product information on the stage: an "i" under the corner label that opens the product
+ * sheet as a glass card over the stage, so a buyer can read the specifications without leaving
+ * the garment. Closes on a second tap, on Escape, or on a tap outside the card.
+ */
+function InfoControl({ title, shade, shadeCss, rows, heading }: { title: string; shade: string; shadeCss: string; rows: { k: string; v: string }[]; heading: string }) {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
+  return (
+    <>
+      {open && <div onClick={() => setOpen(false)} style={{ position: 'absolute', inset: 0, zIndex: 6 }} />}
+      <div style={{ position: 'absolute', left: 14, top: 38, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, zIndex: 7, maxWidth: 'calc(100% - 28px)', animation: 'pcPop .7s .25s cubic-bezier(.2,.8,.2,1) both' }}>
+        <button
+          aria-label="Product information"
+          aria-expanded={open}
+          onClick={() => setOpen(!open)}
+          className="pc-hv-scale-06"
+          style={{
+            cursor: 'pointer', width: 38, height: 38, borderRadius: '50%', display: 'grid', placeItems: 'center',
+            ...(open ? { background: '#1C1917', color: '#FAF8F5', border: '1px solid #1C1917' } : { ...GLASS, WebkitBackdropFilter: GLASS.backdropFilter, color: '#1C1917' }),
+            fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontWeight: 600, fontSize: 19, lineHeight: 1,
+            transition: 'background .5s ease, color .5s ease, transform .5s cubic-bezier(.2,.8,.2,1)',
+          }}
+        >
+          i
+        </button>
+        {open && (
+          <div
+            role="dialog"
+            aria-label={heading}
+            style={{
+              // Near-opaque: the card sits over the garment, and the specifications must read cleanly.
+              width: 300, maxWidth: '100%', ...GLASS, WebkitBackdropFilter: GLASS.backdropFilter, background: 'rgba(250,248,245,.95)', borderRadius: 18, padding: '14px 16px 12px',
+              animation: 'pcPop .45s cubic-bezier(.2,.8,.2,1) both', transformOrigin: 'top left',
+            }}
+          >
+            <div style={{ fontSize: 9.5, letterSpacing: '.24em', color: '#8A6D45', textTransform: 'uppercase' }}>{heading}</div>
+            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 21, fontWeight: 500, marginTop: 4, lineHeight: 1.1 }}>{title}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 5, fontSize: 11.5, color: 'rgba(28,25,23,.6)' }}>
+              <span style={{ width: 10, height: 10, borderRadius: '50%', background: shadeCss, border: '1px solid rgba(28,25,23,.18)', flex: 'none' }} />
+              {shade}
+            </div>
+            <dl style={{ margin: '10px 0 0', display: 'grid', gridTemplateColumns: 'auto minmax(0,1fr)', columnGap: 14 }}>
+              {rows.map((r, i) => (
+                <div key={r.k} style={{ display: 'contents' }}>
+                  <dt style={{ fontSize: 9.5, letterSpacing: '.2em', color: 'rgba(28,25,23,.45)', textTransform: 'uppercase', padding: '8px 0', borderTop: '1px solid rgba(28,25,23,.08)', animation: `pcSlideIn .45s ${i * 40}ms cubic-bezier(.2,.8,.2,1) both` }}>{r.k}</dt>
+                  <dd style={{ margin: 0, fontSize: 13, padding: '7px 0', borderTop: '1px solid rgba(28,25,23,.08)', textAlign: 'right', animation: `pcSlideIn .45s ${i * 40}ms cubic-bezier(.2,.8,.2,1) both` }}>{r.v}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 

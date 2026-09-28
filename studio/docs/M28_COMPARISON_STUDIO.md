@@ -1,4 +1,10 @@
-# M28 — Comparison Studio
+# M28 — Comparison Studio (retired)
+
+> **Retired.** The owner removed the Compare page, together with the Collection page it was fed
+> from. The page, its `ComparisonStage` and `scripts/smoke-m28.mjs` are deleted; fabrics are now
+> reached through the Showroom, and a buyer compares shades in the lab under its five lights.
+> What follows is kept as the record of what the page did.
+
 
 Every selected quality hanging **under one light, at one moment**.
 

@@ -29,7 +29,6 @@ const HTTP_SCRIPTS = [
   'smoke-m24.mjs',
   'smoke-m25.mjs',
   'smoke-m27.mjs',
-  'smoke-m28.mjs',
   'smoke-m30.mjs',
   'smoke-m43.mjs',
 ];

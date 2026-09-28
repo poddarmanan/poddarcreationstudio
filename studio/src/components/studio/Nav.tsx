@@ -6,14 +6,12 @@ import { MobileSearch } from './MobileSearch';
 import { FONT_DISPLAY, FONT_BODY } from './helpers';
 
 export function Nav({ studio }: { studio: Studio }) {
-  const { t, view, go, compare, pins, signedIn, approved, isStaff, userName } = studio;
+  const { t, view, go, pins, signedIn, approved, isStaff, userName } = studio;
 
   const items: { k: View; label: string; count?: number; hidden?: boolean }[] = [
     { k: 'home', label: t.home },
     { k: 'showroom', label: t.showroom },
-    { k: 'collection', label: t.collection },
     { k: 'colours', label: t.colours },
-    { k: 'compare', label: t.compare, count: compare.length },
     { k: 'book', label: t.book, count: pins.length },
     { k: 'admin', label: t.admin, hidden: !isStaff },
   ];
