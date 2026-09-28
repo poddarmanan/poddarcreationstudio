@@ -46,7 +46,7 @@ from the renderer's cleared records. It surfaced as an uncaught error on every e
 the target's GPU memory went with the context anyway.
 
 **Product information on the stage.** A small "i" under the corner label opens the product
-details — name, the shade on the stage, weight, width, composition, hand, price and stock — as
+details — name, the shade on the stage, weight, width, composition, hand, and the stretch — as
 a near-opaque card over the stage, so a buyer can read the specifications without scrolling
 away from the garment. A second tap, Escape, or a tap outside closes it.
 
@@ -151,8 +151,10 @@ for a cut that has no model file at all (the dress, until one is uploaded).
 button, level with it, with a small pointer to it. When the roll is chosen it is the hint ("Pull
 the cloth →"); while the cloth is pulled it is only a small single-line tag above the button — how far
 the cloth gives along (↕) and across (↔), e.g. ↕ 19.2% ↔ 10.5% for cotton lycra — so nothing sits
-between the buyer and the cloth being stretched. The full reading, with the fabric's note, is a
-"Stretch" row in the product details under the stage's "i". The callout keeps what it shows while it
+between the buyer and the cloth being stretched. The full reading is the closing section of the product
+details under the stage's "i": "Stretch" in gold small caps, the two figures side by side in the
+display serif (↕ along, ↔ across) either side of a fading gold divide, each labelled beneath, and
+the fabric's note centred in italic. The callout keeps what it shows while it
 animates out, and the hint retires once Stretch has been used. The note used to float over the rod at the top of the stage, and the hint
 sat below the button because its slide-in animation overrode the transform that centred it.
 

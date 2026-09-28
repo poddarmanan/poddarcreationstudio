@@ -201,11 +201,13 @@ export function FabricLab({ studio }: { studio: Studio }) {
     { k: t.width, v: f.width },
     { k: t.comp, v: f.comp },
     { k: t.hand, v: f.hand },
-    { k: t.price, v: `₹${f.price} / metre` },
-    { k: t.stock, v: t.inStock },
-    // The stretch reading lives here in full; the stage shows only its two figures while testing.
-    { k: 'Stretch', v: `${((0.012 + f.stretch * 0.2) * 100).toFixed(1)}% along · ${((0.015 + f.stretch * 0.1) * 100).toFixed(1)}% across. ${testNote}` },
   ];
+  // The stretch reading lives in full under "i"; the stage shows only its two figures while testing.
+  const stretchReading = {
+    along: ((0.012 + f.stretch * 0.2) * 100).toFixed(1),
+    across: ((0.015 + f.stretch * 0.1) * 100).toFixed(1),
+    note: testNote,
+  };
 
   const qr = Array.from({ length: 64 }, (_, i) => ((i * 7 + f.seed * 13 + i * i) % 5 < 2 || i < 3 || (i % 8 < 1 && i < 25) ? '#1C1917' : 'transparent'));
 
@@ -496,7 +498,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
             </span>
             {loaderPhase !== 'hidden' && <StageLoader label={isRoll ? 'Unrolling the cloth' : `Draping the ${DIAL_LABELS[garment].toLowerCase()}`} leaving={loaderPhase === 'out'} />}
             <LightControl albedoHex={renderHex} current={lightKey} setLight={studio.setLight} />
-            <InfoControl title={f.name} shade={col.name} shadeCss={colCssV} rows={specRows} heading={t.sheet} />
+            <InfoControl title={f.name} shade={col.name} shadeCss={colCssV} rows={specRows} heading={t.sheet} stretch={stretchReading} />
             <div style={{ position: 'absolute', right: 14, bottom: 14, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, zIndex: 6 }}>
               {isRoll && (
                 <div style={{ position: 'relative', display: 'flex' }}>
@@ -1250,7 +1252,10 @@ function FitLine({ heading = false, className, style, lineStyle, fitKey, min = 7
   );
 }
 
-function InfoControl({ title, shade, shadeCss, rows, heading }: { title: string; shade: string; shadeCss: string; rows: { k: string; v: string }[]; heading: string }) {
+function InfoControl({ title, shade, shadeCss, rows, heading, stretch }: {
+  title: string; shade: string; shadeCss: string; rows: { k: string; v: string }[]; heading: string;
+  stretch: { along: string; across: string; note: string };
+}) {
   const [open, setOpen] = useState(false);
   const card = usePresence(open, 440);
   useEffect(() => {
@@ -1295,14 +1300,35 @@ function InfoControl({ title, shade, shadeCss, rows, heading }: { title: string;
               <span style={{ width: 10, height: 10, borderRadius: '50%', background: shadeCss, border: '1px solid rgba(28,25,23,.18)', flex: 'none' }} />
               {shade}
             </div>
-            <dl style={{ margin: '10px 0 0', display: 'grid', gridTemplateColumns: 'auto minmax(0,1fr)', columnGap: 14 }}>
+            <dl style={{ margin: '10px 0 0', display: 'grid', gridTemplateColumns: 'auto minmax(0,1fr)', columnGap: 0 }}>
               {rows.map((r, i) => (
                 <div key={r.k} style={{ display: 'contents' }}>
-                  <dt style={{ fontSize: 9.5, letterSpacing: '.2em', color: 'rgba(28,25,23,.45)', textTransform: 'uppercase', padding: '8px 0', borderTop: '1px solid rgba(28,25,23,.08)', animation: `pcSlideIn .45s ${i * 40}ms cubic-bezier(.2,.8,.2,1) both` }}>{r.k}</dt>
+                  <dt style={{ fontSize: 9.5, letterSpacing: '.2em', color: 'rgba(28,25,23,.45)', textTransform: 'uppercase', padding: '8px 14px 8px 0', borderTop: '1px solid rgba(28,25,23,.08)', animation: `pcSlideIn .45s ${i * 40}ms cubic-bezier(.2,.8,.2,1) both` }}>{r.k}</dt>
                   <dd style={{ margin: 0, fontSize: 13, padding: '7px 0', borderTop: '1px solid rgba(28,25,23,.08)', textAlign: 'right', animation: `pcSlideIn .45s ${i * 40}ms cubic-bezier(.2,.8,.2,1) both` }}>{r.v}</dd>
                 </div>
               ))}
             </dl>
+            {/* Stretch, as its own closing section: the two figures side by side in the display
+                serif, each labelled beneath, and the fabric's note in italic across the card. */}
+            <div style={{ marginTop: 4, paddingTop: 10, borderTop: '1px solid rgba(28,25,23,.08)', animation: `pcSlideIn .45s ${rows.length * 40}ms cubic-bezier(.2,.8,.2,1) both` }}>
+              <div style={{ fontSize: 9.5, letterSpacing: '.2em', color: '#8A6D45', textTransform: 'uppercase' }}>Stretch</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1px 1fr', alignItems: 'center', marginTop: 8 }}>
+                {[['↕', stretch.along, 'Along'], null, ['↔', stretch.across, 'Across']].map((cell, n) =>
+                  cell ? (
+                    <div key={n} style={{ textAlign: 'center' }}>
+                      <div style={{ fontFamily: FONT_DISPLAY, fontSize: 22, fontWeight: 500, lineHeight: 1, color: '#1C1917', fontVariantNumeric: 'lining-nums' }}>
+                        <span style={{ fontSize: 14, color: '#8A6D45', marginRight: 5 }}>{cell[0]}</span>
+                        {cell[1]}%
+                      </div>
+                      <div style={{ fontSize: 9, letterSpacing: '.2em', color: 'rgba(28,25,23,.45)', textTransform: 'uppercase', marginTop: 5 }}>{cell[2]}</div>
+                    </div>
+                  ) : (
+                    <span key={n} aria-hidden style={{ alignSelf: 'stretch', background: 'linear-gradient(180deg, transparent, rgba(138,109,69,.45), transparent)' }} />
+                  ),
+                )}
+              </div>
+              <p style={{ margin: '10px 0 0', textAlign: 'center', fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 14, lineHeight: 1.4, color: 'rgba(28,25,23,.68)', textWrap: 'balance' }}>{stretch.note}</p>
+            </div>
           </div>
         )}
       </div>
