@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Studio } from './state';
 import { FabricViewer } from '@/components/three/FabricViewer';
@@ -186,24 +186,28 @@ export function FabricLab({ studio }: { studio: Studio }) {
       {/* Header: a catalogue plate. The number over its count in the house gold, a rule, the
           name in display capitals with its spec line, and the lab's own mark at the right
           (hidden on a phone, where the stage is a thumb away). */}
-      <div style={{ padding: '22px clamp(16px,5vw,64px) 22px' }}>
+      {/* Sizes live in the pc-fab-* classes (smaller on a phone); the name and the spec line
+          each stay on one line, shrinking to fit rather than wrapping. */}
+      <div className="pc-fab-head">
         <div className="pc-fab-plate">
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', alignSelf: 'stretch', paddingRight: 'clamp(14px,2.4vw,28px)', borderRight: '1px solid rgba(28,25,23,.14)' }}>
-            <span style={{ fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(26px,3vw,38px)', lineHeight: 1, color: '#8A6D45' }}>{fabricIndex}</span>
-            <span style={{ fontFamily: FONT_DISPLAY, fontSize: 13, color: '#8A6D45', opacity: 0.75, marginTop: 4 }}>/{fabricCount}</span>
+          <div className="pc-fab-numcol" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', alignSelf: 'stretch', borderRight: '1px solid rgba(28,25,23,.14)' }}>
+            <span className="pc-fab-num" style={{ fontFamily: FONT_DISPLAY, fontWeight: 500, lineHeight: 1, color: '#8A6D45' }}>{fabricIndex}</span>
+            <span className="pc-fab-count" style={{ fontFamily: FONT_DISPLAY, color: '#8A6D45', opacity: 0.75 }}>/{fabricCount}</span>
           </div>
-          <div style={{ minWidth: 0, padding: '0 clamp(14px,2.4vw,28px)' }}>
-            <h1 style={{ margin: 0, fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(28px,4vw,50px)', lineHeight: 1.02, letterSpacing: '.02em', textTransform: 'uppercase', textWrap: 'balance' }}>{f.name}</h1>
-            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px 9px', marginTop: 10, fontSize: 10.5, letterSpacing: '.22em', color: 'rgba(28,25,23,.55)', textTransform: 'uppercase' }}>
+          <div className="pc-fab-namecol" style={{ minWidth: 0 }}>
+            <FitLine heading className="pc-fab-name" fitKey={f.name} style={{ fontFamily: FONT_DISPLAY, fontWeight: 500, lineHeight: 1.05 }} lineStyle={{ letterSpacing: '.02em', textTransform: 'uppercase' }}>
+              {f.name}
+            </FitLine>
+            <FitLine className="pc-fab-spec" fitKey={`${f.comp}|${f.hand}|${col.name}`} style={{ color: 'rgba(28,25,23,.55)' }} lineStyle={{ gap: '0 .8em', textTransform: 'uppercase' }}>
               <span>{f.comp}</span>
               <span style={{ color: 'rgba(28,25,23,.3)' }}>·</span>
               <span>{f.hand}</span>
               <span style={{ color: 'rgba(28,25,23,.3)' }}>·</span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-                <span style={{ width: 10, height: 10, borderRadius: '50%', background: colCssV, border: '1px solid rgba(28,25,23,.18)', flex: 'none' }} />
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '.6em' }}>
+                <span style={{ width: '1em', height: '1em', borderRadius: '50%', background: colCssV, border: '1px solid rgba(28,25,23,.18)', flex: 'none' }} />
                 {col.name}
               </span>
-            </div>
+            </FitLine>
           </div>
           <button
             onClick={() => document.querySelector('[data-stage]')?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' })}
@@ -375,8 +379,9 @@ export function FabricLab({ studio }: { studio: Studio }) {
           </div>
         </div>
 
-        {/* The buyer's column: the two ways to ask, the product sheet under them, and the shade
-            chart on a desktop. The microscope has moved down the page beside the downloads. */}
+        {/* The buyer's column: the two ways to ask, and the shade chart on a desktop. The product
+            details live behind the stage's "i"; the microscope sits down the page beside the
+            downloads. */}
         <div style={{ padding: 'clamp(24px,3.5vw,44px)', display: 'flex', flexDirection: 'column', gap: 26, justifyContent: 'flex-start', background: '#FAF8F5' }}>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             <button
@@ -385,6 +390,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
               style={{
                 cursor: 'pointer', background: '#1C1917', color: '#FAF8F5', border: '1px solid #1C1917', borderRadius: 999,
                 padding: '13px 28px', fontFamily: FONT_BODY, fontSize: 12.5, letterSpacing: '.14em', textTransform: 'uppercase',
+                flex: '1 1 220px',
               }}
             >
               {t.quote}
@@ -395,25 +401,13 @@ export function FabricLab({ studio }: { studio: Studio }) {
               rel="noreferrer"
               className="pc-hv-border-ink"
               style={{
-                display: 'inline-flex', alignItems: 'center', border: '1px solid rgba(28,25,23,.25)', borderRadius: 999,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(28,25,23,.25)', borderRadius: 999,
                 padding: '13px 28px', fontSize: 12.5, letterSpacing: '.14em', textTransform: 'uppercase', color: '#1C1917',
+                flex: '1 1 220px',
               }}
             >
               {t.whats}
             </a>
-          </div>
-          <div>
-            <div style={{ fontSize: 10.5, letterSpacing: '.22em', color: 'rgba(28,25,23,.45)', textTransform: 'uppercase', marginBottom: 10 }}>{t.sheet}</div>
-            {/* Six cells: three across in the column on a desktop, two across on a phone, so the
-                grid is always full and no cell is left grey. */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 1, background: 'rgba(28,25,23,.08)', border: '1px solid rgba(28,25,23,.08)' }}>
-              {specRows.map((sRow) => (
-                <div key={sRow.k} style={{ background: '#FAF8F5', padding: '14px 16px' }}>
-                  <div style={{ fontSize: 10.5, letterSpacing: '.22em', color: 'rgba(28,25,23,.45)', textTransform: 'uppercase' }}>{sRow.k}</div>
-                  <div style={{ fontSize: 15, marginTop: 4 }}>{sRow.v}</div>
-                </div>
-              ))}
-            </div>
           </div>
           <div className="pc-shades-desktop">{shadeChart}</div>
         </div>
@@ -695,6 +689,61 @@ function LightControl({ albedoHex, current, setLight }: { albedoHex: string; cur
  * sheet as a glass card over the stage, so a buyer can read the specifications without leaving
  * the garment. Closes on a second tap, on Escape, or on a tap outside the card.
  */
+/**
+ * One line of text that never wraps. The outer box carries the CSS size; the inner line is
+ * scaled in em so it fits the box, shrinking only as far as it must (never below `min` px, where
+ * it clips) and growing back when there is room. Measured without touching anything React owns,
+ * and re-fitted when the text, the box or the web fonts change.
+ */
+function FitLine({ heading = false, className, style, lineStyle, fitKey, min = 7, children }: { heading?: boolean; className?: string; style?: React.CSSProperties; lineStyle?: React.CSSProperties; fitKey: string; min?: number; children: React.ReactNode }) {
+  const outer = useRef<HTMLDivElement>(null);
+  const spanLine = useRef<HTMLSpanElement>(null);
+  const headLine = useRef<HTMLHeadingElement>(null);
+  const [scale, setScale] = useState(1);
+  useEffect(() => {
+    const box = outer.current;
+    const line = heading ? headLine.current : spanLine.current;
+    if (!box || !line) return;
+    let frame = 0;
+    const fit = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const css = parseFloat(getComputedStyle(box).fontSize) || 16;
+        const room = box.clientWidth;
+        const used = line.getBoundingClientRect().width;
+        if (!room || !used) return;
+        setScale((prev) => {
+          const next = Math.min(1, Math.max(min / css, (prev * room * 0.995) / used));
+          return Math.abs(next - prev) < 0.004 ? prev : next;
+        });
+      });
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(box);
+    ro.observe(line);
+    document.fonts?.ready.then(fit).catch(() => {});
+    return () => {
+      cancelAnimationFrame(frame);
+      ro.disconnect();
+    };
+  }, [fitKey, min, heading]);
+  const shared: React.CSSProperties = { ...lineStyle, display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap', fontSize: `${scale}em`, margin: 0, fontWeight: 'inherit', fontFamily: 'inherit' };
+  return (
+    <div ref={outer} className={className} style={{ ...style, overflow: 'hidden', whiteSpace: 'nowrap' }}>
+      {heading ? (
+        <h1 ref={headLine} className="pc-fit" style={shared}>
+          {children}
+        </h1>
+      ) : (
+        <span ref={spanLine} className="pc-fit" style={shared}>
+          {children}
+        </span>
+      )}
+    </div>
+  );
+}
+
 function InfoControl({ title, shade, shadeCss, rows, heading }: { title: string; shade: string; shadeCss: string; rows: { k: string; v: string }[]; heading: string }) {
   const [open, setOpen] = useState(false);
   useEffect(() => {

@@ -415,10 +415,27 @@ button:focus-visible, a:focus-visible, input:focus-visible {
 }
 
 /* The fabric plate at the head of the lab: number | rule | name, with the lab's mark at the
-   right from a tablet up. */
+   right from a tablet up. Compact on a phone; the name and the spec line never wrap (FitLine
+   shrinks them to the width instead). */
+.pc-fab-head { padding: 14px 16px 14px; }
 .pc-fab-plate { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; }
+.pc-fab-numcol { padding-right: 12px; }
+.pc-fab-namecol { padding: 0 0 0 12px; }
+.pc-fab-num { font-size: 22px; }
+.pc-fab-count { font-size: 10.5px; margin-top: 3px; }
+.pc-fab-name { font-size: 22px; }
+.pc-fab-spec { font-size: 9px; margin-top: 6px; }
+.pc-fab-spec .pc-fit { letter-spacing: .08em; }
 .pc-fab-aside { display: none; }
 @media (min-width: 640px) {
+  .pc-fab-head { padding: 22px clamp(16px, 5vw, 64px); }
   .pc-fab-plate { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .pc-fab-numcol { padding-right: clamp(14px, 2.4vw, 28px); }
+  .pc-fab-namecol { padding: 0 clamp(14px, 2.4vw, 28px); }
+  .pc-fab-num { font-size: clamp(26px, 3vw, 38px); }
+  .pc-fab-count { font-size: 13px; margin-top: 4px; }
+  .pc-fab-name { font-size: clamp(28px, 4vw, 50px); }
+  .pc-fab-spec { font-size: 10.5px; margin-top: 10px; }
+  .pc-fab-spec .pc-fit { letter-spacing: .22em; }
   .pc-fab-aside { display: block; }
 }

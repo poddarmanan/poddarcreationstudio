@@ -20,7 +20,10 @@ nothing else should light up.
 gold, a rule, the fabric's name in display capitals with its spec line (composition · hand ·
 the shade on the stage), and at the right, from a tablet up, the lab's own mark, which scrolls
 to the stage. There is no back link or italic story line above or below it: the site nav and
-the Showroom are the way back. Every place a fabric is shown — the showroom's rolls and the
+the Showroom are the way back. On a phone the plate is compact, and the name and the spec line
+each stay on one line: `FitLine` renders them at their CSS size and, if a line overflows,
+scales it in em just enough to fit (never below 7 px). The longest spec line, Roman Silk's,
+lands at about 7 px on a 390 px screen; most sit at 8–9 px. Every place a fabric is shown — the showroom's rolls and the
 lab's "more fabrics" strip — carries the same plate number, so a buyer can say "the third one".
 
 **Product information on the stage.** An "i" under the corner label opens the product
@@ -28,10 +31,10 @@ details — name, the shade on the stage, weight, width, composition, hand, pric
 a near-opaque card over the stage, so a buyer can read the specifications without scrolling
 away from the garment. A second tap, Escape, or a tap outside closes it.
 
-**The buyer's column.** To the right of the stage (below it on a phone): Request a quote and
-Enquire on WhatsApp first, the product details sheet under them, and the shade chart under
-that on a desktop. The microscope, which used to head the column, sits further down the page
-beside the downloads. "Add to book" floats at the bottom centre of the viewport, above the
+**The buyer's column.** To the right of the stage (below it and its shade chart on a phone):
+Request a quote and Enquire on WhatsApp, then the shade chart on a desktop. The product details
+are not repeated here; they open from the stage's "i". The microscope sits further down the
+page beside the downloads. "Add to book" floats at the bottom centre of the viewport, above the
 phone's bottom bar, from anywhere on the page; it fills dark once the shade on the stage is in
 the book. It is portalled to the body because the lab's root animates a transform as it lays
 in, and a transformed ancestor turns a fixed child into a page-positioned one.
