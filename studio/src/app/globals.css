@@ -379,3 +379,13 @@ button, a { transition: transform .6s var(--pc-ease), background-color .55s ease
 @keyframes pcRuleIn { from { transform: scaleX(0); opacity: 0; } to { transform: scaleX(1); opacity: 1; } }
 .pc-rule { animation: pcRuleIn 1.2s .25s cubic-bezier(.22, .8, .2, 1) both; }
 @media (prefers-reduced-motion: reduce) { .pc-rule { animation: none; } }
+
+/* The stretch icon's pull: the top bar and arrow rise, the bottom ones fall, the shaft lengthens. */
+@keyframes pcPullUp { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2.2px); } }
+@keyframes pcPullDown { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(2.2px); } }
+@keyframes pcPullSpan { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(1.45); } }
+/* The lit sun's glow breathes with its rays. */
+@keyframes pcGlow { 0%, 100% { filter: drop-shadow(0 0 2px rgba(232, 184, 96, .7)) drop-shadow(0 0 5px rgba(232, 184, 96, .3)); } 50% { filter: drop-shadow(0 0 4px rgba(232, 184, 96, .95)) drop-shadow(0 0 10px rgba(232, 184, 96, .55)); } }
+@media (prefers-reduced-motion: reduce) {
+  svg path, svg g { animation: none !important; }
+}

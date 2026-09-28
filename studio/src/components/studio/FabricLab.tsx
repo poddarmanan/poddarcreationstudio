@@ -497,7 +497,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
                 <div style={{ position: 'relative', display: 'flex' }}>
                   <StretchCallout hint={stretchHint && !tests.stretch} on={testNoteOn} note={testNote} stretch={f.stretch} />
                   <IconToggle label="Stretch" on={tests.stretch} onClick={() => { setStretchHint(false); studio.toggleTest('stretch'); }} delay={0.1}>
-                    <StretchIcon />
+                    <StretchIcon on={tests.stretch} />
                   </IconToggle>
                 </div>
               )}
@@ -507,7 +507,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
               <WindControl wind={wind} setWind={studio.setWind} open={windOpen} setOpen={setWindOpen} />
             </div>
             <div style={{ position: 'absolute', left: 14, bottom: 66, zIndex: 6 }}>
-              <IconToggle label={t.scenes} on={scenesOpen} onClick={() => setScenesOpen(true)} delay={0.2}>
+              <IconToggle label={t.scenes} on={scenesOpen} dimWhenOff={false} onClick={() => setScenesOpen(true)} delay={0.2}>
                 <CameraIcon />
               </IconToggle>
             </div>
@@ -825,7 +825,7 @@ function inkOn(hex: string): string {
 }
 
 /** A round glass button on the stage that is either on or off — the stretch and shine tests. */
-function IconToggle({ label, on, onClick, delay = 0, children }: { label: string; on: boolean; onClick: () => void; delay?: number; children: React.ReactNode }) {
+function IconToggle({ label, on, onClick, delay = 0, dimWhenOff = true, children }: { label: string; on: boolean; onClick: () => void; delay?: number; dimWhenOff?: boolean; children: React.ReactNode }) {
   return (
     <button
       aria-label={label}
@@ -835,9 +835,11 @@ function IconToggle({ label, on, onClick, delay = 0, children }: { label: string
       className="pc-hv-scale-06"
       style={{
         cursor: 'pointer', width: 44, height: 44, borderRadius: '50%', display: 'grid', placeItems: 'center',
+        // As the wind button: always glass, the icon in ink when the test is on and a light grey
+        // when it is off; the icon itself carries the animation that says it is running.
         ...GLASS, WebkitBackdropFilter: GLASS.backdropFilter,
-        background: on ? '#1C1917' : GLASS.background, color: on ? '#FAF8F5' : '#1C1917',
-        transition: 'transform .5s cubic-bezier(.2,.8,.2,1), color .45s ease, background .45s ease',
+        color: on || !dimWhenOff ? '#1C1917' : 'rgba(28,25,23,.42)',
+        transition: 'transform .5s cubic-bezier(.2,.8,.2,1), color .6s ease',
         animation: `pcPop .9s ${delay}s cubic-bezier(.22,.8,.2,1) both`,
       }}
     >
@@ -999,11 +1001,14 @@ function ScenesPanel({ leaving, t, fg, scenes, note, onScene, onScope, onClose }
   );
 }
 
-function StretchIcon() {
+/** The stretch button's icon: while the test runs, its two bars pull apart and ease back. */
+function StretchIcon({ on }: { on: boolean }) {
+  const anim = (name: string) => (on ? `${name} 2.2s cubic-bezier(.45,0,.25,1) infinite` : 'none');
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M7 4h10M7 20h10" />
-      <path d="M12 7v10M9.5 9.5 12 7l2.5 2.5M9.5 14.5 12 17l2.5-2.5" />
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ overflow: 'visible' }}>
+      <path d="M7 4h10M9.5 9.5 12 7l2.5 2.5" style={{ animation: anim('pcPullUp') }} />
+      <path d="M12 7v10" style={{ transformOrigin: '12px 12px', animation: anim('pcPullSpan') }} />
+      <path d="M7 20h10M9.5 14.5 12 17l2.5-2.5" style={{ animation: anim('pcPullDown') }} />
     </svg>
   );
 }
@@ -1016,7 +1021,13 @@ function ShineIcon({ on }: { on: boolean }) {
   return (
     <svg
       width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden
-      style={{ transform: on ? 'rotate(45deg)' : 'none', transition: 'transform .9s cubic-bezier(.22,.8,.2,1)' }}
+      style={{
+        transform: on ? 'rotate(45deg)' : 'none', transition: 'transform .9s cubic-bezier(.22,.8,.2,1), color .6s ease, filter .6s ease',
+        // Lit: warm gold, glowing softly; off, the button's grey.
+        color: on ? '#B8893E' : undefined,
+        filter: on ? 'drop-shadow(0 0 3px rgba(232,184,96,.85)) drop-shadow(0 0 7px rgba(232,184,96,.45))' : 'none',
+        animation: on ? 'pcGlow 2.8s ease-in-out infinite' : 'none',
+      }}
     >
       <g style={{ transformOrigin: '12px 12px', animation: on ? 'pcSpin 16s linear infinite' : 'none' }}>
         <path
