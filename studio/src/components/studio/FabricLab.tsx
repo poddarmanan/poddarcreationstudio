@@ -171,6 +171,9 @@ export function FabricLab({ studio }: { studio: Studio }) {
   // The stretch test is the roll's: a length of cloth can be pulled, a made-up garment cannot.
   // Choosing the roll points the button out for a few seconds, once the roll is on.
   const [stretchHint, setStretchHint] = useState(false);
+  // Once the buyer has used Stretch, the hint has done its job and never comes back for this cloth
+  // (it used to reappear if Stretch was tapped before the hint's timer fired).
+  const [stretchUsed, setStretchUsed] = useState(false);
   useEffect(() => {
     if (!isRoll) return;
     const show = window.setTimeout(() => setStretchHint(true), HOLD_MS + 900);
@@ -495,8 +498,8 @@ export function FabricLab({ studio }: { studio: Studio }) {
             <div style={{ position: 'absolute', right: 14, bottom: 14, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, zIndex: 6 }}>
               {isRoll && (
                 <div style={{ position: 'relative', display: 'flex' }}>
-                  <StretchCallout hint={stretchHint && !tests.stretch} on={testNoteOn} note={testNote} stretch={f.stretch} />
-                  <IconToggle label="Stretch" on={tests.stretch} onClick={() => { setStretchHint(false); studio.toggleTest('stretch'); }} delay={0.1}>
+                  <StretchCallout hint={stretchHint && !stretchUsed && !tests.stretch} on={testNoteOn} note={testNote} stretch={f.stretch} />
+                  <IconToggle label="Stretch" on={tests.stretch} onClick={() => { setStretchHint(false); setStretchUsed(true); studio.toggleTest('stretch'); }} delay={0.1}>
                     <StretchIcon on={tests.stretch} />
                   </IconToggle>
                 </div>
@@ -1112,42 +1115,49 @@ function LightControl({ albedoHex, current, setLight }: { albedoHex: string; cur
  * it; the centring now lives on an outer box and only the card inside is animated.
  */
 function StretchCallout({ hint, on, note, stretch }: { hint: boolean; on: boolean; note: string; stretch: number }) {
-  const shown = usePresence(hint || on, 480);
+  const shown = usePresence(hint || on, 420);
+  // What the callout is showing is kept while it animates out: it used to re-read the current
+  // state as it left, and so flashed "Pull the cloth" for a moment after Stretch was switched off.
+  const [mode, setMode] = useState<'hint' | 'reading'>(on ? 'reading' : 'hint');
+  useEffect(() => {
+    if (!hint && !on) return;
+    const tm = window.setTimeout(() => setMode(on ? 'reading' : 'hint'), 0);
+    return () => window.clearTimeout(tm);
+  }, [hint, on]);
   const along = ((0.012 + stretch * 0.2) * 100).toFixed(1);
   const across = ((0.015 + stretch * 0.1) * 100).toFixed(1);
   if (!shown.shown) return null;
+  const reading = mode === 'reading';
   return (
-    <div style={{ position: 'absolute', right: 56, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', zIndex: 2 }}>
+    <div style={{ position: 'absolute', right: 54, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', zIndex: 2 }}>
       <div
         role="note"
-        key={on ? 'reading' : 'hint'}
+        key={mode}
         style={{
-          position: 'relative', transformOrigin: 'right center',
-          ...GLASS, WebkitBackdropFilter: GLASS.backdropFilter, background: 'rgba(250,248,245,.9)',
-          boxShadow: '0 16px 38px rgba(28,25,23,.16), inset 0 1px 0 rgba(255,255,255,.8)',
-          border: '1px solid rgba(201,169,110,.35)',
-          borderRadius: on ? 16 : 999, padding: on ? '12px 16px 13px' : '9px 14px',
-          width: on ? 'min(232px, calc(100vw - 120px))' : 'auto', whiteSpace: on ? 'normal' : 'nowrap',
-          animation: shown.leaving ? 'pcSlideOut .45s ease both' : `pcSlideIn .75s ${on ? '0s' : '.5s'} cubic-bezier(.22,.8,.2,1) both`,
+          position: 'relative', transformOrigin: 'right center', whiteSpace: 'nowrap',
+          ...GLASS, WebkitBackdropFilter: GLASS.backdropFilter, background: 'rgba(250,248,245,.86)',
+          boxShadow: '0 10px 24px rgba(28,25,23,.14), inset 0 1px 0 rgba(255,255,255,.8)',
+          border: '1px solid rgba(201,169,110,.35)', borderRadius: reading ? 12 : 999,
+          padding: reading ? '7px 11px 8px' : '8px 12px',
+          animation: shown.leaving ? 'pcSlideOut .42s ease both' : `pcSlideIn .7s ${reading ? '0s' : '.5s'} cubic-bezier(.22,.8,.2,1) both`,
         }}
       >
-        {/* The pointer, towards the button. */}
-        <span aria-hidden style={{ position: 'absolute', right: -5, top: '50%', width: 9, height: 9, marginTop: -4.5, transform: 'rotate(45deg)', background: 'rgba(250,248,245,.95)', borderTop: '1px solid rgba(201,169,110,.35)', borderRight: '1px solid rgba(201,169,110,.35)' }} />
-        {on ? (
+        <span aria-hidden style={{ position: 'absolute', right: -4.5, top: '50%', width: 8, height: 8, marginTop: -4, transform: 'rotate(45deg)', background: 'rgba(250,248,245,.95)', borderTop: '1px solid rgba(201,169,110,.35)', borderRight: '1px solid rgba(201,169,110,.35)' }} />
+        {reading ? (
+          // Compact, so the cloth stretching behind it stays in view: the figures, and the note
+          // in a single short italic line.
           <>
-            <div style={{ fontSize: 9, letterSpacing: '.3em', textTransform: 'uppercase', color: '#8A6D45' }}>Stretch test</div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 6, fontFamily: FONT_DISPLAY, color: '#1C1917', fontVariantNumeric: 'lining-nums' }}>
-              <span style={{ fontSize: 24, fontWeight: 500, lineHeight: 1 }}>{along}%</span>
-              <span style={{ fontFamily: FONT_BODY, fontSize: 9.5, letterSpacing: '.14em', textTransform: 'uppercase', color: 'rgba(28,25,23,.5)' }}>along</span>
-              <span aria-hidden style={{ color: 'rgba(138,109,69,.5)', margin: '0 2px' }}>·</span>
-              <span style={{ fontSize: 24, fontWeight: 500, lineHeight: 1 }}>{across}%</span>
-              <span style={{ fontFamily: FONT_BODY, fontSize: 9.5, letterSpacing: '.14em', textTransform: 'uppercase', color: 'rgba(28,25,23,.5)' }}>across</span>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, fontFamily: FONT_DISPLAY, color: '#1C1917', fontVariantNumeric: 'lining-nums' }}>
+              <span style={{ fontFamily: FONT_BODY, fontSize: 8, letterSpacing: '.24em', textTransform: 'uppercase', color: '#8A6D45', marginRight: 3 }}>Stretch</span>
+              <span style={{ fontSize: 16, fontWeight: 500, lineHeight: 1 }}>{along}%</span>
+              <span style={{ fontFamily: FONT_BODY, fontSize: 8, letterSpacing: '.12em', textTransform: 'uppercase', color: 'rgba(28,25,23,.5)' }}>along</span>
+              <span style={{ fontSize: 16, fontWeight: 500, lineHeight: 1, marginLeft: 3 }}>{across}%</span>
+              <span style={{ fontFamily: FONT_BODY, fontSize: 8, letterSpacing: '.12em', textTransform: 'uppercase', color: 'rgba(28,25,23,.5)' }}>across</span>
             </div>
-            <div style={{ height: 1, margin: '9px 0 8px', background: 'linear-gradient(90deg, rgba(138,109,69,.45), transparent)' }} />
-            <div style={{ fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 14.5, lineHeight: 1.35, color: 'rgba(28,25,23,.72)' }}>{note}</div>
+            <div style={{ marginTop: 3, maxWidth: 196, overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 11.5, lineHeight: 1.3, color: 'rgba(28,25,23,.66)' }}>{note}</div>
           </>
         ) : (
-          <span style={{ fontFamily: FONT_BODY, fontSize: 10.5, letterSpacing: '.12em', textTransform: 'uppercase', color: '#1C1917' }}>
+          <span style={{ fontFamily: FONT_BODY, fontSize: 10, letterSpacing: '.12em', textTransform: 'uppercase', color: '#1C1917' }}>
             Pull the cloth <span style={{ color: '#8A6D45' }}>→</span>
           </span>
         )}
