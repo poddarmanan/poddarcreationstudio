@@ -71,11 +71,15 @@ picture: the page behind is locked while it is up (`overflow: hidden` on the roo
 has `overscroll-behavior: contain`, because scrolling past its end used to carry on down the page
 underneath and the sheet seemed to have no end. In its corner a round magnifying-glass button
 pops the magnifications out to its left — 100×, 200×, 500× — in a glass pill, the way the wind's
-On and Off pop out of the wind button, with the fabric's physics note.
+On and Off pop out of the wind button. The pill floats beside the button rather than taking room
+in the header row (on a phone it used to shove the buttons sideways in one frame), and the
+fabric's physics note eases open beneath by animating its grid row from 0fr to 1fr, so the
+pictures glide down rather than jump.
 
 **Below the stage**, the page ends with "More fabrics" — headed as a catalogue sets a section (a
 gold eyebrow, "The collection · 10 qualities", between hairlines; "More *fabrics*" in the display
-serif with the second word in gold italic; the selvage stitch) — and the Showroom's own fabric rolls (one shared
+serif with the second word in gold italic; a gold underline that draws itself out from the middle
+as the section rises in) — and the Showroom's own fabric rolls (one shared
 `FabricRoll` drawing: the bolt on its end, its core, the weave, the shadow and reflection, heavier
 cloth taller; here in a narrower spread of heights, so the lightest roll does not leave a band of
 empty wall above it) standing on a small showroom floor, each opening through the Showroom's unroll —
@@ -117,6 +121,12 @@ fetched and decoded, the stage is empty but for a small glass loader — a threa
 ring and "Draping the kurti" — and the built-in cut is not shown first. It used to stand in, and
 read as the wrong garment appearing and then being swapped. The built-in cut now appears only
 for a cut that has no model file at all (the dress, until one is uploaded).
+
+**The stretch is realistic.** Pulling the roll lengthens and narrows it by the cloth's own
+figures — a woven cotton about 3% along and 2.5% across, a rayon about 5%, a cotton lycra about
+19% and 10% — and the bolt turns only a little faster while it is pulled. It had been far too
+elastic (11% for cotton, 35% for lycra). The viewer smoke still sees the pull on cotton (4.5% of
+pixels changed against 1.7% at rest).
 
 **The roll rocks as one thing.** Bolt, wires and cloth hang from the wires' top and swing front
 and back together in the wind, in the phase of the cloth's own gust, so the top of the cloth and

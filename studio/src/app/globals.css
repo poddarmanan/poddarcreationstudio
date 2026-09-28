@@ -348,3 +348,8 @@ button, a { transition: transform .6s var(--pc-ease), background-color .55s ease
 @media (prefers-reduced-motion: reduce) {
   .pc-cta::after { animation: none; }
 }
+
+/* An underline that draws itself out from the middle when its section rises into view. */
+.pc-underline { transform: scaleX(0); transition: transform 1.3s var(--pc-ease) .35s; }
+.is-in .pc-underline { transform: scaleX(1); }
+@media (prefers-reduced-motion: reduce) { .pc-underline { transform: none; transition: none; } }

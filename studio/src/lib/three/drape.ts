@@ -73,10 +73,13 @@ export function drape({ x, y, height, flow, stretch, wind, pull, time }: DrapeIn
     z: fold + drift + gust,
     gust,
     // Stretch narrows and lengthens — from the top edge, which is held, so the cloth grows
-    // downward and never leaves what it hangs from. Every cloth shows the pull; the fabric's own
-    // recovery figure decides how much more: a cotton lycra pulls far and springs back, a gajji
-    // barely moves beyond the base.
-    x: x * (1 - pull * (0.1 + stretch * 0.25)) + swayX,
-    y: height / 2 - (height / 2 - y) * (1 + pull * (0.08 + stretch * 0.3)),
+    // downward and never leaves what it hangs from. The fabric's own recovery figure decides how
+    // far: a cotton lycra gives a fifth of its length and springs back, a woven cotton barely a
+    // few percent.
+    // Realistic figures, at the owner's word that the pull looked far too elastic: a woven cotton
+    // (stretch 0.1) gives about 3% along its length and 2.5% across under a hand pull; a rayon
+    // about 5%; a cotton lycra (0.9) about 19% and 10% — the elastane is what lets it go.
+    x: x * (1 - pull * (0.015 + stretch * 0.1)) + swayX,
+    y: height / 2 - (height / 2 - y) * (1 + pull * (0.012 + stretch * 0.2)),
   };
 }

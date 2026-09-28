@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Selvage } from './brand';
 import { usePresence, Reveal } from './motion';
 import { FabricRoll } from './FabricRoll';
 import type { Studio } from './state';
@@ -582,7 +581,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
           <h2 style={{ margin: '12px 0 0', fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(40px,6vw,68px)', lineHeight: 1, letterSpacing: '-.005em', color: '#1C1917' }}>
             {t.moreWord} <em style={{ fontWeight: 400, color: '#8A6D45' }}>{t.fabricsWord}</em>
           </h2>
-          <Selvage style={{ margin: '14px auto 0' }} />
+          <span aria-hidden className="pc-underline" style={{ display: 'block', width: 'clamp(64px,10vw,110px)', height: 1.5, margin: '16px auto 0', background: 'linear-gradient(90deg, transparent, #8A6D45 18%, #8A6D45 82%, transparent)' }} />
         </div>
         <div style={{ position: 'relative' }}>
           <div
@@ -806,8 +805,13 @@ function BookPrompt({ t, fabric, swatches, names, total, leaving, onOrder, onClo
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 18, padding: '12px 0', borderTop: '1px solid rgba(28,25,23,.08)', borderBottom: '1px solid rgba(28,25,23,.08)' }}>
             <span style={{ fontSize: 12.5, fontWeight: 300, color: 'rgba(28,25,23,.7)', lineHeight: 1.5 }}>{t.bookNudge}</span>
-            <span style={{ flex: 'none', fontSize: 10, letterSpacing: '.18em', textTransform: 'uppercase', color: '#8A6D45', whiteSpace: 'nowrap' }}>
-              {t.yourBook} · {total} {total === 1 ? t.shade : t.shades}
+            {/* The book's running total, on the right: its name above, the count beneath. */}
+            <span style={{ flex: 'none', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', textAlign: 'right', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: 9.5, letterSpacing: '.24em', textTransform: 'uppercase', color: '#8A6D45' }}>{t.yourBook}</span>
+              <span style={{ marginTop: 4, color: '#1C1917' }}>
+                <span style={{ fontFamily: FONT_DISPLAY, fontSize: 24, fontWeight: 500, lineHeight: 1, fontVariantNumeric: 'lining-nums' }}>{total}</span>
+                <span style={{ fontSize: 10.5, letterSpacing: '.16em', textTransform: 'uppercase', color: 'rgba(28,25,23,.55)', marginLeft: 6 }}>{total === 1 ? t.shade : t.shades}</span>
+              </span>
             </span>
           </div>
           <button
@@ -936,15 +940,18 @@ function ScenesPanel({ leaving, t, fg, scenes, note, onScene, onScope, onClose }
         <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(28,25,23,.15)', margin: '0 auto 14px' }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
           <h2 style={{ margin: 0, fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(26px,3vw,36px)', flex: 1 }}>{t.scenes}</h2>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 6 }}>
             {/* The magnifications pop out of the magnifier the way the wind's On and Off pop out
-                of the wind button: a glass pill sliding in from its left. */}
+                of the wind button: a glass pill sliding in from its left. It floats beside the
+                button rather than taking room in the row, so nothing in the header moves when it
+                opens — on a phone it used to push the buttons sideways in a single frame. */}
             {scope.shown && (
               <div
                 role="group"
                 aria-label={t.scope}
                 style={{
-                  display: 'flex', gap: 2, ...GLASS, WebkitBackdropFilter: GLASS.backdropFilter, background: 'rgba(255,255,255,.86)', borderRadius: 999, padding: 4,
+                  position: 'absolute', right: 'calc(100% + 4px)', top: '50%', marginTop: -22, zIndex: 2, whiteSpace: 'nowrap',
+                  display: 'flex', gap: 2, ...GLASS, WebkitBackdropFilter: GLASS.backdropFilter, background: 'rgba(255,255,255,.94)', borderRadius: 999, padding: 4,
                   animation: scope.leaving ? 'pcSlideOut .42s ease both' : 'pcSlideIn .7s cubic-bezier(.22,.8,.2,1) both',
                 }}
               >
@@ -954,8 +961,8 @@ function ScenesPanel({ leaving, t, fg, scenes, note, onScene, onScope, onClose }
                     onClick={() => onScope(p)}
                     className="pc-hv-ink-fill"
                     style={{
-                      cursor: 'pointer', background: 'transparent', color: '#1C1917', border: 'none', borderRadius: 999, padding: '9px 13px',
-                      fontFamily: FONT_BODY, fontSize: 11.5, letterSpacing: '.06em', minWidth: 52,
+                      cursor: 'pointer', background: 'transparent', color: '#1C1917', border: 'none', borderRadius: 999, padding: '9px 10px',
+                      fontFamily: FONT_BODY, fontSize: 11.5, letterSpacing: '.04em', minWidth: 46,
                       animation: scope.leaving ? undefined : `pcPop .6s ${120 + k * 70}ms cubic-bezier(.22,.8,.2,1) both`,
                     }}
                   >
@@ -990,9 +997,13 @@ function ScenesPanel({ leaving, t, fg, scenes, note, onScene, onScope, onClose }
             </button>
           </div>
         </div>
-        {scope.shown && (
-          <p style={{ animation: scope.leaving ? 'pcVeilOut .4s ease both' : 'pcVeil .8s ease both', margin: '-6px 0 14px', fontSize: 12.5, fontWeight: 300, lineHeight: 1.6, color: 'rgba(28,25,23,.6)', textWrap: 'pretty' }}>{note}</p>
-        )}
+        {/* The physics note opens and closes by easing its height, not by appearing: a grid row
+            going from 0fr to 1fr, so the pictures below glide down rather than jump. */}
+        <div aria-hidden={!scopeOpen} style={{ display: 'grid', gridTemplateRows: scopeOpen ? '1fr' : '0fr', transition: 'grid-template-rows .7s cubic-bezier(.22,.8,.2,1)' }}>
+          <div style={{ overflow: 'hidden' }}>
+          <p style={{ opacity: scopeOpen ? 1 : 0, transition: 'opacity .6s ease', margin: '-6px 0 14px', fontSize: 12.5, fontWeight: 300, lineHeight: 1.6, color: 'rgba(28,25,23,.6)', textWrap: 'pretty' }}>{note}</p>
+          </div>
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gridAutoRows: 'clamp(90px, 20vw, 170px)', gap: 'clamp(8px, 1.2vw, 12px)' }}>
           {scenes.map((sd, i) => (
             <button

@@ -98,7 +98,7 @@ function Bolt({ spec, tier, width, top, pulled = false }: { spec: FabricMaterial
   useFrame((_, delta) => {
     // Turning slowly on its own; faster while the cloth is pulled, as a bolt being unrolled.
     pull.current += ((pulled ? 1 : 0) - pull.current) * Math.min(1, delta * 4);
-    if (roll.current) roll.current.rotation.y -= delta * (0.12 + pull.current * 1.6);
+    if (roll.current) roll.current.rotation.y -= delta * (0.12 + pull.current * 0.45);
   });
   return (
     // Laid across by the group; the bolt itself turns about its own axis inside it. It sits on
