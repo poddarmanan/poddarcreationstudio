@@ -72,10 +72,9 @@ const short = (label: string) => label.split(' ')[0];
 export function BottomNav({ studio }: { studio: Studio }) {
   const { t, view, go, pins, isStaff } = studio;
 
-  // Four for everyone: Entrance, Showroom, Colours and the Swatch Book. Staff get Admin as a
-  // fifth. (Six is the most a pill can hold at a 44px target on a 360px screen.)
+  // Three for everyone: Showroom, Colours and the Swatch Book; the logo in the header is the way
+  // to the Entrance. Staff get Admin as a fourth.
   const items: { k: View; label: string; count?: number }[] = [
-    { k: 'home', label: t.home },
     { k: 'showroom', label: t.showroom },
     { k: 'colours', label: t.colours },
     { k: 'book', label: t.book, count: pins.length },

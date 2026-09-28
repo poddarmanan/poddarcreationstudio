@@ -78,9 +78,7 @@ export interface Studio {
   quoteOpen: boolean;
   quoteSent: boolean;
   quoteFromBook: boolean;
-  /** Opens the quote for the fabric on the stage: the shade on the stage, or the given shade indices. */
-  openQuote: (shades?: number[]) => void;
-  quoteShades: number[];
+  openQuote: () => void;
   openQuoteBook: () => void;
   closeQuote: () => void;
   sendQuote: (fields: { name: string; company: string; quantity: string }) => Promise<void>;
@@ -147,7 +145,6 @@ export function useStudio(fabrics: FabricRow[]): Studio {
   const [quoteSent, setQuoteSent] = useState(false);
   const [quoteFromBook, setQuoteFromBook] = useState(false);
   const [quoteBusy, setQuoteBusy] = useState(false);
-  const [quoteShades, setQuoteShades] = useState<number[]>([]);
   const [aiOpen, setAiOpen] = useState(false);
   const [aiBusy, setAiBusy] = useState(false);
   const [ai, setAi] = useState<AiMatch | null>(null);
@@ -291,8 +288,6 @@ export function useStudio(fabrics: FabricRow[]): Studio {
       try {
         const f = fab(fid);
         const col = f.colours[Math.min(ci, f.colours.length - 1)];
-        // Several shades of this fabric, when the buyer picked them with "Select multiple".
-        const picked = quoteShades.map((j) => f.colours[j]).filter(Boolean);
         const subject = quoteFromBook
           ? pins
               .map((p) => {
@@ -302,9 +297,7 @@ export function useStudio(fabrics: FabricRow[]): Studio {
               })
               .filter(Boolean)
               .join(', ') || '—'
-          : picked.length > 0
-            ? `${f.name} · ${picked.map((c) => c.name).join(', ')} · ${f.weight}`
-            : `${f.name} · ${col.name} · ${f.weight}`;
+          : `${f.name} · ${col.name} · ${f.weight}`;
         const items = quoteFromBook
           ? pins
               .map((p) => {
@@ -313,9 +306,7 @@ export function useStudio(fabrics: FabricRow[]): Studio {
                 return c ? { fabricId: x.id, colourId: c.id } : null;
               })
               .filter((x): x is { fabricId: string; colourId: string } => !!x)
-          : picked.length > 0
-            ? picked.map((c) => ({ fabricId: f.id, colourId: c.id }))
-            : [{ fabricId: f.id, colourId: col.id }];
+          : [{ fabricId: f.id, colourId: col.id }];
         await fetch('/api/quotes', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -326,7 +317,7 @@ export function useStudio(fabrics: FabricRow[]): Studio {
         setQuoteBusy(false);
       }
     },
-    [fab, fid, ci, quoteFromBook, pins, quoteShades]
+    [fab, fid, ci, quoteFromBook, pins]
   );
 
   const runAi = useCallback(() => {
@@ -408,13 +399,11 @@ export function useStudio(fabrics: FabricRow[]): Studio {
     quoteOpen,
     quoteSent,
     quoteFromBook,
-    openQuote: (shades?: number[]) => {
+    openQuote: () => {
       setQuoteOpen(true);
       setQuoteSent(false);
       setQuoteFromBook(false);
-      setQuoteShades(shades ?? []);
     },
-    quoteShades,
     openQuoteBook: () => {
       setQuoteOpen(true);
       setQuoteSent(false);

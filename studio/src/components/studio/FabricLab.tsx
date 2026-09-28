@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import type { Studio } from './state';
 import { FabricViewer } from '@/components/three/FabricViewer';
 import { ExportView } from '@/components/three/ExportView';
@@ -43,7 +42,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
   // The catalogue's numbering: this fabric's plate number and the count, as "03 / 11".
   const fabricIndex = fabricNo(studio.fabrics, f.id);
   // "Select multiple": the buyer ticks several shades of this fabric, and the quote, the book and
-  // the WhatsApp message all take the ticked set. Kept per fabric, so it clears on a change.
+  // the shade count all take the ticked set. Kept per fabric, so it clears on a change.
   const [multi, setMulti] = useState<{ fid: string; picked: number[] } | null>(null);
   const picking = multi?.fid === f.id;
   const picked = picking ? multi.picked : [];
@@ -62,14 +61,22 @@ export function FabricLab({ studio }: { studio: Studio }) {
   const targetColours = targets.map((j) => f.colours[j]).filter(Boolean);
   const pinned = targetColours.every((c) => studio.pins.some((p) => p.fabricId === f.id && p.colourOrder === c.order));
   const pinTargets = () => targetColours.forEach((c) => studio.pinShade(f.id, c.order));
-  // The floating WhatsApp button is portalled to the body: the lab's root animates a transform
-  // while it lays in, and a transformed ancestor turns a fixed child into a page-positioned one.
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    const t = window.setTimeout(() => setMounted(true), 0);
-    return () => window.clearTimeout(t);
-  }, []);
   const fabricCount = String(studio.fabrics.length).padStart(2, '0');
+  // Swiping the plate sideways (or scrolling it, or its arrows, or the arrow keys) moves to the
+  // neighbouring fabric in catalogue order, wrapping round, through the Showroom's own unroll.
+  const order = studio.fabrics;
+  const at = Math.max(0, order.findIndex((x) => x.id === f.id));
+  // Which way the plate's number is sliding out, for the fabric it is leaving; clears itself once
+  // the next fabric is on.
+  const [leavingFrom, setLeavingFrom] = useState<{ fid: string; dir: 1 | -1 } | null>(null);
+  const leaving = leavingFrom?.fid === f.id ? leavingFrom.dir : 0;
+  const swipe = useRef<{ x: number; y: number } | null>(null);
+  const wheel = useRef({ dx: 0, t: 0 });
+  const stepFabric = (dir: 1 | -1) => {
+    if (leaving) return;
+    setLeavingFrom({ fid: f.id, dir });
+    studio.unroll(order[(at + dir + order.length) % order.length]);
+  };
   const colCssV = colourCss(col);
   const fg = col.l > 0.62 ? '#1C1917' : '#FAF8F5';
   const isRoll = garment === 'roll';
@@ -105,7 +112,11 @@ export function FabricLab({ studio }: { studio: Studio }) {
       window.setTimeout(() => setShown(garment), FADE_OUT_MS),
     ];
     return () => timers.forEach((t) => window.clearTimeout(t));
-  }, [garment]);
+    // A change of fabric replays the same staged reveal as a change of cut, so a fabric reached
+    // from the plate or the "more fabrics" strip loads exactly as one opened from the Showroom.
+    // (The lab is not remounted for it: tearing the canvas down trips a dispose-order fault in
+    // drei's Environment, and keeping the canvas makes the switch cheaper besides.)
+  }, [garment, f.id]);
   // The hold is timed from the first frame the loader is actually on screen, not from the tap:
   // a phone busy for a moment after the tap would otherwise spend the hold before it painted,
   // and the loader would flash rather than hold. Two frames: the one that paints, then the next.
@@ -170,7 +181,6 @@ export function FabricLab({ studio }: { studio: Studio }) {
   ];
 
   const qr = Array.from({ length: 64 }, (_, i) => ((i * 7 + f.seed * 13 + i * i) % 5 < 2 || i < 3 || (i % 8 < 1 && i < 25) ? '#1C1917' : 'transparent'));
-  const waFabric = 'https://wa.me/919999999999?text=' + encodeURIComponent(`Enquiry: ${f.name} · ${targetColours.map((c) => c.name).join(', ') || col.name} · ${f.weight} · ${f.width}`);
 
   const moreFabrics = studio.fabrics
     .filter((x) => x.id !== f.id)
@@ -251,16 +261,70 @@ export function FabricLab({ studio }: { studio: Studio }) {
       {/* Sizes live in the pc-fab-* classes (smaller on a phone); the name and the spec line
           each stay on one line, shrinking to fit rather than wrapping. */}
       <div className="pc-fab-head">
-        <div className="pc-fab-plate">
-          <div className="pc-fab-numcol" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', alignSelf: 'stretch', borderRight: '1px solid rgba(28,25,23,.14)' }}>
-            <span className="pc-fab-num" style={{ fontFamily: FONT_DISPLAY, fontWeight: 500, lineHeight: 1, color: '#8A6D45' }}>{fabricIndex}</span>
-            <span className="pc-fab-count" style={{ fontFamily: FONT_DISPLAY, color: '#8A6D45', opacity: 0.75 }}>/{fabricCount}</span>
+        <div
+          className="pc-fab-plate"
+          tabIndex={0}
+          role="group"
+          aria-label={`Fabric ${fabricIndex} of ${fabricCount}. Swipe sideways or use the arrow keys for the next fabric.`}
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowRight') stepFabric(1);
+            if (e.key === 'ArrowLeft') stepFabric(-1);
+          }}
+          onPointerDown={(e) => {
+            swipe.current = { x: e.clientX, y: e.clientY };
+          }}
+          onPointerUp={(e) => {
+            const from = swipe.current;
+            swipe.current = null;
+            if (!from) return;
+            const dx = e.clientX - from.x;
+            const dy = e.clientY - from.y;
+            // A deliberate sideways stroke: long enough, and clearly more across than down.
+            if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.5) stepFabric(dx < 0 ? 1 : -1);
+          }}
+          onPointerCancel={() => {
+            swipe.current = null;
+          }}
+          onWheel={(e) => {
+            if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+            const now = e.timeStamp;
+            if (now - wheel.current.t > 400) wheel.current.dx = 0;
+            wheel.current = { dx: wheel.current.dx + e.deltaX, t: now };
+            if (Math.abs(wheel.current.dx) > 80) {
+              stepFabric(wheel.current.dx > 0 ? 1 : -1);
+              wheel.current.dx = 0;
+            }
+          }}
+          style={{ touchAction: 'pan-y', outline: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}
+        >
+          {/* The number strip: this fabric's number large in gold, its neighbours small and faded
+              either side, as on a dial. A sideways swipe or scroll (or a tap on a neighbour, or
+              the arrow keys) slides the strip one place and unrolls the next fabric. */}
+          <div className="pc-fab-numcol" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignSelf: 'stretch', borderRight: '1px solid rgba(28,25,23,.14)', overflow: 'hidden' }}>
+            <div
+              style={{
+                display: 'flex', alignItems: 'baseline', gap: '.25em',
+                transform: leaving ? `translateX(${leaving * -38}%)` : 'none', opacity: leaving ? 0.35 : 1,
+                transition: 'transform .5s cubic-bezier(.2,.8,.2,1), opacity .5s ease',
+              }}
+            >
+              <button aria-label={`Previous fabric, ${String(((at - 1 + order.length) % order.length) + 1).padStart(2, '0')}`} onClick={() => stepFabric(-1)} className="pc-fab-side pc-hv-ink">
+                {String(((at - 1 + order.length) % order.length) + 1).padStart(2, '0')}
+              </button>
+              <span className="pc-fab-num" style={{ fontFamily: FONT_DISPLAY, fontWeight: 500, lineHeight: 1, color: '#8A6D45' }}>{fabricIndex}</span>
+              <button aria-label={`Next fabric, ${String(((at + 1) % order.length) + 1).padStart(2, '0')}`} onClick={() => stepFabric(1)} className="pc-fab-side pc-hv-ink">
+                {String(((at + 1) % order.length) + 1).padStart(2, '0')}
+              </button>
+            </div>
+            <span className="pc-fab-count" style={{ fontFamily: FONT_DISPLAY, color: '#8A6D45', opacity: 0.75, textAlign: 'center' }}>
+              /{fabricCount}
+            </span>
           </div>
           <div className="pc-fab-namecol" style={{ minWidth: 0 }}>
             <FitLine heading className="pc-fab-name" fitKey={f.name} style={{ fontFamily: FONT_DISPLAY, fontWeight: 500, lineHeight: 1.05 }} lineStyle={{ letterSpacing: '.02em', textTransform: 'uppercase' }}>
               {f.name}
             </FitLine>
-            <FitLine className="pc-fab-spec" fitKey={`${f.comp}|${f.hand}|${col.name}`} style={{ color: 'rgba(28,25,23,.55)' }} lineStyle={{ gap: '0 .8em', textTransform: 'uppercase' }}>
+            <FitLine className="pc-fab-spec" min={6.5} fitKey={`${f.comp}|${f.hand}|${col.name}`} style={{ color: 'rgba(28,25,23,.55)' }} lineStyle={{ gap: '0 .6em', textTransform: 'uppercase' }}>
               <span>{f.comp}</span>
               <span style={{ color: 'rgba(28,25,23,.3)' }}>·</span>
               <span>{f.hand}</span>
@@ -441,24 +505,11 @@ export function FabricLab({ studio }: { studio: Studio }) {
           </div>
         </div>
 
-        {/* The buyer's column: the two ways to ask, and the shade chart on a desktop. The product
-            details live behind the stage's "i"; the microscope sits down the page beside the
-            downloads. */}
+        {/* The buyer's column: Add to book, and the shade chart on a desktop. The product details
+            live behind the stage's "i"; a quote is asked for from the Swatch Book; the microscope
+            sits down the page beside the downloads. */}
         <div style={{ padding: 'clamp(24px,3.5vw,44px)', display: 'flex', flexDirection: 'column', gap: 26, justifyContent: 'flex-start', background: '#FAF8F5' }}>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <button
-              onClick={() => studio.openQuote(picking && picked.length ? picked : undefined)}
-              className="pc-hv-gold-fill"
-              style={{
-                cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, whiteSpace: 'nowrap',
-                background: '#1C1917', color: '#FAF8F5', border: '1px solid #1C1917', borderRadius: 999,
-                padding: '13px 12px', fontFamily: FONT_BODY, fontSize: 'clamp(11px, 3vw, 12.5px)', letterSpacing: '.12em', textTransform: 'uppercase',
-                flex: '1 1 150px',
-              }}
-            >
-              {t.quote}
-              {targets.length > 1 && <CountBadge n={targets.length} light />}
-            </button>
             <button
               onClick={pinTargets}
               aria-pressed={pinned}
@@ -466,14 +517,15 @@ export function FabricLab({ studio }: { studio: Studio }) {
               style={{
                 cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 999, whiteSpace: 'nowrap',
                 padding: '13px 12px', fontFamily: FONT_BODY, fontSize: 'clamp(11px, 3vw, 12.5px)', letterSpacing: '.12em', textTransform: 'uppercase',
-                ...(pinned ? { background: '#8A6D45', color: '#FAF8F5', border: '1px solid #8A6D45' } : { background: 'transparent', color: '#1C1917', border: '1px solid rgba(28,25,23,.25)' }),
+                // The column's one action now, so it wears the primary fill; gold once it is done.
+                ...(pinned ? { background: '#8A6D45', color: '#FAF8F5', border: '1px solid #8A6D45' } : { background: '#1C1917', color: '#FAF8F5', border: '1px solid #1C1917' }),
                 transition: 'background .45s ease, color .45s ease, border-color .45s ease',
                 flex: '1 1 150px',
               }}
             >
               <span aria-hidden>{pinned ? '✓' : '✦'}</span>
               {pinned ? t.inBook : t.pin}
-              {!pinned && targets.length > 1 && <CountBadge n={targets.length} />}
+              {!pinned && targets.length > 1 && <CountBadge n={targets.length} light />}
             </button>
           </div>
           <div className="pc-shades-desktop">{shadeChart}</div>
@@ -556,7 +608,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
             {moreFabrics.map((m) => (
               <div
                 key={m.id}
-                onClick={() => studio.openFabric(m.id)}
+                onClick={() => studio.unroll(studio.fab(m.id))}
                 className="pc-hv-lift-3"
                 style={{
                   cursor: 'pointer', flex: 'none', width: 170, background: '#fff', border: '1px solid rgba(28,25,23,.08)', borderRadius: 4, overflow: 'hidden',
@@ -601,53 +653,10 @@ export function FabricLab({ studio }: { studio: Studio }) {
           </button>
         </div>
       </section>
-      {mounted && createPortal(<WhatsAppButton href={waFabric} label={t.whats} />, document.body)}
     </div>
   );
 }
 
-/**
- * WhatsApp, within reach from anywhere on the page: a round button fixed at the bottom right,
- * above the phone's bottom bar. The message names the fabric and the shades being looked at.
- */
-/** How many shades a button acts on, as a small round badge beside its label. */
-function CountBadge({ n, light = false }: { n: number; light?: boolean }) {
-  return (
-    <span
-      aria-label={`${n} shades`}
-      style={{
-        minWidth: 19, height: 19, padding: '0 5px', borderRadius: 999, display: 'inline-grid', placeItems: 'center', flex: 'none',
-        fontSize: 10, letterSpacing: 0, fontWeight: 500,
-        background: light ? '#FAF8F5' : '#8A6D45', color: light ? '#1C1917' : '#FAF8F5',
-      }}
-    >
-      {n}
-    </span>
-  );
-}
-
-function WhatsAppButton({ href, label }: { href: string; label: string }) {
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-      aria-label={label}
-      title={label}
-      className="pc-hv-scale-06"
-      style={{
-        position: 'fixed', right: 14, bottom: 'calc(var(--pc-bottombar) + 14px)', zIndex: 40, width: 42, height: 42, borderRadius: '50%',
-        display: 'grid', placeItems: 'center', background: '#25D366', color: '#fff', boxShadow: '0 8px 22px rgba(28,25,23,.22)',
-        transition: 'transform .5s cubic-bezier(.2,.8,.2,1)', animation: 'pcPop .7s .3s cubic-bezier(.2,.8,.2,1) both',
-      }}
-    >
-      <svg width="21" height="21" viewBox="0 0 24 24" aria-hidden>
-        <path d="M12 2.8a9.2 9.2 0 0 0-7.9 13.9L3 21.2l4.6-1.2A9.2 9.2 0 1 0 12 2.8Z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-        <path d="M9.1 7.6c-.3 0-.7.1-1 .5-.4.4-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3.2 5 4.3 2.5 1 3 .8 3.5.7.5-.1 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.6-.3l-2-1c-.3-.1-.5-.2-.7.1l-.9 1.1c-.2.2-.3.2-.6.1-.3-.1-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.5-.6c.2-.2.2-.3.3-.5.1-.2 0-.4 0-.5l-.9-2.2c-.2-.5-.5-.5-.7-.5h-.4Z" fill="currentColor" />
-      </svg>
-    </a>
-  );
-}
 
 /** The frosted glass the stage's controls sit on. */
 const GLASS = {
@@ -767,6 +776,22 @@ function LightControl({ albedoHex, current, setLight }: { albedoHex: string; cur
   );
 }
 
+/** How many shades a button acts on, as a small round badge beside its label. */
+function CountBadge({ n, light = false }: { n: number; light?: boolean }) {
+  return (
+    <span
+      aria-label={`${n} shades`}
+      style={{
+        minWidth: 19, height: 19, padding: '0 5px', borderRadius: 999, display: 'inline-grid', placeItems: 'center', flex: 'none',
+        fontSize: 10, letterSpacing: 0, fontWeight: 500,
+        background: light ? '#FAF8F5' : '#8A6D45', color: light ? '#1C1917' : '#FAF8F5',
+      }}
+    >
+      {n}
+    </span>
+  );
+}
+
 /**
  * The product information on the stage: an "i" under the corner label that opens the product
  * sheet as a glass card over the stage, so a buyer can read the specifications without leaving
@@ -847,9 +872,9 @@ function InfoControl({ title, shade, shadeCss, rows, heading }: { title: string;
           onClick={() => setOpen(!open)}
           className="pc-hv-scale-06"
           style={{
-            cursor: 'pointer', width: 38, height: 38, borderRadius: '50%', display: 'grid', placeItems: 'center',
+            cursor: 'pointer', width: 30, height: 30, borderRadius: '50%', display: 'grid', placeItems: 'center',
             ...(open ? { background: '#1C1917', color: '#FAF8F5', border: '1px solid #1C1917' } : { ...GLASS, WebkitBackdropFilter: GLASS.backdropFilter, color: '#1C1917' }),
-            fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontWeight: 600, fontSize: 19, lineHeight: 1,
+            fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontWeight: 600, fontSize: 15, lineHeight: 1,
             transition: 'background .5s ease, color .5s ease, transform .5s cubic-bezier(.2,.8,.2,1)',
           }}
         >

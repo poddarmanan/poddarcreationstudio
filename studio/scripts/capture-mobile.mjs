@@ -124,70 +124,8 @@ async function main() {
   }
   if (entrance.scrolls > 2) problems.push(`entrance: does not fit — ${entrance.scrolls}px of scroll`);
 
-  // ---- The header search, end to end -------------------------------------------------
-  const collapsed = await page.evaluate(() => {
-    const bar = document.querySelector('.pc-msearch');
-    const r = bar.getBoundingClientRect();
-    const icon = document.querySelector('.pc-msearch-toggle').getBoundingClientRect();
-    return {
-      width: Math.round(r.width),
-      right: Math.round(window.innerWidth - r.right),
-      // The bar clips its overflow, so the button can be laid out entirely outside the box
-      // and simply not be drawn. Measure how much of it survives the clip.
-      visible: Math.round(Math.max(0, Math.min(r.right, icon.right) - Math.max(r.left, icon.left))),
-      iconWidth: Math.round(icon.width),
-    };
-  });
-  if (collapsed.width > 48) problems.push(`search: the collapsed icon is ${collapsed.width}px wide — it should be an icon, not a bar`);
-  if (collapsed.right > 20) problems.push(`search: the icon is ${collapsed.right}px from the right edge, not in the corner`);
-  if (collapsed.visible < collapsed.iconWidth - 1) {
-    problems.push(`search: only ${collapsed.visible}px of the ${collapsed.iconWidth}px icon is inside the clip — it is cut off or invisible`);
-  }
-
-  await page.locator('.pc-msearch-toggle').tap();
-  await page.waitForTimeout(450); // the width transition is 340ms
-  const expanded = await page.evaluate(() => {
-    const bar = document.querySelector('.pc-msearch');
-    const r = bar.getBoundingClientRect();
-    const input = document.querySelector('.pc-msearch-input');
-    return {
-      width: Math.round(r.width),
-      right: Math.round(window.innerWidth - r.right),
-      available: window.innerWidth - 28,
-      focused: document.activeElement === input,
-      fontSize: Math.round(parseFloat(getComputedStyle(input).fontSize)),
-      shadow: getComputedStyle(bar).boxShadow,
-      radius: getComputedStyle(bar).borderTopLeftRadius,
-      border: getComputedStyle(bar).borderTopWidth,
-    };
-  });
-  if (expanded.width < expanded.available - 2) problems.push(`search: opened to ${expanded.width}px of an available ${expanded.available}px`);
-  if (Math.abs(expanded.right - collapsed.right) > 1) problems.push('search: the bar moved sideways as it opened — it should grow from under the icon');
-  if (!expanded.focused) problems.push('search: the field is not focused after opening, so the keyboard will not appear');
-  // Under 16px, iOS zooms the page in on focus and never zooms back.
-  if (expanded.fontSize < 16) problems.push(`search: the field is ${expanded.fontSize}px — iOS will zoom the page in on focus`);
-  if (expanded.shadow === 'none') problems.push('search: the open bar has no shadow');
-  if (parseFloat(expanded.radius) < 16) problems.push(`search: the open bar is not a pill (radius ${expanded.radius})`);
-  if (parseFloat(expanded.border) > 0) problems.push(`search: the open bar has a ${expanded.border} border — shadow only`);
-
-  await page.locator('.pc-msearch-input').fill('gulab');
-  await page.waitForSelector('.pc-msearch-result', { timeout: 10_000 }).catch(() => {});
-  const found = await page.locator('.pc-msearch-result').count();
-  if (found === 0) problems.push('search: typing a known shade produced no results');
-  await shot(page, '11-search-open');
-
-  // Choosing a result has to actually navigate and put the bar away.
-  if (found > 0) {
-    await page.locator('.pc-msearch-result').first().tap();
-    await page.waitForTimeout(900);
-    const after = await page.evaluate(() => ({
-      open: document.querySelector('.pc-msearch').classList.contains('is-open'),
-      lab: !!document.body.textContent.includes('FABRIC LAB'),
-    }));
-    if (after.open) problems.push('search: the bar stayed open after a result was chosen');
-    if (!after.lab) problems.push('search: choosing a result did not open the fabric');
-    await shot(page, '12-search-result');
-  }
+  // The header carries no search on a phone any more (the owner took it out); the account menu
+  // under the user icon holds sign-in and the language.
 
   await page.goto(BASE, { waitUntil: 'networkidle' });
   await page.waitForSelector('.pc-bottomnav-pill', { timeout: 15_000 });
@@ -210,7 +148,7 @@ async function main() {
     await shot(page, '07-fabric-lab');
   }
 
-  // The pill in its signed-in state: staff get Admin as a sixth item.
+  // The pill in its signed-in state: staff get Admin as a fourth item.
   await page.goto(`${BASE}/signin`, { waitUntil: 'networkidle' });
   await page.waitForSelector('input[type="email"]', { timeout: 15_000 });
   await page.fill('input[type="email"]', 'admin@poddarcreation.studio');

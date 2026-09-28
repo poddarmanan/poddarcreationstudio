@@ -16,37 +16,43 @@ the "Watch in 3D" pill (the turntable is always live; hold and spin), the four-s
 used to sweep the whole stage with the shine — the shine is the raking light on the cloth, and
 nothing else should light up.
 
-**The head of the page is a catalogue plate.** The plate number over its count in the house
-gold, a rule, the fabric's name in display capitals with its spec line (composition · hand ·
-the shade on the stage), and at the right, from a tablet up, the lab's own mark, which scrolls
-to the stage. There is no back link or italic story line above or below it: the site nav and
-the Showroom are the way back. On a phone the plate is compact, and the name and the spec line
-each stay on one line: `FitLine` renders them at their CSS size and, if a line overflows,
-scales it in em just enough to fit (never below 7 px). The longest spec line, Roman Silk's,
-lands at about 7 px on a 390 px screen; most sit at 8–9 px. Every place a fabric is shown — the showroom's rolls and the
-lab's "more fabrics" strip — carries the same plate number, so a buyer can say "the third one".
+**The head of the page is a catalogue plate.** A number strip in the house gold — this
+fabric's number large, its neighbours small and faded either side, "/11" beneath — then a rule,
+the fabric's name in display capitals with its spec line (composition · hand · the shade on the
+stage), and at the right, from a tablet up, the lab's own mark, which scrolls to the stage.
+There is no back link or italic story line: the site nav and the Showroom are the way back. On a
+phone the name and the spec line each stay on one line: `FitLine` renders them at their CSS size
+and, if a line overflows, scales it in em just enough to fit (the spec line never below 6.5 px,
+which Roman Silk's, the longest, reaches on a 390 px screen; most sit near 8 px). Every place a
+fabric is shown — the showroom's rolls and the lab's "more fabrics" strip — carries the same
+number, so a buyer can say "the third one".
 
-**Product information on the stage.** An "i" under the corner label opens the product
+**The plate changes fabric.** A sideways swipe on the plate, a sideways scroll over it, a tap on
+a neighbouring number, or the arrow keys when it has focus moves to the next or previous fabric
+in catalogue order, wrapping round. The strip slides one place, and the switch is the Showroom's
+own: its full-screen unroll card, then the lab's staged reveal with the loader. The "more
+fabrics" strip switches the same way. A vertical drag over the plate still scrolls the page
+(`touch-action: pan-y`). The lab is not remounted for a switch — the staged reveal is keyed on
+the fabric as well as the cut — because tearing the stage's canvas down trips a dispose-order
+fault in drei's `Environment` (its cube render target is disposed after the renderer), and
+keeping the canvas makes the switch cheaper besides.
+
+**Product information on the stage.** A small "i" under the corner label opens the product
 details — name, the shade on the stage, weight, width, composition, hand, price and stock — as
 a near-opaque card over the stage, so a buyer can read the specifications without scrolling
 away from the garment. A second tap, Escape, or a tap outside closes it.
 
 **The buyer's column.** To the right of the stage (below it and its shade chart on a phone):
-Request a quote and Add to book side by side, then the shade chart on a desktop. The product
-details are not repeated here; they open from the stage's "i". The microscope sits further down
-the page beside the downloads.
+Add to book, the column's one action, in the primary fill (gold once the shade is in the book),
+then the shade chart on a desktop. A quote is asked for from the Swatch Book; the product
+details open from the stage's "i"; the microscope sits further down the page beside the
+downloads. There is no WhatsApp button in the lab.
 
-**Select multiple.** Beside the shade count, a toggle turns the chart into a picker: the shade on
-the stage starts ticked, each tap ticks or unticks a chip (and puts a newly ticked shade on the
-stage), and the count shows beside the heading. While shades are ticked, Request a quote and
-Add to book act on all of them — the quote lists every shade and sends one item per shade, the
-book gains each one — with the count as a badge on each button; the WhatsApp message names them
-too. The selection belongs to the fabric and clears on a change of fabric or on Done.
-
-**WhatsApp** is a small (42 px) round green button fixed at the bottom right of the viewport, above the
-phone's bottom bar, from anywhere on the page. It is portalled to the body because the lab's
-root animates a transform as it lays in, and a transformed ancestor turns a fixed child into a
-page-positioned one.
+**Select multiple.** Beside the shade count, a small chip turns the chart into a picker: the
+shade on the stage starts ticked, each tap ticks or unticks a chip (and puts a newly ticked shade
+on the stage), and the count shows beside the heading. While shades are ticked, Add to book adds
+all of them, with the count as a badge on the button. The selection belongs to the fabric and
+clears on a change of fabric or on Done.
 
 **Scenes** follow the owner's sketch: on a three-column grid, a wide banner, then one large tile
 beside two small ones stacked, then the next banner — a four-tile beat that the nine scenes fill

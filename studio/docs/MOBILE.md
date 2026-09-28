@@ -12,37 +12,29 @@ The header put seven text links in a scrolling row at the top. On a 390px phone 
 Book" was unreachable without discovering a horizontal scroll. Each link was a 24px tap target,
 roughly half the 44px minimum both Apple and Google publish.
 
-The bottom pill costs 60px, shows six destinations at once, and gives each a 49px target where
-the thumb already rests. The top bar keeps identity and account in a single 50px line.
+The bottom pill costs 60px, shows its destinations at once (Showroom, Colours and the Swatch Book;
+Admin for staff), and gives each a 49px target where the thumb already rests. The top bar keeps
+identity and account in a single 50px line: the logo, which is the way to the Entrance, and the
+user icon at the far right, which opens a small menu with sign in or out and the language.
 
-## Why the search moved too
+## Search
 
-The search bar was the last element of the entrance — the tallest screen in the studio — so on a
-phone it was the first thing to fall off the bottom. It also only ever existed on the entrance,
-which meant a buyer three taps into the colour wall had no way to search at all.
-
-On phones it is now a 36px icon in the top-right corner of the header that unfurls into a
-full-width pill. It is reachable from every view and costs nothing until it is wanted. The pill
-is anchored to the same right edge the icon sits on, so opening it grows the bar leftward from
-under the icon: the one thing on screen the thumb is already aimed at does not move.
-
-Above 768px none of this exists — the hero keeps its own search bar exactly as before.
+A phone has no search. It used to be a header icon that unfurled into a full-width pill, with the
+entrance's own search bar standing down to make room; the owner took the header search out, and
+the entrance's bar stays off on a phone so the entrance still fits one screen above the pill.
+Above 768px the hero keeps its search bar exactly as before.
 
 ## How the pieces fit
 
 | Piece | Where | Note |
 |---|---|---|
-| `BottomNav` | `src/components/studio/BottomNav.tsx` | Four items (Entrance, Showroom, Colours, Swatch Book); Admin added for staff |
-| `MobileSearch` | `src/components/studio/MobileSearch.tsx` | The header's expanding search pill |
-| `useSearch` | `src/components/studio/search.ts` | Called once in `useStudio`; both surfaces render its result |
-| `.pc-bottomnav*`, `.pc-msearch*` | `src/app/globals.css` | Everything inside `@media (max-width: 767px)` |
+| `BottomNav` | `src/components/studio/BottomNav.tsx` | Three items (Showroom, Colours, Swatch Book); Admin added for staff. The header logo is the way to the Entrance |
+| `UserMenu` | `src/components/studio/Nav.tsx` | The user icon's menu: sign in or out, and English or हिंदी |
+| `useSearch` | `src/components/studio/search.ts` | Called once in `useStudio`; the desktop hero renders its result |
+| `.pc-bottomnav*` | `src/app/globals.css` | Everything inside `@media (max-width: 767px)` |
 | `.pc-topbar`, `.pc-hdrnav`, `.pc-hdricon`, `.pc-hdrbtn` | `src/app/globals.css` | The header's responsive properties |
 | `--pc-topbar`, `--pc-bottombar` | `:root` | 64/0 on desktop, 50/78 on phones |
 | `.pc-shell`, `.pc-view` | `src/app/globals.css` | Size views against the space between the bars |
-
-The search runs in `useStudio`, not in a component, because two surfaces ask the same question —
-the hero bar on a desktop, the header pill on a phone. One hook means one debounce and one
-request per keystroke; two copies of the logic would fire two identical fetches.
 
 A view sized with `.pc-view` runs the full height under the header and reserves the pill's space
 as its own padding, so its background reaches the bottom of the screen while its contents still
@@ -67,14 +59,8 @@ entrance rendered at 0.8–0.9×, text and all. On phones that keyframe drops th
 **A drawn control and its tap target need not be the same rectangle.** The header's 36px account
 button carries a `::after` grown to 48px rather than being enlarged to suit a thumb.
 
-**A flex row narrower than its contents overflows towards the end, not the start.** The collapsed
-search bar is 36px wide with `overflow: hidden`; with default alignment the icon was laid out
-past the clip and simply never drawn, while every measurement of the container said it was
-there. `justify-content: flex-end` puts the icon in the corner and spills the field leftwards
-under the clip, which is also the animation the design wants.
-
-**Any focused text field under 16px makes iOS zoom the page in, and it does not zoom back.** The
-search input is 16px exactly for that reason.
+**Any focused text field under 16px makes iOS zoom the page in, and it does not zoom back.** Keep
+phone inputs at 16px.
 
 ## Verifying
 
@@ -92,10 +78,7 @@ Alongside each capture it asserts what a screenshot cannot show:
 - every navigation tap target is at least 44px, hit area included
 - no navigation label is truncated
 - the pill is present on phones and absent at 768px and above, where the header nav returns
-- the entrance fits without scrolling, and the hero's own search bar has stood down
-- the search icon is drawn inside its clip, opens to the full width without moving sideways,
-  focuses its field, is 16px, and is a pill with a shadow and no border
-- typing a known shade returns results, and choosing one opens the fabric and closes the bar
+- the entrance fits without scrolling, and the hero's own search bar stays off on a phone
 
 It runs at 390×844, again at 360×780 — the narrow case the labels have to survive — and once at
 834px to prove the desktop header comes back.
