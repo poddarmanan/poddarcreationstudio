@@ -58,7 +58,8 @@ and opposite, "In stock" with a softly pulsing dot and "Mill fresh". The product
 "i" show the same price. Add to book is the column's one action, in the primary fill (gold once the
 shade is in the book). Adding opens a card near the bottom of the screen: a gold rule, the added
 shades fanned out as pinked cuttings with a gold tick, "Added to your book", the fabric and the
-shades' names, how many shades the book now holds, "Order swatch book →" to the Swatch Book and
+shades' names, then the note ("Order the swatch book to see / and feel these shades in hand.") and, past a gold
+hairline with a small diamond, how many shades the book now holds, "Order swatch book →" to the Swatch Book and
 "Continue browsing" — and it closes "Select multiple" as Done would. A quote is asked for from the
 Swatch Book; the product details open from the stage's "i". There is no WhatsApp button.
 
@@ -145,6 +146,14 @@ fetched and decoded, the stage is empty but for a small glass loader — a threa
 ring and "Draping the kurti" — and the built-in cut is not shown first. It used to stand in, and
 read as the wrong garment appearing and then being swapped. The built-in cut now appears only
 for a cut that has no model file at all (the dress, until one is uploaded).
+
+**The stretch reads beside its button.** One glass callout grows out of the left of the Stretch
+button, level with it, with a small pointer to it. When the roll is chosen it is the hint ("Pull
+the cloth →"); while the cloth is pulled it is the reading: "Stretch test" in gold small caps, how
+far the cloth gives along its length and across in the display serif (the same figures the pull
+uses — 3.2% and 2.5% for cotton, 19.2% and 10.5% for cotton lycra), a fading gold rule, and the
+fabric's note in italic. The note used to float over the rod at the top of the stage, and the hint
+sat below the button because its slide-in animation overrode the transform that centred it.
 
 **The stretch is realistic.** Pulling the roll lengthens and narrows it by the cloth's own
 figures — a woven cotton about 3% along and 2.5% across, a rayon about 5%, a cotton lycra about

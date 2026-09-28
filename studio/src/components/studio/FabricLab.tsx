@@ -100,6 +100,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
   const isRoll = garment === 'roll';
   const modelOn = tests.d3 && !isRoll;
   const testNoteOn = tests.stretch && isRoll;
+  // (The stretch test's reading is shown by StretchCallout, beside the Stretch button.)
   const testNote = STRETCH_TEST_NOTES[f.family];
 
   const moreDrag = useDragScroll();
@@ -494,19 +495,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
             <div style={{ position: 'absolute', right: 14, bottom: 14, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, zIndex: 6 }}>
               {isRoll && (
                 <div style={{ position: 'relative', display: 'flex' }}>
-                  {stretchHint && !tests.stretch && (
-                    <div
-                      role="note"
-                      style={{
-                        position: 'absolute', right: 54, top: '50%', transform: 'translateY(-50%)', whiteSpace: 'nowrap',
-                        padding: '8px 12px', borderRadius: 999, ...GLASS, WebkitBackdropFilter: GLASS.backdropFilter,
-                        fontFamily: FONT_BODY, fontSize: 10.5, letterSpacing: '.08em', color: '#1C1917',
-                        animation: 'pcSlideIn .5s .6s cubic-bezier(.2,.8,.2,1) both', pointerEvents: 'none',
-                      }}
-                    >
-                      Pull the cloth · Stretch →
-                    </div>
-                  )}
+                  <StretchCallout hint={stretchHint && !tests.stretch} on={testNoteOn} note={testNote} stretch={f.stretch} />
                   <IconToggle label="Stretch" on={tests.stretch} onClick={() => { setStretchHint(false); studio.toggleTest('stretch'); }} delay={0.1}>
                     <StretchIcon />
                   </IconToggle>
@@ -523,16 +512,6 @@ export function FabricLab({ studio }: { studio: Studio }) {
               </IconToggle>
             </div>
             <GarmentPicker garment={garment} setGarment={studio.setGarment} open={pickerOpen} setOpen={setPickerOpen} />
-            {testNoteOn && (
-              <div
-                style={{
-                  position: 'absolute', top: 14, left: '50%', transform: 'translateX(-50%)', maxWidth: 'min(240px, 52%)', background: 'rgba(250,248,245,.85)', backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(28,25,23,.1)', borderRadius: 10, padding: '10px 13px', fontSize: 11.5, fontWeight: 300, lineHeight: 1.55, color: 'rgba(28,25,23,.75)',
-                }}
-              >
-                {testNote}
-              </div>
-            )}
           </div>
           {/* The shade chart: under the stage on a phone, in the right column on a desktop. */}
           <div className="pc-shades-mobile" style={{ padding: '18px clamp(16px,2.5vw,28px) 20px', borderTop: '1px solid rgba(28,25,23,.08)', background: '#FAF8F5' }}>
@@ -786,8 +765,18 @@ function BookPrompt({ t, fabric, swatches, names, total, leaving, onOrder, onClo
               </div>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 18, padding: '12px 0', borderTop: '1px solid rgba(28,25,23,.08)', borderBottom: '1px solid rgba(28,25,23,.08)' }}>
-            <span style={{ fontSize: 12.5, fontWeight: 300, color: 'rgba(28,25,23,.7)', lineHeight: 1.5 }}>{t.bookNudge}</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginTop: 18, padding: '14px 0', borderTop: '1px solid rgba(28,25,23,.08)', borderBottom: '1px solid rgba(28,25,23,.08)' }}>
+            <span style={{ fontSize: 12.5, fontWeight: 300, color: 'rgba(28,25,23,.7)', lineHeight: 1.6 }}>
+              {t.bookNudge}
+              <br />
+              {t.bookNudge2}
+            </span>
+            {/* A fine gold divide between the note and the book's total: a hairline that fades out
+                at both ends, with a small diamond at its middle. */}
+            <span aria-hidden style={{ position: 'relative', flex: 'none', alignSelf: 'stretch', width: 9, display: 'grid', placeItems: 'center' }}>
+              <span style={{ position: 'absolute', top: 2, bottom: 2, left: 4, width: 1, background: 'linear-gradient(180deg, transparent, rgba(138,109,69,.55) 30%, rgba(138,109,69,.55) 70%, transparent)' }} />
+              <span style={{ position: 'relative', width: 7, height: 7, transform: 'rotate(45deg)', background: '#FAF8F5', border: '1px solid rgba(138,109,69,.7)' }} />
+            </span>
             {/* The book's running total, on the right: its name above, the count beneath. */}
             <span style={{ flex: 'none', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', textAlign: 'right', whiteSpace: 'nowrap' }}>
               <span style={{ fontSize: 9.5, letterSpacing: '.24em', textTransform: 'uppercase', color: '#8A6D45' }}>{t.yourBook}</span>
@@ -1098,6 +1087,60 @@ function LightControl({ albedoHex, current, setLight }: { albedoHex: string; cur
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * The Stretch button's callout: a glass card that grows out of the left of the button, level with
+ * it, with a small pointer to it. Before the test it is a hint ("Pull the cloth"); while the cloth
+ * is pulled it is the reading — "Stretch test" in gold small caps, the cloth's own figures in the
+ * display serif (how far it gives along its length and across, the same figures the pull uses),
+ * and the fabric's note in italic. It used to float over the rod at the top of the stage, and the
+ * hint sat below the button because its slide-in animation overrode the transform that centred
+ * it; the centring now lives on an outer box and only the card inside is animated.
+ */
+function StretchCallout({ hint, on, note, stretch }: { hint: boolean; on: boolean; note: string; stretch: number }) {
+  const shown = usePresence(hint || on, 480);
+  const along = ((0.012 + stretch * 0.2) * 100).toFixed(1);
+  const across = ((0.015 + stretch * 0.1) * 100).toFixed(1);
+  if (!shown.shown) return null;
+  return (
+    <div style={{ position: 'absolute', right: 56, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', zIndex: 2 }}>
+      <div
+        role="note"
+        key={on ? 'reading' : 'hint'}
+        style={{
+          position: 'relative', transformOrigin: 'right center',
+          ...GLASS, WebkitBackdropFilter: GLASS.backdropFilter, background: 'rgba(250,248,245,.9)',
+          boxShadow: '0 16px 38px rgba(28,25,23,.16), inset 0 1px 0 rgba(255,255,255,.8)',
+          border: '1px solid rgba(201,169,110,.35)',
+          borderRadius: on ? 16 : 999, padding: on ? '12px 16px 13px' : '9px 14px',
+          width: on ? 'min(232px, calc(100vw - 120px))' : 'auto', whiteSpace: on ? 'normal' : 'nowrap',
+          animation: shown.leaving ? 'pcSlideOut .45s ease both' : `pcSlideIn .75s ${on ? '0s' : '.5s'} cubic-bezier(.22,.8,.2,1) both`,
+        }}
+      >
+        {/* The pointer, towards the button. */}
+        <span aria-hidden style={{ position: 'absolute', right: -5, top: '50%', width: 9, height: 9, marginTop: -4.5, transform: 'rotate(45deg)', background: 'rgba(250,248,245,.95)', borderTop: '1px solid rgba(201,169,110,.35)', borderRight: '1px solid rgba(201,169,110,.35)' }} />
+        {on ? (
+          <>
+            <div style={{ fontSize: 9, letterSpacing: '.3em', textTransform: 'uppercase', color: '#8A6D45' }}>Stretch test</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 6, fontFamily: FONT_DISPLAY, color: '#1C1917', fontVariantNumeric: 'lining-nums' }}>
+              <span style={{ fontSize: 24, fontWeight: 500, lineHeight: 1 }}>{along}%</span>
+              <span style={{ fontFamily: FONT_BODY, fontSize: 9.5, letterSpacing: '.14em', textTransform: 'uppercase', color: 'rgba(28,25,23,.5)' }}>along</span>
+              <span aria-hidden style={{ color: 'rgba(138,109,69,.5)', margin: '0 2px' }}>·</span>
+              <span style={{ fontSize: 24, fontWeight: 500, lineHeight: 1 }}>{across}%</span>
+              <span style={{ fontFamily: FONT_BODY, fontSize: 9.5, letterSpacing: '.14em', textTransform: 'uppercase', color: 'rgba(28,25,23,.5)' }}>across</span>
+            </div>
+            <div style={{ height: 1, margin: '9px 0 8px', background: 'linear-gradient(90deg, rgba(138,109,69,.45), transparent)' }} />
+            <div style={{ fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 14.5, lineHeight: 1.35, color: 'rgba(28,25,23,.72)' }}>{note}</div>
+          </>
+        ) : (
+          <span style={{ fontFamily: FONT_BODY, fontSize: 10.5, letterSpacing: '.12em', textTransform: 'uppercase', color: '#1C1917' }}>
+            Pull the cloth <span style={{ color: '#8A6D45' }}>→</span>
+          </span>
+        )}
+      </div>
     </div>
   );
 }
