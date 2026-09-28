@@ -556,9 +556,12 @@ export function FabricLab({ studio }: { studio: Studio }) {
               style={{
                 cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 10, borderRadius: 999, whiteSpace: 'nowrap',
                 padding: '16px 14px', fontFamily: FONT_BODY, fontSize: 'clamp(11px, 3vw, 12.5px)', letterSpacing: '.2em', textTransform: 'uppercase',
+                // Frosted glass: a translucent fill that blurs what is behind it, ink lettering and a
+                // fine gold edge; translucent gold once the shade is in the book.
+                backdropFilter: 'blur(18px) saturate(1.4)', WebkitBackdropFilter: 'blur(18px) saturate(1.4)',
                 ...(pinned
-                  ? { background: 'linear-gradient(135deg,#9A7B4F,#7C6139)', color: '#FAF8F5', border: '1px solid #8A6D45' }
-                  : { background: 'linear-gradient(135deg,#26211D,#141110)', color: '#FAF8F5', border: '1px solid #1C1917' }),
+                  ? { background: 'linear-gradient(135deg, rgba(201,169,110,.34), rgba(138,109,69,.22))', color: '#5E4626', border: '1px solid rgba(138,109,69,.45)' }
+                  : { background: 'linear-gradient(135deg, rgba(255,255,255,.55), rgba(250,248,245,.22))', color: '#1C1917', border: '1px solid rgba(201,169,110,.5)' }),
                 flex: '1 1 150px',
               }}
             >
