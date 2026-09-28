@@ -189,7 +189,8 @@ before the next (a 4.2 s cycle). It used to run a sawtooth at full strength, van
 and reappearing at the other in a single frame. The stage's test buttons read as the wind's does: always round
 glass, the icon a light grey when the test is off. Switched on, the shine button's sun turns a
 quarter and lights in warm gold with a breathing glow while its rays wheel slowly round; the
-stretch button's icon goes to ink and its two bars pull apart and ease back as the cloth is pulled.
+stretch button's icon goes to ink and its two bars pull apart once and hold there, easing back
+together when the test is switched off — one movement each way, not a loop.
 
 ## A test that measured nothing
 

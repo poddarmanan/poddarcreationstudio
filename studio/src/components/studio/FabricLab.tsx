@@ -1004,14 +1004,18 @@ function ScenesPanel({ leaving, t, fg, scenes, note, onScene, onScope, onClose }
   );
 }
 
-/** The stretch button's icon: while the test runs, its two bars pull apart and ease back. */
+/**
+ * The stretch button's icon: switching the test on pulls its two bars apart and holds them there,
+ * the shaft lengthening between them; switching it off eases them back together. One movement
+ * each way, as the cloth itself is pulled and let go — not a loop.
+ */
 function StretchIcon({ on }: { on: boolean }) {
-  const anim = (name: string) => (on ? `${name} 2.2s cubic-bezier(.45,0,.25,1) infinite` : 'none');
+  const ease = 'transform .75s cubic-bezier(.22,.8,.2,1)';
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ overflow: 'visible' }}>
-      <path d="M7 4h10M9.5 9.5 12 7l2.5 2.5" style={{ animation: anim('pcPullUp') }} />
-      <path d="M12 7v10" style={{ transformOrigin: '12px 12px', animation: anim('pcPullSpan') }} />
-      <path d="M7 20h10M9.5 14.5 12 17l2.5-2.5" style={{ animation: anim('pcPullDown') }} />
+      <path d="M7 4h10M9.5 9.5 12 7l2.5 2.5" style={{ transform: on ? 'translateY(-2.4px)' : 'none', transition: ease }} />
+      <path d="M12 7v10" style={{ transformOrigin: '12px 12px', transform: on ? 'scaleY(1.48)' : 'none', transition: ease }} />
+      <path d="M7 20h10M9.5 14.5 12 17l2.5-2.5" style={{ transform: on ? 'translateY(2.4px)' : 'none', transition: ease }} />
     </svg>
   );
 }
