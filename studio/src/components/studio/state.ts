@@ -129,7 +129,8 @@ export function useStudio(fabrics: FabricRow[]): Studio {
   const [room, setRoom] = useState<RoomKey>('hall');
   const [fid, setFid] = useState('rayon14');
   const [ci, setCi] = useState(18);
-  const [garment, setGarment] = useState<GarmentKey>('kurti');
+  // The lab opens on the roll: the cloth itself, before any garment is cut from it.
+  const [garment, setGarment] = useState<GarmentKey>('roll');
   const [light, setLight] = useState<LightKey>('studio');
   // Wind is on by default, and on means strong: the lab opens with the cloth moving.
   const [wind, setWind] = useState(3);

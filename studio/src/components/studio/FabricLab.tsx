@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { Selvage } from './brand';
 import { usePresence, Reveal } from './motion';
 import { FabricRoll } from './FabricRoll';
 import type { Studio } from './state';
@@ -35,12 +36,11 @@ const FADE_OUT_MS = 450;
 const DIAL_LABELS: Record<GarmentKey, string> = { kurti: 'Kurti', shirt: 'Shirt', dress: 'Dress', top: 'Top', tshirt: 'T-Shirt', roll: 'Roll' };
 
 export function FabricLab({ studio }: { studio: Studio }) {
-  const { t, currentFabric: f, currentColour: col, tests, garment, light: lightKey, wind, reduceMotion, approved, isStaff } = studio;
+  const { t, currentFabric: f, currentColour: col, tests, garment, light: lightKey, wind, reduceMotion } = studio;
   const light = LIGHTS[lightKey];
   // The same sRGB the weave texture is generated from, so the strip and the canvas start
   // from one colour rather than two conversions of it.
   const renderHex = oklchToHex(col.l, col.c, col.h);
-  const priced = approved || isStaff;
   const amp = reduceMotion ? 0 : f.flow * wind * 1.5;
   // The catalogue's numbering: this fabric's plate number and the count, as "03 / 11".
   const fabricIndex = fabricNo(studio.fabrics, f.id);
@@ -66,11 +66,11 @@ export function FabricLab({ studio }: { studio: Studio }) {
   // Adding to the book: pin the shades, close "Select multiple" (as Done would), and point the
   // buyer at the Swatch Book, where the book is ordered.
   // The prompt's count stays on it while it animates out.
-  const [prompt, setPrompt] = useState({ n: 0, open: false });
+  const [prompt, setPrompt] = useState<{ n: number; open: boolean; swatches: string[]; names: string[] }>({ n: 0, open: false, swatches: [], names: [] });
   const promptPresence = usePresence(prompt.open, 480);
   const pinTargets = () => {
     targetColours.forEach((c) => studio.pinShade(f.id, c.order));
-    setPrompt({ n: targetColours.length, open: true });
+    setPrompt({ n: targetColours.length, open: true, swatches: targetColours.map((c) => colourCss(c)), names: targetColours.map((c) => c.name) });
     setMulti(null);
   };
   // The prompt is fixed to the viewport, so it is portalled to the body: the lab's root animates a
@@ -198,7 +198,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
     { k: t.width, v: f.width },
     { k: t.comp, v: f.comp },
     { k: t.hand, v: f.hand },
-    { k: t.price, v: priced ? `₹${f.price} / metre` : t.lock },
+    { k: t.price, v: `₹${f.price} / metre` },
     { k: t.stock, v: t.inStock },
   ];
 
@@ -544,7 +544,8 @@ export function FabricLab({ studio }: { studio: Studio }) {
             live behind the stage's "i"; a quote is asked for from the Swatch Book; the microscope
             sits down the page beside the downloads. */}
         <div style={{ padding: 'clamp(24px,3.5vw,44px)', display: 'flex', flexDirection: 'column', gap: 26, justifyContent: 'flex-start', background: '#FAF8F5' }}>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <PriceLine price={f.price} t={t} />
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: -14 }}>
             <button
               onClick={pinTargets}
               aria-pressed={pinned}
@@ -569,10 +570,19 @@ export function FabricLab({ studio }: { studio: Studio }) {
 
       {/* More fabrics: large cards, the plate number over the cloth, a few of its shades, snap
           scrolling; each opens through the Showroom's unroll. */}
-      <Reveal as="section" style={{ padding: 'clamp(40px,6vw,72px) 0 0' }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, padding: '0 clamp(16px,5vw,64px)', marginBottom: 20 }}>
-          <h2 style={{ margin: 0, fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(28px,3.4vw,44px)' }}>{t.moreFab}</h2>
-          <span style={{ fontSize: 10.5, letterSpacing: '.22em', color: '#8A6D45', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{moreFabrics.length} {t.qualities}</span>
+      <Reveal as="section" style={{ padding: 'clamp(40px,6vw,64px) 0 0' }}>
+        {/* The heading, as a catalogue sets one: a gold eyebrow with the count on a hairline, the
+            title in the display serif with its second word in italic, and the selvage stitch. */}
+        <div style={{ padding: '0 clamp(16px,5vw,64px)', textAlign: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, fontSize: 10, letterSpacing: '.38em', color: '#8A6D45', textTransform: 'uppercase' }}>
+            <span aria-hidden style={{ width: 'clamp(24px,6vw,56px)', height: 1, background: 'linear-gradient(90deg, transparent, rgba(138,109,69,.6))' }} />
+            {t.theCollection} · {moreFabrics.length} {t.qualities}
+            <span aria-hidden style={{ width: 'clamp(24px,6vw,56px)', height: 1, background: 'linear-gradient(270deg, transparent, rgba(138,109,69,.6))' }} />
+          </div>
+          <h2 style={{ margin: '12px 0 0', fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(40px,6vw,68px)', lineHeight: 1, letterSpacing: '-.005em', color: '#1C1917' }}>
+            {t.moreWord} <em style={{ fontWeight: 400, color: '#8A6D45' }}>{t.fabricsWord}</em>
+          </h2>
+          <Selvage style={{ margin: '14px auto 0' }} />
         </div>
         <div style={{ position: 'relative' }}>
           <div
@@ -580,7 +590,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
             className="pc-nav"
             {...moreDrag}
             style={{
-              display: 'flex', alignItems: 'flex-end', gap: 'clamp(30px,4.5vw,64px)', overflowX: 'auto', padding: '64px clamp(34px,7vw,100px) 56px',
+              display: 'flex', alignItems: 'flex-end', gap: 'clamp(30px,4.5vw,64px)', overflowX: 'auto', padding: '30px clamp(34px,7vw,100px) 44px', marginTop: 4,
               cursor: 'grab', touchAction: 'pan-y',
               // The Showroom's hall, in miniature: a pale wall meeting a floor the rolls stand on,
               // fading out of the page at the top and back into it at the bottom so the hall and the
@@ -591,7 +601,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
           >
             {moreFabrics.map((m) => (
               <div key={m.id} className="pc-roll-rise" style={{ flex: 'none', ['--d' as string]: m.dl }}>
-                <FabricRoll f={studio.fab(m.id)} no={m.no} onClick={() => studio.unroll(studio.fab(m.id))} fg="#1C1917" sub="rgba(28,25,23,.55)" accent="#8A6D45" shades={t.shades} />
+                <FabricRoll compact f={studio.fab(m.id)} no={m.no} onClick={() => studio.unroll(studio.fab(m.id))} fg="#1C1917" sub="rgba(28,25,23,.55)" accent="#8A6D45" shades={t.shades} />
               </div>
             ))}
           </div>
@@ -680,8 +690,11 @@ export function FabricLab({ studio }: { studio: Studio }) {
       )}
       {mounted && promptPresence.shown && createPortal(
         <BookPrompt
-          n={prompt.n}
           t={t}
+          fabric={f.name}
+          swatches={prompt.swatches}
+          names={prompt.names}
+          total={studio.pins.length}
           leaving={promptPresence.leaving}
           onOrder={() => { setPrompt((p) => ({ ...p, open: false })); studio.go('book'); }}
           onClose={() => setPrompt((p) => ({ ...p, open: false }))}
@@ -693,11 +706,47 @@ export function FabricLab({ studio }: { studio: Studio }) {
 }
 
 /**
- * After "Add to book": a card near the bottom of the screen, over a light veil, that says what was
- * added and points the buyer to the Swatch Book to order it. Escape, the veil, or "Keep browsing"
- * closes it.
+ * The price, above "Add to book": a quiet line that still carries the most important number on
+ * the page — one price per metre for every customer, in the display serif, with stock opposite.
  */
-function BookPrompt({ n, t, leaving, onOrder, onClose }: { n: number; t: Record<string, string>; leaving: boolean; onOrder: () => void; onClose: () => void }) {
+function PriceLine({ price, t }: { price: number; t: Record<string, string> }) {
+  return (
+    <div
+      style={{
+        position: 'relative', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16,
+        padding: '14px 2px 16px', borderTop: '1px solid rgba(138,109,69,.35)', borderBottom: '1px solid rgba(28,25,23,.07)',
+        animation: 'rise 1s .2s cubic-bezier(.22,.8,.2,1) both',
+      }}
+    >
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 9.5, letterSpacing: '.3em', color: '#8A6D45', textTransform: 'uppercase' }}>{t.pricePerMetre}</div>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 6, fontFamily: FONT_DISPLAY, color: '#1C1917' }}>
+          <span style={{ fontSize: 18, color: '#8A6D45', transform: 'translateY(-10px)' }}>₹</span>
+          <span style={{ fontSize: 40, fontWeight: 500, lineHeight: 0.9, letterSpacing: '.01em' }}>{price}</span>
+          <span style={{ fontFamily: FONT_BODY, fontSize: 11, letterSpacing: '.16em', color: 'rgba(28,25,23,.5)', textTransform: 'uppercase', marginLeft: 4 }}>/ {t.metre}</span>
+        </div>
+      </div>
+      <div style={{ textAlign: 'right', flex: 'none' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 10, letterSpacing: '.2em', color: 'rgba(28,25,23,.6)', textTransform: 'uppercase' }}>
+          <span aria-hidden style={{ width: 7, height: 7, borderRadius: '50%', background: '#5E8C61', boxShadow: '0 0 0 3px rgba(94,140,97,.16)', animation: 'pulse 3s infinite' }} />
+          {t.inStockShort}
+        </div>
+        <div style={{ fontSize: 10.5, color: 'rgba(28,25,23,.45)', marginTop: 5, letterSpacing: '.04em' }}>{t.millFresh}</div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * After "Add to book": a card near the bottom of the screen, over a light veil — the shades just
+ * added fanned out as pinked cuttings, the fabric and their names, how many shades the book now
+ * holds, and the way to the Swatch Book to order it. Escape, the veil, the close mark or
+ * "Continue browsing" closes it.
+ */
+function BookPrompt({ t, fabric, swatches, names, total, leaving, onOrder, onClose }: {
+  t: Record<string, string>; fabric: string; swatches: string[]; names: string[]; total: number;
+  leaving: boolean; onOrder: () => void; onClose: () => void;
+}) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -705,38 +754,73 @@ function BookPrompt({ n, t, leaving, onOrder, onClose }: { n: number; t: Record<
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
+  const fan = swatches.slice(0, 4);
+  const shown = names.slice(0, 3).join(', ') + (names.length > 3 ? ` +${names.length - 3}` : '');
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 90 }}>
-      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(28,25,23,.28)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', animation: leaving ? 'pcVeilOut .48s ease both' : 'pcVeil .7s ease both' }} />
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(28,25,23,.32)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', animation: leaving ? 'pcVeilOut .48s ease both' : 'pcVeil .7s ease both' }} />
       <div
         role="dialog"
         aria-label={t.bookAdded}
         style={{
-          position: 'absolute', left: 16, right: 16, bottom: 'calc(var(--pc-bottombar) + 16px)', margin: '0 auto', maxWidth: 420,
-          background: '#FAF8F5', borderRadius: 20, padding: '20px 20px 16px', boxShadow: '0 30px 70px rgba(28,25,23,.28)',
-          animation: leaving ? 'pcPopOut .46s ease both' : 'pcPop .8s cubic-bezier(.22,.8,.2,1) both',
+          position: 'absolute', left: 16, right: 16, bottom: 'calc(var(--pc-bottombar) + 16px)', margin: '0 auto', maxWidth: 440,
+          background: '#FAF8F5', borderRadius: 22, overflow: 'hidden',
+          boxShadow: '0 40px 90px rgba(28,25,23,.32), 0 0 0 1px rgba(28,25,23,.05)',
+          animation: leaving ? 'pcPopOut .46s ease both' : 'pcPop .85s cubic-bezier(.22,.8,.2,1) both',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span aria-hidden style={{ flex: 'none', width: 38, height: 38, borderRadius: '50%', display: 'grid', placeItems: 'center', background: '#8A6D45', color: '#FAF8F5', fontSize: 16 }}>✓</span>
-          <div>
-            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 21, fontWeight: 600, lineHeight: 1.15 }}>{t.bookAdded}</div>
-            <div style={{ fontSize: 12, color: 'rgba(28,25,23,.55)', marginTop: 3 }}>{n > 1 ? `${n} ${t.shades}` : `1 ${t.shade}`}</div>
+        <div style={{ height: 3, background: 'linear-gradient(90deg, #8A6D45, #C9A96E, #8A6D45)' }} />
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          className="pc-hv-ink"
+          style={{ cursor: 'pointer', position: 'absolute', top: 12, right: 12, width: 34, height: 34, borderRadius: '50%', border: 'none', background: 'none', fontSize: 20, color: 'rgba(28,25,23,.45)' }}
+        >
+          ×
+        </button>
+        <div style={{ padding: '22px 22px 18px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+            {/* The cuttings, fanned like a swatch card in the hand. */}
+            <div aria-hidden style={{ position: 'relative', flex: 'none', width: 74, height: 70 }}>
+              {fan.map((c, k) => (
+                <span
+                  key={k}
+                  className="pc-pink"
+                  style={{
+                    position: 'absolute', left: 10 + k * 7, top: 4, width: 42, height: 58, borderRadius: '3px 3px 0 0', background: c,
+                    boxShadow: '0 6px 14px rgba(28,25,23,.18), inset 0 0 0 1px rgba(28,25,23,.08)',
+                    transform: `rotate(${(k - (fan.length - 1) / 2) * 9}deg)`, transformOrigin: '50% 100%',
+                    animation: leaving ? undefined : `pcPop .8s ${200 + k * 90}ms cubic-bezier(.22,.8,.2,1) both`,
+                  }}
+                />
+              ))}
+              <span style={{ position: 'absolute', right: -2, bottom: -2, width: 24, height: 24, borderRadius: '50%', display: 'grid', placeItems: 'center', background: '#8A6D45', color: '#FAF8F5', fontSize: 12, boxShadow: '0 0 0 3px #FAF8F5' }}>✓</span>
+            </div>
+            <div style={{ minWidth: 0, paddingRight: 24 }}>
+              <div style={{ fontSize: 9.5, letterSpacing: '.3em', color: '#8A6D45', textTransform: 'uppercase' }}>{t.book}</div>
+              <div style={{ fontFamily: FONT_DISPLAY, fontSize: 25, fontWeight: 500, lineHeight: 1.1, marginTop: 4 }}>{t.bookAdded}</div>
+              <div style={{ fontSize: 12.5, color: 'rgba(28,25,23,.6)', marginTop: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {fabric} · {shown}
+              </div>
+            </div>
           </div>
-        </div>
-        <p style={{ margin: '14px 0 16px', fontSize: 13.5, fontWeight: 300, lineHeight: 1.6, color: 'rgba(28,25,23,.7)' }}>{t.bookNudge}</p>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 18, padding: '12px 0', borderTop: '1px solid rgba(28,25,23,.08)', borderBottom: '1px solid rgba(28,25,23,.08)' }}>
+            <span style={{ fontSize: 12.5, fontWeight: 300, color: 'rgba(28,25,23,.7)', lineHeight: 1.5 }}>{t.bookNudge}</span>
+            <span style={{ flex: 'none', fontSize: 10, letterSpacing: '.18em', textTransform: 'uppercase', color: '#8A6D45', whiteSpace: 'nowrap' }}>
+              {t.yourBook} · {total} {total === 1 ? t.shade : t.shades}
+            </span>
+          </div>
           <button
             onClick={onOrder}
-            className="pc-hv-gold-fill"
-            style={{ cursor: 'pointer', flex: '1 1 180px', background: '#1C1917', color: '#FAF8F5', border: 'none', borderRadius: 999, padding: '13px 18px', fontFamily: FONT_BODY, fontSize: 12, letterSpacing: '.14em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}
+            className="pc-hv-gold-fill pc-cta"
+            style={{ cursor: 'pointer', width: '100%', marginTop: 16, background: '#1C1917', color: '#FAF8F5', border: '1px solid #1C1917', borderRadius: 999, padding: '15px 18px', fontFamily: FONT_BODY, fontSize: 12, letterSpacing: '.18em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}
           >
             {t.orderBook} →
           </button>
           <button
             onClick={onClose}
             className="pc-hv-ink"
-            style={{ cursor: 'pointer', flex: '0 1 auto', background: 'none', border: 'none', padding: '13px 10px', fontFamily: FONT_BODY, fontSize: 12, letterSpacing: '.1em', color: 'rgba(28,25,23,.6)', whiteSpace: 'nowrap' }}
+            style={{ cursor: 'pointer', display: 'block', margin: '8px auto 0', background: 'none', border: 'none', padding: '10px 12px', fontFamily: FONT_BODY, fontSize: 11, letterSpacing: '.16em', textTransform: 'uppercase', color: 'rgba(28,25,23,.5)', whiteSpace: 'nowrap' }}
           >
             {t.keepBrowsing}
           </button>

@@ -50,12 +50,19 @@ details — name, the shade on the stage, weight, width, composition, hand, pric
 a near-opaque card over the stage, so a buyer can read the specifications without scrolling
 away from the garment. A second tap, Escape, or a tap outside closes it.
 
-**The buyer's column.** To the right of the stage (below it and its shade chart on a phone):
-Add to book, the column's one action, in the primary fill (gold once the shade is in the book),
-then the shade chart on a desktop. Adding opens a card near the bottom of the screen — what was
-added, and "Order swatch book →" to the Swatch Book, where the book is ordered, or "Keep
-browsing" — and closes "Select multiple" as Done would. A quote is asked for from the Swatch
-Book; the product details open from the stage's "i". There is no WhatsApp button in the lab.
+**The buyer's column.** To the right of the stage (below it and its shade chart on a phone): the
+price line, then Add to book, then the shade chart on a desktop. The price line sits between two
+hairlines (the upper one gold): "Price" in gold small caps over the price per metre in the display
+serif — one price for every customer, signed in or not, as the owner is standardising pricing —
+and opposite, "In stock" with a softly pulsing dot and "Mill fresh". The product details under the
+"i" show the same price. Add to book is the column's one action, in the primary fill (gold once the
+shade is in the book). Adding opens a card near the bottom of the screen: a gold rule, the added
+shades fanned out as pinked cuttings with a gold tick, "Added to your book", the fabric and the
+shades' names, how many shades the book now holds, "Order swatch book →" to the Swatch Book and
+"Continue browsing" — and it closes "Select multiple" as Done would. A quote is asked for from the
+Swatch Book; the product details open from the stage's "i". There is no WhatsApp button.
+
+**The lab opens on the roll** — the cloth itself, before any garment is cut from it.
 
 **Scenes and the microscope** are a panel, not page sections. A camera button on the stage, above
 the garment button, slides up a sheet with the scenes in the owner's sketched layout (a banner, a
@@ -66,9 +73,12 @@ underneath and the sheet seemed to have no end. In its corner a round magnifying
 pops the magnifications out to its left — 100×, 200×, 500× — in a glass pill, the way the wind's
 On and Off pop out of the wind button, with the fabric's physics note.
 
-**Below the stage**, the page ends with "More fabrics" — the Showroom's own fabric rolls (one shared
+**Below the stage**, the page ends with "More fabrics" — headed as a catalogue sets a section (a
+gold eyebrow, "The collection · 10 qualities", between hairlines; "More *fabrics*" in the display
+serif with the second word in gold italic; the selvage stitch) — and the Showroom's own fabric rolls (one shared
 `FabricRoll` drawing: the bolt on its end, its core, the weave, the shadow and reflection, heavier
-cloth taller) standing on a small showroom floor, each opening through the Showroom's unroll —
+cloth taller; here in a narrower spread of heights, so the lightest roll does not leave a band of
+empty wall above it) standing on a small showroom floor, each opening through the Showroom's unroll —
 and then the downloads (spec sheet, colour catalogue, this view) and the share QR.
 
 **Arriving on a page.** Every change of page is announced by a cream curtain carrying the page's

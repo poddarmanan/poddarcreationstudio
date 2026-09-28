@@ -9,12 +9,16 @@ import { FONT_DISPLAY, colourShade, fabricWeave, heroColour } from './helpers';
  * the floor. Heavier cloth stands taller. Used by the Showroom and by the lab's "more fabrics",
  * so the two are one drawing.
  */
-export function FabricRoll({ f, no, onClick, fg, sub, accent, shades, className = 'pc-hv-lift-14', style }: {
+export function FabricRoll({ f, no, onClick, fg, sub, accent, shades, className = 'pc-hv-lift-14', style, compact = false }: {
   f: FabricRow; no: string; onClick: () => void; fg: string; sub: string; accent: string; shades: string;
   className?: string; style?: React.CSSProperties;
+  /** A narrower spread of heights, for a strip seen a few rolls at a time: heavier cloth still
+   * stands taller, but the lightest roll no longer leaves a band of empty wall above it. */
+  compact?: boolean;
 }) {
   const o = heroColour(f);
-  const h = Math.round(190 + parseFloat(f.weight) * 7);
+  const w = parseFloat(f.weight);
+  const h = Math.round(compact ? 232 + w * 2.6 : 190 + w * 7);
   const top1 = colourShade(o, 0.1);
   const top2 = colourShade(o, -0.07);
   const s1 = colourShade(o, -0.28);
