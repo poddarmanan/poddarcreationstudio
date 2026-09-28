@@ -110,7 +110,7 @@ export function Admin({ studio }: { studio: Studio }) {
 
   if (!canManage) {
     return (
-      <div style={{ padding: '80px 24px', textAlign: 'center', animation: 'layCloth .55s cubic-bezier(.2,.8,.2,1) both' }}>
+      <div style={{ padding: '80px 24px', textAlign: 'center', animation: 'layCloth .95s cubic-bezier(.22,.8,.2,1) both' }}>
         <div style={{ fontFamily: FONT_DISPLAY, fontSize: 30, fontWeight: 500 }}>Catalogue Studio</div>
         <Selvage style={{ margin: '14px auto 0' }} />
         <p style={{ fontWeight: 300, color: 'rgba(28,25,23,.6)', maxWidth: 420, margin: '18px auto 0', lineHeight: 1.7 }}>
@@ -158,7 +158,7 @@ export function Admin({ studio }: { studio: Studio }) {
   ];
 
   return (
-    <div className="pc-view" style={{ display: 'flex', flexWrap: 'wrap', background: '#F5F2ED', animation: 'layCloth .55s cubic-bezier(.2,.8,.2,1) both' }}>
+    <div className="pc-view" style={{ display: 'flex', flexWrap: 'wrap', background: '#F5F2ED', animation: 'layCloth .95s cubic-bezier(.22,.8,.2,1) both' }}>
       <div style={{ flex: '1 1 216px', maxWidth: 280, minWidth: 200, borderRight: '1px solid rgba(28,25,23,.08)', padding: '20px 12px' }}>
         <div style={{ fontSize: 10, letterSpacing: '.34em', color: '#8A6D45', padding: '0 10px' }}>STUDIO</div>
         <div style={{ fontFamily: FONT_DISPLAY, fontSize: 19, fontWeight: 600, padding: '4px 10px 14px' }}>Poddar Workspace</div>

@@ -2,7 +2,8 @@
 
 import type { Studio } from './state';
 import { Selvage } from './brand';
-import { FONT_DISPLAY, FONT_BODY, colourShade, fabricWeave, heroColour, fabricNo } from './helpers';
+import { FONT_DISPLAY, FONT_BODY, fabricNo } from './helpers';
+import { FabricRoll } from './FabricRoll';
 import { useDragScroll, scrollByEl } from './interactions';
 import { ROOMS } from '@/lib/fabric-generator';
 
@@ -16,31 +17,14 @@ export function Showroom({ studio }: { studio: Studio }) {
   const walkDrag = useDragScroll();
   const roomFade = room.k === 'silk' ? 'rgba(35,30,26,.85)' : 'rgba(240,235,226,.85)';
 
-  const rolls = room.ids
-    .map((id) => studio.fab(id))
-    .map((f) => {
-      const o = heroColour(f);
-      const w = parseFloat(f.weight);
-      return {
-        f,
-        h: Math.round(190 + w * 7),
-        top1: colourShade(o, 0.1),
-        top2: colourShade(o, -0.07),
-        s1: colourShade(o, -0.28),
-        s2: colourShade(o, -0.1),
-        mid: colourShade(o, 0.08),
-        s3: colourShade(o, -0.12),
-        s4: colourShade(o, -0.32),
-        weave: fabricWeave(f, o, 3),
-      };
-    });
+  const rolls = room.ids.map((id) => ({ f: studio.fab(id) }));
 
   return (
     <div
       className="pc-view"
       style={{
         position: 'relative', background: room.bg, overflow: 'hidden',
-        transition: 'background 1s', animation: 'layCloth .55s cubic-bezier(.2,.8,.2,1) both',
+        transition: 'background 1s', animation: 'layCloth .95s cubic-bezier(.22,.8,.2,1) both',
       }}
     >
       <div
@@ -52,7 +36,7 @@ export function Showroom({ studio }: { studio: Studio }) {
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(120% 100% at 50% 40%, transparent 60%, rgba(28,25,23,.14))' }} />
       <div
         key={room.k}
-        style={{ position: 'relative', textAlign: 'center', padding: 'clamp(24px,4vh,44px) 20px 0', animation: 'rise .6s cubic-bezier(.2,.8,.2,1) both' }}
+        style={{ position: 'relative', textAlign: 'center', padding: 'clamp(24px,4vh,44px) 20px 0', animation: 'rise .95s cubic-bezier(.22,.8,.2,1) both' }}
       >
         <div style={{ fontSize: 10, letterSpacing: '.5em', color: room.accent }}>
           {t.showroom} · {ri + 1} / {rooms.length}
@@ -102,57 +86,20 @@ export function Showroom({ studio }: { studio: Studio }) {
           key={room.k}
           style={{
             display: 'flex', alignItems: 'flex-end', gap: 'clamp(30px,4.5vw,64px)', padding: '0 clamp(34px,7vw,100px)',
-            minWidth: 'max-content', animation: 'roomIn .7s cubic-bezier(.2,.8,.2,1) both',
+            minWidth: 'max-content', animation: 'roomIn 1.05s cubic-bezier(.22,.8,.2,1) both',
           }}
         >
           {rolls.map((r) => (
-            <div
+            <FabricRoll
               key={r.f.id}
+              f={r.f}
+              no={fabricNo(studio.fabrics, r.f.id)}
               onClick={() => studio.unroll(r.f)}
-              className="pc-hv-lift-14"
-              style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', transition: 'transform .4s cubic-bezier(.2,.8,.2,1)' }}
-            >
-              <div style={{ position: 'relative', width: 92, height: r.h }}>
-                <div
-                  style={{
-                    position: 'absolute', top: -12, left: 0, width: 92, height: 24, borderRadius: '50%',
-                    background: `radial-gradient(ellipse at 42% 40%, ${r.top1}, ${r.top2} 70%)`, border: '1px solid rgba(28,25,23,.12)',
-                  }}
-                />
-                <div style={{ position: 'absolute', top: -4, left: 33, width: 26, height: 9, borderRadius: '50%', background: '#EFE9DF', border: '1px solid rgba(28,25,23,.18)' }} />
-                <div
-                  style={{
-                    position: 'absolute', inset: 0, borderRadius: '0 0 7px 7px',
-                    background: `linear-gradient(90deg, ${r.s1} 0%, ${r.s2} 16%, ${r.mid} 42%, ${r.mid} 58%, ${r.s3} 84%, ${r.s4} 100%)`,
-                    boxShadow: 'inset 0 -34px 44px rgba(28,25,23,.13)',
-                  }}
-                />
-                <div style={{ position: 'absolute', inset: 0, background: r.weave, opacity: 0.5, borderRadius: '0 0 7px 7px' }} />
-                <div
-                  style={{
-                    position: 'absolute', left: -16, right: -16, bottom: -13, height: 20, borderRadius: '50%',
-                    background: 'radial-gradient(ellipse, rgba(28,25,23,.32), transparent 70%)',
-                  }}
-                />
-                <div
-                  style={{
-                    position: 'absolute', top: '100%', left: 0, right: 0, height: 60, marginTop: 14, borderRadius: '7px 7px 0 0',
-                    background: `linear-gradient(90deg, ${r.s1} 0%, ${r.s2} 16%, ${r.mid} 42%, ${r.mid} 58%, ${r.s3} 84%, ${r.s4} 100%)`,
-                    opacity: 0.14, transform: 'scaleY(-1)', maskImage: 'linear-gradient(180deg,transparent, #000)',
-                  }}
-                />
-              </div>
-              <div style={{ marginTop: 32, textAlign: 'center', position: 'relative', zIndex: 2 }}>
-                <div style={{ fontFamily: FONT_DISPLAY, fontSize: 12.5, letterSpacing: '.14em', color: room.accent, marginBottom: 3 }}>{fabricNo(studio.fabrics, r.f.id)}</div>
-                <div style={{ fontFamily: FONT_DISPLAY, fontSize: 19, fontWeight: 600, color: room.fg }}>{r.f.name}</div>
-                <div style={{ fontSize: 11, letterSpacing: '.14em', color: room.sub, marginTop: 3 }}>
-                  {r.f.weight} · {r.f.width}
-                </div>
-                <div style={{ fontSize: 10.5, letterSpacing: '.1em', color: room.accent, marginTop: 3 }}>
-                  {r.f.nc} {t.shades}
-                </div>
-              </div>
-            </div>
+              fg={room.fg}
+              sub={room.sub}
+              accent={room.accent}
+              shades={t.shades}
+            />
           ))}
           <div
             onClick={() => studio.setRoom(next.k)}

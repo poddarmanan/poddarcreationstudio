@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { usePresence, Reveal } from './motion';
+import { FabricRoll } from './FabricRoll';
 import type { Studio } from './state';
 import { FabricViewer } from '@/components/three/FabricViewer';
 import { ExportView } from '@/components/three/ExportView';
 import { oklchToHex } from '@/lib/three/colour';
 import { metamerism, shiftVerdict } from '@/lib/three/metamerism';
-import { FONT_DISPLAY, FONT_BODY, fabricTex, fabricWeave, colourCss, colourFg, colourShade, heroColour, fabricNo } from './helpers';
+import { FONT_DISPLAY, FONT_BODY, fabricTex, fabricWeave, colourCss, colourFg, colourShade, fabricNo } from './helpers';
 import { useDragScroll, scrollByEl } from './interactions';
 import {
   GARMENTS, LIGHTS, PHYSICS_NOTES, STRETCH_TEST_NOTES,
@@ -63,10 +65,12 @@ export function FabricLab({ studio }: { studio: Studio }) {
   const pinned = targetColours.every((c) => studio.pins.some((p) => p.fabricId === f.id && p.colourOrder === c.order));
   // Adding to the book: pin the shades, close "Select multiple" (as Done would), and point the
   // buyer at the Swatch Book, where the book is ordered.
-  const [added, setAdded] = useState(0);
+  // The prompt's count stays on it while it animates out.
+  const [prompt, setPrompt] = useState({ n: 0, open: false });
+  const promptPresence = usePresence(prompt.open, 480);
   const pinTargets = () => {
     targetColours.forEach((c) => studio.pinShade(f.id, c.order));
-    setAdded(targetColours.length);
+    setPrompt({ n: targetColours.length, open: true });
     setMulti(null);
   };
   // The prompt is fixed to the viewport, so it is portalled to the body: the lab's root animates a
@@ -104,6 +108,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
   const [windOpen, setWindOpen] = useState(false);
   // Scenes, as a panel from the stage's camera button, with the microscope inside it.
   const [scenesOpen, setScenesOpen] = useState(false);
+  const scenesPresence = usePresence(scenesOpen, 560);
   const [pickerOpen, setPickerOpen] = useState(false);
   // True while a supplied model is on its way; the stage shows a loader rather than the
   // built-in cut, which used to stand in and read as the wrong garment appearing first.
@@ -201,12 +206,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
 
   const moreFabrics = studio.fabrics
     .filter((x) => x.id !== f.id)
-    .map((x, i) => {
-      const o = heroColour(x);
-      const step = Math.max(1, Math.floor(x.colours.length / 5));
-      const dots = [0, 1, 2, 3, 4].map((k) => x.colours[(x.heroIndex + k * step) % x.colours.length]).filter(Boolean).map((c) => colourCss(c));
-      return { id: x.id, no: fabricNo(studio.fabrics, x.id), name: x.name, nc: x.nc, meta: `${x.weight} · ${x.width} · ${x.hand}`, tex: fabricTex(x, o, 4), dots, dl: `${i * 45}ms` };
-    });
+    .map((x, i) => ({ id: x.id, no: fabricNo(studio.fabrics, x.id), dl: `${i * 80}ms` }));
 
   const shadeChart = (
             <div>
@@ -249,7 +249,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
                         ? 'inset 0 0 0 3px #8A6D45'
                         : j === studio.ci ? 'inset 0 0 0 3px #1C1917' : 'inset 0 0 0 1px rgba(28,25,23,.1)',
                       padding: '0 2px 7px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-                      animation: `tileIn .4s ${j * 22}ms both`, transition: 'transform .25s, box-shadow .3s ease',
+                      animation: `tileIn .7s ${j * 26}ms cubic-bezier(.22,.8,.2,1) both`, transition: 'transform .5s cubic-bezier(.22,.8,.2,1), box-shadow .45s ease',
                     }}
                   >
                     {picking && (
@@ -273,7 +273,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
   );
 
   return (
-    <div style={{ paddingBottom: 80, animation: 'layCloth .55s cubic-bezier(.2,.8,.2,1) both' }}>
+    <div style={{ paddingBottom: 80, animation: 'layCloth .95s cubic-bezier(.22,.8,.2,1) both' }}>
       {/* Header: a catalogue plate. The number over its count in the house gold, a rule, the
           name in display capitals with its spec line, and the lab's own mark at the right
           (hidden on a phone, where the stage is a thumb away). */}
@@ -569,7 +569,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
 
       {/* More fabrics: large cards, the plate number over the cloth, a few of its shades, snap
           scrolling; each opens through the Showroom's unroll. */}
-      <section style={{ padding: 'clamp(40px,6vw,72px) 0 0' }}>
+      <Reveal as="section" style={{ padding: 'clamp(40px,6vw,72px) 0 0' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, padding: '0 clamp(16px,5vw,64px)', marginBottom: 20 }}>
           <h2 style={{ margin: 0, fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(28px,3.4vw,44px)' }}>{t.moreFab}</h2>
           <span style={{ fontSize: 10.5, letterSpacing: '.22em', color: '#8A6D45', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{moreFabrics.length} {t.qualities}</span>
@@ -579,46 +579,26 @@ export function FabricLab({ studio }: { studio: Studio }) {
             id="pc-morefab"
             className="pc-nav"
             {...moreDrag}
-            style={{ display: 'flex', gap: 'clamp(14px,2vw,22px)', overflowX: 'auto', padding: '6px clamp(16px,5vw,64px) 18px', cursor: 'grab', touchAction: 'pan-y', scrollSnapType: 'x proximity', scrollPaddingLeft: 'clamp(16px,5vw,64px)' }}
+            style={{
+              display: 'flex', alignItems: 'flex-end', gap: 'clamp(30px,4.5vw,64px)', overflowX: 'auto', padding: '40px clamp(34px,7vw,100px) 30px',
+              cursor: 'grab', touchAction: 'pan-y', scrollSnapType: 'x proximity', scrollPaddingLeft: 'clamp(34px,7vw,100px)',
+              // The Showroom's hall, in miniature: a pale wall meeting a floor the rolls stand on.
+              background: 'linear-gradient(180deg,#F6F3EE 0%,#EFEAE2 64%,#E0DACE 64.2%,#D4CDBF 100%)',
+            }}
           >
             {moreFabrics.map((m) => (
-              <div
-                key={m.id}
-                onClick={() => studio.unroll(studio.fab(m.id))}
-                className="pc-hv-lift-6"
-                style={{
-                  cursor: 'pointer', flex: 'none', width: 'clamp(230px, 66vw, 300px)', scrollSnapAlign: 'start', background: '#fff', borderRadius: 14, overflow: 'hidden',
-                  boxShadow: '0 14px 34px rgba(28,25,23,.10), 0 0 0 1px rgba(28,25,23,.05)',
-                  animation: `tileIn .5s ${m.dl} both`, transition: 'transform .45s cubic-bezier(.2,.8,.2,1), box-shadow .45s ease',
-                }}
-              >
-                <div className="pc-pink" style={{ position: 'relative', height: 'clamp(180px, 50vw, 230px)', background: m.tex }}>
-                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(28,25,23,.18) 0%, transparent 34%, transparent 62%, rgba(28,25,23,.32) 100%)' }} />
-                  <span style={{ position: 'absolute', top: 12, left: 14, fontFamily: FONT_DISPLAY, fontSize: 34, fontWeight: 500, lineHeight: 1, color: 'rgba(250,248,245,.94)', textShadow: '0 2px 12px rgba(28,25,23,.35)' }}>{m.no}</span>
-                  <div style={{ position: 'absolute', left: 14, bottom: 12, display: 'flex', gap: 5 }}>
-                    {m.dots.map((d, k) => (
-                      <span key={k} style={{ width: 14, height: 14, borderRadius: '50%', background: d, boxShadow: '0 0 0 1.5px rgba(250,248,245,.9)' }} />
-                    ))}
-                  </div>
-                  <span style={{ position: 'absolute', right: 14, bottom: 12, fontSize: 10, letterSpacing: '.18em', color: 'rgba(250,248,245,.92)', textTransform: 'uppercase' }}>{m.nc} {t.shades}</span>
-                </div>
-                <div style={{ padding: '14px 16px 16px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10 }}>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontFamily: FONT_DISPLAY, fontSize: 22, fontWeight: 600, lineHeight: 1.1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.name}</div>
-                    <div style={{ fontSize: 11, letterSpacing: '.08em', color: 'rgba(28,25,23,.5)', marginTop: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.meta}</div>
-                  </div>
-                  <span aria-hidden style={{ flex: 'none', width: 32, height: 32, borderRadius: '50%', display: 'grid', placeItems: 'center', border: '1px solid rgba(28,25,23,.15)', color: '#8A6D45', fontSize: 15 }}>→</span>
-                </div>
+              <div key={m.id} style={{ flex: 'none', scrollSnapAlign: 'start', animation: `tileIn .9s ${m.dl} cubic-bezier(.22,.8,.2,1) both` }}>
+                <FabricRoll f={studio.fab(m.id)} no={m.no} onClick={() => studio.unroll(studio.fab(m.id))} fg="#1C1917" sub="rgba(28,25,23,.55)" accent="#8A6D45" shades={t.shades} />
               </div>
             ))}
           </div>
-          <div style={{ position: 'absolute', top: 0, bottom: 18, right: 0, width: 60, pointerEvents: 'none', background: 'linear-gradient(270deg,#FAF8F5,transparent)' }} />
+          <div style={{ position: 'absolute', top: 0, bottom: 0, right: 0, width: 60, pointerEvents: 'none', background: 'linear-gradient(270deg,rgba(240,235,226,.85),transparent)' }} />
           <button
             onClick={() => scrollByEl('pc-morefab', -320)}
             aria-label="Scroll left"
             className="pc-hv-ink-fill"
             style={{
-              cursor: 'pointer', position: 'absolute', left: 10, top: 'clamp(90px, 25vw, 120px)', transform: 'translateY(-50%)', width: 42, height: 42, borderRadius: '50%',
+              cursor: 'pointer', position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 42, height: 42, borderRadius: '50%',
               border: '1px solid rgba(28,25,23,.15)', background: 'rgba(255,255,255,.9)', boxShadow: '0 6px 18px rgba(28,25,23,.14)',
               fontSize: 16, color: '#1C1917', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .25s,color .25s',
             }}
@@ -630,7 +610,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
             aria-label="Scroll right"
             className="pc-hv-ink-fill"
             style={{
-              cursor: 'pointer', position: 'absolute', right: 10, top: 'clamp(90px, 25vw, 120px)', transform: 'translateY(-50%)', width: 42, height: 42, borderRadius: '50%',
+              cursor: 'pointer', position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', width: 42, height: 42, borderRadius: '50%',
               border: '1px solid rgba(28,25,23,.15)', background: 'rgba(255,255,255,.9)', boxShadow: '0 6px 18px rgba(28,25,23,.14)',
               fontSize: 16, color: '#1C1917', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .25s,color .25s',
             }}
@@ -638,11 +618,11 @@ export function FabricLab({ studio }: { studio: Studio }) {
             ›
           </button>
         </div>
-      </section>
+      </Reveal>
 
       {/* Downloads, after the other fabrics: the spec sheet, the colour catalogue, this view, and
           the QR to share it. */}
-      <section style={{ margin: 'clamp(34px,5vw,56px) clamp(16px,5vw,64px) 0', paddingTop: 'clamp(22px,3vw,30px)', borderTop: '1px solid rgba(28,25,23,.08)' }}>
+      <Reveal as="section" delay={80} style={{ margin: 'clamp(34px,5vw,56px) clamp(16px,5vw,64px) 0', paddingTop: 'clamp(22px,3vw,30px)', borderTop: '1px solid rgba(28,25,23,.08)' }}>
         <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
           <div>
             <div style={{ fontSize: 10.5, letterSpacing: '.22em', color: 'rgba(28,25,23,.45)', textTransform: 'uppercase', marginBottom: 8 }}>{t.downloads}</div>
@@ -671,9 +651,10 @@ export function FabricLab({ studio }: { studio: Studio }) {
             <div style={{ fontSize: 9.5, letterSpacing: '.16em', color: 'rgba(28,25,23,.45)', marginTop: 5 }}>{t.qr}</div>
           </div>
         </div>
-      </section>
-      {mounted && scenesOpen && createPortal(
+      </Reveal>
+      {mounted && scenesPresence.shown && createPortal(
         <ScenesPanel
+          leaving={scenesPresence.leaving}
           t={t}
           fg={fg}
           scenes={sceneDefs}
@@ -684,8 +665,14 @@ export function FabricLab({ studio }: { studio: Studio }) {
         />,
         document.body,
       )}
-      {mounted && added > 0 && createPortal(
-        <BookPrompt n={added} t={t} onOrder={() => { setAdded(0); studio.go('book'); }} onClose={() => setAdded(0)} />,
+      {mounted && promptPresence.shown && createPortal(
+        <BookPrompt
+          n={prompt.n}
+          t={t}
+          leaving={promptPresence.leaving}
+          onOrder={() => { setPrompt((p) => ({ ...p, open: false })); studio.go('book'); }}
+          onClose={() => setPrompt((p) => ({ ...p, open: false }))}
+        />,
         document.body,
       )}
     </div>
@@ -697,7 +684,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
  * added and points the buyer to the Swatch Book to order it. Escape, the veil, or "Keep browsing"
  * closes it.
  */
-function BookPrompt({ n, t, onOrder, onClose }: { n: number; t: Record<string, string>; onOrder: () => void; onClose: () => void }) {
+function BookPrompt({ n, t, leaving, onOrder, onClose }: { n: number; t: Record<string, string>; leaving: boolean; onOrder: () => void; onClose: () => void }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -707,14 +694,14 @@ function BookPrompt({ n, t, onOrder, onClose }: { n: number; t: Record<string, s
   }, [onClose]);
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 90 }}>
-      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(28,25,23,.28)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', animation: 'pcVeil .4s ease both' }} />
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(28,25,23,.28)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', animation: leaving ? 'pcVeilOut .48s ease both' : 'pcVeil .7s ease both' }} />
       <div
         role="dialog"
         aria-label={t.bookAdded}
         style={{
           position: 'absolute', left: 16, right: 16, bottom: 'calc(var(--pc-bottombar) + 16px)', margin: '0 auto', maxWidth: 420,
           background: '#FAF8F5', borderRadius: 20, padding: '20px 20px 16px', boxShadow: '0 30px 70px rgba(28,25,23,.28)',
-          animation: 'pcPop .55s cubic-bezier(.2,.8,.2,1) both',
+          animation: leaving ? 'pcPopOut .46s ease both' : 'pcPop .8s cubic-bezier(.22,.8,.2,1) both',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -778,7 +765,7 @@ function IconToggle({ label, on, onClick, delay = 0, children }: { label: string
         ...GLASS, WebkitBackdropFilter: GLASS.backdropFilter,
         background: on ? '#1C1917' : GLASS.background, color: on ? '#FAF8F5' : '#1C1917',
         transition: 'transform .5s cubic-bezier(.2,.8,.2,1), color .45s ease, background .45s ease',
-        animation: `pcPop .7s ${delay}s cubic-bezier(.2,.8,.2,1) both`,
+        animation: `pcPop .9s ${delay}s cubic-bezier(.22,.8,.2,1) both`,
       }}
     >
       {children}
@@ -797,12 +784,10 @@ function CameraIcon() {
 
 function ScopeIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M8 3h5l-1 6h-3Z" />
-      <path d="M10.5 9v3" />
-      <path d="M6 21h12" />
-      <path d="M9 21a6 6 0 0 0 9-8.5" />
-      <path d="M12 17h-3" />
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <path d="M15.5 15.5 21 21" />
+      <path d="M8 10.5h5M10.5 8v5" />
     </svg>
   );
 }
@@ -814,11 +799,22 @@ type SceneDef = { label: string; css: string; moving?: boolean };
  * banner, a large tile beside two small, the next banner), each opening full size. The
  * microscope lives in the panel's corner — a round button that opens into 100×, 200× and 500×.
  */
-function ScenesPanel({ t, fg, scenes, note, onScene, onScope, onClose }: {
-  t: Record<string, string>; fg: string; scenes: SceneDef[]; note: string;
+function ScenesPanel({ leaving, t, fg, scenes, note, onScene, onScope, onClose }: {
+  leaving: boolean; t: Record<string, string>; fg: string; scenes: SceneDef[]; note: string;
   onScene: (s: SceneDef) => void; onScope: (p: number) => void; onClose: () => void;
 }) {
   const [scopeOpen, setScopeOpen] = useState(false);
+  const scope = usePresence(scopeOpen, 420);
+  // The page behind stays put while the sheet is up: without this, scrolling past the last
+  // picture carried on down the page underneath, and the sheet seemed to have no end.
+  useEffect(() => {
+    const html = document.documentElement;
+    const was = html.style.overflow;
+    html.style.overflow = 'hidden';
+    return () => {
+      html.style.overflow = was;
+    };
+  }, []);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -828,28 +824,43 @@ function ScenesPanel({ t, fg, scenes, note, onScene, onScope, onClose }: {
   }, [onClose]);
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 80 }}>
-      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(28,25,23,.36)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', animation: 'pcVeil .45s ease both' }} />
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(28,25,23,.36)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', animation: leaving ? 'pcVeilOut .55s ease both' : 'pcVeil .75s ease both' }} />
       <div
         role="dialog"
         aria-label={t.scenes}
         style={{
           position: 'absolute', left: 0, right: 0, bottom: 0, margin: '0 auto', maxWidth: 980, maxHeight: 'calc(100svh - 56px)', overflowY: 'auto',
-          background: '#FAF8F5', borderRadius: '22px 22px 0 0', padding: '18px clamp(16px,3vw,28px) calc(var(--pc-bottombar) + 22px)',
-          boxShadow: '0 -24px 60px rgba(28,25,23,.22)', animation: 'pcSheetUp .55s cubic-bezier(.2,.8,.2,1) both',
+          overscrollBehavior: 'contain', background: '#FAF8F5', borderRadius: '22px 22px 0 0',
+          padding: '18px clamp(16px,3vw,28px) calc(20px + env(safe-area-inset-bottom, 0px))',
+          boxShadow: '0 -24px 60px rgba(28,25,23,.22)',
+          animation: leaving ? 'pcSheetDown .55s cubic-bezier(.4,0,.6,1) both' : 'pcSheetUp .9s cubic-bezier(.22,.8,.2,1) both',
         }}
       >
         <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(28,25,23,.15)', margin: '0 auto 14px' }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
           <h2 style={{ margin: 0, fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(26px,3vw,36px)', flex: 1 }}>{t.scenes}</h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            {scopeOpen && (
-              <div role="group" aria-label={t.scope} style={{ display: 'flex', gap: 4, animation: 'pcSlideIn .45s cubic-bezier(.2,.8,.2,1) both' }}>
-                {SCOPE_LEVELS.map(([label, p]) => (
+            {/* The magnifications pop out of the magnifier the way the wind's On and Off pop out
+                of the wind button: a glass pill sliding in from its left. */}
+            {scope.shown && (
+              <div
+                role="group"
+                aria-label={t.scope}
+                style={{
+                  display: 'flex', gap: 2, ...GLASS, WebkitBackdropFilter: GLASS.backdropFilter, background: 'rgba(255,255,255,.86)', borderRadius: 999, padding: 4,
+                  animation: scope.leaving ? 'pcSlideOut .42s ease both' : 'pcSlideIn .7s cubic-bezier(.22,.8,.2,1) both',
+                }}
+              >
+                {SCOPE_LEVELS.map(([label, p], k) => (
                   <button
                     key={label}
                     onClick={() => onScope(p)}
                     className="pc-hv-ink-fill"
-                    style={{ cursor: 'pointer', borderRadius: 999, border: '1px solid rgba(28,25,23,.18)', background: '#fff', padding: '8px 11px', fontFamily: FONT_BODY, fontSize: 12, color: '#1C1917' }}
+                    style={{
+                      cursor: 'pointer', background: 'transparent', color: '#1C1917', border: 'none', borderRadius: 999, padding: '9px 13px',
+                      fontFamily: FONT_BODY, fontSize: 11.5, letterSpacing: '.06em', minWidth: 52,
+                      animation: scope.leaving ? undefined : `pcPop .6s ${120 + k * 70}ms cubic-bezier(.22,.8,.2,1) both`,
+                    }}
                   >
                     {label}
                   </button>
@@ -866,7 +877,8 @@ function ScenesPanel({ t, fg, scenes, note, onScene, onScope, onClose }: {
                 cursor: 'pointer', width: 40, height: 40, borderRadius: '50%', display: 'grid', placeItems: 'center',
                 border: scopeOpen ? '1px solid #1C1917' : '1px solid rgba(28,25,23,.18)',
                 background: scopeOpen ? '#1C1917' : '#fff', color: scopeOpen ? '#FAF8F5' : '#1C1917',
-                transition: 'background .45s ease, color .45s ease, transform .5s cubic-bezier(.2,.8,.2,1)',
+                transition: 'background .55s ease, color .55s ease, transform .7s cubic-bezier(.22,.8,.2,1)',
+                transform: scopeOpen ? 'rotate(-12deg)' : 'none',
               }}
             >
               <ScopeIcon />
@@ -881,8 +893,8 @@ function ScenesPanel({ t, fg, scenes, note, onScene, onScope, onClose }: {
             </button>
           </div>
         </div>
-        {scopeOpen && (
-          <p style={{ margin: '-6px 0 14px', fontSize: 12.5, fontWeight: 300, lineHeight: 1.6, color: 'rgba(28,25,23,.6)', textWrap: 'pretty' }}>{note}</p>
+        {scope.shown && (
+          <p style={{ animation: scope.leaving ? 'pcVeilOut .4s ease both' : 'pcVeil .8s ease both', margin: '-6px 0 14px', fontSize: 12.5, fontWeight: 300, lineHeight: 1.6, color: 'rgba(28,25,23,.6)', textWrap: 'pretty' }}>{note}</p>
         )}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gridAutoRows: 'clamp(90px, 20vw, 170px)', gap: 'clamp(8px, 1.2vw, 12px)' }}>
           {scenes.map((sd, i) => (
@@ -895,7 +907,7 @@ function ScenesPanel({ t, fg, scenes, note, onScene, onScope, onClose }: {
                 gridColumn: `span ${sceneSpan(i)[0]}`, gridRow: `span ${sceneSpan(i)[1]}`,
                 borderRadius: 8, overflow: 'hidden', background: sd.css,
                 boxShadow: 'inset 0 0 0 1px rgba(28,25,23,.06)', transition: 'transform .35s cubic-bezier(.2,.8,.2,1),box-shadow .35s',
-                animation: `tileIn .45s ${i * 40}ms both`,
+                animation: `tileIn .8s ${160 + i * 70}ms cubic-bezier(.22,.8,.2,1) both`,
               }}
             >
               <span style={{ position: 'absolute', bottom: 10, left: 10, fontSize: 9.5, letterSpacing: '.22em', color: fg, textTransform: 'uppercase' }}>{sd.label}</span>
@@ -933,6 +945,7 @@ function ShineIcon() {
  */
 function LightControl({ albedoHex, current, setLight }: { albedoHex: string; current: LightKey; setLight: (l: LightKey) => void }) {
   const [open, setOpen] = useState(false);
+  const menu = usePresence(open, 440);
   const { readings, worst } = metamerism(albedoHex);
   const now = readings.find((r) => r.light === current) ?? readings[0];
   const verdict = shiftVerdict(worst);
@@ -956,8 +969,8 @@ function LightControl({ albedoHex, current, setLight }: { albedoHex: string; cur
           <path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2h5c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3Z" />
         </svg>
       </button>
-      {open && (
-        <div role="group" aria-label="Light setting" style={{ display: 'flex', flexDirection: 'column', gap: 4, ...GLASS, WebkitBackdropFilter: GLASS.backdropFilter, borderRadius: 18, padding: 5, animation: 'pcPop .45s cubic-bezier(.2,.8,.2,1) both' }}>
+      {menu.shown && (
+        <div role="group" aria-label="Light setting" style={{ display: 'flex', flexDirection: 'column', gap: 4, ...GLASS, WebkitBackdropFilter: GLASS.backdropFilter, borderRadius: 18, padding: 5, animation: menu.leaving ? 'pcMenuOut .42s ease both' : 'pcMenuIn .7s cubic-bezier(.22,.8,.2,1) both', transformOrigin: 'top right' }}>
           {readings.map((r, i) => {
             const key = r.light as LightKey;
             const on = key === current;
@@ -972,7 +985,7 @@ function LightControl({ albedoHex, current, setLight }: { albedoHex: string; cur
                   cursor: 'pointer', minWidth: 112, padding: '9px 14px', borderRadius: 999, border: 'none', textAlign: 'left',
                   background: r.hex, color: inkOn(r.hex), fontFamily: FONT_BODY, fontSize: 11, letterSpacing: '.08em',
                   boxShadow: on ? '0 0 0 2px #FAF8F5, 0 0 0 3.5px #8A6D45' : 'inset 0 0 0 1px rgba(28,25,23,.1)',
-                  animation: `pcPop .5s ${i * 45}ms cubic-bezier(.2,.8,.2,1) both`,
+                  animation: menu.leaving ? undefined : `pcPop .7s ${100 + i * 70}ms cubic-bezier(.22,.8,.2,1) both`,
                   transition: 'box-shadow .45s ease, transform .5s cubic-bezier(.2,.8,.2,1)',
                 }}
               >
@@ -1064,6 +1077,7 @@ function FitLine({ heading = false, className, style, lineStyle, fitKey, min = 7
 
 function InfoControl({ title, shade, shadeCss, rows, heading }: { title: string; shade: string; shadeCss: string; rows: { k: string; v: string }[]; heading: string }) {
   const [open, setOpen] = useState(false);
+  const card = usePresence(open, 440);
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -1090,14 +1104,14 @@ function InfoControl({ title, shade, shadeCss, rows, heading }: { title: string;
         >
           i
         </button>
-        {open && (
+        {card.shown && (
           <div
             role="dialog"
             aria-label={heading}
             style={{
               // Near-opaque: the card sits over the garment, and the specifications must read cleanly.
               width: 300, maxWidth: '100%', ...GLASS, WebkitBackdropFilter: GLASS.backdropFilter, background: 'rgba(250,248,245,.95)', borderRadius: 18, padding: '14px 16px 12px',
-              animation: 'pcPop .45s cubic-bezier(.2,.8,.2,1) both', transformOrigin: 'top left',
+              animation: card.leaving ? 'pcPopOut .42s ease both' : 'pcPop .75s cubic-bezier(.22,.8,.2,1) both', transformOrigin: 'top left',
             }}
           >
             <div style={{ fontSize: 9.5, letterSpacing: '.24em', color: '#8A6D45', textTransform: 'uppercase' }}>{heading}</div>
@@ -1138,10 +1152,11 @@ function WindIcon({ on }: { on: boolean }) {
  */
 function WindControl({ wind, setWind, open, setOpen }: { wind: number; setWind: (w: number) => void; open: boolean; setOpen: (o: boolean) => void }) {
   const on = wind > 0;
+  const opts = usePresence(open, 420);
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, animation: 'pcPop .7s .2s cubic-bezier(.2,.8,.2,1) both' }}>
-      {open && (
-        <div role="group" aria-label="Wind setting" style={{ display: 'flex', gap: 2, ...GLASS, WebkitBackdropFilter: GLASS.backdropFilter, borderRadius: 999, padding: 4, animation: 'pcSlideIn .45s cubic-bezier(.2,.8,.2,1) both' }}>
+      {opts.shown && (
+        <div role="group" aria-label="Wind setting" style={{ display: 'flex', gap: 2, ...GLASS, WebkitBackdropFilter: GLASS.backdropFilter, borderRadius: 999, padding: 4, animation: opts.leaving ? 'pcSlideOut .42s ease both' : 'pcSlideIn .7s cubic-bezier(.22,.8,.2,1) both' }}>
           {([['On', 3], ['Off', 0]] as const).map(([label, value]) => {
             const active = on === value > 0;
             return (
@@ -1229,6 +1244,7 @@ function GarmentGlyph({ k, height }: { k: GarmentKey; height: number }) {
  * one, or touch the veil, and it lifts.
  */
 function GarmentPicker({ garment, setGarment, open, setOpen }: { garment: GarmentKey; setGarment: (g: GarmentKey) => void; open: boolean; setOpen: (o: boolean) => void }) {
+  const veil = usePresence(open, 520);
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -1255,12 +1271,12 @@ function GarmentPicker({ garment, setGarment, open, setOpen }: { garment: Garmen
         </span>
         <span style={{ fontSize: 11, letterSpacing: '.08em' }}>{DIAL_LABELS[garment]}</span>
       </button>
-      {open && (
+      {veil.shown && (
         <div
           onClick={() => setOpen(false)}
           style={{
             position: 'absolute', inset: 0, zIndex: 7, background: 'rgba(250,248,245,.4)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
-            animation: 'pcVeil .55s ease both', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+            animation: veil.leaving ? 'pcVeilOut .5s ease both' : 'pcVeil .8s ease both', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
           }}
         >
           <div role="group" aria-label="Choose a garment" onClick={(e) => e.stopPropagation()} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10, width: '100%', maxWidth: 400 }}>
@@ -1276,7 +1292,7 @@ function GarmentPicker({ garment, setGarment, open, setOpen }: { garment: Garmen
                     cursor: 'pointer', background: on ? '#1C1917' : 'rgba(255,255,255,.72)', color: on ? '#FAF8F5' : '#1C1917',
                     border: '1px solid rgba(28,25,23,.1)', borderRadius: 18, padding: '16px 8px 13px', fontFamily: FONT_BODY,
                     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
-                    animation: `pcPop .6s ${i * 55}ms cubic-bezier(.2,.8,.2,1) both`,
+                    animation: veil.leaving ? `pcPopOut .4s ${i * 25}ms ease both` : `pcPop .8s ${120 + i * 70}ms cubic-bezier(.22,.8,.2,1) both`,
                     transition: 'transform .5s cubic-bezier(.2,.8,.2,1), background .45s ease, color .45s ease',
                   }}
                 >

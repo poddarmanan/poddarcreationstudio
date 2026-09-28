@@ -40,7 +40,7 @@ export function ScopeModal({ studio }: { studio: Studio }) {
         style={{
           position: 'relative', width: 'min(640px,92vw)', aspectRatio: '4/3', borderRadius: 6, overflow: 'hidden',
           boxShadow: '0 40px 100px rgba(0,0,0,.4)', background: fabricTex(f, col, scopeP),
-          animation: 'rise .4s cubic-bezier(.2,.8,.2,1) both',
+          animation: 'rise .75s cubic-bezier(.22,.8,.2,1) both',
         }}
       >
         {/* The weave is regenerated at the resolution the magnification needs, so 500× is more
@@ -76,7 +76,7 @@ export function SceneModal({ studio }: { studio: Studio }) {
       <div
         style={{
           position: 'relative', width: 'min(760px,94vw)', aspectRatio: '4/3', borderRadius: 6, overflow: 'hidden',
-          boxShadow: '0 40px 100px rgba(0,0,0,.4)', background: scene.css, animation: 'rise .4s cubic-bezier(.2,.8,.2,1) both',
+          boxShadow: '0 40px 100px rgba(0,0,0,.4)', background: scene.css, animation: 'rise .75s cubic-bezier(.22,.8,.2,1) both',
         }}
       >
         {scene.moving && (
@@ -121,7 +121,7 @@ export function QuoteModal({ studio }: { studio: Studio }) {
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(28,25,23,.45)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-      <div style={{ width: 'min(440px,94vw)', background: '#FAF8F5', borderRadius: 8, padding: 32, boxShadow: '0 40px 100px rgba(0,0,0,.35)', animation: 'rise .4s cubic-bezier(.2,.8,.2,1) both' }}>
+      <div style={{ width: 'min(440px,94vw)', background: '#FAF8F5', borderRadius: 8, padding: 32, boxShadow: '0 40px 100px rgba(0,0,0,.35)', animation: 'rise .75s cubic-bezier(.22,.8,.2,1) both' }}>
         {quoteSent ? (
           <div style={{ textAlign: 'center', padding: '20px 0' }}>
             <div style={{ fontFamily: FONT_DISPLAY, fontSize: 30, fontWeight: 500 }}>{t.quoteThanks}</div>
@@ -184,7 +184,7 @@ export function AiModal({ studio }: { studio: Studio }) {
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(28,25,23,.45)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-      <div style={{ width: 'min(480px,94vw)', background: '#FAF8F5', borderRadius: 8, padding: 32, boxShadow: '0 40px 100px rgba(0,0,0,.35)', animation: 'rise .4s cubic-bezier(.2,.8,.2,1) both' }}>
+      <div style={{ width: 'min(480px,94vw)', background: '#FAF8F5', borderRadius: 8, padding: 32, boxShadow: '0 40px 100px rgba(0,0,0,.35)', animation: 'rise .75s cubic-bezier(.22,.8,.2,1) both' }}>
         {aiBusy && (
           <div style={{ textAlign: 'center', padding: '30px 0' }}>
             <div style={{ display: 'flex', gap: 6, justifyContent: 'center', alignItems: 'flex-end', height: 44, marginBottom: 18 }}>
@@ -287,7 +287,7 @@ export function SignInModal({ studio }: { studio: Studio }) {
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(28,25,23,.45)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-      <div style={{ width: 'min(420px,94vw)', background: '#FAF8F5', borderRadius: 8, padding: 32, boxShadow: '0 40px 100px rgba(0,0,0,.35)', animation: 'rise .4s cubic-bezier(.2,.8,.2,1) both' }}>
+      <div style={{ width: 'min(420px,94vw)', background: '#FAF8F5', borderRadius: 8, padding: 32, boxShadow: '0 40px 100px rgba(0,0,0,.35)', animation: 'rise .75s cubic-bezier(.22,.8,.2,1) both' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
           <div style={{ fontFamily: FONT_DISPLAY, fontSize: 26, fontWeight: 500 }}>{mode === 'signin' ? t.signin : 'Create account'}</div>
           <button onClick={studio.closeSignIn} style={{ cursor: 'pointer', border: 'none', background: 'none', fontSize: 18, color: 'rgba(28,25,23,.5)' }}>

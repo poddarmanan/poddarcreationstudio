@@ -57,13 +57,25 @@ Book; the product details open from the stage's "i". There is no WhatsApp button
 
 **Scenes and the microscope** are a panel, not page sections. A camera button on the stage, above
 the garment button, slides up a sheet with the scenes in the owner's sketched layout (a banner, a
-large tile beside two small, the next banner), each opening full size. In the sheet's corner a
-round microscope button opens into 100×, 200× and 500×, with the fabric's physics note.
+large tile beside two small, the next banner), each opening full size. The sheet ends at its last
+picture: the page behind is locked while it is up (`overflow: hidden` on the root) and the sheet
+has `overscroll-behavior: contain`, because scrolling past its end used to carry on down the page
+underneath and the sheet seemed to have no end. In its corner a round magnifying-glass button
+pops the magnifications out to its left — 100×, 200×, 500× — in a glass pill, the way the wind's
+On and Off pop out of the wind button, with the fabric's physics note.
 
-**Below the stage**, the page ends with "More fabrics" — large cards with the plate number over the
-cloth, five of its shades, its shade count, name and hand, snap-scrolling, each opening through
-the Showroom's unroll — and then the downloads (spec sheet, colour catalogue, this view) and the
-share QR.
+**Below the stage**, the page ends with "More fabrics" — the Showroom's own fabric rolls (one shared
+`FabricRoll` drawing: the bolt on its end, its core, the weave, the shadow and reflection, heavier
+cloth taller) standing on a small showroom floor, each opening through the Showroom's unroll —
+and then the downloads (spec sheet, colour catalogue, this view) and the share QR.
+
+**Motion.** Every panel, menu and popup now animates out as well as in — the scenes sheet slides
+down, the light and account menus fold up, the info card, the garment picker, the wind options,
+the magnifications and the book prompt fade and settle — through one `usePresence` hook that
+keeps a thing mounted while its closing keyframes play (a panel that vanished in a frame was what
+read as choppy). Openings are slower and softer on one curve (`--pc-ease`, 0.7–0.9 s), buttons
+and links ease their colour, border and lift, and the page's sections rise into place as they
+scroll into view (`Reveal`). Reduced motion turns the reveals off.
 
 **Select multiple.** Beside the shade count, a small chip turns the chart into a picker: the
 shade on the stage starts ticked, each tap ticks or unticks a chip (and puts a newly ticked shade

@@ -46,6 +46,8 @@ async function pick(page, name) {
   await page.getByRole('button', { name: /^Garment$/i }).first().evaluate((el) => el.click());
   await page.waitForTimeout(500);
   const chip = page.getByRole('button', { name: new RegExp(`^${name}$`, 'i') }).first();
+  // The picker opens a tick after the tap; on a slow renderer that can be a while.
+  await chip.waitFor({ state: 'visible', timeout: 15_000 }).catch(() => {});
   if (!(await chip.count())) return false;
   await chip.evaluate((el) => el.click());
   await page.waitForTimeout(400);

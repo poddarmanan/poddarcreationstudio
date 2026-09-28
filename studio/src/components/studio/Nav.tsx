@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePresence } from './motion';
 import type { Studio, View } from './state';
 import { WeaveMark } from './brand';
 import { FONT_DISPLAY, FONT_BODY } from './helpers';
@@ -68,6 +69,7 @@ export function Nav({ studio }: { studio: Studio }) {
 function UserMenu({ studio, signLabel }: { studio: Studio; signLabel: string }) {
   const { signedIn, lang } = studio;
   const [open, setOpen] = useState(false);
+  const menu = usePresence(open, 420);
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -98,9 +100,9 @@ function UserMenu({ studio, signLabel }: { studio: Studio; signLabel: string }) 
           <path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" />
         </svg>
       </button>
-      {open && (
+      {menu.shown && (
         <>
-          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 59 }} />
+          {open && <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 59 }} />}
           <div
             role="menu"
             aria-label="Account and language"
@@ -108,7 +110,7 @@ function UserMenu({ studio, signLabel }: { studio: Studio; signLabel: string }) 
               position: 'absolute', right: 0, top: 'calc(100% + 10px)', zIndex: 60, width: 220, padding: 6, borderRadius: 16,
               background: 'rgba(250,248,245,.97)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
               border: '1px solid rgba(28,25,23,.08)', boxShadow: '0 18px 44px rgba(28,25,23,.18)',
-              transformOrigin: 'top right', animation: 'pcMenuIn .32s cubic-bezier(.2,.8,.2,1) both',
+              transformOrigin: 'top right', animation: menu.leaving ? 'pcMenuOut .4s ease both' : 'pcMenuIn .7s cubic-bezier(.22,.8,.2,1) both',
             }}
           >
             {signedIn && (

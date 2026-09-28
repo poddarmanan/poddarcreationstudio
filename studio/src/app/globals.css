@@ -301,3 +301,20 @@ button:focus-visible, a:focus-visible, input:focus-visible {
 /* The account menu under the user icon: sign in or out, and the language. */
 @keyframes pcMenuIn { from { opacity: 0; transform: translateY(-6px) scale(.97); } to { opacity: 1; transform: none; } }
 @keyframes pcSheetUp { from { opacity: .6; transform: translateY(40px); } to { opacity: 1; transform: none; } }
+
+/* ── Motion ────────────────────────────────────────────────────────────────
+   One slow, soft curve for the whole studio, closing animations to match the opening ones (a
+   panel that vanishes in a frame is what reads as choppy), and sections that ease up into place
+   as they scroll in. */
+:root { --pc-ease: cubic-bezier(.22, .8, .2, 1); }
+button, a { transition: transform .6s var(--pc-ease), background-color .55s ease, color .55s ease, border-color .55s ease, box-shadow .6s ease, opacity .55s ease; }
+.pc-reveal { opacity: 0; transform: translateY(28px); transition: opacity 1.1s ease, transform 1.2s var(--pc-ease); }
+.pc-reveal.is-in { opacity: 1; transform: none; }
+@keyframes pcPopOut { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(8px) scale(.92); } }
+@keyframes pcSlideOut { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateX(14px); } }
+@keyframes pcVeilOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes pcMenuOut { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(-6px) scale(.97); } }
+@keyframes pcSheetDown { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(70px); } }
+@media (prefers-reduced-motion: reduce) {
+  .pc-reveal { opacity: 1; transform: none; transition: none; }
+}
