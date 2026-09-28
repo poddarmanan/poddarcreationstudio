@@ -85,6 +85,16 @@ cloth taller; here in a narrower spread of heights, so the lightest roll does no
 empty wall above it) standing on a small showroom floor, each opening through the Showroom's unroll —
 and then the downloads (spec sheet, colour catalogue, this view) and the share QR.
 
+**The Showroom is one walk.** Every roll, 01 to 11, stands in one continuous walk in the
+catalogue's order — the Cotton Gallery (01–05, Cotton Lycra now among them), the Rayon Room
+(06–09), the Silk Gallery (10–11) — and that order is the studio's everywhere (`CATALOGUE_ORDER`
+in the fabric data; `useStudio` sorts by it), so the numbers in the walk, the lab's number strip
+and "more fabrics" all agree. As the walk is scrolled or dragged from one room's rolls into the
+next, the slider follows and the room changes around it: each room's wall, floor and light are a
+layer of their own that cross-fades, and the title, line and colours ease across. A room in the
+slider glides the walk to its first roll. There is no "Fabric Hall" room any more and no round
+arrows over the walk or over "more fabrics": both are dragged or scrolled.
+
 **Arriving on a page.** Every change of page is announced by a cream curtain carrying the page's
 name ("The Fabric Hall"), which covers at once, holds a beat and lifts away as the page lays in
 (`ViewCurtain`; navigation itself is never delayed). In the Showroom the rolls then rise into

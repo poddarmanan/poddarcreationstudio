@@ -8,8 +8,8 @@ import { FONT_DISPLAY, FONT_BODY, fabricTex, heroColour } from './helpers';
 export function Entrance({ studio }: { studio: Studio }) {
   const { t, fabrics, q, setQ, reduceMotion } = studio;
 
-  const heroCloth = useMemo(() => fabricTex(fabrics[9], fabrics[9].colours[4], 7), [fabrics]);
-  const heroCloth2 = useMemo(() => fabricTex(fabrics[4], fabrics[4].colours[2], 6), [fabrics]);
+  const heroCloth = useMemo(() => { const g = fabrics.find((x) => x.id === 'gajji') ?? fabrics[0]; return fabricTex(g, g.colours[4] ?? g.colours[0], 7); }, [fabrics]);
+  const heroCloth2 = useMemo(() => { const r = fabrics.find((x) => x.id === 'rayon14') ?? fabrics[0]; return fabricTex(r, r.colours[2] ?? r.colours[0], 6); }, [fabrics]);
 
   const particles = useMemo(
     () =>

@@ -10,7 +10,7 @@ import { ExportView } from '@/components/three/ExportView';
 import { oklchToHex } from '@/lib/three/colour';
 import { metamerism, shiftVerdict } from '@/lib/three/metamerism';
 import { FONT_DISPLAY, FONT_BODY, fabricTex, fabricWeave, colourCss, colourFg, colourShade, fabricNo } from './helpers';
-import { useDragScroll, scrollByEl } from './interactions';
+import { useDragScroll } from './interactions';
 import {
   GARMENTS, LIGHTS, PHYSICS_NOTES, STRETCH_TEST_NOTES,
   type GarmentKey, type LightKey,
@@ -606,30 +606,6 @@ export function FabricLab({ studio }: { studio: Studio }) {
           </div>
           <div style={{ position: 'absolute', top: 0, bottom: 0, right: 0, width: 70, pointerEvents: 'none', background: 'linear-gradient(270deg,rgba(250,248,245,.9),transparent)' }} />
           <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: 40, pointerEvents: 'none', background: 'linear-gradient(90deg,rgba(250,248,245,.75),transparent)' }} />
-          <button
-            onClick={() => scrollByEl('pc-morefab', -320)}
-            aria-label="Scroll left"
-            className="pc-hv-ink-fill"
-            style={{
-              cursor: 'pointer', position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 42, height: 42, borderRadius: '50%',
-              border: '1px solid rgba(28,25,23,.15)', background: 'rgba(255,255,255,.9)', boxShadow: '0 6px 18px rgba(28,25,23,.14)',
-              fontSize: 16, color: '#1C1917', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .25s,color .25s',
-            }}
-          >
-            ‹
-          </button>
-          <button
-            onClick={() => scrollByEl('pc-morefab', 320)}
-            aria-label="Scroll right"
-            className="pc-hv-ink-fill"
-            style={{
-              cursor: 'pointer', position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', width: 42, height: 42, borderRadius: '50%',
-              border: '1px solid rgba(28,25,23,.15)', background: 'rgba(255,255,255,.9)', boxShadow: '0 6px 18px rgba(28,25,23,.14)',
-              fontSize: 16, color: '#1C1917', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .25s,color .25s',
-            }}
-          >
-            ›
-          </button>
         </div>
         {/* The Showroom's hint, as it is there: an arrow that breathes, and what to do. */}
         <div style={{ textAlign: 'center', padding: '4px 16px 0', fontSize: 10.5, letterSpacing: '.24em', color: 'rgba(28,25,23,.5)' }}>

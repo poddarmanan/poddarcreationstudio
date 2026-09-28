@@ -168,8 +168,8 @@ async function main() {
   // high tier draws a 300,000-triangle model at a frame a second, which is what a screenshot
   // times out on.
   await page.goto(`${BASE}/?quality=low`, { waitUntil: 'networkidle' });
-  // Fabrics open from the Showroom: its first room, the hall, hangs all eleven rolls in
-  // catalogue order, and clicking one unrolls it into the lab.
+  // Fabrics open from the Showroom: its walk hangs all eleven rolls in catalogue order (cotton,
+  // then rayon, then silk), and clicking one unrolls it into the lab.
   await page.getByRole('button', { name: /^Showroom$/i }).first().click();
   await page.waitForTimeout(900);
   await page.locator('[class*="pc-hv-lift-14"]').first().click({ force: true });

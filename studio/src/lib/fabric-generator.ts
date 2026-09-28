@@ -10,7 +10,7 @@
 export type FabricFamily = 'cotton' | 'rayon' | 'slub' | 'wrinkle' | 'silk' | 'lycra';
 export type GarmentKey = 'kurti' | 'shirt' | 'dress' | 'top' | 'tshirt' | 'roll';
 export type LightKey = 'daylight' | 'golden' | 'studio' | 'boutique' | 'white';
-export type RoomKey = 'hall' | 'cotton' | 'rayon' | 'silk';
+export type RoomKey = 'cotton' | 'rayon' | 'silk';
 export type Lang = 'en' | 'hi';
 
 export interface FabricDef {
@@ -201,11 +201,25 @@ export interface RoomDef {
 }
 
 export const ROOMS: RoomDef[] = [
-  { k: 'hall', ids: ['pcpc', 'cambric', 'jaam11', 'jaam125', 'rayon14', 'rayon17', 'slub', 'wrinkle', 'roman', 'gajji', 'lycra'], bg: 'linear-gradient(180deg,#F6F3EE 0%,#EFEAE2 62%,#E0DACE 62.2%,#D4CDBF 100%)', glow: 'rgba(214,184,130,.3)', fg: '#1C1917', sub: 'rgba(28,25,23,.55)', accent: '#8A6D45', labelKey: 'hall', descKey: 'hallDesc' },
   { k: 'cotton', ids: ['pcpc', 'cambric', 'jaam11', 'jaam125', 'lycra'], bg: 'linear-gradient(180deg,#EEF3F4 0%,#EDEFE9 62%,#DCDFD4 62.2%,#CFD2C5 100%)', glow: 'rgba(160,190,200,.32)', fg: '#1C1917', sub: 'rgba(28,25,23,.55)', accent: '#5B7263', labelKey: 'cottonG', descKey: 'cottonDesc' },
   { k: 'rayon', ids: ['rayon14', 'rayon17', 'slub', 'wrinkle'], bg: 'linear-gradient(180deg,#F2EEF4 0%,#EDE8EE 62%,#DED6DF 62.2%,#D0C7D2 100%)', glow: 'rgba(180,160,200,.3)', fg: '#1C1917', sub: 'rgba(28,25,23,.55)', accent: '#6B5B7A', labelKey: 'rayonR', descKey: 'rayonDesc' },
   { k: 'silk', ids: ['roman', 'gajji'], bg: 'linear-gradient(180deg,#2E2A26 0%,#3A332C 62%,#241F1B 62.2%,#1C1815 100%)', glow: 'rgba(235,190,115,.4)', fg: '#FAF8F5', sub: 'rgba(250,248,245,.6)', accent: '#C9A96A', labelKey: 'silkG', descKey: 'silkDesc' },
 ];
+
+/**
+ * The catalogue's order: the rooms' order, cotton to rayon to silk. Every number a fabric carries
+ * (01–11) and every list of fabrics follows it, so the Showroom's walk, its slider and the lab's
+ * number strip all agree.
+ */
+export const CATALOGUE_ORDER: string[] = ROOMS.flatMap((r) => r.ids);
+
+export function inCatalogueOrder<T extends { id: string }>(list: T[]): T[] {
+  const at = (id: string) => {
+    const i = CATALOGUE_ORDER.indexOf(id);
+    return i < 0 ? CATALOGUE_ORDER.length : i;
+  };
+  return [...list].sort((a, b) => at(a.id) - at(b.id));
+}
 
 export type Dict = Record<string, string>;
 

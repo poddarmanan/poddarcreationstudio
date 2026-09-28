@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import type { FabricRow, ColourRow } from '@/lib/types';
-import { dict, type Dict, type Lang, type GarmentKey, type LightKey, type RoomKey } from '@/lib/fabric-generator';
+import { dict, inCatalogueOrder, type Dict, type Lang, type GarmentKey, type LightKey, type RoomKey } from '@/lib/fabric-generator';
 import { fabricTex, heroColour } from './helpers';
 import { useSearch, type Search } from './search';
 import { FABRIC_STORIES } from '@/lib/fabric-generator';
@@ -122,11 +122,13 @@ function getReduceMotion(): boolean {
   return window.matchMedia(MOTION_QUERY).matches;
 }
 
-export function useStudio(fabrics: FabricRow[]): Studio {
+export function useStudio(rawFabrics: FabricRow[]): Studio {
+  // In the catalogue's order (cotton, rayon, silk), whatever order they arrive in.
+  const fabrics = useMemo(() => inCatalogueOrder(rawFabrics), [rawFabrics]);
   const { data: session } = useSession();
   const [view, setView] = useState<View>('home');
   const [lang, setLang] = useState<Lang>('en');
-  const [room, setRoom] = useState<RoomKey>('hall');
+  const [room, setRoom] = useState<RoomKey>('cotton');
   const [fid, setFid] = useState('rayon14');
   const [ci, setCi] = useState(18);
   // The lab opens on the roll: the cloth itself, before any garment is cut from it.

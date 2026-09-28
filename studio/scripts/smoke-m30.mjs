@@ -21,8 +21,8 @@ async function main() {
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
 
   await page.goto(BASE, { waitUntil: 'networkidle' });
-  // Fabrics open from the Showroom: its first room, the hall, hangs all eleven rolls in
-  // catalogue order, and clicking one unrolls it into the lab.
+  // Fabrics open from the Showroom: its walk hangs all eleven rolls in catalogue order (cotton,
+  // then rayon, then silk), and clicking one unrolls it into the lab.
   await page.getByRole('button', { name: /^Showroom$/i }).first().click();
   await page.waitForTimeout(900);
   await page.locator('[class*="pc-hv-lift-14"]').first().click({ force: true });

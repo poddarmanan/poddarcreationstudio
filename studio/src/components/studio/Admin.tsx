@@ -49,7 +49,7 @@ export function Admin({ studio }: { studio: Studio }) {
   const [stats, setStats] = useState<{ colours: number; media: number; quotes: number; fabrics: number } | null>(null);
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [dragOver, setDragOver] = useState(false);
-  const [targetFabric, setTargetFabric] = useState(fabrics[4]?.id ?? fabrics[0].id);
+  const [targetFabric, setTargetFabric] = useState((fabrics.find((x) => x.id === 'rayon14') ?? fabrics[0]).id);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(() => {

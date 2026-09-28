@@ -47,12 +47,12 @@ export function FabricRoll({ f, no, onClick, fg, sub, accent, shades, className 
         />
       </div>
       <div style={{ marginTop: 32, textAlign: 'center', position: 'relative', zIndex: 2 }}>
-        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 12.5, letterSpacing: '.14em', color: accent, marginBottom: 3 }}>{no}</div>
-        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 19, fontWeight: 600, color: fg }}>{f.name}</div>
-        <div style={{ fontSize: 11, letterSpacing: '.14em', color: sub, marginTop: 3 }}>
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 12.5, letterSpacing: '.14em', color: accent, marginBottom: 3, transition: 'color 1s ease' }}>{no}</div>
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 19, fontWeight: 600, color: fg, transition: 'color 1s ease' }}>{f.name}</div>
+        <div style={{ fontSize: 11, letterSpacing: '.14em', color: sub, marginTop: 3, transition: 'color 1s ease' }}>
           {f.weight} · {f.width}
         </div>
-        <div style={{ fontSize: 10.5, letterSpacing: '.1em', color: accent, marginTop: 3 }}>
+        <div style={{ fontSize: 10.5, letterSpacing: '.1em', color: accent, marginTop: 3, transition: 'color 1s ease' }}>
           {f.nc} {shades}
         </div>
       </div>
