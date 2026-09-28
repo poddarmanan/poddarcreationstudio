@@ -97,7 +97,7 @@ export function SceneModal({ studio }: { studio: Studio }) {
 }
 
 export function QuoteModal({ studio }: { studio: Studio }) {
-  const { quoteOpen, quoteSent, quoteFromBook, quoteBusy, t, currentFabric: f, currentColour: col, pins } = studio;
+  const { quoteOpen, quoteSent, quoteFromBook, quoteBusy, t, currentFabric: f, currentColour: col, pins, quoteShades } = studio;
   const [name, setName] = useState('');
   const [company, setCompany] = useState('');
   const [quantity, setQuantity] = useState('');
@@ -112,7 +112,9 @@ export function QuoteModal({ studio }: { studio: Studio }) {
         })
         .filter(Boolean)
         .join(', ') || '—'
-    : `${f.name} · ${col.name} · ${f.weight}`;
+    : quoteShades.length > 0
+      ? `${f.name} · ${quoteShades.map((j) => f.colours[j]?.name).filter(Boolean).join(', ')} · ${f.weight}`
+      : `${f.name} · ${col.name} · ${f.weight}`;
 
   const inputStyle = {
     border: '1px solid rgba(28,25,23,.15)', borderRadius: 6, padding: '12px 14px',

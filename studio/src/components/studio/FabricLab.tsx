@@ -15,7 +15,12 @@ import {
 } from '@/lib/fabric-generator';
 
 const SCOPE_LEVELS: [string, number][] = [['100×', 26], ['200×', 48], ['500×', 96]];
-const SCENE_SPANS: [number, number][] = [[2, 2], [1, 1], [1, 1], [1, 2], [1, 1], [1, 1], [2, 1], [1, 1], [1, 1]];
+/**
+ * The Scenes layout, from the owner's sketch: a wide banner, then one large tile beside two small
+ * ones stacked, then the next wide banner — a four-tile beat on a three-column grid, which nine
+ * scenes fill exactly (banner, large, small, small, banner, large, small, small, banner).
+ */
+const sceneSpan = (i: number): [number, number] => [[3, 1], [2, 2], [1, 1], [1, 1]][i % 4] as [number, number];
 const GARMENT_KEYS = Object.keys(GARMENTS) as GarmentKey[];
 /**
  * The loader holds at least this long on a change of cut, cached model or not, and for as long as
@@ -37,8 +42,27 @@ export function FabricLab({ studio }: { studio: Studio }) {
   const amp = reduceMotion ? 0 : f.flow * wind * 1.5;
   // The catalogue's numbering: this fabric's plate number and the count, as "03 / 11".
   const fabricIndex = fabricNo(studio.fabrics, f.id);
-  const pinned = studio.pins.some((p) => p.fabricId === f.id && p.colourOrder === col.order);
-  // The floating "Add to book" is portalled to the body: the lab's root animates a transform
+  // "Select multiple": the buyer ticks several shades of this fabric, and the quote, the book and
+  // the WhatsApp message all take the ticked set. Kept per fabric, so it clears on a change.
+  const [multi, setMulti] = useState<{ fid: string; picked: number[] } | null>(null);
+  const picking = multi?.fid === f.id;
+  const picked = picking ? multi.picked : [];
+  const toggleMulti = () => setMulti(picking ? null : { fid: f.id, picked: [studio.ci] });
+  const pickShade = (j: number) => {
+    if (!picking) {
+      studio.setCi(j);
+      return;
+    }
+    const on = picked.includes(j);
+    setMulti({ fid: f.id, picked: on ? picked.filter((x) => x !== j) : [...picked, j] });
+    if (!on) studio.setCi(j);
+  };
+  // What the actions act on: the ticked shades, or the shade on the stage.
+  const targets = picking && picked.length ? picked : [studio.ci];
+  const targetColours = targets.map((j) => f.colours[j]).filter(Boolean);
+  const pinned = targetColours.every((c) => studio.pins.some((p) => p.fabricId === f.id && p.colourOrder === c.order));
+  const pinTargets = () => targetColours.forEach((c) => studio.pinShade(f.id, c.order));
+  // The floating WhatsApp button is portalled to the body: the lab's root animates a transform
   // while it lays in, and a transformed ancestor turns a fixed child into a page-positioned one.
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -146,7 +170,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
   ];
 
   const qr = Array.from({ length: 64 }, (_, i) => ((i * 7 + f.seed * 13 + i * i) % 5 < 2 || i < 3 || (i % 8 < 1 && i < 25) ? '#1C1917' : 'transparent'));
-  const waFabric = 'https://wa.me/919999999999?text=' + encodeURIComponent(`Enquiry: ${f.name} · ${col.name} · ${f.weight} · ${f.width}`);
+  const waFabric = 'https://wa.me/919999999999?text=' + encodeURIComponent(`Enquiry: ${f.name} · ${targetColours.map((c) => c.name).join(', ') || col.name} · ${f.weight} · ${f.width}`);
 
   const moreFabrics = studio.fabrics
     .filter((x) => x.id !== f.id)
@@ -158,21 +182,59 @@ export function FabricLab({ studio }: { studio: Studio }) {
   const shadeChart = (
             <div>
           <div>
-              <div style={{ fontSize: 10.5, letterSpacing: '.22em', color: 'rgba(28,25,23,.45)', textTransform: 'uppercase', marginBottom: 10 }}>{f.nc} {t.shades}</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
+                <div style={{ fontSize: 10.5, letterSpacing: '.22em', color: 'rgba(28,25,23,.45)', textTransform: 'uppercase' }}>
+                  {f.nc} {t.shades}
+                  {picking && picked.length > 0 && <span style={{ color: '#8A6D45' }}> · {picked.length} {t.selected}</span>}
+                </div>
+                <button
+                  onClick={toggleMulti}
+                  aria-pressed={picking}
+                  className="pc-hv-scale-06"
+                  style={{
+                    cursor: 'pointer', flex: 'none', display: 'inline-flex', alignItems: 'center', gap: 5, borderRadius: 999, padding: '4px 9px',
+                    fontFamily: FONT_BODY, fontSize: 9, letterSpacing: '.12em', textTransform: 'uppercase', lineHeight: 1.4,
+                    ...(picking ? { background: '#1C1917', color: '#FAF8F5', border: '1px solid #1C1917' } : { background: 'transparent', color: '#1C1917', border: '1px solid rgba(28,25,23,.22)' }),
+                    transition: 'background .45s ease, color .45s ease, transform .5s cubic-bezier(.2,.8,.2,1)',
+                  }}
+                >
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <rect x="3" y="3" width="8" height="8" rx="1.5" />
+                    <rect x="13" y="13" width="8" height="8" rx="1.5" />
+                    {picking ? <path d="M14.5 5.5l2 2 4-4" /> : <rect x="13" y="3" width="8" height="8" rx="1.5" />}
+                  </svg>
+                  {picking ? t.done : t.selectMulti}
+                </button>
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(52px,1fr))', gap: 6 }}>
                 {f.colours.map((c, j) => (
                   <button
                     key={j}
-                    onClick={() => studio.setCi(j)}
+                    onClick={() => pickShade(j)}
                     title={c.name}
+                    aria-pressed={picking ? picked.includes(j) : undefined}
                     className="pc-pink pc-hv-scale-15"
                     style={{
-                      cursor: 'pointer', aspectRatio: '1', border: 'none', borderRadius: '3px 3px 0 0', background: colourCss(c),
-                      boxShadow: j === studio.ci ? 'inset 0 0 0 3px #1C1917' : 'inset 0 0 0 1px rgba(28,25,23,.1)',
+                      cursor: 'pointer', position: 'relative', aspectRatio: '1', border: 'none', borderRadius: '3px 3px 0 0', background: colourCss(c),
+                      boxShadow: picking && picked.includes(j)
+                        ? 'inset 0 0 0 3px #8A6D45'
+                        : j === studio.ci ? 'inset 0 0 0 3px #1C1917' : 'inset 0 0 0 1px rgba(28,25,23,.1)',
                       padding: '0 2px 7px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-                      animation: `tileIn .4s ${j * 22}ms both`, transition: 'transform .25s',
+                      animation: `tileIn .4s ${j * 22}ms both`, transition: 'transform .25s, box-shadow .3s ease',
                     }}
                   >
+                    {picking && (
+                      <span
+                        aria-hidden
+                        style={{
+                          position: 'absolute', top: 4, right: 4, width: 15, height: 15, borderRadius: '50%', display: 'grid', placeItems: 'center',
+                          background: picked.includes(j) ? '#8A6D45' : 'rgba(250,248,245,.75)', border: picked.includes(j) ? 'none' : '1px solid rgba(28,25,23,.25)',
+                          color: '#FAF8F5', fontSize: 9, lineHeight: 1, transition: 'background .3s ease',
+                        }}
+                      >
+                        {picked.includes(j) ? '✓' : ''}
+                      </span>
+                    )}
                     <span style={{ fontSize: 8.5, letterSpacing: '.03em', color: colourFg(c), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
                   </button>
                 ))}
@@ -385,29 +447,34 @@ export function FabricLab({ studio }: { studio: Studio }) {
         <div style={{ padding: 'clamp(24px,3.5vw,44px)', display: 'flex', flexDirection: 'column', gap: 26, justifyContent: 'flex-start', background: '#FAF8F5' }}>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             <button
-              onClick={studio.openQuote}
+              onClick={() => studio.openQuote(picking && picked.length ? picked : undefined)}
               className="pc-hv-gold-fill"
               style={{
-                cursor: 'pointer', background: '#1C1917', color: '#FAF8F5', border: '1px solid #1C1917', borderRadius: 999,
-                padding: '13px 28px', fontFamily: FONT_BODY, fontSize: 12.5, letterSpacing: '.14em', textTransform: 'uppercase',
-                flex: '1 1 220px',
+                cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, whiteSpace: 'nowrap',
+                background: '#1C1917', color: '#FAF8F5', border: '1px solid #1C1917', borderRadius: 999,
+                padding: '13px 12px', fontFamily: FONT_BODY, fontSize: 'clamp(11px, 3vw, 12.5px)', letterSpacing: '.12em', textTransform: 'uppercase',
+                flex: '1 1 150px',
               }}
             >
               {t.quote}
+              {targets.length > 1 && <CountBadge n={targets.length} light />}
             </button>
-            <a
-              href={waFabric}
-              target="_blank"
-              rel="noreferrer"
-              className="pc-hv-border-ink"
+            <button
+              onClick={pinTargets}
+              aria-pressed={pinned}
+              className="pc-hv-gold-text-border"
               style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(28,25,23,.25)', borderRadius: 999,
-                padding: '13px 28px', fontSize: 12.5, letterSpacing: '.14em', textTransform: 'uppercase', color: '#1C1917',
-                flex: '1 1 220px',
+                cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 999, whiteSpace: 'nowrap',
+                padding: '13px 12px', fontFamily: FONT_BODY, fontSize: 'clamp(11px, 3vw, 12.5px)', letterSpacing: '.12em', textTransform: 'uppercase',
+                ...(pinned ? { background: '#8A6D45', color: '#FAF8F5', border: '1px solid #8A6D45' } : { background: 'transparent', color: '#1C1917', border: '1px solid rgba(28,25,23,.25)' }),
+                transition: 'background .45s ease, color .45s ease, border-color .45s ease',
+                flex: '1 1 150px',
               }}
             >
-              {t.whats}
-            </a>
+              <span aria-hidden>{pinned ? '✓' : '✦'}</span>
+              {pinned ? t.inBook : t.pin}
+              {!pinned && targets.length > 1 && <CountBadge n={targets.length} />}
+            </button>
           </div>
           <div className="pc-shades-desktop">{shadeChart}</div>
         </div>
@@ -416,7 +483,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
       {/* Scenes */}
       <section style={{ padding: 'clamp(30px,4.5vw,54px) clamp(16px,5vw,64px) 0' }}>
         <h2 style={{ margin: '0 0 20px', fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(24px,2.8vw,36px)' }}>{t.scenes}</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gridAutoRows: 150, gridAutoFlow: 'dense', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gridAutoRows: 'clamp(96px, 22vw, 190px)', gap: 'clamp(8px, 1.2vw, 12px)' }}>
           {sceneDefs.map((sd, i) => (
             <div
               key={sd.label}
@@ -424,7 +491,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
               className="pc-hv-lift-4"
               style={{
                 cursor: 'pointer', position: 'relative',
-                gridColumn: `span ${SCENE_SPANS[i][0]}`, gridRow: `span ${SCENE_SPANS[i][1]}`,
+                gridColumn: `span ${sceneSpan(i)[0]}`, gridRow: `span ${sceneSpan(i)[1]}`,
                 borderRadius: 4, overflow: 'hidden', background: sd.css,
                 boxShadow: 'inset 0 0 0 1px rgba(28,25,23,.06)', transition: 'transform .35s cubic-bezier(.2,.8,.2,1),box-shadow .35s',
               }}
@@ -534,35 +601,51 @@ export function FabricLab({ studio }: { studio: Studio }) {
           </button>
         </div>
       </section>
-      {mounted && createPortal(<BookButton pinned={pinned} onClick={() => studio.pinShade(f.id, col.order)} label={pinned ? t.inBook : t.pin} />, document.body)}
+      {mounted && createPortal(<WhatsAppButton href={waFabric} label={t.whats} />, document.body)}
     </div>
   );
 }
 
 /**
- * "Add to book", within reach from anywhere on the page: fixed at the bottom centre, above the
- * phone's bottom bar, filled dark once the shade on the stage is in the book.
+ * WhatsApp, within reach from anywhere on the page: a round button fixed at the bottom right,
+ * above the phone's bottom bar. The message names the fabric and the shades being looked at.
  */
-function BookButton({ pinned, onClick, label }: { pinned: boolean; onClick: () => void; label: string }) {
+/** How many shades a button acts on, as a small round badge beside its label. */
+function CountBadge({ n, light = false }: { n: number; light?: boolean }) {
   return (
-    <div style={{ position: 'fixed', left: 0, right: 0, bottom: 'calc(var(--pc-bottombar) + 18px)', display: 'flex', justifyContent: 'center', pointerEvents: 'none', zIndex: 40 }}>
-      <button
-        onClick={onClick}
-        aria-pressed={pinned}
-        className="pc-hv-scale-06"
-        style={{
-          pointerEvents: 'auto', cursor: 'pointer', height: 46, padding: '0 22px', borderRadius: 999, display: 'inline-flex', alignItems: 'center', gap: 9,
-          fontFamily: FONT_BODY, fontSize: 11.5, letterSpacing: '.16em', textTransform: 'uppercase',
-          ...(pinned
-            ? { background: '#1C1917', color: '#FAF8F5', border: '1px solid #1C1917', boxShadow: '0 12px 30px rgba(28,25,23,.22)' }
-            : { ...GLASS, WebkitBackdropFilter: GLASS.backdropFilter, color: '#1C1917' }),
-          transition: 'background .5s ease, color .5s ease, transform .5s cubic-bezier(.2,.8,.2,1)', animation: 'pcPop .7s .3s cubic-bezier(.2,.8,.2,1) both',
-        }}
-      >
-        <span aria-hidden>{pinned ? '✓' : '✦'}</span>
-        {label}
-      </button>
-    </div>
+    <span
+      aria-label={`${n} shades`}
+      style={{
+        minWidth: 19, height: 19, padding: '0 5px', borderRadius: 999, display: 'inline-grid', placeItems: 'center', flex: 'none',
+        fontSize: 10, letterSpacing: 0, fontWeight: 500,
+        background: light ? '#FAF8F5' : '#8A6D45', color: light ? '#1C1917' : '#FAF8F5',
+      }}
+    >
+      {n}
+    </span>
+  );
+}
+
+function WhatsAppButton({ href, label }: { href: string; label: string }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      aria-label={label}
+      title={label}
+      className="pc-hv-scale-06"
+      style={{
+        position: 'fixed', right: 14, bottom: 'calc(var(--pc-bottombar) + 14px)', zIndex: 40, width: 42, height: 42, borderRadius: '50%',
+        display: 'grid', placeItems: 'center', background: '#25D366', color: '#fff', boxShadow: '0 8px 22px rgba(28,25,23,.22)',
+        transition: 'transform .5s cubic-bezier(.2,.8,.2,1)', animation: 'pcPop .7s .3s cubic-bezier(.2,.8,.2,1) both',
+      }}
+    >
+      <svg width="21" height="21" viewBox="0 0 24 24" aria-hidden>
+        <path d="M12 2.8a9.2 9.2 0 0 0-7.9 13.9L3 21.2l4.6-1.2A9.2 9.2 0 1 0 12 2.8Z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+        <path d="M9.1 7.6c-.3 0-.7.1-1 .5-.4.4-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3.2 5 4.3 2.5 1 3 .8 3.5.7.5-.1 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.6-.3l-2-1c-.3-.1-.5-.2-.7.1l-.9 1.1c-.2.2-.3.2-.6.1-.3-.1-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.5-.6c.2-.2.2-.3.3-.5.1-.2 0-.4 0-.5l-.9-2.2c-.2-.5-.5-.5-.7-.5h-.4Z" fill="currentColor" />
+      </svg>
+    </a>
   );
 }
 

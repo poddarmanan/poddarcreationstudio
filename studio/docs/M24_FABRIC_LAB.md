@@ -32,12 +32,25 @@ a near-opaque card over the stage, so a buyer can read the specifications withou
 away from the garment. A second tap, Escape, or a tap outside closes it.
 
 **The buyer's column.** To the right of the stage (below it and its shade chart on a phone):
-Request a quote and Enquire on WhatsApp, then the shade chart on a desktop. The product details
-are not repeated here; they open from the stage's "i". The microscope sits further down the
-page beside the downloads. "Add to book" floats at the bottom centre of the viewport, above the
-phone's bottom bar, from anywhere on the page; it fills dark once the shade on the stage is in
-the book. It is portalled to the body because the lab's root animates a transform as it lays
-in, and a transformed ancestor turns a fixed child into a page-positioned one.
+Request a quote and Add to book side by side, then the shade chart on a desktop. The product
+details are not repeated here; they open from the stage's "i". The microscope sits further down
+the page beside the downloads.
+
+**Select multiple.** Beside the shade count, a toggle turns the chart into a picker: the shade on
+the stage starts ticked, each tap ticks or unticks a chip (and puts a newly ticked shade on the
+stage), and the count shows beside the heading. While shades are ticked, Request a quote and
+Add to book act on all of them — the quote lists every shade and sends one item per shade, the
+book gains each one — with the count as a badge on each button; the WhatsApp message names them
+too. The selection belongs to the fabric and clears on a change of fabric or on Done.
+
+**WhatsApp** is a small (42 px) round green button fixed at the bottom right of the viewport, above the
+phone's bottom bar, from anywhere on the page. It is portalled to the body because the lab's
+root animates a transform as it lays in, and a transformed ancestor turns a fixed child into a
+page-positioned one.
+
+**Scenes** follow the owner's sketch: on a three-column grid, a wide banner, then one large tile
+beside two small ones stacked, then the next banner — a four-tile beat that the nine scenes fill
+exactly.
 
 **Every change of cut is a staged transition.** The garment on the stage fades out and the loader
 comes up. A cut already loaded is revealed after a second and a half; one that is still being
