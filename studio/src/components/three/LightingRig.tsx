@@ -9,6 +9,27 @@ import { shadowsAllowed } from '@/lib/three/capability';
 import { RIG_LIGHT } from '@/lib/three/rig-light';
 
 /**
+ * drei's Environment renders the room into a cube render target and disposes it when the stage
+ * unmounts — but React Three Fiber has already disposed the renderer by then, and three's dispose
+ * handler reads the target's framebuffers from the renderer's cleared records and throws. It
+ * happened on every exit from the lab (to the Swatch Book, say). The target's GPU memory went
+ * with the renderer's context anyway, so the late dispose is swallowed rather than allowed to
+ * surface as an uncaught error. Patched once, for cube targets only.
+ */
+const cubeProto = THREE.WebGLCubeRenderTarget.prototype as THREE.WebGLCubeRenderTarget & { __pcGuarded?: boolean };
+if (!cubeProto.__pcGuarded) {
+  const dispose = cubeProto.dispose;
+  cubeProto.dispose = function guardedDispose(this: THREE.WebGLCubeRenderTarget) {
+    try {
+      dispose.call(this);
+    } catch {
+      // The renderer is already gone; there is nothing left to free.
+    }
+  };
+  cubeProto.__pcGuarded = true;
+}
+
+/**
  * The showroom's lighting (Phase 4 M23, extended by M26; rebuilt for image-based light).
  *
  * The studio already lets a buyer put cloth under daylight, golden hour, a studio box, boutique

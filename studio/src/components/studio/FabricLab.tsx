@@ -1,12 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { Studio } from './state';
 import { FabricViewer } from '@/components/three/FabricViewer';
 import { ExportView } from '@/components/three/ExportView';
 import { oklchToHex } from '@/lib/three/colour';
 import { metamerism, shiftVerdict } from '@/lib/three/metamerism';
-import { FONT_DISPLAY, FONT_BODY, fabricTex, fabricWeave, colourCss, colourFg, colourShade, chipStyle, heroColour, fabricNo } from './helpers';
+import { FONT_DISPLAY, FONT_BODY, fabricTex, fabricWeave, colourCss, colourFg, colourShade, heroColour, fabricNo } from './helpers';
 import { useDragScroll, scrollByEl } from './interactions';
 import {
   GARMENTS, LIGHTS, PHYSICS_NOTES, STRETCH_TEST_NOTES,
@@ -60,7 +61,21 @@ export function FabricLab({ studio }: { studio: Studio }) {
   const targets = picking && picked.length ? picked : [studio.ci];
   const targetColours = targets.map((j) => f.colours[j]).filter(Boolean);
   const pinned = targetColours.every((c) => studio.pins.some((p) => p.fabricId === f.id && p.colourOrder === c.order));
-  const pinTargets = () => targetColours.forEach((c) => studio.pinShade(f.id, c.order));
+  // Adding to the book: pin the shades, close "Select multiple" (as Done would), and point the
+  // buyer at the Swatch Book, where the book is ordered.
+  const [added, setAdded] = useState(0);
+  const pinTargets = () => {
+    targetColours.forEach((c) => studio.pinShade(f.id, c.order));
+    setAdded(targetColours.length);
+    setMulti(null);
+  };
+  // The prompt is fixed to the viewport, so it is portalled to the body: the lab's root animates a
+  // transform while it lays in, and a transformed ancestor turns a fixed child page-positioned.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => setMounted(true), 0);
+    return () => window.clearTimeout(t);
+  }, []);
   const fabricCount = String(studio.fabrics.length).padStart(2, '0');
   // Swiping the plate sideways (or scrolling it, or its arrows, or the arrow keys) moves to the
   // neighbouring fabric in catalogue order, wrapping round, through the Showroom's own unroll.
@@ -87,6 +102,8 @@ export function FabricLab({ studio }: { studio: Studio }) {
   const moreDrag = useDragScroll();
   // The two controls that live on the stage itself: the wind toggle and the garment picker.
   const [windOpen, setWindOpen] = useState(false);
+  // Scenes, as a panel from the stage's camera button, with the microscope inside it.
+  const [scenesOpen, setScenesOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   // True while a supplied model is on its way; the stage shows a loader rather than the
   // built-in cut, which used to stand in and read as the wrong garment appearing first.
@@ -186,7 +203,9 @@ export function FabricLab({ studio }: { studio: Studio }) {
     .filter((x) => x.id !== f.id)
     .map((x, i) => {
       const o = heroColour(x);
-      return { id: x.id, no: fabricNo(studio.fabrics, x.id), name: x.name, meta: `${x.weight} · ${x.width} · ${x.nc} ${t.shades}`, tex: fabricTex(x, o, 3), dl: `${i * 45}ms` };
+      const step = Math.max(1, Math.floor(x.colours.length / 5));
+      const dots = [0, 1, 2, 3, 4].map((k) => x.colours[(x.heroIndex + k * step) % x.colours.length]).filter(Boolean).map((c) => colourCss(c));
+      return { id: x.id, no: fabricNo(studio.fabrics, x.id), name: x.name, nc: x.nc, meta: `${x.weight} · ${x.width} · ${x.hand}`, tex: fabricTex(x, o, 4), dots, dl: `${i * 45}ms` };
     });
 
   const shadeChart = (
@@ -260,9 +279,10 @@ export function FabricLab({ studio }: { studio: Studio }) {
           (hidden on a phone, where the stage is a thumb away). */}
       {/* Sizes live in the pc-fab-* classes (smaller on a phone); the name and the spec line
           each stay on one line, shrinking to fit rather than wrapping. */}
-      <div className="pc-fab-head">
-        <div
-          className="pc-fab-plate"
+      {/* The whole head of the page — padding and all — is the swipe and scroll area for the
+          number strip, not just the numbers themselves. */}
+      <div
+        className="pc-fab-head"
           tabIndex={0}
           role="group"
           aria-label={`Fabric ${fabricIndex} of ${fabricCount}. Swipe sideways or use the arrow keys for the next fabric.`}
@@ -280,7 +300,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
             const dx = e.clientX - from.x;
             const dy = e.clientY - from.y;
             // A deliberate sideways stroke: long enough, and clearly more across than down.
-            if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.5) stepFabric(dx < 0 ? 1 : -1);
+            if (Math.abs(dx) > 32 && Math.abs(dx) > Math.abs(dy) * 1.3) stepFabric(dx < 0 ? 1 : -1);
           }}
           onPointerCancel={() => {
             swipe.current = null;
@@ -290,31 +310,41 @@ export function FabricLab({ studio }: { studio: Studio }) {
             const now = e.timeStamp;
             if (now - wheel.current.t > 400) wheel.current.dx = 0;
             wheel.current = { dx: wheel.current.dx + e.deltaX, t: now };
-            if (Math.abs(wheel.current.dx) > 80) {
+            if (Math.abs(wheel.current.dx) > 60) {
               stepFabric(wheel.current.dx > 0 ? 1 : -1);
               wheel.current.dx = 0;
             }
           }}
-          style={{ touchAction: 'pan-y', outline: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}
-        >
+        style={{ touchAction: 'pan-y', outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', cursor: 'grab' }}
+      >
+        <div className="pc-fab-plate">
           {/* The number strip: this fabric's number large in gold, its neighbours small and faded
               either side, as on a dial. A sideways swipe or scroll (or a tap on a neighbour, or
               the arrow keys) slides the strip one place and unrolls the next fabric. */}
           <div className="pc-fab-numcol" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignSelf: 'stretch', borderRight: '1px solid rgba(28,25,23,.14)', overflow: 'hidden' }}>
             <div
               style={{
-                display: 'flex', alignItems: 'baseline', gap: '.25em',
+                display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '.25em',
                 transform: leaving ? `translateX(${leaving * -38}%)` : 'none', opacity: leaving ? 0.35 : 1,
                 transition: 'transform .5s cubic-bezier(.2,.8,.2,1), opacity .5s ease',
               }}
             >
-              <button aria-label={`Previous fabric, ${String(((at - 1 + order.length) % order.length) + 1).padStart(2, '0')}`} onClick={() => stepFabric(-1)} className="pc-fab-side pc-hv-ink">
-                {String(((at - 1 + order.length) % order.length) + 1).padStart(2, '0')}
-              </button>
-              <span className="pc-fab-num" style={{ fontFamily: FONT_DISPLAY, fontWeight: 500, lineHeight: 1, color: '#8A6D45' }}>{fabricIndex}</span>
-              <button aria-label={`Next fabric, ${String(((at + 1) % order.length) + 1).padStart(2, '0')}`} onClick={() => stepFabric(1)} className="pc-fab-side pc-hv-ink">
-                {String(((at + 1) % order.length) + 1).padStart(2, '0')}
-              </button>
+              {[-2, -1, 0, 1, 2].map((d) => {
+                const n = String(((at + d + order.length * 2) % order.length) + 1).padStart(2, '0');
+                if (d === 0) {
+                  return <span key={d} className="pc-fab-num" style={{ fontFamily: FONT_DISPLAY, fontWeight: 500, lineHeight: 1, color: '#8A6D45' }}>{n}</span>;
+                }
+                return (
+                  <button
+                    key={d}
+                    aria-label={`${d < 0 ? 'Previous' : 'Next'} fabric, ${n}`}
+                    onClick={() => stepFabric(d < 0 ? -1 : 1)}
+                    className={`pc-fab-side pc-hv-ink${Math.abs(d) === 2 ? ' pc-fab-side-far' : ''}`}
+                  >
+                    {n}
+                  </button>
+                );
+              })}
             </div>
             <span className="pc-fab-count" style={{ fontFamily: FONT_DISPLAY, color: '#8A6D45', opacity: 0.75, textAlign: 'center' }}>
               /{fabricCount}
@@ -487,6 +517,11 @@ export function FabricLab({ studio }: { studio: Studio }) {
               </IconToggle>
               <WindControl wind={wind} setWind={studio.setWind} open={windOpen} setOpen={setWindOpen} />
             </div>
+            <div style={{ position: 'absolute', left: 14, bottom: 66, zIndex: 6 }}>
+              <IconToggle label={t.scenes} on={scenesOpen} onClick={() => setScenesOpen(true)} delay={0.2}>
+                <CameraIcon />
+              </IconToggle>
+            </div>
             <GarmentPicker garment={garment} setGarment={studio.setGarment} open={pickerOpen} setOpen={setPickerOpen} />
             {testNoteOn && (
               <div
@@ -532,44 +567,82 @@ export function FabricLab({ studio }: { studio: Studio }) {
         </div>
       </div>
 
-      {/* Scenes */}
-      <section style={{ padding: 'clamp(30px,4.5vw,54px) clamp(16px,5vw,64px) 0' }}>
-        <h2 style={{ margin: '0 0 20px', fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(24px,2.8vw,36px)' }}>{t.scenes}</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gridAutoRows: 'clamp(96px, 22vw, 190px)', gap: 'clamp(8px, 1.2vw, 12px)' }}>
-          {sceneDefs.map((sd, i) => (
-            <div
-              key={sd.label}
-              onClick={() => studio.openScene({ label: sd.label, css: sd.css, moving: !!sd.moving, fg })}
-              className="pc-hv-lift-4"
-              style={{
-                cursor: 'pointer', position: 'relative',
-                gridColumn: `span ${sceneSpan(i)[0]}`, gridRow: `span ${sceneSpan(i)[1]}`,
-                borderRadius: 4, overflow: 'hidden', background: sd.css,
-                boxShadow: 'inset 0 0 0 1px rgba(28,25,23,.06)', transition: 'transform .35s cubic-bezier(.2,.8,.2,1),box-shadow .35s',
-              }}
-            >
-              <span style={{ position: 'absolute', bottom: 10, left: 10, fontSize: 9.5, letterSpacing: '.22em', color: fg, textTransform: 'uppercase' }}>
-                {sd.label}
-              </span>
-            </div>
-          ))}
+      {/* More fabrics: large cards, the plate number over the cloth, a few of its shades, snap
+          scrolling; each opens through the Showroom's unroll. */}
+      <section style={{ padding: 'clamp(40px,6vw,72px) 0 0' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, padding: '0 clamp(16px,5vw,64px)', marginBottom: 20 }}>
+          <h2 style={{ margin: 0, fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(28px,3.4vw,44px)' }}>{t.moreFab}</h2>
+          <span style={{ fontSize: 10.5, letterSpacing: '.22em', color: '#8A6D45', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{moreFabrics.length} {t.qualities}</span>
+        </div>
+        <div style={{ position: 'relative' }}>
+          <div
+            id="pc-morefab"
+            className="pc-nav"
+            {...moreDrag}
+            style={{ display: 'flex', gap: 'clamp(14px,2vw,22px)', overflowX: 'auto', padding: '6px clamp(16px,5vw,64px) 18px', cursor: 'grab', touchAction: 'pan-y', scrollSnapType: 'x proximity', scrollPaddingLeft: 'clamp(16px,5vw,64px)' }}
+          >
+            {moreFabrics.map((m) => (
+              <div
+                key={m.id}
+                onClick={() => studio.unroll(studio.fab(m.id))}
+                className="pc-hv-lift-6"
+                style={{
+                  cursor: 'pointer', flex: 'none', width: 'clamp(230px, 66vw, 300px)', scrollSnapAlign: 'start', background: '#fff', borderRadius: 14, overflow: 'hidden',
+                  boxShadow: '0 14px 34px rgba(28,25,23,.10), 0 0 0 1px rgba(28,25,23,.05)',
+                  animation: `tileIn .5s ${m.dl} both`, transition: 'transform .45s cubic-bezier(.2,.8,.2,1), box-shadow .45s ease',
+                }}
+              >
+                <div className="pc-pink" style={{ position: 'relative', height: 'clamp(180px, 50vw, 230px)', background: m.tex }}>
+                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(28,25,23,.18) 0%, transparent 34%, transparent 62%, rgba(28,25,23,.32) 100%)' }} />
+                  <span style={{ position: 'absolute', top: 12, left: 14, fontFamily: FONT_DISPLAY, fontSize: 34, fontWeight: 500, lineHeight: 1, color: 'rgba(250,248,245,.94)', textShadow: '0 2px 12px rgba(28,25,23,.35)' }}>{m.no}</span>
+                  <div style={{ position: 'absolute', left: 14, bottom: 12, display: 'flex', gap: 5 }}>
+                    {m.dots.map((d, k) => (
+                      <span key={k} style={{ width: 14, height: 14, borderRadius: '50%', background: d, boxShadow: '0 0 0 1.5px rgba(250,248,245,.9)' }} />
+                    ))}
+                  </div>
+                  <span style={{ position: 'absolute', right: 14, bottom: 12, fontSize: 10, letterSpacing: '.18em', color: 'rgba(250,248,245,.92)', textTransform: 'uppercase' }}>{m.nc} {t.shades}</span>
+                </div>
+                <div style={{ padding: '14px 16px 16px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontFamily: FONT_DISPLAY, fontSize: 22, fontWeight: 600, lineHeight: 1.1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.name}</div>
+                    <div style={{ fontSize: 11, letterSpacing: '.08em', color: 'rgba(28,25,23,.5)', marginTop: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.meta}</div>
+                  </div>
+                  <span aria-hidden style={{ flex: 'none', width: 32, height: 32, borderRadius: '50%', display: 'grid', placeItems: 'center', border: '1px solid rgba(28,25,23,.15)', color: '#8A6D45', fontSize: 15 }}>→</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{ position: 'absolute', top: 0, bottom: 18, right: 0, width: 60, pointerEvents: 'none', background: 'linear-gradient(270deg,#FAF8F5,transparent)' }} />
+          <button
+            onClick={() => scrollByEl('pc-morefab', -320)}
+            aria-label="Scroll left"
+            className="pc-hv-ink-fill"
+            style={{
+              cursor: 'pointer', position: 'absolute', left: 10, top: 'clamp(90px, 25vw, 120px)', transform: 'translateY(-50%)', width: 42, height: 42, borderRadius: '50%',
+              border: '1px solid rgba(28,25,23,.15)', background: 'rgba(255,255,255,.9)', boxShadow: '0 6px 18px rgba(28,25,23,.14)',
+              fontSize: 16, color: '#1C1917', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .25s,color .25s',
+            }}
+          >
+            ‹
+          </button>
+          <button
+            onClick={() => scrollByEl('pc-morefab', 320)}
+            aria-label="Scroll right"
+            className="pc-hv-ink-fill"
+            style={{
+              cursor: 'pointer', position: 'absolute', right: 10, top: 'clamp(90px, 25vw, 120px)', transform: 'translateY(-50%)', width: 42, height: 42, borderRadius: '50%',
+              border: '1px solid rgba(28,25,23,.15)', background: 'rgba(255,255,255,.9)', boxShadow: '0 6px 18px rgba(28,25,23,.14)',
+              fontSize: 16, color: '#1C1917', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .25s,color .25s',
+            }}
+          >
+            ›
+          </button>
         </div>
       </section>
 
-      {/* Microscope + downloads */}
-      <section style={{ padding: 'clamp(30px,4.5vw,54px) clamp(16px,5vw,64px) 0', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,300px),1fr))', gap: 36 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          <ChipGroup label={t.scope}>
-            {SCOPE_LEVELS.map(([label, p]) => (
-              <Chip key={label} on={false} onClick={() => studio.openScope(p)}>
-                {label}
-              </Chip>
-            ))}
-          </ChipGroup>
-          <p style={{ margin: 0, fontSize: 13.5, fontWeight: 300, lineHeight: 1.7, color: 'rgba(28,25,23,.6)', maxWidth: 420, textWrap: 'pretty' }}>
-            {PHYSICS_NOTES[f.family]}
-          </p>
-        </div>
+      {/* Downloads, after the other fabrics: the spec sheet, the colour catalogue, this view, and
+          the QR to share it. */}
+      <section style={{ margin: 'clamp(34px,5vw,56px) clamp(16px,5vw,64px) 0', paddingTop: 'clamp(22px,3vw,30px)', borderTop: '1px solid rgba(28,25,23,.08)' }}>
         <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
           <div>
             <div style={{ fontSize: 10.5, letterSpacing: '.22em', color: 'rgba(28,25,23,.45)', textTransform: 'uppercase', marginBottom: 8 }}>{t.downloads}</div>
@@ -599,60 +672,76 @@ export function FabricLab({ studio }: { studio: Studio }) {
           </div>
         </div>
       </section>
+      {mounted && scenesOpen && createPortal(
+        <ScenesPanel
+          t={t}
+          fg={fg}
+          scenes={sceneDefs}
+          note={PHYSICS_NOTES[f.family]}
+          onScene={(sd) => studio.openScene({ label: sd.label, css: sd.css, moving: !!sd.moving, fg })}
+          onScope={(p) => studio.openScope(p)}
+          onClose={() => setScenesOpen(false)}
+        />,
+        document.body,
+      )}
+      {mounted && added > 0 && createPortal(
+        <BookPrompt n={added} t={t} onOrder={() => { setAdded(0); studio.go('book'); }} onClose={() => setAdded(0)} />,
+        document.body,
+      )}
+    </div>
+  );
+}
 
-      {/* More fabrics */}
-      <section style={{ padding: 'clamp(36px,5vw,60px) 0 0' }}>
-        <h2 style={{ margin: '0 0 18px', padding: '0 clamp(16px,5vw,64px)', fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(24px,2.8vw,36px)' }}>{t.moreFab}</h2>
-        <div style={{ position: 'relative' }}>
-          <div id="pc-morefab" className="pc-nav" {...moreDrag} style={{ display: 'flex', gap: 14, overflowX: 'auto', padding: '4px clamp(16px,5vw,64px) 8px', cursor: 'grab', touchAction: 'pan-y' }}>
-            {moreFabrics.map((m) => (
-              <div
-                key={m.id}
-                onClick={() => studio.unroll(studio.fab(m.id))}
-                className="pc-hv-lift-3"
-                style={{
-                  cursor: 'pointer', flex: 'none', width: 170, background: '#fff', border: '1px solid rgba(28,25,23,.08)', borderRadius: 4, overflow: 'hidden',
-                  animation: `tileIn .45s ${m.dl} both`, transition: 'transform .3s cubic-bezier(.2,.8,.2,1),box-shadow .3s',
-                }}
-              >
-                <div className="pc-pink" style={{ height: 96, background: m.tex }} />
-                <div style={{ padding: '10px 12px 12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                    <span style={{ fontFamily: FONT_DISPLAY, fontSize: 12.5, color: '#8A6D45', letterSpacing: '.06em', flex: 'none' }}>{m.no}</span>
-                    <div style={{ fontFamily: FONT_DISPLAY, fontSize: 17, fontWeight: 600, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.name}</div>
-                  </div>
-                  <div style={{ fontSize: 11, letterSpacing: '.06em', color: 'rgba(28,25,23,.5)', marginTop: 2 }}>{m.meta}</div>
-                </div>
-              </div>
-            ))}
+/**
+ * After "Add to book": a card near the bottom of the screen, over a light veil, that says what was
+ * added and points the buyer to the Swatch Book to order it. Escape, the veil, or "Keep browsing"
+ * closes it.
+ */
+function BookPrompt({ n, t, onOrder, onClose }: { n: number; t: Record<string, string>; onOrder: () => void; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 90 }}>
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(28,25,23,.28)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', animation: 'pcVeil .4s ease both' }} />
+      <div
+        role="dialog"
+        aria-label={t.bookAdded}
+        style={{
+          position: 'absolute', left: 16, right: 16, bottom: 'calc(var(--pc-bottombar) + 16px)', margin: '0 auto', maxWidth: 420,
+          background: '#FAF8F5', borderRadius: 20, padding: '20px 20px 16px', boxShadow: '0 30px 70px rgba(28,25,23,.28)',
+          animation: 'pcPop .55s cubic-bezier(.2,.8,.2,1) both',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span aria-hidden style={{ flex: 'none', width: 38, height: 38, borderRadius: '50%', display: 'grid', placeItems: 'center', background: '#8A6D45', color: '#FAF8F5', fontSize: 16 }}>✓</span>
+          <div>
+            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 21, fontWeight: 600, lineHeight: 1.15 }}>{t.bookAdded}</div>
+            <div style={{ fontSize: 12, color: 'rgba(28,25,23,.55)', marginTop: 3 }}>{n > 1 ? `${n} ${t.shades}` : `1 ${t.shade}`}</div>
           </div>
-          <div style={{ position: 'absolute', top: 0, bottom: 8, right: 0, width: 70, pointerEvents: 'none', background: 'linear-gradient(270deg,#FAF8F5,transparent)' }} />
+        </div>
+        <p style={{ margin: '14px 0 16px', fontSize: 13.5, fontWeight: 300, lineHeight: 1.6, color: 'rgba(28,25,23,.7)' }}>{t.bookNudge}</p>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <button
-            onClick={() => scrollByEl('pc-morefab', -400)}
-            aria-label="Scroll left"
-            className="pc-hv-ink-fill"
-            style={{
-              cursor: 'pointer', position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 38, height: 38, borderRadius: '50%',
-              border: '1px solid rgba(28,25,23,.15)', background: 'rgba(255,255,255,.9)', boxShadow: '0 6px 18px rgba(28,25,23,.14)',
-              fontSize: 16, color: '#1C1917', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .25s,color .25s',
-            }}
+            onClick={onOrder}
+            className="pc-hv-gold-fill"
+            style={{ cursor: 'pointer', flex: '1 1 180px', background: '#1C1917', color: '#FAF8F5', border: 'none', borderRadius: 999, padding: '13px 18px', fontFamily: FONT_BODY, fontSize: 12, letterSpacing: '.14em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}
           >
-            ‹
+            {t.orderBook} →
           </button>
           <button
-            onClick={() => scrollByEl('pc-morefab', 400)}
-            aria-label="Scroll right"
-            className="pc-hv-ink-fill"
-            style={{
-              cursor: 'pointer', position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', width: 38, height: 38, borderRadius: '50%',
-              border: '1px solid rgba(28,25,23,.15)', background: 'rgba(255,255,255,.9)', boxShadow: '0 6px 18px rgba(28,25,23,.14)',
-              fontSize: 16, color: '#1C1917', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .25s,color .25s',
-            }}
+            onClick={onClose}
+            className="pc-hv-ink"
+            style={{ cursor: 'pointer', flex: '0 1 auto', background: 'none', border: 'none', padding: '13px 10px', fontFamily: FONT_BODY, fontSize: 12, letterSpacing: '.1em', color: 'rgba(28,25,23,.6)', whiteSpace: 'nowrap' }}
           >
-            ›
+            {t.keepBrowsing}
           </button>
         </div>
-      </section>
+      </div>
     </div>
   );
 }
@@ -694,6 +783,127 @@ function IconToggle({ label, on, onClick, delay = 0, children }: { label: string
     >
       {children}
     </button>
+  );
+}
+
+function CameraIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M4 8h3l1.6-2.4h6.8L17 8h3v11H4Z" />
+      <circle cx="12" cy="13.2" r="3.6" />
+    </svg>
+  );
+}
+
+function ScopeIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M8 3h5l-1 6h-3Z" />
+      <path d="M10.5 9v3" />
+      <path d="M6 21h12" />
+      <path d="M9 21a6 6 0 0 0 9-8.5" />
+      <path d="M12 17h-3" />
+    </svg>
+  );
+}
+
+type SceneDef = { label: string; css: string; moving?: boolean };
+
+/**
+ * Scenes, opened from the stage's camera button: the cloth in the owner's sketched layout (a
+ * banner, a large tile beside two small, the next banner), each opening full size. The
+ * microscope lives in the panel's corner — a round button that opens into 100×, 200× and 500×.
+ */
+function ScenesPanel({ t, fg, scenes, note, onScene, onScope, onClose }: {
+  t: Record<string, string>; fg: string; scenes: SceneDef[]; note: string;
+  onScene: (s: SceneDef) => void; onScope: (p: number) => void; onClose: () => void;
+}) {
+  const [scopeOpen, setScopeOpen] = useState(false);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 80 }}>
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(28,25,23,.36)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', animation: 'pcVeil .45s ease both' }} />
+      <div
+        role="dialog"
+        aria-label={t.scenes}
+        style={{
+          position: 'absolute', left: 0, right: 0, bottom: 0, margin: '0 auto', maxWidth: 980, maxHeight: 'calc(100svh - 56px)', overflowY: 'auto',
+          background: '#FAF8F5', borderRadius: '22px 22px 0 0', padding: '18px clamp(16px,3vw,28px) calc(var(--pc-bottombar) + 22px)',
+          boxShadow: '0 -24px 60px rgba(28,25,23,.22)', animation: 'pcSheetUp .55s cubic-bezier(.2,.8,.2,1) both',
+        }}
+      >
+        <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(28,25,23,.15)', margin: '0 auto 14px' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+          <h2 style={{ margin: 0, fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(26px,3vw,36px)', flex: 1 }}>{t.scenes}</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {scopeOpen && (
+              <div role="group" aria-label={t.scope} style={{ display: 'flex', gap: 4, animation: 'pcSlideIn .45s cubic-bezier(.2,.8,.2,1) both' }}>
+                {SCOPE_LEVELS.map(([label, p]) => (
+                  <button
+                    key={label}
+                    onClick={() => onScope(p)}
+                    className="pc-hv-ink-fill"
+                    style={{ cursor: 'pointer', borderRadius: 999, border: '1px solid rgba(28,25,23,.18)', background: '#fff', padding: '8px 11px', fontFamily: FONT_BODY, fontSize: 12, color: '#1C1917' }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+            <button
+              aria-label={t.scope}
+              aria-expanded={scopeOpen}
+              title={t.scope}
+              onClick={() => setScopeOpen(!scopeOpen)}
+              className="pc-hv-scale-06"
+              style={{
+                cursor: 'pointer', width: 40, height: 40, borderRadius: '50%', display: 'grid', placeItems: 'center',
+                border: scopeOpen ? '1px solid #1C1917' : '1px solid rgba(28,25,23,.18)',
+                background: scopeOpen ? '#1C1917' : '#fff', color: scopeOpen ? '#FAF8F5' : '#1C1917',
+                transition: 'background .45s ease, color .45s ease, transform .5s cubic-bezier(.2,.8,.2,1)',
+              }}
+            >
+              <ScopeIcon />
+            </button>
+            <button
+              aria-label="Close"
+              onClick={onClose}
+              className="pc-hv-ink"
+              style={{ cursor: 'pointer', width: 40, height: 40, borderRadius: '50%', border: 'none', background: 'none', fontSize: 22, color: 'rgba(28,25,23,.6)' }}
+            >
+              ×
+            </button>
+          </div>
+        </div>
+        {scopeOpen && (
+          <p style={{ margin: '-6px 0 14px', fontSize: 12.5, fontWeight: 300, lineHeight: 1.6, color: 'rgba(28,25,23,.6)', textWrap: 'pretty' }}>{note}</p>
+        )}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gridAutoRows: 'clamp(90px, 20vw, 170px)', gap: 'clamp(8px, 1.2vw, 12px)' }}>
+          {scenes.map((sd, i) => (
+            <button
+              key={sd.label}
+              onClick={() => onScene(sd)}
+              className="pc-hv-lift-4"
+              style={{
+                cursor: 'pointer', position: 'relative', border: 'none', padding: 0, textAlign: 'left',
+                gridColumn: `span ${sceneSpan(i)[0]}`, gridRow: `span ${sceneSpan(i)[1]}`,
+                borderRadius: 8, overflow: 'hidden', background: sd.css,
+                boxShadow: 'inset 0 0 0 1px rgba(28,25,23,.06)', transition: 'transform .35s cubic-bezier(.2,.8,.2,1),box-shadow .35s',
+                animation: `tileIn .45s ${i * 40}ms both`,
+              }}
+            >
+              <span style={{ position: 'absolute', bottom: 10, left: 10, fontSize: 9.5, letterSpacing: '.22em', color: fg, textTransform: 'uppercase' }}>{sd.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -1082,28 +1292,3 @@ function GarmentPicker({ garment, setGarment, open, setOpen }: { garment: Garmen
   );
 }
 
-function ChipGroup({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <div style={{ fontSize: 10.5, letterSpacing: '.22em', color: 'rgba(28,25,23,.45)', textTransform: 'uppercase', marginBottom: 10 }}>{label}</div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>{children}</div>
-    </div>
-  );
-}
-
-function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
-  const cs = chipStyle(on);
-  return (
-    <button
-      onClick={onClick}
-      className="pc-hv-gold-border"
-      style={{
-        cursor: 'pointer', background: cs.background, color: cs.color,
-        border: `1px solid ${cs.borderColor}`, borderRadius: 999, padding: '9px 17px',
-        fontFamily: FONT_BODY, fontSize: 12.5, transition: 'background .25s,border-color .25s,color .25s',
-      }}
-    >
-      {children}
-    </button>
-  );
-}

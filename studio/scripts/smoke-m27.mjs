@@ -37,10 +37,17 @@ function detail(png) {
 }
 
 async function openScope(page, label) {
-  // Clicked directly: the microscope sits below the Scenes grid, and a pointer click after the
-  // scroll can land on a scene tile while the page is still settling.
-  const button = page.getByRole('button', { name: new RegExp(`^${label}$`, 'i') }).first();
-  await button.evaluate((el) => el.click());
+  // The microscope lives in the Scenes panel, opened from the stage's camera button; its round
+  // button there opens into the three magnifications. Clicked directly, not by pointer: the
+  // panel slides up, and a pointer click can land while it is still moving.
+  const level = page.getByRole('button', { name: new RegExp(`^${label}$`, 'i') });
+  if (!(await level.filter({ visible: true }).count())) {
+    await page.getByRole('button', { name: /^Scenes$/i }).first().evaluate((el) => el.click());
+    await page.waitForTimeout(700);
+    await page.getByRole('button', { name: /^Microscope$/i }).first().evaluate((el) => el.click());
+    await page.waitForTimeout(500);
+  }
+  await level.first().evaluate((el) => el.click());
   await page.waitForSelector('[data-stage] canvas', { timeout: 20_000 });
   await page.waitForTimeout(1600);
   const png = decodePng(await page.locator('[data-stage] canvas').last().screenshot());

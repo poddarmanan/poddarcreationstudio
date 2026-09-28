@@ -27,15 +27,21 @@ which Roman Silk's, the longest, reaches on a 390 px screen; most sit near 8 px)
 fabric is shown — the showroom's rolls and the lab's "more fabrics" strip — carries the same
 number, so a buyer can say "the third one".
 
-**The plate changes fabric.** A sideways swipe on the plate, a sideways scroll over it, a tap on
+**The plate changes fabric.** A sideways swipe anywhere on the head of the page (the plate and
+its padding), a sideways scroll over it, a tap on
 a neighbouring number, or the arrow keys when it has focus moves to the next or previous fabric
 in catalogue order, wrapping round. The strip slides one place, and the switch is the Showroom's
 own: its full-screen unroll card, then the lab's staged reveal with the loader. The "more
 fabrics" strip switches the same way. A vertical drag over the plate still scrolls the page
 (`touch-action: pan-y`). The lab is not remounted for a switch — the staged reveal is keyed on
-the fabric as well as the cut — because tearing the stage's canvas down trips a dispose-order
-fault in drei's `Environment` (its cube render target is disposed after the renderer), and
-keeping the canvas makes the switch cheaper besides.
+the fabric as well as the cut — which keeps the canvas and makes the switch cheaper. On a
+desktop the strip shows two neighbours each side, on a phone one.
+
+**Leaving the lab no longer throws.** drei's `Environment` disposes its cube render target after
+React Three Fiber has disposed the renderer, and three's dispose handler then reads framebuffers
+from the renderer's cleared records. It surfaced as an uncaught error on every exit from the lab.
+`LightingRig` wraps `WebGLCubeRenderTarget.prototype.dispose` once to swallow that late dispose;
+the target's GPU memory went with the context anyway.
 
 **Product information on the stage.** A small "i" under the corner label opens the product
 details — name, the shade on the stage, weight, width, composition, hand, price and stock — as
@@ -44,19 +50,26 @@ away from the garment. A second tap, Escape, or a tap outside closes it.
 
 **The buyer's column.** To the right of the stage (below it and its shade chart on a phone):
 Add to book, the column's one action, in the primary fill (gold once the shade is in the book),
-then the shade chart on a desktop. A quote is asked for from the Swatch Book; the product
-details open from the stage's "i"; the microscope sits further down the page beside the
-downloads. There is no WhatsApp button in the lab.
+then the shade chart on a desktop. Adding opens a card near the bottom of the screen — what was
+added, and "Order swatch book →" to the Swatch Book, where the book is ordered, or "Keep
+browsing" — and closes "Select multiple" as Done would. A quote is asked for from the Swatch
+Book; the product details open from the stage's "i". There is no WhatsApp button in the lab.
+
+**Scenes and the microscope** are a panel, not page sections. A camera button on the stage, above
+the garment button, slides up a sheet with the scenes in the owner's sketched layout (a banner, a
+large tile beside two small, the next banner), each opening full size. In the sheet's corner a
+round microscope button opens into 100×, 200× and 500×, with the fabric's physics note.
+
+**Below the stage**, the page ends with "More fabrics" — large cards with the plate number over the
+cloth, five of its shades, its shade count, name and hand, snap-scrolling, each opening through
+the Showroom's unroll — and then the downloads (spec sheet, colour catalogue, this view) and the
+share QR.
 
 **Select multiple.** Beside the shade count, a small chip turns the chart into a picker: the
 shade on the stage starts ticked, each tap ticks or unticks a chip (and puts a newly ticked shade
 on the stage), and the count shows beside the heading. While shades are ticked, Add to book adds
 all of them, with the count as a badge on the button. The selection belongs to the fabric and
 clears on a change of fabric or on Done.
-
-**Scenes** follow the owner's sketch: on a three-column grid, a wide banner, then one large tile
-beside two small ones stacked, then the next banner — a four-tile beat that the nine scenes fill
-exactly.
 
 **Every change of cut is a staged transition.** The garment on the stage fades out and the loader
 comes up. A cut already loaded is revealed after a second and a half; one that is still being
