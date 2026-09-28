@@ -95,6 +95,20 @@ layer of their own that cross-fades, and the title, line and colours ease across
 slider glides the walk to its first roll. There is no "Fabric Hall" room any more and no round
 arrows over the walk or over "more fabrics": both are dragged or scrolled.
 
+**Headings and the rule.** Every page heading sits over a fine gold rule that fades out at both
+ends and draws itself out from the middle (`Selvage` in `brand.tsx`, kept by name). The gold-and-ink
+running stitch it used to be is gone from the whole site at the owner's word, with its style
+constants. The Showroom's heading is set as a catalogue section: "The Showroom · 01 / 03" between
+hairlines, the room's name with its second word in the room's accent in italic, the rule, and the
+room's line in italic serif. Its room picker is three equal places in a glass pill that fits and
+centres on any screen (it used to overflow a phone to the right), with one dark marker that slides
+between them as the walk moves; the glass goes dark with a gold edge in the Silk Gallery.
+
+**The roll hangs square.** Left alone, the stage used to rock gently from side to side — right for
+a garment on a form, wrong for a bolt on a rod, which read as a tilted rod. On the roll the stage
+now settles back square to the buyer; it can still be turned by hand. The corner label ("Studio ·
+Wind") sits on a small frosted chip, so the roll's wires pass behind it rather than through it.
+
 **Arriving on a page.** Every change of page is announced by a cream curtain carrying the page's
 name ("The Fabric Hall"), which covers at once, holds a beat and lifts away as the page lays in
 (`ViewCurtain`; navigation itself is never delayed). In the Showroom the rolls then rise into
@@ -135,8 +149,9 @@ for a cut that has no model file at all (the dress, until one is uploaded).
 **The stretch is realistic.** Pulling the roll lengthens and narrows it by the cloth's own
 figures — a woven cotton about 3% along and 2.5% across, a rayon about 5%, a cotton lycra about
 19% and 10% — and the bolt turns only a little faster while it is pulled. It had been far too
-elastic (11% for cotton, 35% for lycra). The viewer smoke still sees the pull on cotton (4.5% of
-pixels changed against 1.7% at rest).
+elastic (11% for cotton, 35% for lycra). The viewer smoke measures the pull as the cloth's outline changing
+— the hem drops about 12 px and the cloth draws in 4–5 px on cotton, against 2 px of drift at rest —
+since square-on the weave's shimmer moves more pixels than a realistic pull does.
 
 **The roll rocks as one thing.** Bolt, wires and cloth hang from the wires' top and swing front
 and back together in the wind, in the phase of the cloth's own gust, so the top of the cloth and

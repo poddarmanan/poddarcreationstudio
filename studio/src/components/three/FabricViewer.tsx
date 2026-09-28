@@ -181,7 +181,7 @@ function shortestTurn(a: number, b: number): number {
  * Any touch takes over instantly and completely; the automatic motion only ever resumes, never
  * competes.
  */
-function Turntable({ children, idle, free = false }: { children: ReactNode; idle: boolean; free?: boolean }) {
+function Turntable({ children, idle, free = false, square = false }: { children: ReactNode; idle: boolean; free?: boolean; square?: boolean }) {
   const group = useRef<THREE.Group>(null);
   const gl = useThree((s) => s.gl);
   const invalidate = useThree((s) => s.invalidate);
@@ -273,7 +273,11 @@ function Turntable({ children, idle, free = false }: { children: ReactNode; idle
         if (idle && idleFor.current > 3) {
           // Ease the automatic motion back in over two seconds rather than jerking into it.
           const ease = Math.min(1, (idleFor.current - 3) / 2);
-          if (free) {
+          if (square) {
+            // A bolt on a rod hangs square to the room: left alone, it settles back to face the
+            // buyer rather than rocking, which made the rod look tilted.
+            a.y += shortestTurn(a.y, 0) * Math.min(1, delta * 1.2 * ease);
+          } else if (free) {
             a.y += 0.35 * ease * delta;
           } else {
             rock.current += delta * 0.5 * ease;
@@ -375,7 +379,7 @@ export function FabricViewer({
       <LightingRig light={light} tier={tier} floor={floorY} />
       <ShineSweep active={shine} sheen={fabric.sheen} />
       {free && !onGarment && <Stand hem={hem} />}
-      <Turntable idle={!pulled} free={free}>
+      <Turntable idle={!pulled} free={free} square={rolled && !onGarment}>
         {onGarment ? (
           // Lifted a little: the lab's test pills sit over the bottom of the stage on a phone,
           // and a hem hidden behind them reads as a garment cut off.

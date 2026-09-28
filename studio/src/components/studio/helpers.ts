@@ -30,19 +30,6 @@ export function fabricNo(fabrics: { id: string }[], id: string) {
   return String(fabrics.findIndex((f) => f.id === id) + 1).padStart(2, '0');
 }
 
-export const SELVAGE_STITCH =
-  'repeating-linear-gradient(90deg,#8A6D45 0 9px,transparent 9px 16px),repeating-linear-gradient(90deg,rgba(28,25,23,.65) 0 9px,transparent 9px 16px)';
-
-export const SELVAGE_STYLE = {
-  display: 'block' as const,
-  width: 72,
-  height: 7,
-  backgroundImage: SELVAGE_STITCH,
-  backgroundSize: '16px 2px,16px 2px',
-  backgroundPosition: '0 0,8px 4px',
-  backgroundRepeat: 'repeat-x' as const,
-};
-
 export const FONT_DISPLAY = "var(--font-display), 'Cormorant Garamond', serif";
 export const FONT_BODY = "var(--font-body), 'Jost', sans-serif";
 

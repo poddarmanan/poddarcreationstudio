@@ -75,33 +75,45 @@ async function signatureOver(page, samples = 3, gapMs = 800) {
   return acc;
 }
 
+/**
+ * The hanging cloth's outline in a frame: its hem (the lowest row the cloth reaches) and its width
+ * across the middle of its length. The cloth is told from the backdrop by saturation — the backdrop
+ * is a near-neutral cream, the roll's cloth a coloured shade — and only the middle of the stage is
+ * read, so the controls down its sides are not mistaken for cloth.
+ */
+function outline(png) {
+  const { width, height, channels, data } = png;
+  const x0 = Math.floor(width * 0.2);
+  const x1 = Math.ceil(width * 0.8);
+  const rows = [];
+  for (let y = 0; y < height; y++) {
+    let lo = -1;
+    let hi = -1;
+    let n = 0;
+    for (let x = x0; x < x1; x++) {
+      const o = (y * width + x) * channels;
+      const r = data[o], g = data[o + 1], b = data[o + 2];
+      if (Math.max(r, g, b) - Math.min(r, g, b) > 26) {
+        n += 1;
+        if (lo < 0) lo = x;
+        hi = x;
+      }
+    }
+    if (n > 12) rows.push({ y, w: hi - lo });
+  }
+  if (rows.length < 20) return null;
+  const hem = rows[rows.length - 1].y;
+  const top = rows[0].y;
+  const mid = rows.filter((r) => r.y > top + (hem - top) * 0.3 && r.y < top + (hem - top) * 0.7).map((r) => r.w).sort((a, b) => a - b);
+  return { hem, width: mid.length ? mid[Math.floor(mid.length / 2)] : 0 };
+}
+
 /** A decoded frame of the stage, for pixel-level comparison. */
 async function frame(page) {
   await page.waitForTimeout(700);
   return decodePng(await page.locator('[data-stage] canvas').first().screenshot());
 }
 
-/**
- * Fraction of pixels that changed between two frames of the same size.
- *
- * Movement is asked about here, and a mean colour is a poor witness to movement: cloth that
- * flutters brightens some folds and darkens others and leaves the mean where it was — which is
- * how a garment visibly rippling in a strong wind once measured as Δ0.5 and "did not move".
- * Counting changed pixels sees any motion; the caller compares it against two still frames so
- * the idle rock and the folds' own drift are not mistaken for wind.
- */
-function changedFraction(a, b) {
-  if (a.width !== b.width || a.height !== b.height) return 1;
-  let changed = 0;
-  const n = a.width * a.height;
-  for (let i = 0; i < n; i++) {
-    const o = i * a.channels;
-    const p = i * b.channels;
-    const d = Math.abs(a.data[o] - b.data[p]) + Math.abs(a.data[o + 1] - b.data[p + 1]) + Math.abs(a.data[o + 2] - b.data[p + 2]);
-    if (d > 20) changed += 1;
-  }
-  return changed / n;
-}
 
 async function main() {
   console.log('base:', BASE);
@@ -167,30 +179,25 @@ async function main() {
     await page.waitForTimeout(1500);
   };
   const release = async () => page.mouse.up();
-  // A few held frames give the cloth's own residual motion (the folds drift, the bolt turns),
-  // averaged, because it breathes; the test has to add clearly to it.
-  const stillPair = async (pairs = 2) => {
-    let last = await frame(page);
-    let noise = 0;
-    for (let i = 0; i < pairs; i++) {
-      const next = await frame(page);
-      const c = changedFraction(last, next);
-      if (process.env.DEBUG) console.log(`      pair ${i}: ${(c * 100).toFixed(1)}%`);
-      noise += c / pairs;
-      last = next;
-    }
-    return { last, noise };
-  };
 
   // The stretch test is the roll's: a length of cloth can be pulled, a made-up garment cannot.
+  // Measured as what a stretch does to the cloth — the hem drops and the cloth draws in — not as a
+  // count of changed pixels: the roll hangs square to the camera now, and its fine weave shimmers
+  // as the folds drift, which moves more pixels than a realistic few-percent pull on cotton does.
   await hold();
-  const restStill = await stillPair();
+  const restA = outline(await frame(page));
+  const restB = outline(await frame(page));
   await page.getByRole('button', { name: /^Stretch$/i }).first().evaluate((el) => el.click());
   await page.waitForTimeout(3000); // the pull eases in rather than snapping
-  const pulledFrame = await frame(page);
-  const stretched = changedFraction(restStill.last, pulledFrame);
-  if (stretched < restStill.noise * 1.5 || stretched < restStill.noise + 0.02) bad(`the stretch test did not change the cloth (${(stretched * 100).toFixed(1)}% of pixels changed vs ${(restStill.noise * 100).toFixed(1)}% at rest)`);
-  else ok(`stretch pulls the cloth taut (${(stretched * 100).toFixed(1)}% of pixels changed vs ${(restStill.noise * 100).toFixed(1)}% at rest)`);
+  const pulled = outline(await frame(page));
+  if (!restA || !restB || !pulled) bad('the stretch test could not find the hanging cloth in the frame');
+  else {
+    const drift = Math.max(2, Math.abs(restA.hem - restB.hem), Math.abs(restA.width - restB.width));
+    const drop = pulled.hem - restB.hem;
+    const narrow = restB.width - pulled.width;
+    if (drop < drift * 2 && narrow < drift * 2) bad(`the stretch test did not change the cloth (hem ${drop}px lower, ${narrow}px narrower, vs ${drift}px at rest)`);
+    else ok(`stretch pulls the cloth taut (hem ${drop}px lower, ${narrow}px narrower, vs ${drift}px at rest)`);
+  }
   await page.getByRole('button', { name: /^Stretch$/i }).first().evaluate((el) => el.click());
   await release();
   await page.waitForTimeout(1200);
@@ -206,11 +213,13 @@ async function main() {
     console.log(`      [${label}] stretch=${st} shine=${sh} ${w}`);
   };
   await states('before shine');
-  const unlit = await signatureOver(page);
+  // Six samples over one sweep's cycle (4.2 s): the light now fades in and out and rests between
+  // passes, so a few samples could all land in the rest.
+  const unlit = await signatureOver(page, 6, 450);
   await shineButton.evaluate((el) => el.click());
   await page.waitForTimeout(900);
   await states('shine on');
-  const shine = await signatureOver(page);
+  const shine = await signatureOver(page, 6, 450);
   const gain = shine.r + shine.g + shine.b - (unlit.r + unlit.g + unlit.b);
   if (gain <= 0) {
     bad(`the shine test should put more light on the cloth, not less (${gain.toFixed(1)})`);

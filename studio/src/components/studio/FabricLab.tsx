@@ -484,7 +484,8 @@ export function FabricLab({ studio }: { studio: Studio }) {
                 background: `radial-gradient(35% 13px at 50% calc(93% - 13px), rgba(28,25,23,.3), transparent 70%), radial-gradient(50% 40% at 50% 15%, ${light.glow}, transparent 70%), ${light.bg}`,
               }}
             />
-            <span style={{ position: 'absolute', top: 14, left: 16, zIndex: 5, fontSize: 'clamp(7.5px, 1.1vw, 9.5px)', letterSpacing: '.2em', color: light.fg, opacity: 0.7, transition: 'color 1.2s ease', maxWidth: '55%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {/* On a small frosted chip, so the roll's wires pass behind it rather than through it. */}
+            <span style={{ position: 'absolute', top: 12, left: 12, zIndex: 5, fontSize: 'clamp(7.5px, 1.1vw, 9.5px)', letterSpacing: '.2em', color: light.fg, transition: 'color 1.2s ease', maxWidth: '55%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', padding: '5px 10px', borderRadius: 999, background: light.fg === '#FAF8F5' ? 'rgba(28,25,23,.42)' : 'rgba(250,248,245,.62)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', boxShadow: '0 0 0 1px rgba(28,25,23,.05)' }}>
               {light.en.toUpperCase()} · {wind ? 'WIND' : 'STILL'}
             </span>
             {loaderPhase !== 'hidden' && <StageLoader label={isRoll ? 'Unrolling the cloth' : `Draping the ${DIAL_LABELS[garment].toLowerCase()}`} leaving={loaderPhase === 'out'} />}

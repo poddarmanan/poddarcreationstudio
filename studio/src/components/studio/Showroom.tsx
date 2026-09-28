@@ -25,6 +25,7 @@ export function Showroom({ studio }: { studio: Studio }) {
   const walk = useRef<HTMLDivElement>(null);
   // While the walk glides to a room chosen in the slider, its scroll does not re-pick the room.
   const settling = useRef(0);
+  const dark = room.k === 'silk';
   const roomFade = room.k === 'silk' ? 'rgba(35,30,26,.85)' : 'rgba(240,235,226,.85)';
   const rolls = rooms.flatMap((r) => r.ids.map((id) => ({ f: studio.fab(id), room: r.k })));
 
@@ -87,32 +88,60 @@ export function Showroom({ studio }: { studio: Studio }) {
       ))}
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(120% 100% at 50% 40%, transparent 60%, rgba(28,25,23,.14))' }} />
       <div style={{ position: 'relative', textAlign: 'center', padding: 'clamp(24px,4vh,44px) 20px 0' }}>
-        <div key={`e${room.k}`} style={{ fontSize: 10, letterSpacing: '.5em', color: room.accent, transition: 'color 1s ease', animation: 'pcVeil .9s ease both' }}>
-          {t.showroom} · {ri + 1} / {rooms.length}
+        {/* The room's heading, set as a catalogue sets a section: an eyebrow between hairlines with
+            the room's place in the walk, the room's name with its second word in gold italic, a
+            fine gold rule, and a line about the room in the display serif. Each part rises in
+            again as the walk moves into the next room. */}
+        <div key={`e${room.k}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, fontSize: 9.5, letterSpacing: '.42em', textTransform: 'uppercase', color: room.accent, transition: 'color 1s ease', animation: 'pcVeil .9s ease both' }}>
+          <span aria-hidden style={{ width: 'clamp(22px,6vw,48px)', height: 1, background: `linear-gradient(90deg, transparent, ${room.accent})`, opacity: 0.7 }} />
+          <span>{t.theShowroom} · <span style={{ fontVariantNumeric: 'lining-nums' }}>{String(ri + 1).padStart(2, '0')} / {String(rooms.length).padStart(2, '0')}</span></span>
+          <span aria-hidden style={{ width: 'clamp(22px,6vw,48px)', height: 1, background: `linear-gradient(270deg, transparent, ${room.accent})`, opacity: 0.7 }} />
         </div>
-        <h1 key={`h${room.k}`} style={{ margin: '8px 0 0', fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(32px,4.2vw,54px)', color: room.fg, animation: 'rise .9s cubic-bezier(.22,.8,.2,1) both' }}>
-          {t[room.labelKey]}
+        <h1 key={`h${room.k}`} style={{ margin: '12px 0 0', fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(38px,5.4vw,64px)', lineHeight: 1.02, color: room.fg, transition: 'color 1s ease', animation: 'rise .95s cubic-bezier(.22,.8,.2,1) both' }}>
+          {(() => {
+            const words = String(t[room.labelKey]).split(' ');
+            const last = words.pop();
+            return (
+              <>
+                {words.join(' ')} <em style={{ fontWeight: 400, color: room.accent, transition: 'color 1s ease' }}>{last}</em>
+              </>
+            );
+          })()}
         </h1>
-        <Selvage style={{ margin: '10px auto 0' }} />
-        <p key={`p${room.k}`} style={{ margin: '6px 0 0', fontSize: 13.5, fontWeight: 300, color: room.sub, animation: 'rise .9s .08s cubic-bezier(.22,.8,.2,1) both' }}>{t[room.descKey]}</p>
+        <Selvage key={`r${room.k}`} style={{ margin: '16px auto 0', width: 64 }} />
+        <p key={`p${room.k}`} style={{ margin: '12px auto 0', maxWidth: 420, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 'clamp(16px,1.6vw,19px)', color: room.sub, transition: 'color 1s ease', animation: 'rise .95s .1s cubic-bezier(.22,.8,.2,1) both' }}>{t[room.descKey]}</p>
+        {/* The rooms: three equal places in a glass pill, centred, with one dark marker that
+            slides between them as the walk moves — no chip is repainted, the marker travels. */}
         <div
-          className="pc-nav"
+          role="group"
+          aria-label={t.showroom}
           style={{
-            position: 'relative', display: 'inline-flex', gap: 4, marginTop: 16, background: 'rgba(250,248,245,.6)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
-            border: '1px solid rgba(28,25,23,.1)', borderRadius: 999, padding: 5, maxWidth: '94vw',
+            position: 'relative', display: 'grid', gridTemplateColumns: `repeat(${rooms.length}, minmax(0, 1fr))`, width: 'min(100%, 420px)', margin: '20px auto 0',
+            // Light glass in the light rooms, dark glass in the Silk Gallery, easing between them.
+            background: dark ? 'rgba(20,17,15,.45)' : 'rgba(250,248,245,.62)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+            border: dark ? '1px solid rgba(201,169,110,.22)' : '1px solid rgba(28,25,23,.08)', borderRadius: 999, padding: 4,
+            boxShadow: dark ? '0 10px 30px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.06)' : '0 10px 30px rgba(28,25,23,.08), inset 0 1px 0 rgba(255,255,255,.6)',
+            transition: 'background 1.2s ease, border-color 1.2s ease, box-shadow 1.2s ease',
           }}
         >
+          <span
+            aria-hidden
+            style={{
+              position: 'absolute', top: 4, bottom: 4, left: 4, width: `calc((100% - 8px) / ${rooms.length})`, borderRadius: 999,
+              background: 'linear-gradient(135deg,#26211D,#141110)', boxShadow: 'inset 0 0 0 1px rgba(201,169,110,.35), 0 6px 16px rgba(28,25,23,.25)',
+              transform: `translateX(${ri * 100}%)`, transition: 'transform .8s cubic-bezier(.22,.8,.2,1)',
+            }}
+          />
           {rooms.map((r) => (
             <button
               key={r.k}
               onClick={() => glideTo(r.k)}
               aria-pressed={active === r.k}
               style={{
-                cursor: 'pointer', whiteSpace: 'nowrap',
-                background: active === r.k ? '#1C1917' : 'transparent',
-                color: active === r.k ? '#FAF8F5' : '#1C1917',
-                border: 'none', borderRadius: 999, padding: '8px 16px', fontFamily: FONT_BODY, fontSize: 11.5, letterSpacing: '.1em',
-                transition: 'background .7s cubic-bezier(.22,.8,.2,1), color .7s ease',
+                position: 'relative', cursor: 'pointer', whiteSpace: 'nowrap', background: 'transparent', border: 'none', borderRadius: 999,
+                color: active === r.k ? '#FAF8F5' : dark ? 'rgba(250,248,245,.72)' : 'rgba(28,25,23,.7)',
+                padding: '10px 6px', fontFamily: FONT_BODY, fontSize: 'clamp(10.5px, 2.9vw, 11.5px)', letterSpacing: '.08em',
+                transition: 'color .7s ease',
               }}
             >
               {t[r.labelKey]}
