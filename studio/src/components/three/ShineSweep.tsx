@@ -12,11 +12,14 @@ import * as THREE from 'three';
  * along the warp floats like water. That travel is the measurement, and it is exactly what a
  * still image cannot show.
  *
- * The sweep is timed to the same 2.4s period as the studio's existing CSS `shineSweep`
- * animation, so the flat rendering and the 3D one stay in step rather than beating against
- * each other at slightly different rates.
+ * Each pass is a gesture, not a loop: the light fades up from nothing at one edge, glides across
+ * on a slight arc (eased at both ends), fades back to nothing at the other, and rests a moment
+ * before the next. It used to run a sawtooth at full strength, so it vanished at one edge and
+ * reappeared at the other in a single frame.
  */
-const PERIOD = 2.4;
+const PERIOD = 4.2;
+/** The share of each period spent travelling; the rest is the pause between passes. */
+const TRAVEL = 0.78;
 
 export function ShineSweep({ active, sheen }: { active: boolean; sheen: number }) {
   const light = useRef<THREE.PointLight>(null);
@@ -27,12 +30,16 @@ export function ShineSweep({ active, sheen }: { active: boolean; sheen: number }
     if (!l) return;
     // Fades in and out rather than snapping, so toggling the test is not a flash.
     level.current += ((active ? 1 : 0) - level.current) * Math.min(1, delta * 5);
-    const phase = ((state.clock.elapsedTime % PERIOD) / PERIOD) * 2 - 1;
-    l.position.set(phase * 1.6, 0.35, 1.15);
+    const t = (state.clock.elapsedTime % PERIOD) / PERIOD;
+    const u = Math.min(1, t / TRAVEL);
+    const eased = u * u * (3 - 2 * u);
+    // Zero at both edges and through the pause, full in the middle of the pass.
+    const envelope = t < TRAVEL ? Math.pow(Math.sin(Math.PI * u), 1.4) : 0;
+    l.position.set(-1.9 + eased * 3.8, 0.28 + Math.sin(Math.PI * u) * 0.16, 1.15);
     // A shinier cloth deserves a brighter raking light: the point of the test is to make the
-    // difference between qualities visible, not to light them all identically. Scaled up when
-    // the stage gained a lit room, or the sweep disappeared into the ambient light.
-    l.intensity = level.current * (2.6 + sheen * 6);
+    // difference between qualities visible, not to light them all identically. A little brighter
+    // at its peak than the old constant sweep, since it now spends its edges fading.
+    l.intensity = level.current * envelope * (3.4 + sheen * 7.5);
   });
 
   return <pointLight ref={light} color="#FFFFFF" distance={4} decay={1.6} intensity={0} />;

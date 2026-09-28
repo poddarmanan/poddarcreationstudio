@@ -512,7 +512,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
                 </div>
               )}
               <IconToggle label="Shine" on={tests.shine} onClick={() => studio.toggleTest('shine')} delay={0.15}>
-                <ShineIcon />
+                <ShineIcon on={tests.shine} />
               </IconToggle>
               <WindControl wind={wind} setWind={studio.setWind} open={windOpen} setOpen={setWindOpen} />
             </div>
@@ -545,20 +545,23 @@ export function FabricLab({ studio }: { studio: Studio }) {
         <div style={{ padding: 'clamp(24px,3.5vw,44px)', display: 'flex', flexDirection: 'column', gap: 26, justifyContent: 'flex-start', background: '#FAF8F5' }}>
           <PriceLine price={f.price} t={t} />
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: -14 }}>
+            {/* The column's one action, dressed as the Entrance's: ink with a fine gold edge, a slow
+                light crossing it, a lift on hover and a give when pressed, and a star that
+                twinkles. Gold once the shade is in the book, the tick popping in. */}
             <button
               onClick={pinTargets}
               aria-pressed={pinned}
-              className="pc-hv-gold-text-border"
+              className={`pc-book${pinned ? ' is-done' : ''}`}
               style={{
-                cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 999, whiteSpace: 'nowrap',
-                padding: '13px 12px', fontFamily: FONT_BODY, fontSize: 'clamp(11px, 3vw, 12.5px)', letterSpacing: '.12em', textTransform: 'uppercase',
-                // The column's one action now, so it wears the primary fill; gold once it is done.
-                ...(pinned ? { background: '#8A6D45', color: '#FAF8F5', border: '1px solid #8A6D45' } : { background: '#1C1917', color: '#FAF8F5', border: '1px solid #1C1917' }),
-                transition: 'background .45s ease, color .45s ease, border-color .45s ease',
+                cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 10, borderRadius: 999, whiteSpace: 'nowrap',
+                padding: '16px 14px', fontFamily: FONT_BODY, fontSize: 'clamp(11px, 3vw, 12.5px)', letterSpacing: '.2em', textTransform: 'uppercase',
+                ...(pinned
+                  ? { background: 'linear-gradient(135deg,#9A7B4F,#7C6139)', color: '#FAF8F5', border: '1px solid #8A6D45' }
+                  : { background: 'linear-gradient(135deg,#26211D,#141110)', color: '#FAF8F5', border: '1px solid #1C1917' }),
                 flex: '1 1 150px',
               }}
             >
-              <span aria-hidden>{pinned ? '✓' : '✦'}</span>
+              <span key={pinned ? 'done' : 'add'} aria-hidden className={pinned ? 'pc-book-tick' : 'pc-book-star'}>{pinned ? '✓' : '✦'}</span>
               {pinned ? t.inBook : t.pin}
               {!pinned && targets.length > 1 && <CountBadge n={targets.length} light />}
             </button>
@@ -1012,11 +1015,23 @@ function StretchIcon() {
   );
 }
 
-function ShineIcon() {
+/**
+ * The shine button's sun, alive the way the wind's gust is: switching it on turns it a quarter,
+ * and while it is on its rays wheel slowly round and breathe, as a light being walked across.
+ */
+function ShineIcon({ on }: { on: boolean }) {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden>
-      <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" />
-      <circle cx="12" cy="12" r="3.2" />
+    <svg
+      width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden
+      style={{ transform: on ? 'rotate(45deg)' : 'none', transition: 'transform .9s cubic-bezier(.22,.8,.2,1)' }}
+    >
+      <g style={{ transformOrigin: '12px 12px', animation: on ? 'pcSpin 16s linear infinite' : 'none' }}>
+        <path
+          d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"
+          style={{ transformOrigin: '12px 12px', animation: on ? 'pcRays 2.8s ease-in-out infinite' : 'none' }}
+        />
+      </g>
+      <circle cx="12" cy="12" r="3.2" style={{ transition: 'fill .6s ease', fill: on ? 'currentColor' : 'none' }} />
     </svg>
   );
 }

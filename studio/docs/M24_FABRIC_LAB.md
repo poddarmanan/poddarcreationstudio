@@ -157,7 +157,11 @@ element and animated by an inner one.
 cloth and watches where the highlight goes: on a matte cambric it barely moves, on a gajji satin
 it runs along the warp floats. That travel is the whole test, and a still image cannot show it.
 The brighter raking light on a shinier cloth is deliberate — the point is to make the difference
-between qualities visible.
+between qualities visible. Each pass is a gesture rather than a loop: the light fades up from nothing at one edge, glides
+across on a slight arc eased at both ends, fades back to nothing at the other and rests a moment
+before the next (a 4.2 s cycle). It used to run a sawtooth at full strength, vanishing at one edge
+and reappearing at the other in a single frame. The shine button's sun turns a quarter as it
+switches on, and while it is on its rays wheel slowly round and breathe.
 
 ## A test that measured nothing
 
