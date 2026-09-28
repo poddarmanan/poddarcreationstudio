@@ -149,12 +149,11 @@ for a cut that has no model file at all (the dress, until one is uploaded).
 
 **The stretch reads beside its button.** One glass callout grows out of the left of the Stretch
 button, level with it, with a small pointer to it. When the roll is chosen it is the hint ("Pull
-the cloth →"); while the cloth is pulled it is the reading, kept compact so the stretching cloth
-behind stays in view: "Stretch" in gold small caps with how far the cloth gives along its length
-and across (the same figures the pull uses — 3.2% and 2.5% for cotton, 19.2% and 10.5% for cotton
-lycra), and the fabric's note in one italic line. It keeps what it shows while it animates out,
-and the hint retires once Stretch has been used — it had flashed back as the reading left, and
-reappeared later if Stretch was tapped before its timer. The note used to float over the rod at the top of the stage, and the hint
+the cloth →"); while the cloth is pulled it is only a small single-line tag above the button — how far
+the cloth gives along (↕) and across (↔), e.g. ↕ 19.2% ↔ 10.5% for cotton lycra — so nothing sits
+between the buyer and the cloth being stretched. The full reading, with the fabric's note, is a
+"Stretch" row in the product details under the stage's "i". The callout keeps what it shows while it
+animates out, and the hint retires once Stretch has been used. The note used to float over the rod at the top of the stage, and the hint
 sat below the button because its slide-in animation overrode the transform that centred it.
 
 **The stretch is realistic.** Pulling the roll lengthens and narrows it by the cloth's own
