@@ -73,7 +73,7 @@ function Icon({ name }: { name: View }) {
 const short = (label: string) => label.split(' ')[0];
 
 export function BottomNav({ studio }: { studio: Studio }) {
-  const { t, view, go, pins, isStaff, cart, cartBump } = studio;
+  const { t, view, go, pins, isStaff, cart, cartBump, bookBump } = studio;
 
   // Four for everyone: Showroom, Colours, the Swatch Book and the Cart; the logo in the header is
   // the way to the Entrance. Staff get Admin as a fifth.
@@ -123,9 +123,16 @@ export function BottomNav({ studio }: { studio: Studio }) {
               className="pc-bottomnav-item"
               style={{ color: active ? INK : 'rgba(28,25,23,.5)' }}
             >
-              <span className="pc-bottomnav-icon" style={{ background: active ? 'rgba(28,25,23,.07)' : 'transparent' }}>
+              {/* The swatch book's tab plays the cart's arrival when shades are added to it. */}
+              <span
+                key={item.k === 'book' ? bookBump : undefined}
+                data-book-target={item.k === 'book' ? '' : undefined}
+                className={`pc-bottomnav-icon${item.k === 'book' && bookBump ? ' pc-book-bump' : ''}`}
+                style={{ background: active ? 'rgba(28,25,23,.07)' : 'transparent' }}
+              >
                 <Icon name={item.k} />
-                {item.count ? <span className="pc-bottomnav-badge">{item.count > 9 ? '9+' : item.count}</span> : null}
+                {item.k === 'book' && bookBump > 0 && <span aria-hidden className="pc-book-ring" />}
+                {item.count ? <span className={`pc-bottomnav-badge${item.k === 'book' && bookBump ? ' pc-cart-count' : ''}`}>{item.count > 9 ? '9+' : item.count}</span> : null}
               </span>
               <span
                 className="pc-bottomnav-label"

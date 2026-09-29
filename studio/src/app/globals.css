@@ -646,11 +646,14 @@ button.pc-auth-link:disabled { cursor: default; }
    The way in from the Swatch Book: an ink card edged in gold, a rolled bolt that turns under the
    pointer, and a sheen that passes a few times as it arrives. */
 .pc-direct {
-  position: relative; overflow: hidden; cursor: pointer; display: flex; align-items: center; gap: 14px; width: min(100%, 460px); text-align: left;
-  padding: 16px 18px; border-radius: 20px; color: #FAF8F5; background: linear-gradient(135deg, #25201C, #1C1917 55%, #2A221B);
-  border: 1px solid rgba(216, 182, 112, .55); box-shadow: 0 18px 40px rgba(28, 25, 23, .24), inset 0 1px 0 rgba(255, 236, 196, .12);
+  position: relative; overflow: hidden; cursor: pointer; display: flex; align-items: center; gap: 13px; width: min(100%, 460px); text-align: left;
+  padding: 13px 14px 13px 13px; border-radius: 18px; color: #FAF8F5; background: linear-gradient(135deg, #25201C, #1C1917 55%, #2A221B);
+  border: 1px solid rgba(216, 182, 112, .5); box-shadow: 0 14px 32px rgba(28, 25, 23, .2), inset 0 1px 0 rgba(255, 236, 196, .1);
   transition: transform .4s cubic-bezier(.22, .8, .2, 1), box-shadow .4s ease;
 }
+.pc-direct-text { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 3px; }
+.pc-direct-title { font-family: var(--font-display), 'Cormorant Garamond', serif; font-size: 19px; line-height: 1.1; letter-spacing: .005em; color: #FAF8F5; white-space: nowrap; }
+.pc-direct-sub { font-family: var(--font-display), 'Cormorant Garamond', serif; font-style: italic; font-size: 13.5px; line-height: 1.25; color: rgba(233, 207, 143, .78); }
 .pc-direct:hover { transform: translateY(-3px); box-shadow: 0 26px 54px rgba(28, 25, 23, .3), 0 0 0 1px rgba(216, 182, 112, .7); }
 .pc-direct:active { transform: scale(.98); transition-duration: .15s; }
 .pc-direct::after {
@@ -658,9 +661,9 @@ button.pc-auth-link:disabled { cursor: default; }
   background: linear-gradient(100deg, transparent, rgba(255, 236, 196, .22), transparent); transform: translateX(0) skewX(-18deg);
   animation: pcSheen 4.8s 1.6s ease-in-out 3;
 }
-.pc-direct-bolt { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 35% 30%, #F2DDA2, #B8904A 70%); box-shadow: inset 0 0 0 3px rgba(28, 25, 23, .25); transition: transform .8s cubic-bezier(.22, .8, .2, 1); }
-.pc-direct:hover .pc-direct-bolt { transform: rotate(-200deg); }
-.pc-direct-arrow { margin-left: auto; font-size: 18px; color: #D8B670; transition: transform .5s cubic-bezier(.22, .8, .2, 1); }
+.pc-direct-bolt { flex: none; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(135deg, #F6E3A8, #D8B670); box-shadow: 0 0 0 1px rgba(216, 182, 112, .35), 0 0 0 4px rgba(216, 182, 112, .1); transition: transform .8s cubic-bezier(.22, .8, .2, 1); }
+.pc-direct:hover .pc-direct-bolt { transform: rotate(-24deg) scale(1.05); }
+.pc-direct-arrow { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; border: 1px solid rgba(216, 182, 112, .45); font-size: 14px; color: #D8B670; transition: transform .5s cubic-bezier(.22, .8, .2, 1); }
 .pc-direct:hover .pc-direct-arrow { transform: translateX(5px); }
 
 /* The order page: a sheet of paper for each fabric, its shades in rows with steppers. */
@@ -686,14 +689,21 @@ button.pc-auth-link:disabled { cursor: default; }
 .pc-stepper input { width: 48px; border: none; background: transparent; text-align: right; font-family: var(--font-display), 'Cormorant Garamond', serif; font-size: 18px; color: #1C1917; outline: none; padding: 0; }
 .pc-stepper-unit { padding: 0 6px 0 3px; font-size: 11px; color: #8A6D45; }
 /* The dock: the running total in ink, following the page above the tabs. */
+/* The dock: the running total on a slip of the studio's paper, edged in gold, following the page
+   above the tabs; the order itself is the one ink mark on it. */
 .pc-order-dock {
   position: sticky; bottom: calc(86px + env(safe-area-inset-bottom)); z-index: 5; width: min(100%, 560px); margin-top: 22px; display: flex; align-items: center; justify-content: space-between; gap: 14px;
-  padding: 14px 14px 14px 20px; border-radius: 22px; background: linear-gradient(135deg, #25201C, #1C1917); border: 1px solid rgba(216, 182, 112, .45);
-  box-shadow: 0 20px 44px rgba(28, 25, 23, .3);
+  padding: 13px 12px 13px 20px; border-radius: 20px; background: linear-gradient(180deg, #FFFCF4, #F5ECDA); border: 1px solid rgba(184, 144, 74, .55);
+  box-shadow: 0 16px 36px rgba(60, 40, 18, .2), 0 2px 6px rgba(60, 40, 18, .08), inset 0 1px 0 #FFFFFF;
 }
+.pc-order-dock::before { content: ''; position: absolute; left: 22px; right: 22px; top: -1px; height: 1px; background: linear-gradient(90deg, transparent, #D8B670, transparent); }
+.pc-dock-total { font-family: var(--font-display), 'Cormorant Garamond', serif; font-size: 27px; font-weight: 500; line-height: 1; color: #1C1917; font-variant-numeric: lining-nums; animation: pcTick .4s cubic-bezier(.2, 1.4, .4, 1); }
+.pc-dock-total span { font-size: 15px; font-style: italic; color: #8A6D45; }
+.pc-dock-meta { margin-top: 5px; font-size: 9.5px; letter-spacing: .14em; line-height: 1.5; text-transform: uppercase; color: rgba(28, 25, 23, .5); font-variant-numeric: lining-nums; }
+.pc-dock-meta b { font-weight: 500; color: #8A6D45; }
 .pc-order-place {
-  position: relative; overflow: hidden; flex: none; cursor: pointer; display: inline-flex; align-items: center; gap: 9px; padding: 14px 20px; border-radius: 999px;
-  border: 1px solid rgba(255, 240, 200, .6); background: linear-gradient(135deg, #F8EBC4, #D9B670 50%, #EDD497); color: #1C1917;
+  position: relative; overflow: hidden; flex: none; cursor: pointer; display: inline-flex; align-items: center; gap: 9px; padding: 15px 20px; border-radius: 999px;
+  border: 1px solid #1C1917; background: linear-gradient(135deg, #2A231D, #1C1917); color: #F3DFA6; box-shadow: 0 8px 18px rgba(28, 25, 23, .22);
   font-family: var(--font-body), 'Jost', sans-serif; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; white-space: nowrap;
   transition: transform .35s cubic-bezier(.22, .8, .2, 1);
 }
@@ -822,24 +832,97 @@ button.pc-auth-link:disabled { cursor: default; }
   font-family: var(--font-body), 'Jost', sans-serif; font-size: 9.5px; font-weight: 600; color: #1C1917; background: linear-gradient(135deg, #F6E3A8, #D8B670);
   box-shadow: 0 2px 5px rgba(28, 25, 23, .3); animation: pcBadgePop .5s .85s cubic-bezier(.3, 1.8, .5, 1) both;
 }
+/* The swatch book's tab plays the same arrival: a bounce, a gold ring and a popping count. */
+.pc-book-bump { animation: pcCartBump .75s .75s cubic-bezier(.3, 1.6, .5, 1) both; }
+.pc-book-ring { position: absolute; inset: -3px; border-radius: 999px; border: 2px solid rgba(216, 182, 112, .9); pointer-events: none; animation: pcCartRing .9s .8s ease-out both; }
 @keyframes pcBadgePop { from { transform: scale(.3); } to { transform: none; } }
 .pc-cart-count { animation: pcBadgePop .5s .85s cubic-bezier(.3, 1.8, .5, 1) both; }
 
-/* "Added to your cart": an ink pill above the tab bar. */
-.pc-cart-toast {
-  position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom)); z-index: 95; width: min(92vw, 440px); display: flex; align-items: center; gap: 10px;
-  padding: 10px 10px 10px 12px; border-radius: 999px; color: #FAF8F5; background: linear-gradient(135deg, #2A231D, #1C1917); border: 1px solid rgba(216, 182, 112, .5);
-  box-shadow: 0 18px 40px rgba(28, 25, 23, .3); font-family: var(--font-display), 'Cormorant Garamond', serif; font-style: italic; font-size: 15px;
-  transform: translateX(-50%); animation: pcToastIn .6s .5s cubic-bezier(.2, .9, .25, 1) both;
+/* "Added to your cart / book": a small cream note with a gold hairline, pointing at the tab the
+   shades went to. `--caret` places its point over that tab. */
+.pc-added {
+  position: fixed; z-index: 95; display: flex; align-items: center; gap: 10px; max-width: min(calc(100vw - 24px), 330px);
+  padding: 8px 8px 8px 10px; border-radius: 14px; background: #FBF7EE; border: 1px solid rgba(201, 169, 110, .6);
+  box-shadow: 0 14px 30px rgba(40, 26, 12, .18), 0 2px 6px rgba(40, 26, 12, .08);
+  transform-origin: var(--caret) 100%; animation: pcAddedIn .55s .7s cubic-bezier(.2, 1.3, .4, 1) both;
 }
-.pc-cart-toast.is-leaving { animation: pcToastOut .4s ease forwards; }
-@keyframes pcToastIn { from { opacity: 0; transform: translate(-50%, 24px) scale(.96); } to { opacity: 1; transform: translateX(-50%); } }
-@keyframes pcToastOut { to { opacity: 0; transform: translate(-50%, 18px); } }
-@media (min-width: 768px) { .pc-cart-toast { bottom: 28px; } }
-.pc-cart-toast-icon { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: #1C1917; background: linear-gradient(135deg, #F6E3A8, #D8B670); }
-.pc-cart-toast-go {
-  flex: none; cursor: pointer; padding: 8px 14px; border-radius: 999px; border: 1px solid rgba(216, 182, 112, .6); background: transparent; color: #E9CF8F;
-  font-family: var(--font-body), 'Jost', sans-serif; font-style: normal; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; white-space: nowrap;
+.pc-added.is-up { transform-origin: var(--caret) 0; }
+.pc-added::after {
+  content: ''; position: absolute; left: calc(var(--caret) - 6px); bottom: -6px; width: 11px; height: 11px; transform: rotate(45deg);
+  background: #FBF7EE; border-right: 1px solid rgba(201, 169, 110, .6); border-bottom: 1px solid rgba(201, 169, 110, .6);
+}
+.pc-added.is-up::after { bottom: auto; top: -6px; transform: rotate(225deg); }
+.pc-added.is-leaving { animation: pcAddedOut .35s ease forwards; }
+@keyframes pcAddedIn { from { opacity: 0; transform: translateY(8px) scale(.9); } to { opacity: 1; transform: none; } }
+@keyframes pcAddedOut { to { opacity: 0; transform: translateY(6px) scale(.96); } }
+.pc-added-chips { flex: none; display: flex; padding-left: 2px; }
+.pc-added-chips > span { position: relative; width: 20px; height: 26px; box-shadow: 0 2px 4px rgba(40, 26, 12, .25); }
+.pc-added-text { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+.pc-added-eyebrow { font-size: 8.5px; letter-spacing: .24em; text-transform: uppercase; color: #8A6D45; white-space: nowrap; }
+.pc-added-line {
+  margin-top: 2px; font-family: var(--font-display), 'Cormorant Garamond', serif; font-style: italic; font-size: 14.5px; line-height: 1.15; color: #1C1917;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: lining-nums;
+}
+.pc-added-go {
+  flex: none; cursor: pointer; align-self: stretch; padding: 0 4px 0 10px; border: none; border-left: 1px solid rgba(138, 109, 69, .25); background: none;
+  font-family: var(--font-body), 'Jost', sans-serif; font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; color: #1C1917; white-space: nowrap;
+}
+.pc-added-go span { color: #B8904A; }
+/* The cart as sheets: a fabric's presets on its title sheet, and each cutting's metres on an ink tab. */
+.pc-sheet-presets { display: flex; align-items: center; justify-content: center; gap: 4px; margin-top: 12px; }
+.pc-sheet-presets > span { margin-right: 4px; font-size: 7.5px; letter-spacing: .3em; text-transform: uppercase; color: rgba(138, 109, 69, .85); }
+.pc-sheet-presets button {
+  min-width: 36px; height: 26px; padding: 0 7px; border-radius: 999px; cursor: pointer; border: 1px solid rgba(184, 144, 74, .45); background: rgba(255, 253, 248, .8);
+  font-family: var(--font-display), 'Cormorant Garamond', serif; font-size: 14px; line-height: 1; color: #1C1917; font-variant-numeric: lining-nums;
+  transition: background-color .3s ease, color .3s ease, border-color .3s ease;
+}
+.pc-sheet-presets button.is-on { background: #1C1917; border-color: #1C1917; color: #E9CF8F; }
+.pc-cut-metres {
+  position: absolute; z-index: 2; pointer-events: none; padding: 3px 8px 3px 7px; border-radius: 999px; white-space: nowrap;
+  font-family: var(--font-display), 'Cormorant Garamond', serif; font-size: 15px; line-height: 1; color: #F3DFA6; font-variant-numeric: lining-nums;
+  background: linear-gradient(135deg, #2A231D, #1C1917); border: 1px solid rgba(216, 182, 112, .55); box-shadow: 0 2px 5px rgba(28, 25, 23, .3);
+  animation: pcBadgePop .45s cubic-bezier(.3, 1.8, .5, 1) both;
+}
+.pc-cut-metres small { font-size: .72em; color: rgba(243, 223, 166, .7); }
+.pc-cut-metres.is-tiny { padding: 2px 6px 2px 5px; font-size: 12px; }
+.pc-cut-metres.is-off { color: #E7A08F; }
+
+/* The metre picker: the figure large between − and +, a gold rule in steps of 25 m, and presets. */
+.pc-metres-figure { display: grid; grid-template-columns: 52px 1fr 52px; align-items: center; gap: 10px; margin-top: 18px; }
+.pc-metres-figure > button {
+  width: 52px; height: 52px; border-radius: 50%; cursor: pointer; display: grid; place-items: center; touch-action: manipulation; user-select: none; -webkit-user-select: none;
+  border: 1px solid rgba(28, 25, 23, .16); background: #FFFDF8; font-size: 24px; line-height: 1; color: #1C1917;
+  transition: background-color .25s ease, transform .2s ease;
+}
+.pc-metres-figure > button:active:not(:disabled) { transform: scale(.92); background: rgba(216, 182, 112, .25); }
+.pc-metres-figure > button:disabled { color: rgba(28, 25, 23, .25); }
+.pc-metres-figure input {
+  max-width: 100%; border: none; background: transparent; outline: none; padding: 0; text-align: right;
+  font-family: var(--font-display), 'Cormorant Garamond', serif; font-size: 58px; font-weight: 500; line-height: 1; color: #1C1917; font-variant-numeric: lining-nums;
+}
+.pc-metres-figure label > span { font-family: var(--font-display), 'Cormorant Garamond', serif; font-style: italic; font-size: 22px; color: #8A6D45; }
+.pc-metres-range {
+  -webkit-appearance: none; appearance: none; display: block; width: 100%; height: 30px; margin: 14px 0 0; background: transparent; cursor: pointer; touch-action: pan-y;
+}
+.pc-metres-range::-webkit-slider-runnable-track { height: 4px; border-radius: 4px; background: linear-gradient(90deg, #B8904A, #E9CF8F var(--p), rgba(28, 25, 23, .12) var(--p)); }
+.pc-metres-range::-moz-range-track { height: 4px; border-radius: 4px; background: linear-gradient(90deg, #B8904A, #E9CF8F var(--p), rgba(28, 25, 23, .12) var(--p)); }
+.pc-metres-range::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 26px; height: 26px; margin-top: -11px; border-radius: 50%; border: 1px solid rgba(216, 182, 112, .8);
+  background: radial-gradient(circle at 35% 30%, #3A3129, #1C1917 70%); box-shadow: 0 4px 10px rgba(28, 25, 23, .3), inset 0 0 0 5px #1C1917, inset 0 0 0 6px #D8B670;
+}
+.pc-metres-range::-moz-range-thumb { width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgba(216, 182, 112, .8); background: #1C1917; box-shadow: 0 4px 10px rgba(28, 25, 23, .3), inset 0 0 0 5px #1C1917, inset 0 0 0 6px #D8B670; }
+.pc-metres-range:focus-visible { outline: 2px solid rgba(216, 182, 112, .6); outline-offset: 2px; border-radius: 6px; }
+.pc-metres-scale { display: flex; justify-content: space-between; padding: 0 4px; font-size: 9.5px; letter-spacing: .08em; color: rgba(28, 25, 23, .4); font-variant-numeric: lining-nums; }
+.pc-metres-presets { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-top: 14px; padding: 3px; border-radius: 999px; border: 1px solid rgba(28, 25, 23, .12); background: #FFFDF8; }
+.pc-metres-presets button {
+  height: 34px; border: none; border-radius: 999px; background: none; cursor: pointer;
+  font-family: var(--font-display), 'Cormorant Garamond', serif; font-size: 17px; color: rgba(28, 25, 23, .62); font-variant-numeric: lining-nums;
+  transition: background-color .3s ease, color .3s ease;
+}
+.pc-metres-presets button.is-on { background: linear-gradient(135deg, #F6E3A8, #D8B670); color: #1C1917; }
+.pc-metres-remove {
+  display: block; margin: 12px auto 0; padding: 6px 10px; border: none; background: none; cursor: pointer;
+  font-family: var(--font-body), 'Jost', sans-serif; font-size: 9.5px; letter-spacing: .22em; text-transform: uppercase; color: rgba(165, 57, 43, .85);
 }
 .pc-order-remove {
   flex: none; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; display: grid; place-items: center; margin-left: -4px;
@@ -850,5 +933,5 @@ button.pc-auth-link:disabled { cursor: default; }
 .pc-cart-empty-art { position: relative; width: 120px; height: 120px; margin-top: 30px; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle, rgba(255, 250, 236, .95), rgba(255, 236, 200, .3) 60%, transparent 72%); animation: pcFadeIn .8s ease both; }
 .pc-cart-empty-bag { display: grid; place-items: center; width: 86px; height: 86px; border-radius: 50%; color: #FAF8F5; background: radial-gradient(circle at 35% 28%, #3A3129, #1C1917 70%); border: 1px solid rgba(216, 182, 112, .7); box-shadow: 0 16px 34px rgba(28, 25, 23, .3); animation: pcBookFloat 7s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) {
-  .pc-add-thumb, .pc-cart-btn::after, .pc-cart-btn.is-bumped, .pc-cart-ring, .pc-cart-badge, .pc-cart-count, .pc-cart-empty-bag { animation: none !important; }
+  .pc-add-thumb, .pc-cart-btn::after, .pc-cart-btn.is-bumped, .pc-cart-ring, .pc-cart-badge, .pc-cart-count, .pc-cart-empty-bag, .pc-book-bump, .pc-added { animation: none !important; }
 }

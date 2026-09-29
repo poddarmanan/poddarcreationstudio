@@ -410,9 +410,10 @@ to the bound book.
 ### Ordering the fabric directly
 
 Under "Order swatch book" and "Preview your book", after "or", an ink card edged in gold offers
-**"Skip the swatch book — order the fabric itself, by the metre"**. A rolled bolt on it turns
-under the pointer, and a sheen passes across it a few times as it arrives. It opens the order page
-(`FabricOrder.tsx`), in the Swatch Book's place:
+**"Skip the swatch book"**. The title is in the display face at 19px, with "Order the fabric
+itself, by the metre" beneath it in italic champagne. It has a small gold disc with a rolled bolt,
+which tilts under the pointer, and an arrow in a gold ring. A sheen passes across it a few times
+as it arrives. It opens the order page (`FabricOrder.tsx`), in the Swatch Book's place:
 
 - **Heading:** "Direct from the mill" between hairlines that draw in, and "Order the *Fabric*"
   rising word by word, "Fabric" in italic antique gold.
@@ -424,8 +425,9 @@ under the pointer, and a sheen passes across it a few times as it arrives. It op
   - the fabric's metres and value at the foot.
 - **When it is needed** (as soon as possible, within two weeks, within a month), and a note for
   the mill.
-- **The dock:** an ink bar that follows the page above the tabs, with the total metres (which
-  tick as they change), the shade count, the estimate and a gold "Place order". Pressing it with
+- **The dock:** a slip of cream paper edged in gold that follows the page above the tabs, with
+  the total metres in the display face (which tick as they change), the shade count, the estimate
+  in umber and an ink "Place order". Pressing it with
   nothing set shakes it and asks for at least one shade. The estimate is indicative, before taxes
   and freight.
 
@@ -475,20 +477,53 @@ top:
 Under the button, "✓ In your book" and "✓ In your cart" say where the shade on the stage already
 is.
 
-Adding to the cart sends small pinked cuttings of the shades arcing up and into the cart button
-(in the tab bar, or the header's "Cart" on a desktop), turning and shrinking as they go. The
-cart bounces, a gold ring spreads from it, and its count pops. An ink pill above the tab bar then
-says "Added to your cart", with the shades and metres, and "View cart →". It leaves after four
-seconds.
+Adding to either place plays the same arrival (`flyInto` in `AddChooser.tsx`). Small pinked
+cuttings of the shades arc up into that tab, turning and shrinking as they go: the Cart, or the
+Swatch Book (the tab bar on a phone, the header item on a desktop). The tab bounces, a gold ring
+spreads from it, and its count pops. The state counts `cartBump` and `bookBump` drive this.
+
+A small cream note then stands just above that tab (`AddedToast`), pointing at it with a small
+caret. It is edged with a gold hairline and shows the shades as pinked chips, "✓ Added to your
+cart" (or book), the shades with their metres (or the fabric), and "View cart →" or "View book →".
+It leaves after a few seconds. On a desktop it sits under the header item instead. This replaces
+the earlier full-width card for the book and the ink bar for the cart.
 
 **The cart in the tab bar** is the fourth item, after the Swatch Book. It is set apart: an ink disc
 edged in gold, with a shine crossing it a few times and a gold count badge.
 
-**The cart page** is the direct order page (`FabricOrder` with `source="cart"`), titled "Your
-*Cart*", with "← Showroom" as the way back. Its metres are the cart's own, so they are kept between
-visits. Each row has a × that takes the shade out of the cart. Placing the order goes through the
-same sign-in, dispatch and confetti; once the order is taken, its lines leave the cart. An empty
-cart shows a floating ink bag, "Your cart is empty" and the way to the Showroom.
+**The cart page** (`CartBook.tsx`) is read as the Swatch Book is. It uses the same stack of loose
+sheets, `SheetStack`, which is shared with `SwatchBook.tsx`, with the same slides and the same
+fabric numerals. Its title plate reads "Your *Cart*", with the shades, the fabrics and the total
+metres.
+- **Each fabric's title sheet** also gives:
+  - the price per metre;
+  - what the fabric comes to (metres and ₹);
+  - an "All" row of 50 · 100 · 250 · 500 and "···" that sets every shade at once.
+- **Its sheets of scattered cuttings** carry each shade's metres on a small ink tab above its
+  label. The × takes the shade out of the cart, and each sheet's foot gives its metres.
+
+**Tapping a cutting opens the metre picker**, a compact sheet.
+- **The figure:** set large between − and +. Held, − and + run on, 25 m at a time and then 100 m.
+  The figure can also be typed.
+- **A gold slider** in steps of 25 m, up to 1,000 m or beyond the figure.
+- **Presets:** 50 · 100 · 250 · 500 · 1,000.
+- **This shade or all N shades:** only when the fabric has more than one shade.
+- **Value:** the price per metre and the value.
+- **Buttons:** "Done · 250 m", and "Remove from cart".
+
+"···" on a title sheet opens the picker for all of the fabric's shades.
+
+**The dock** follows the page on a slip of the studio's cream paper, edged in gold. It shows the
+total metres, the shades and the value, and an ink "Checkout" button. Checkout is the direct order
+page (`FabricOrder` with `source="cart"`), titled "Your *Order*", with "← Cart" as the way back.
+There the metres can still be adjusted row by row, and the page adds when it is needed and a note
+for the mill. Placing the order goes through the same sign-in, dispatch and confetti. Once the
+order is taken, its lines leave the cart.
+
+An empty cart shows a floating ink bag, "Your cart is empty" and the way to the Showroom.
+
+After a sheet has been slid, the next tap on it counts. Each new press clears the "that was a
+slide" flag, so on touch screens a tap made right after a swipe is no longer swallowed.
 
 The cart is kept on this device in `localStorage` (`pc-cart`): a line per shade with its metres.
 Adding a shade already there adds to its metres.

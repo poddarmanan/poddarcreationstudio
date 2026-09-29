@@ -132,7 +132,7 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
       <div style={{ alignSelf: 'stretch', display: 'flex', marginTop: -6, animation: 'pcRiseIn .8s .15s ease both' }}>
         <button onClick={onBack} className="pc-auth-back">
           <span aria-hidden className="pc-auth-back-arrow">←</span>
-          {fromCart ? t.showroom : t.book}
+          {fromCart ? t.cartWord : t.book}
         </button>
       </div>
 
@@ -143,7 +143,7 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
         <span style={{ width: 'clamp(26px,8vw,56px)', height: 1, background: 'linear-gradient(270deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'left', animation: 'pcRuleDraw 1s .2s cubic-bezier(.2,.8,.2,1) both' }} />
       </div>
       <h1 style={{ margin: '14px 0 0', fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(46px,12vw,78px)', lineHeight: 1, letterSpacing: '-.012em', color: INK, perspective: 500 }}>
-        {(fromCart ? [t.cartTitleA, t.cartTitleB] : [...t.orderThe.split(' '), t.fabricWordTitle]).map((w, i, all) => (
+        {(fromCart ? [t.orderTitleA, t.orderTitleB] : [...t.orderThe.split(' '), t.fabricWordTitle]).map((w, i, all) => (
           <span
             key={i}
             className={i === all.length - 1 ? 'pc-foil-deep' : undefined}
@@ -234,13 +234,13 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
       {/* The dock: the running total, the estimate, and the order. */}
       <div className="pc-order-dock" style={{ animation: 'pcDockIn .9s 1.1s cubic-bezier(.2,.9,.25,1) both' }}>
         <div style={{ minWidth: 0 }}>
-          <div key={total} style={{ fontFamily: FONT_DISPLAY, fontSize: 26, lineHeight: 1, color: '#FAF8F5', fontVariantNumeric: 'lining-nums', animation: 'pcTick .4s cubic-bezier(.2,1.4,.4,1)' }}>
-            {inr(total)} <span style={{ fontSize: 14, color: '#D8B670' }}>m</span>
+          <div key={total} className="pc-dock-total">
+            {inr(total)} <span>m</span>
           </div>
-          <div style={{ marginTop: 5, fontSize: 9.5, letterSpacing: '.14em', textTransform: 'uppercase', color: 'rgba(250,248,245,.6)', fontVariantNumeric: 'lining-nums', lineHeight: 1.5 }}>
+          <div className="pc-dock-meta">
             {chosen.length} {t.shadesChosen}
             <br />
-            <span style={{ color: '#D8B670' }}>₹ {inr(value)}</span>
+            <b>₹ {inr(value)}</b>
           </div>
         </div>
         <button key={warn} className="pc-order-place" onClick={place} style={{ animation: warn ? 'pcShake .5s cubic-bezier(.36,.07,.19,.97) both' : undefined }}>
@@ -496,7 +496,7 @@ function Dispatch({
 }
 
 /** An empty cart: a folded bolt of kraft, waiting, and the way to the Showroom. */
-function EmptyCart({ studio }: { studio: Studio }) {
+export function EmptyCart({ studio }: { studio: Studio }) {
   const { t } = studio;
   return (
     <Room center>

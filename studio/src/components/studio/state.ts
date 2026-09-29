@@ -77,6 +77,9 @@ export interface Studio {
   clearCart: () => void;
   /** Counts up on every addition, so the cart button can play its arrival. */
   cartBump: number;
+  /** Counts up each time shades go into the swatch book, so the book's tab can play their arrival. */
+  bookBump: number;
+  bumpBook: () => void;
   removePin: (pin: Pin) => void;
   q: string;
   setQ: (q: string) => void;
@@ -186,6 +189,7 @@ export function useStudio(rawFabrics: FabricRow[]): Studio {
   const [pins, setPins] = useState<Pin[]>([]);
   const [cart, setCart] = useState<CartLine[]>([]);
   const [cartBump, setCartBump] = useState(0);
+  const [bookBump, setBookBump] = useState(0);
   // The cart lives on this device: read once, and written back whenever it changes.
   const cartLoaded = useRef(false);
   useEffect(() => {
@@ -342,6 +346,7 @@ export function useStudio(rawFabrics: FabricRow[]): Studio {
   const setCartMetres = useCallback((fabricId: string, colourOrder: number, metres: number) => {
     setCart((prev) => prev.map((l) => (l.fabricId === fabricId && l.colourOrder === colourOrder ? { ...l, metres: Math.max(0, Math.min(100_000, Math.round(metres))) } : l)));
   }, []);
+  const bumpBook = useCallback(() => setBookBump((n) => n + 1), []);
   const removeFromCart = useCallback((fabricId: string, colourOrder: number) => {
     setCart((prev) => prev.filter((l) => !(l.fabricId === fabricId && l.colourOrder === colourOrder)));
   }, []);
@@ -633,6 +638,8 @@ export function useStudio(rawFabrics: FabricRow[]): Studio {
     removeFromCart,
     clearCart: () => setCart([]),
     cartBump,
+    bookBump,
+    bumpBook,
     removePin,
     q,
     setQ,

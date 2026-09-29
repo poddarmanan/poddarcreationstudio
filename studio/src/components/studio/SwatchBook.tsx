@@ -10,7 +10,8 @@ import { FabricOrder } from './FabricOrder';
 import { confettiBurst } from './confetti';
 import { oklchToRgb, rgbToHex } from '@/lib/colour-science';
 
-export type Cutting = { pin: Pin; colour: ColourRow };
+/** A shade on a sheet; in the cart it carries its metres. */
+export type Cutting = { pin: Pin; colour: ColourRow; metres?: number };
 
 export function roman(n: number) {
   const table: [number, string][] = [[10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']];
@@ -42,6 +43,7 @@ const BRASS = 'linear-gradient(135deg, #F6E3A8 0%, #C9A04B 28%, #8A6524 52%, #D8
 export const GOLD = '#CDA960';
 export const INK = '#1C1917';
 export const UMBER = '#8A6D45';
+const inr = (n: number) => n.toLocaleString('en-IN');
 
 /** Cuttings per sheet, and how a sheet's slots are laid out for a number of cuttings: [columns, rows]. */
 const PER_SHEET = 9;
@@ -49,16 +51,14 @@ const sheetGrid = (n: number): [number, number] => (n <= 1 ? [1, 1] : n <= 2 ? [
 /** The cutting area's height over its width, on a 3 : 4 sheet less its head and foot. */
 const AREA_ASPECT = 1.13;
 
-type Group = { x: FabricRow; items: Cutting[] };
+export type Group = { x: FabricRow; items: Cutting[] };
+/** What the cart's sheets do: a cutting opens its metres; a fabric's title sets all of its shades at once (or, with no figure, opens the picker for all). */
+export type CartHooks = { onPick: (c: Cutting, g: Group) => void; onAll: (g: Group, metres: number | null) => void };
 type Sheet = { key: string; g: number; kind: 'title' } | { key: string; g: number; kind: 'plate'; page: number; pages: number; items: Cutting[] };
 
 /**
- * The Swatch Book while it is being chosen: a stack of loose sheets, one fabric after another. Each
- * fabric opens on its title sheet; sliding it left opens that fabric's sheets of cuttings (nine to a
- * sheet, scattered, pinned and labelled), and sliding right from a title skips to the next fabric.
- * Sliding on past a fabric's last sheet comes to the next fabric's title; sliding right on a sheet
- * of cuttings goes back a sheet. The heading above names the fabric under the hand, and its arrows
- * and chapter numerals jump between fabrics. Ordering binds the sheets into the book.
+ * The Swatch Book while it is being chosen: the title plate, the stack of loose sheets (see
+ * `SheetStack`), and the book's actions. Ordering binds the sheets into the book.
  */
 export function SwatchBook({ studio }: { studio: Studio }) {
   const { t, fabrics, pins } = studio;
@@ -73,6 +73,186 @@ export function SwatchBook({ studio }: { studio: Studio }) {
     }))
     .filter((g) => g.items.length);
 
+  const orderButton = useRef<HTMLButtonElement | null>(null);
+  const [preview, setPreview] = useState(false);
+  // Ordering: a buyer who is signed in (with a WhatsApp number on file) goes straight to the
+  // binding ceremony; anyone else signs in or creates an account first.
+  const [ordering, setOrdering] = useState<null | { step: 'auth'; intent: 'order' | 'whatsapp' } | { step: 'ceremony'; whatsapp: string; order: OrderState } | { step: 'fabric' }>(null);
+
+  /** The order begins: a burst of the book's own shades and gold foil, then the ceremony, with the order sent alongside it. */
+  const begin = (whatsapp: string | null, demo: boolean, from?: DOMRect) => {
+    const at = from ?? orderButton.current?.getBoundingClientRect() ?? new DOMRect(window.innerWidth / 2 - 60, window.innerHeight * 0.72, 120, 44);
+    confettiBurst(at, groups.flatMap((g) => g.items.map(({ colour: c }) => rgbToHex(oklchToRgb(c.l, c.c, c.h)))));
+    window.scrollTo(0, 0);
+    setOrdering({ step: 'ceremony', whatsapp: whatsapp ?? '', order: demo ? 'demo' : 'pending' });
+    if (demo) return;
+    studio.orderBook(whatsapp ?? undefined).then((r) => setOrdering((o) => (o?.step === 'ceremony' ? { ...o, order: r.ok ? 'sent' : 'failed' } : o)));
+  };
+  const order = async () => {
+    // The static preview has no accounts; there the sign-in page shows the experience without one.
+    const toAuth = (intent: 'order' | 'whatsapp') => {
+      window.scrollTo(0, 0);
+      setOrdering({ step: 'auth', intent });
+    };
+    if (process.env.NEXT_PUBLIC_BASE_PATH || !studio.signedIn) return toAuth('order');
+    const onFile = await studio.accountWhatsapp();
+    if (!onFile) return toAuth('whatsapp');
+    begin(onFile, false);
+  };
+  // Back from Google's sign-in in the middle of ordering: carry on with the order.
+  const orderRef = useRef(order);
+  useEffect(() => {
+    orderRef.current = order;
+  });
+  const { resumeOrder, signedIn, clearResumeOrder } = studio;
+  useEffect(() => {
+    if (!resumeOrder || !signedIn) return;
+    const tm = window.setTimeout(() => {
+      clearResumeOrder();
+      orderRef.current();
+    }, 600);
+    return () => window.clearTimeout(tm);
+  }, [resumeOrder, signedIn, clearResumeOrder]);
+
+  // The binding ceremony is a page of the studio too, in the Swatch Book's place.
+  const done = () => {
+    setPreview(false);
+    setOrdering(null);
+    window.scrollTo(0, 0);
+  };
+  if (preview) return <BookCeremony studio={studio} mode="preview" onDone={done} />;
+  // Skipping the swatch book to order the fabric itself: its own page, in the Swatch Book's place.
+  if (ordering?.step === 'fabric') return <FabricOrder studio={studio} onBack={done} />;
+  if (ordering?.step === 'ceremony') return <BookCeremony studio={studio} mode="order" whatsapp={ordering.whatsapp} order={ordering.order} onDone={done} />;
+  // Signing in is a page of the studio: it takes the Swatch Book's place under the same top bar.
+  if (ordering?.step === 'auth')
+    return (
+      <AuthScreen
+        studio={studio}
+        intent={ordering.intent}
+        onClose={() => {
+          setOrdering(null);
+          window.scrollTo(0, 0);
+        }}
+        onDone={(r) => {
+          window.scrollTo(0, 0);
+          begin(r.whatsapp, r.demo, r.from);
+        }}
+      />
+    );
+  if (!groups.length) return <EmptyBook studio={studio} />;
+
+  return (
+    <Room>
+      <div style={{ textAlign: 'center', userSelect: 'none', WebkitUserSelect: 'none' }}>
+        {/* The title plate: the house above in spaced capitals between hairlines that draw in, the
+            title set large with its last word in italic antique gold, what the book holds beneath,
+            and a printer's rule. Each part rises in turn. */}
+        <div aria-hidden style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14 }}>
+          <span style={{ width: 'clamp(26px,8vw,56px)', height: 1, background: 'linear-gradient(90deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'right', animation: 'pcRuleDraw 1s .15s cubic-bezier(.2,.8,.2,1) both' }} />
+          <span style={{ fontSize: 9.5, letterSpacing: '.5em', paddingLeft: '.5em', textTransform: 'uppercase', color: UMBER, animation: 'pcRiseIn .9s .1s cubic-bezier(.2,.8,.2,1) both' }}>Poddar Creation</span>
+          <span style={{ width: 'clamp(26px,8vw,56px)', height: 1, background: 'linear-gradient(270deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'left', animation: 'pcRuleDraw 1s .15s cubic-bezier(.2,.8,.2,1) both' }} />
+        </div>
+        <h1 style={{ margin: '14px 0 0', fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(50px,13vw,84px)', lineHeight: 0.98, letterSpacing: '-.012em', color: INK, perspective: 500 }}>
+          {t.book.split(' ').map((w, i, all) => (
+            <span
+              key={i}
+              className={i === all.length - 1 ? 'pc-foil-deep' : undefined}
+              style={{ display: 'inline-block', marginRight: i < all.length - 1 ? '.2em' : 0, fontStyle: i === all.length - 1 ? 'italic' : undefined, paddingRight: i === all.length - 1 ? '.06em' : 0, transformOrigin: '50% 100%', animation: `pcWordIn 1.1s ${0.25 + i * 0.12}s cubic-bezier(.2,.8,.2,1) both${i === all.length - 1 ? ', pcFoil 2.8s .7s cubic-bezier(.45,.05,.3,1) both' : ''}` }}
+            >
+              {w}
+            </span>
+          ))}
+        </h1>
+        <div style={{ marginTop: 10, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 16.5, color: UMBER, fontVariantNumeric: 'lining-nums', animation: 'pcRiseIn .9s .55s cubic-bezier(.2,.8,.2,1) both' }}>
+          {studio.pins.length} {studio.pins.length === 1 ? t.shade : t.shades} · {groups.length} {groups.length === 1 ? t.fabricWordOne : t.fabricWordMany} — {t.boundToOrder}
+        </div>
+        <div aria-hidden style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 16 }}>
+          <span style={{ width: 30, height: 1, background: 'linear-gradient(90deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'right', animation: 'pcRuleDraw 1s .75s cubic-bezier(.2,.8,.2,1) both' }} />
+          <span style={{ width: 6, height: 6, background: 'rgba(168,134,79,.95)', animation: 'pcDiamondIn .8s .65s cubic-bezier(.2,.8,.2,1) both' }} />
+          <span style={{ width: 30, height: 1, background: 'linear-gradient(270deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'left', animation: 'pcRuleDraw 1s .75s cubic-bezier(.2,.8,.2,1) both' }} />
+        </div>
+      </div>
+
+      <SheetStack studio={studio} groups={groups} />
+
+      <div style={{ marginTop: 26, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, animation: 'rise 1s .5s cubic-bezier(.22,.8,.2,1) both' }}>
+        <Fleuron width={26} color="rgba(138,109,69,.6)" />
+        <p style={{ margin: 0, maxWidth: 320, textAlign: 'center', fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 15, lineHeight: 1.45, color: 'rgba(28,25,23,.58)' }}>{t.looseNote}</p>
+      </div>
+
+      {/* The book's actions: order it — every shade in it, across all its fabrics — or see it bound first. */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 20, animation: 'rise 1s .35s cubic-bezier(.22,.8,.2,1) both' }}>
+        <button
+          ref={orderButton}
+          onClick={order}
+          className="pc-book"
+          style={{
+            cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 10, width: 'min(100%, 460px)',
+            borderRadius: 999, padding: '16px 18px', fontFamily: FONT_BODY, fontSize: 12, letterSpacing: '.2em', textTransform: 'uppercase', whiteSpace: 'nowrap',
+            background: 'linear-gradient(135deg, rgba(255,255,255,.72), rgba(250,248,245,.4))', color: INK, border: '1px solid rgba(201,169,110,.5)',
+          }}
+        >
+          <span aria-hidden className="pc-book-star">✦</span>
+          {t.orderBook}
+        </button>
+        <button
+          onClick={(e) => {
+            // The preview celebrates as the order does: the book's own shades burst from the button.
+            confettiBurst(e.currentTarget.getBoundingClientRect(), groups.flatMap((g) => g.items.map(({ colour: c }) => rgbToHex(oklchToRgb(c.l, c.c, c.h)))));
+            window.scrollTo(0, 0);
+            setPreview(true);
+          }}
+          className="pc-auth-ghost"
+          style={{ marginTop: 12, width: 'min(100%, 460px)', gap: 10 }}
+        >
+          <svg aria-hidden width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round">
+            <path d="M3 5.5c3-1.3 6-1.3 9 .5v13c-3-1.8-6-1.8-9-.5v-13ZM21 5.5c-3-1.3-6-1.3-9 .5v13c3-1.8 6-1.8 9-.5v-13Z" />
+          </svg>
+          {t.previewBook}
+        </button>
+        {/* Or skip the swatch book altogether, and order the fabric itself. */}
+        <div className="pc-auth-or" style={{ width: 'min(100%, 460px)', marginTop: 18 }}>
+          <span />
+          {t.orWord}
+          <span />
+        </div>
+        <button
+          className="pc-direct"
+          style={{ marginTop: 10 }}
+          onClick={() => {
+            window.scrollTo(0, 0);
+            setOrdering({ step: 'fabric' });
+          }}
+        >
+          <span aria-hidden className="pc-direct-bolt">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1C1917" strokeWidth="1.5" strokeLinecap="round">
+              <ellipse cx="7" cy="12" rx="3.2" ry="7" />
+              <path d="M7 5h10c1.8 0 3.2 3.1 3.2 7s-1.4 7-3.2 7H7" />
+              <circle cx="7" cy="12" r="1" fill="#1C1917" stroke="none" />
+            </svg>
+          </span>
+          <span className="pc-direct-text">
+            <span className="pc-direct-title">{t.skipBook}</span>
+            <span className="pc-direct-sub">{t.skipBookSub}</span>
+          </span>
+          <span aria-hidden className="pc-direct-arrow">→</span>
+        </button>
+      </div>
+    </Room>
+  );
+}
+
+/**
+ * The loose sheets, one fabric after another. Each fabric opens on its title sheet; sliding it left
+ * opens that fabric's sheets of cuttings (nine to a sheet, scattered, pinned and labelled), and
+ * sliding right from a title skips to the next fabric. Sliding on past a fabric's last sheet comes
+ * to the next fabric's title; sliding right on a sheet of cuttings goes back a sheet. The numerals
+ * above jump between fabrics. The Swatch Book and the cart are both read this way; the cart's
+ * cuttings carry their metres, and tapping one sets them.
+ */
+export function SheetStack({ studio, groups, cart }: { studio: Studio; groups: Group[]; cart?: CartHooks }) {
+  const { t } = studio;
   const sheets: Sheet[] = groups.flatMap((g, gi) => {
     const pages = Math.ceil(g.items.length / PER_SHEET);
     return [
@@ -90,11 +270,6 @@ export function SwatchBook({ studio }: { studio: Studio }) {
   const topRef = useRef<HTMLDivElement | null>(null);
   const [dragging, setDragging] = useState(false);
   const [flying, setFlying] = useState<{ dir: 1 | -1; target: number } | null>(null);
-  const [preview, setPreview] = useState(false);
-  // Ordering: a buyer who is signed in (with a WhatsApp number on file) goes straight to the
-  // binding ceremony; anyone else signs in or creates an account first.
-  const [ordering, setOrdering] = useState<null | { step: 'auth'; intent: 'order' | 'whatsapp' } | { step: 'ceremony'; whatsapp: string; order: OrderState } | { step: 'fabric' }>(null);
-  const orderButton = useRef<HTMLButtonElement | null>(null);
   const drag = useRef<{ x: number; y: number; moved: boolean; dx: number } | null>(null);
   const dragged = useRef(false);
   const wheel = useRef({ dx: 0, t: 0 });
@@ -165,124 +340,33 @@ export function SwatchBook({ studio }: { studio: Studio }) {
     };
   }, [dragging]);
 
-  /** The order begins: a burst of the book's own shades and gold foil, then the ceremony, with the order sent alongside it. */
-  const begin = (whatsapp: string | null, demo: boolean, from?: DOMRect) => {
-    const at = from ?? orderButton.current?.getBoundingClientRect() ?? new DOMRect(window.innerWidth / 2 - 60, window.innerHeight * 0.72, 120, 44);
-    confettiBurst(at, groups.flatMap((g) => g.items.map(({ colour: c }) => rgbToHex(oklchToRgb(c.l, c.c, c.h)))));
-    window.scrollTo(0, 0);
-    setOrdering({ step: 'ceremony', whatsapp: whatsapp ?? '', order: demo ? 'demo' : 'pending' });
-    if (demo) return;
-    studio.orderBook(whatsapp ?? undefined).then((r) => setOrdering((o) => (o?.step === 'ceremony' ? { ...o, order: r.ok ? 'sent' : 'failed' } : o)));
-  };
-  const order = async () => {
-    // The static preview has no accounts; there the sign-in page shows the experience without one.
-    const toAuth = (intent: 'order' | 'whatsapp') => {
-      window.scrollTo(0, 0);
-      setOrdering({ step: 'auth', intent });
-    };
-    if (process.env.NEXT_PUBLIC_BASE_PATH || !studio.signedIn) return toAuth('order');
-    const onFile = await studio.accountWhatsapp();
-    if (!onFile) return toAuth('whatsapp');
-    begin(onFile, false);
-  };
-  // Back from Google's sign-in in the middle of ordering: carry on with the order.
-  const orderRef = useRef(order);
-  useEffect(() => {
-    orderRef.current = order;
-  });
-  const { resumeOrder, signedIn, clearResumeOrder } = studio;
-  useEffect(() => {
-    if (!resumeOrder || !signedIn) return;
-    const tm = window.setTimeout(() => {
-      clearResumeOrder();
-      orderRef.current();
-    }, 600);
-    return () => window.clearTimeout(tm);
-  }, [resumeOrder, signedIn, clearResumeOrder]);
-
-  // The binding ceremony is a page of the studio too, in the Swatch Book's place.
-  const done = () => {
-    setPreview(false);
-    setOrdering(null);
-    window.scrollTo(0, 0);
-  };
-  if (preview) return <BookCeremony studio={studio} mode="preview" onDone={done} />;
-  // Skipping the swatch book to order the fabric itself: its own page, in the Swatch Book's place.
-  if (ordering?.step === 'fabric') return <FabricOrder studio={studio} onBack={done} />;
-  if (ordering?.step === 'ceremony') return <BookCeremony studio={studio} mode="order" whatsapp={ordering.whatsapp} order={ordering.order} onDone={done} />;
-  // Signing in is a page of the studio: it takes the Swatch Book's place under the same top bar.
-  if (ordering?.step === 'auth')
-    return (
-      <AuthScreen
-        studio={studio}
-        intent={ordering.intent}
-        onClose={() => {
-          setOrdering(null);
-          window.scrollTo(0, 0);
-        }}
-        onDone={(r) => {
-          window.scrollTo(0, 0);
-          begin(r.whatsapp, r.demo, r.from);
-        }}
-      />
-    );
-  if (!sheet) return <EmptyBook studio={studio} />;
+  if (!sheet) return null;
   const group = groups[sheet.g];
   const under = flying ? flying.target : side > 0 ? backOf(at) : forwardOf(at);
   const shown = under >= 0 && under !== at ? [sheets[under], sheet] : [sheet];
 
   return (
-    <Room>
-      <div style={{ textAlign: 'center', userSelect: 'none', WebkitUserSelect: 'none' }}>
-        {/* The title plate: the house above in spaced capitals between hairlines that draw in, the
-            title set large with its last word in italic antique gold, what the book holds beneath,
-            and a printer's rule. Each part rises in turn. */}
-        <div aria-hidden style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14 }}>
-          <span style={{ width: 'clamp(26px,8vw,56px)', height: 1, background: 'linear-gradient(90deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'right', animation: 'pcRuleDraw 1s .15s cubic-bezier(.2,.8,.2,1) both' }} />
-          <span style={{ fontSize: 9.5, letterSpacing: '.5em', paddingLeft: '.5em', textTransform: 'uppercase', color: UMBER, animation: 'pcRiseIn .9s .1s cubic-bezier(.2,.8,.2,1) both' }}>Poddar Creation</span>
-          <span style={{ width: 'clamp(26px,8vw,56px)', height: 1, background: 'linear-gradient(270deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'left', animation: 'pcRuleDraw 1s .15s cubic-bezier(.2,.8,.2,1) both' }} />
-        </div>
-        <h1 style={{ margin: '14px 0 0', fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(50px,13vw,84px)', lineHeight: 0.98, letterSpacing: '-.012em', color: INK, perspective: 500 }}>
-          {t.book.split(' ').map((w, i, all) => (
-            <span
-              key={i}
-              className={i === all.length - 1 ? 'pc-foil-deep' : undefined}
-              style={{ display: 'inline-block', marginRight: i < all.length - 1 ? '.2em' : 0, fontStyle: i === all.length - 1 ? 'italic' : undefined, paddingRight: i === all.length - 1 ? '.06em' : 0, transformOrigin: '50% 100%', animation: `pcWordIn 1.1s ${0.25 + i * 0.12}s cubic-bezier(.2,.8,.2,1) both${i === all.length - 1 ? ', pcFoil 2.8s .7s cubic-bezier(.45,.05,.3,1) both' : ''}` }}
+    <>
+      {groups.length > 1 && (
+        // The fabrics in the book, by their numerals: the one open is underlined in gold.
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'baseline', flexWrap: 'wrap', gap: 4, marginTop: 12, userSelect: 'none', WebkitUserSelect: 'none' }}>
+          {groups.map((g, i) => (
+            <button
+              key={g.x.id}
+              aria-label={`${t.chapterWord} ${roman(i + 1)}: ${g.x.name}`}
+              aria-current={i === sheet.g ? 'true' : undefined}
+              onClick={() => i !== sheet.g && toFabric(i)}
+              style={{
+                position: 'relative', cursor: 'pointer', background: 'none', border: 'none', padding: '4px 8px 7px', fontFamily: FONT_DISPLAY,
+                fontSize: i === sheet.g ? 17 : 15, color: i === sheet.g ? UMBER : 'rgba(138,109,69,.45)', transition: 'color .5s ease, font-size .5s ease',
+              }}
             >
-              {w}
-            </span>
+              {roman(i + 1)}
+              <span aria-hidden className="pc-foil-bg" style={{ position: 'absolute', left: '50%', bottom: 2, height: 1, width: i === sheet.g ? 18 : 0, transform: 'translateX(-50%)', transition: 'width .6s cubic-bezier(.22,.8,.2,1)' }} />
+            </button>
           ))}
-        </h1>
-        <div style={{ marginTop: 10, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 16.5, color: UMBER, fontVariantNumeric: 'lining-nums', animation: 'pcRiseIn .9s .55s cubic-bezier(.2,.8,.2,1) both' }}>
-          {studio.pins.length} {studio.pins.length === 1 ? t.shade : t.shades} · {groups.length} {groups.length === 1 ? t.fabricWordOne : t.fabricWordMany} — {t.boundToOrder}
         </div>
-        <div aria-hidden style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 16 }}>
-          <span style={{ width: 30, height: 1, background: 'linear-gradient(90deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'right', animation: 'pcRuleDraw 1s .75s cubic-bezier(.2,.8,.2,1) both' }} />
-          <span style={{ width: 6, height: 6, background: 'rgba(168,134,79,.95)', animation: 'pcDiamondIn .8s .65s cubic-bezier(.2,.8,.2,1) both' }} />
-          <span style={{ width: 30, height: 1, background: 'linear-gradient(270deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'left', animation: 'pcRuleDraw 1s .75s cubic-bezier(.2,.8,.2,1) both' }} />
-        </div>
-        {groups.length > 1 && (
-          // The fabrics in the book, by their numerals: the one open is underlined in gold.
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'baseline', flexWrap: 'wrap', gap: 4, marginTop: 12 }}>
-            {groups.map((g, i) => (
-              <button
-                key={g.x.id}
-                aria-label={`${t.chapterWord} ${roman(i + 1)}: ${g.x.name}`}
-                aria-current={i === sheet.g ? 'true' : undefined}
-                onClick={() => i !== sheet.g && toFabric(i)}
-                style={{
-                  position: 'relative', cursor: 'pointer', background: 'none', border: 'none', padding: '4px 8px 7px', fontFamily: FONT_DISPLAY,
-                  fontSize: i === sheet.g ? 17 : 15, color: i === sheet.g ? UMBER : 'rgba(138,109,69,.45)', transition: 'color .5s ease, font-size .5s ease',
-                }}
-              >
-                {roman(i + 1)}
-                <span aria-hidden className="pc-foil-bg" style={{ position: 'absolute', left: '50%', bottom: 2, height: 1, width: i === sheet.g ? 18 : 0, transform: 'translateX(-50%)', transition: 'width .6s cubic-bezier(.22,.8,.2,1)' }} />
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
+      )}
       {/* The stack of loose sheets. */}
       <div
         tabIndex={0}
@@ -295,6 +379,9 @@ export function SwatchBook({ studio }: { studio: Studio }) {
         }}
         onPointerDown={(e) => {
           if (flying || e.button > 0) return;
+          // A new press: whether the last one slid no longer matters (a touch that slid fires no
+          // click to clear it, and would otherwise swallow this tap).
+          dragged.current = false;
           drag.current = { x: e.clientX, y: e.clientY, moved: false, dx: 0 };
           setDragging(true);
         }}
@@ -338,76 +425,13 @@ export function SwatchBook({ studio }: { studio: Studio }) {
                 transition: dragging && top ? 'none' : flying && top ? 'transform .42s cubic-bezier(.25,.6,.35,1), box-shadow .3s ease' : 'transform .55s cubic-bezier(.22,.8,.2,1), box-shadow .4s ease',
               }}
             >
-              <SheetFace studio={studio} sheet={s} group={groups[s.g]} interactive={top && !flying} />
+              <SheetFace studio={studio} sheet={s} group={groups[s.g]} interactive={top && !flying} cart={cart} />
             </div>
           );
         })}
       </div>
 
-      <div style={{ marginTop: 26, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, animation: 'rise 1s .5s cubic-bezier(.22,.8,.2,1) both' }}>
-        <Fleuron width={26} color="rgba(138,109,69,.6)" />
-        <p style={{ margin: 0, maxWidth: 320, textAlign: 'center', fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 15, lineHeight: 1.45, color: 'rgba(28,25,23,.58)' }}>{t.looseNote}</p>
-      </div>
-
-      {/* The book's actions: order it — every shade in it, across all its fabrics — or see it bound first. */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 20, animation: 'rise 1s .35s cubic-bezier(.22,.8,.2,1) both' }}>
-        <button
-          ref={orderButton}
-          onClick={order}
-          className="pc-book"
-          style={{
-            cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 10, width: 'min(100%, 460px)',
-            borderRadius: 999, padding: '16px 18px', fontFamily: FONT_BODY, fontSize: 12, letterSpacing: '.2em', textTransform: 'uppercase', whiteSpace: 'nowrap',
-            background: 'linear-gradient(135deg, rgba(255,255,255,.72), rgba(250,248,245,.4))', color: INK, border: '1px solid rgba(201,169,110,.5)',
-          }}
-        >
-          <span aria-hidden className="pc-book-star">✦</span>
-          {t.orderBook}
-        </button>
-        <button
-          onClick={(e) => {
-            // The preview celebrates as the order does: the book's own shades burst from the button.
-            confettiBurst(e.currentTarget.getBoundingClientRect(), groups.flatMap((g) => g.items.map(({ colour: c }) => rgbToHex(oklchToRgb(c.l, c.c, c.h)))));
-            window.scrollTo(0, 0);
-            setPreview(true);
-          }}
-          className="pc-auth-ghost"
-          style={{ marginTop: 12, width: 'min(100%, 460px)', gap: 10 }}
-        >
-          <svg aria-hidden width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round">
-            <path d="M3 5.5c3-1.3 6-1.3 9 .5v13c-3-1.8-6-1.8-9-.5v-13ZM21 5.5c-3-1.3-6-1.3-9 .5v13c3-1.8 6-1.8 9-.5v-13Z" />
-          </svg>
-          {t.previewBook}
-        </button>
-        {/* Or skip the swatch book altogether, and order the fabric itself. */}
-        <div className="pc-auth-or" style={{ width: 'min(100%, 460px)', marginTop: 18 }}>
-          <span />
-          {t.orWord}
-          <span />
-        </div>
-        <button
-          className="pc-direct"
-          style={{ marginTop: 10 }}
-          onClick={() => {
-            window.scrollTo(0, 0);
-            setOrdering({ step: 'fabric' });
-          }}
-        >
-          <span aria-hidden className="pc-direct-bolt">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1C1917" strokeWidth="1.4">
-              <circle cx="12" cy="12" r="8.5" />
-              <circle cx="12" cy="12" r="5" />
-              <circle cx="12" cy="12" r="1.6" fill="#1C1917" />
-            </svg>
-          </span>
-          <span style={{ minWidth: 0 }}>
-            <span style={{ display: 'block', fontFamily: FONT_DISPLAY, fontSize: 21, lineHeight: 1.1 }}>{t.skipBook}</span>
-            <span style={{ display: 'block', marginTop: 3, fontSize: 10, letterSpacing: '.16em', textTransform: 'uppercase', color: 'rgba(250,248,245,.6)' }}>{t.skipBookSub}</span>
-          </span>
-          <span aria-hidden className="pc-direct-arrow">→</span>
-        </button>
-      </div>
-    </Room>
+    </>
   );
 }
 
@@ -696,12 +720,13 @@ const SHEET_BASE: CSSProperties = {
 };
 
 /** One loose sheet: a fabric's title, or a sheet of its cuttings. */
-function SheetFace({ studio, sheet, group, interactive }: { studio: Studio; sheet: Sheet; group: Group; interactive: boolean }) {
+function SheetFace({ studio, sheet, group, interactive, cart }: { studio: Studio; sheet: Sheet; group: Group; interactive: boolean; cart?: CartHooks }) {
   const { t } = studio;
   const small = { fontSize: 7.5, letterSpacing: '.3em', textTransform: 'uppercase' as const, color: 'rgba(138,109,69,.85)' };
   const chapter = roman(sheet.g + 1);
   if (sheet.kind === 'title') {
     const pages = Math.ceil(group.items.length / PER_SHEET);
+    const metres = group.items.reduce((sum, c) => sum + (c.metres ?? 0), 0);
     return (
       <div style={{ position: 'absolute', inset: 0 }}>
         <div style={{ position: 'absolute', inset: 14, border: '1px solid rgba(184,144,74,.7)' }} />
@@ -709,10 +734,10 @@ function SheetFace({ studio, sheet, group, interactive }: { studio: Studio; shee
         <div style={{ position: 'absolute', inset: 21 }}>
           {(['tl', 'tr', 'bl', 'br'] as const).map((c) => <CornerOrnament key={c} corner={c} inset={0} size={20} />)}
         </div>
-        <div style={{ position: 'absolute', inset: '30px 30px 56px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+        <div style={{ position: 'absolute', inset: cart ? '26px 26px 50px' : '30px 30px 56px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
           <div style={{ fontSize: 8.5, letterSpacing: '.48em', textTransform: 'uppercase', color: UMBER, paddingLeft: '.48em' }}>{t.chapterWord}</div>
-          <div className="pc-foil" style={{ fontFamily: FONT_DISPLAY, fontSize: 'clamp(54px,13vw,74px)', fontWeight: 500, lineHeight: 1, marginTop: 6 }}>{chapter}</div>
-          <div style={{ margin: '12px 0 10px' }}>
+          <div className="pc-foil" style={{ fontFamily: FONT_DISPLAY, fontSize: cart ? 'clamp(44px,11vw,62px)' : 'clamp(54px,13vw,74px)', fontWeight: 500, lineHeight: 1, marginTop: 6 }}>{chapter}</div>
+          <div style={{ margin: cart ? '8px 0 7px' : '12px 0 10px' }}>
             <Fleuron width={28} color="#B8904A" />
           </div>
           <div style={{ fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 'clamp(26px,6vw,34px)', lineHeight: 1.1, color: INK }}>{group.x.name}</div>
@@ -720,13 +745,37 @@ function SheetFace({ studio, sheet, group, interactive }: { studio: Studio; shee
           {/* A die-cut window onto the chapter's first cutting. */}
           <div
             style={{
-              width: 'clamp(58px,16vw,76px)', aspectRatio: '1', borderRadius: '50%', marginTop: 'clamp(14px,4vw,20px)', background: fabricTex(group.x, group.items[0].colour, 3),
+              width: cart ? 'clamp(46px,12vw,58px)' : 'clamp(58px,16vw,76px)', aspectRatio: '1', borderRadius: '50%', marginTop: cart ? 'clamp(10px,3vw,14px)' : 'clamp(14px,4vw,20px)', background: fabricTex(group.x, group.items[0].colour, 3),
               boxShadow: 'inset 0 3px 9px rgba(0,0,0,.5), inset 0 0 0 1px rgba(0,0,0,.25), 0 0 0 5px #FAF5EA, 0 0 0 6px rgba(184,144,74,.75)',
             }}
           />
-          <div style={{ marginTop: 14, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 14, color: UMBER, fontVariantNumeric: 'lining-nums' }}>
-            {group.items.length} {group.items.length === 1 ? t.shade : t.shades} · {pages} {t.sheetWord.toLowerCase()}{pages === 1 ? '' : 's'}
-          </div>
+          {cart ? (
+            <>
+              {/* In the cart: the price by the metre, what the fabric comes to, and every shade of
+                  it set at once. */}
+              <div style={{ marginTop: 12, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 14, color: UMBER, fontVariantNumeric: 'lining-nums', whiteSpace: 'nowrap' }}>
+                ₹ {inr(group.x.price)} / {t.metre} · {group.items.length} {group.items.length === 1 ? t.shade : t.shades}
+              </div>
+              <div key={metres} style={{ marginTop: 2, fontFamily: FONT_DISPLAY, fontSize: 21, color: INK, fontVariantNumeric: 'lining-nums', whiteSpace: 'nowrap', animation: 'pcTick .35s cubic-bezier(.2,1.4,.4,1)' }}>
+                {inr(metres)} m <span style={{ color: 'rgba(138,109,69,.6)' }}>·</span> ₹ {inr(metres * group.x.price)}
+              </div>
+              <div className="pc-sheet-presets" style={{ pointerEvents: interactive ? 'auto' : 'none' }}>
+                <span>{t.setAll}</span>
+                {[50, 100, 250, 500].map((v) => (
+                  <button key={v} tabIndex={interactive ? 0 : -1} className={group.items.every((c) => c.metres === v) ? 'is-on' : undefined} onClick={() => cart.onAll(group, v)}>
+                    {v}
+                  </button>
+                ))}
+                <button tabIndex={interactive ? 0 : -1} aria-label={t.setMetres} onClick={() => cart.onAll(group, null)}>
+                  ···
+                </button>
+              </div>
+            </>
+          ) : (
+            <div style={{ marginTop: 14, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 14, color: UMBER, fontVariantNumeric: 'lining-nums' }}>
+              {group.items.length} {group.items.length === 1 ? t.shade : t.shades} · {pages} {t.sheetWord.toLowerCase()}{pages === 1 ? '' : 's'}
+            </div>
+          )}
         </div>
         {/* Which way to slide. */}
         <div aria-hidden style={{ position: 'absolute', left: 30, right: 30, bottom: 30, display: 'flex', justifyContent: 'space-between', alignItems: 'center', ...small, fontSize: 7, letterSpacing: '.2em' }}>
@@ -764,7 +813,8 @@ function SheetFace({ studio, sheet, group, interactive }: { studio: Studio; shee
       </div>
       <div aria-hidden style={{ height: 1, marginTop: 7, background: 'linear-gradient(90deg, rgba(138,109,69,.1), rgba(138,109,69,.45), rgba(138,109,69,.1))' }} />
       <div style={{ position: 'relative', flex: 1, minHeight: 0, margin: '8px 2px 4px' }}>
-        {sheet.items.map(({ pin, colour }, i) => {
+        {sheet.items.map((cut, i) => {
+          const { pin, colour } = cut;
           const key = `${pin.fabricId}-${pin.colourOrder}`;
           const slot = slots[i];
           const cx = ((slot % cols) + 0.5) / cols + (seeded(key, 1) - 0.5) * cellW * 0.16;
@@ -776,14 +826,14 @@ function SheetFace({ studio, sheet, group, interactive }: { studio: Studio; shee
               className="pc-loose"
               style={{ ['--jx' as string]: '-50%', ['--jy' as string]: '-50%', ['--r' as string]: `${r.toFixed(1)}deg`, position: 'absolute', left: `${(cx * 100).toFixed(2)}%`, top: `${(cy * 100).toFixed(2)}%`, width: `${(cutW * 100).toFixed(2)}%`, aspectRatio: '4 / 5', zIndex: 1 + ((i * 5) % n) } as CSSProperties}
             >
-              <LooseCutting studio={studio} fabric={group.x} pin={pin} colour={colour} tiny={tiny} bare={bare} big={n === 1} interactive={interactive} />
+              <LooseCutting studio={studio} fabric={group.x} pin={pin} colour={colour} tiny={tiny} bare={bare} big={n === 1} interactive={interactive} metres={cut.metres} onPick={cart ? () => cart.onPick(cut, group) : undefined} />
             </div>
           );
         })}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'baseline', gap: 8, ...small, fontVariantNumeric: 'lining-nums' }}>
         <span style={{ textAlign: 'left', whiteSpace: 'nowrap' }}>
-          {n} {n === 1 ? t.shade : t.shades}
+          {cart ? `${inr(sheet.items.reduce((sum, c) => sum + (c.metres ?? 0), 0))} m` : `${n} ${n === 1 ? t.shade : t.shades}`}
         </span>
         <span style={{ fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 12, letterSpacing: 0, textTransform: 'none', color: UMBER }}>— {roman(sheet.page + 1).toLowerCase()} —</span>
         <span style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
@@ -795,7 +845,11 @@ function SheetFace({ studio, sheet, group, interactive }: { studio: Studio; shee
 }
 
 /** A loose cutting: pinked, pinned through the top and labelled with a small tag. */
-function LooseCutting({ studio, fabric, pin, colour, tiny, bare, big, interactive }: { studio: Studio; fabric: FabricRow; pin: Pin; colour: ColourRow; tiny: boolean; bare: boolean; big: boolean; interactive: boolean }) {
+function LooseCutting({
+  studio, fabric, pin, colour, tiny, bare, big, interactive, metres, onPick,
+}: {
+  studio: Studio; fabric: FabricRow; pin: Pin; colour: ColourRow; tiny: boolean; bare: boolean; big: boolean; interactive: boolean; metres?: number; onPick?: () => void;
+}) {
   const { t } = studio;
   return (
     <div style={{ position: 'absolute', inset: 0 }}>
@@ -803,7 +857,7 @@ function LooseCutting({ studio, fabric, pin, colour, tiny, bare, big, interactiv
           pinked edges hide, is far cheaper to paint than a filter on the clipped cutting. */}
       <div aria-hidden style={{ position: 'absolute', left: '1%', right: '1%', top: '4%', bottom: '3%', boxShadow: '0 5px 10px rgba(40,26,12,.26), 0 1px 2px rgba(40,26,12,.18)' }} />
       <div
-        onClick={interactive ? () => studio.openFabric(pin.fabricId, fabric.colours.indexOf(colour)) : undefined}
+        onClick={interactive ? () => (onPick ? onPick() : studio.openFabric(pin.fabricId, fabric.colours.indexOf(colour))) : undefined}
         className="pc-pinked"
         // The light falling across the cutting is one more layer of its own background, so each
         // cutting is a single clipped box.
@@ -829,13 +883,20 @@ function LooseCutting({ studio, fabric, pin, colour, tiny, bare, big, interactiv
         )}
         <span style={{ fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: tiny ? 11 : big ? 17 : bare ? 13.5 : 14.5, color: INK, overflow: 'hidden', textOverflow: 'ellipsis' }}>{colour.name}</span>
       </div>
+      {/* In the cart, its metres on a small ink tab above the label: tapping the cutting sets them. */}
+      {metres !== undefined && (
+        <span key={metres} className={`pc-cut-metres${tiny ? ' is-tiny' : ''}${metres === 0 ? ' is-off' : ''}`} style={{ left: tiny ? 3 : 9, bottom: tiny ? 28 : big ? 50 : 44 }}>
+          {inr(metres)}
+          <small> m</small>
+        </span>
+      )}
       {/* Always drawn, so a sheet arriving on top shows the same marks it had beneath; only
           the top sheet's can be pressed. */}
       <button
-        aria-label={`Remove ${colour.name}`}
+        aria-label={`${t.removeWord} ${colour.name}`}
         aria-hidden={!interactive || undefined}
         tabIndex={interactive ? 0 : -1}
-        onClick={interactive ? () => studio.removePin(pin) : undefined}
+        onClick={interactive ? () => (onPick ? studio.removeFromCart(pin.fabricId, pin.colourOrder) : studio.removePin(pin)) : undefined}
         className="pc-hv-scale-06"
         style={{
           position: 'absolute', top: tiny ? 5 : 9, right: tiny ? 5 : 9, width: tiny ? 18 : 24, height: tiny ? 18 : 24, borderRadius: '50%', display: 'grid', placeItems: 'center', cursor: 'pointer', padding: 0,

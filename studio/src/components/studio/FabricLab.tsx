@@ -11,7 +11,7 @@ import { oklchToHex } from '@/lib/three/colour';
 import { metamerism, shiftVerdict } from '@/lib/three/metamerism';
 import { FONT_DISPLAY, FONT_BODY, fabricTex, fabricWeave, colourCss, colourFg, colourShade, fabricNo } from './helpers';
 import { useDragScroll } from './interactions';
-import { AddChooser, CartToast, flyToCart } from './AddChooser';
+import { AddChooser, AddedToast, flyInto } from './AddChooser';
 import {
   GARMENTS, LIGHTS, PHYSICS_NOTES, STRETCH_TEST_NOTES,
   type GarmentKey, type LightKey,
@@ -63,46 +63,42 @@ export function FabricLab({ studio }: { studio: Studio }) {
   const targets = picking && picked.length ? picked : [studio.ci];
   const targetColours = targets.map((j) => f.colours[j]).filter(Boolean);
   const pinned = targetColours.every((c) => studio.pins.some((p) => p.fabricId === f.id && p.colourOrder === c.order));
-  // Adding to the book: pin the shades, close "Select multiple" (as Done would), and point the
-  // buyer at the Swatch Book, where the book is ordered.
-  // The prompt's count stays on it while it animates out.
-  const [prompt, setPrompt] = useState<{ n: number; open: boolean; swatches: string[]; names: string[] }>({ n: 0, open: false, swatches: [], names: [] });
-  const promptPresence = usePresence(prompt.open, 480);
-  const pinTargets = () => {
-    targetColours.forEach((c) => studio.pinShade(f.id, c.order));
-    setPrompt({ n: targetColours.length, open: true, swatches: targetColours.map((c) => colourCss(c)), names: targetColours.map((c) => c.name) });
-    setMulti(null);
-  };
   // "Add to…" asks where the shades go: the cart (the fabric itself, by the metre) or the swatch
-  // book. The choice is made in a sheet; the cart's arrival is a flight into the cart button and a
-  // brief "Added to your cart".
+  // book. The choice is made in a sheet; either way the cuttings fly into that tab, which bumps as
+  // they land, and a small note points at it with the way there.
   const [choosing, setChoosing] = useState(false);
   const chooserPresence = usePresence(choosing, 400);
   const [chosenColours, setChosenColours] = useState(targetColours);
-  const [toast, setToast] = useState<{ text: string; open: boolean }>({ text: '', open: false });
-  const toastPresence = usePresence(toast.open, 420);
+  const [toast, setToast] = useState<{ kind: 'cart' | 'book'; eyebrow: string; text: string; swatches: string[]; open: boolean; n: number }>({ kind: 'cart', eyebrow: '', text: '', swatches: [], open: false, n: 0 });
+  const toastPresence = usePresence(toast.open, 360);
   const toastTimer = useRef(0);
   useEffect(() => () => window.clearTimeout(toastTimer.current), []);
   const openChooser = () => {
     setChosenColours(targetColours);
     setChoosing(true);
   };
-  const toCart = (metres: number, from: DOMRect | null) => {
-    studio.addToCart(f.id, chosenColours.map((c) => c.order), metres);
+  const added = (kind: 'cart' | 'book', from: DOMRect | null, text: string) => {
+    const swatches = chosenColours.map((c) => fabricTex(f, c, 3));
     setChoosing(false);
     setMulti(null);
-    window.setTimeout(() => flyToCart(from, chosenColours.map((c) => fabricTex(f, c, 3))), 120);
+    window.setTimeout(() => flyInto(kind, from, swatches), 120);
     window.clearTimeout(toastTimer.current);
-    const names = chosenColours.map((c) => c.name);
-    setToast({ open: true, text: `${t.addedCart} · ${names.length > 2 ? `${names.length} ${t.shades}` : names.join(', ')} · ${metres} m` });
-    toastTimer.current = window.setTimeout(() => setToast((x) => ({ ...x, open: false })), 4200);
+    // A fresh note each time (its key), so it plays in again over one still showing.
+    setToast((was) => ({ kind, eyebrow: kind === 'cart' ? t.addedCart : t.addedBook, text, swatches, open: true, n: was.n + 1 }));
+    toastTimer.current = window.setTimeout(() => setToast((x) => ({ ...x, open: false })), 3600);
   };
-  const toBook = () => {
-    setChoosing(false);
-    window.setTimeout(pinTargets, 320);
+  const names = (cs: typeof chosenColours) => (cs.length > 2 ? `${cs.length} ${t.shades}` : cs.map((c) => c.name).join(', '));
+  const toCart = (metres: number, from: DOMRect | null) => {
+    studio.addToCart(f.id, chosenColours.map((c) => c.order), metres);
+    added('cart', from, `${names(chosenColours)} · ${metres} m`);
+  };
+  const toBook = (from: DOMRect | null) => {
+    chosenColours.forEach((c) => studio.pinShade(f.id, c.order));
+    studio.bumpBook();
+    added('book', from, `${names(chosenColours)} · ${f.name}`);
   };
   const inCart = targetColours.length > 0 && targetColours.every((c) => studio.cart.some((l) => l.fabricId === f.id && l.colourOrder === c.order));
-  // The prompt is fixed to the viewport, so it is portalled to the body: the lab's root animates a
+  // The chooser and the note are fixed to the viewport, so they are portalled to the body: the lab's root animates a
   // transform while it lays in, and a transformed ancestor turns a fixed child page-positioned.
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -697,28 +693,19 @@ export function FabricLab({ studio }: { studio: Studio }) {
         <AddChooser studio={studio} fabric={f} colours={chosenColours} leaving={chooserPresence.leaving} onBook={toBook} onCart={toCart} onClose={() => setChoosing(false)} />
       )}
       {mounted && toastPresence.shown && (
-        <CartToast
+        <AddedToast
+          key={toast.n}
           studio={studio}
+          kind={toast.kind}
+          eyebrow={toast.eyebrow}
           text={toast.text}
+          swatches={toast.swatches}
           leaving={toastPresence.leaving}
           onView={() => {
             setToast((x) => ({ ...x, open: false }));
-            studio.go('cart');
+            studio.go(toast.kind);
           }}
         />
-      )}
-      {mounted && promptPresence.shown && createPortal(
-        <BookPrompt
-          t={t}
-          fabric={f.name}
-          swatches={prompt.swatches}
-          names={prompt.names}
-          total={studio.pins.length}
-          leaving={promptPresence.leaving}
-          onOrder={() => { setPrompt((p) => ({ ...p, open: false })); studio.go('book'); }}
-          onClose={() => setPrompt((p) => ({ ...p, open: false }))}
-        />,
-        document.body,
       )}
     </div>
   );
@@ -755,115 +742,6 @@ function PriceLine({ price, t }: { price: number; t: Record<string, string> }) {
     </div>
   );
 }
-
-/**
- * After "Add to book": a card near the bottom of the screen, over a light veil — the shades just
- * added fanned out as pinked cuttings, the fabric and their names, how many shades the book now
- * holds, and the way to the Swatch Book to order it. Escape, the veil, the close mark or
- * "Continue browsing" closes it.
- */
-function BookPrompt({ t, fabric, swatches, names, total, leaving, onOrder, onClose }: {
-  t: Record<string, string>; fabric: string; swatches: string[]; names: string[]; total: number;
-  leaving: boolean; onOrder: () => void; onClose: () => void;
-}) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-  const fan = swatches.slice(0, 4);
-  const shown = names.slice(0, 3).join(', ') + (names.length > 3 ? ` +${names.length - 3}` : '');
-  return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 90 }}>
-      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(28,25,23,.32)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', animation: leaving ? 'pcVeilOut .48s ease both' : 'pcVeil .7s ease both' }} />
-      <div
-        role="dialog"
-        aria-label={t.bookAdded}
-        style={{
-          position: 'absolute', left: 16, right: 16, bottom: 'calc(var(--pc-bottombar) + 16px)', margin: '0 auto', maxWidth: 440,
-          background: '#FAF8F5', borderRadius: 22, overflow: 'hidden',
-          boxShadow: '0 40px 90px rgba(28,25,23,.32), 0 0 0 1px rgba(28,25,23,.05)',
-          animation: leaving ? 'pcPopOut .46s ease both' : 'pcPop .85s cubic-bezier(.22,.8,.2,1) both',
-        }}
-      >
-        <div style={{ height: 3, background: 'linear-gradient(90deg, #8A6D45, #C9A96E, #8A6D45)' }} />
-        <button
-          onClick={onClose}
-          aria-label="Close"
-          className="pc-hv-ink"
-          style={{ cursor: 'pointer', position: 'absolute', top: 12, right: 12, width: 34, height: 34, borderRadius: '50%', border: 'none', background: 'none', fontSize: 20, color: 'rgba(28,25,23,.45)' }}
-        >
-          ×
-        </button>
-        <div style={{ padding: '22px 22px 18px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-            {/* The cuttings, fanned like a swatch card in the hand. */}
-            <div aria-hidden style={{ position: 'relative', flex: 'none', width: 74, height: 70 }}>
-              {fan.map((c, k) => (
-                <span
-                  key={k}
-                  className="pc-pink"
-                  style={{
-                    position: 'absolute', left: 10 + k * 7, top: 4, width: 42, height: 58, borderRadius: '3px 3px 0 0', background: c,
-                    boxShadow: '0 6px 14px rgba(28,25,23,.18), inset 0 0 0 1px rgba(28,25,23,.08)',
-                    transform: `rotate(${(k - (fan.length - 1) / 2) * 9}deg)`, transformOrigin: '50% 100%',
-                    animation: leaving ? undefined : `pcPop .8s ${200 + k * 90}ms cubic-bezier(.22,.8,.2,1) both`,
-                  }}
-                />
-              ))}
-              <span style={{ position: 'absolute', right: -2, bottom: -2, width: 24, height: 24, borderRadius: '50%', display: 'grid', placeItems: 'center', background: '#8A6D45', color: '#FAF8F5', fontSize: 12, boxShadow: '0 0 0 3px #FAF8F5' }}>✓</span>
-            </div>
-            <div style={{ minWidth: 0, paddingRight: 24 }}>
-              <div style={{ fontSize: 9.5, letterSpacing: '.3em', color: '#8A6D45', textTransform: 'uppercase' }}>{t.book}</div>
-              <div style={{ fontFamily: FONT_DISPLAY, fontSize: 25, fontWeight: 500, lineHeight: 1.1, marginTop: 4 }}>{t.bookAdded}</div>
-              <div style={{ fontSize: 12.5, color: 'rgba(28,25,23,.6)', marginTop: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {fabric} · {shown}
-              </div>
-            </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginTop: 18, padding: '14px 0', borderTop: '1px solid rgba(28,25,23,.08)', borderBottom: '1px solid rgba(28,25,23,.08)' }}>
-            <span style={{ fontSize: 12.5, fontWeight: 300, color: 'rgba(28,25,23,.7)', lineHeight: 1.6 }}>
-              {t.bookNudge}
-              <br />
-              {t.bookNudge2}
-            </span>
-            {/* A fine gold divide between the note and the book's total: a hairline that fades out
-                at both ends, with a small diamond at its middle. */}
-            <span aria-hidden style={{ position: 'relative', flex: 'none', alignSelf: 'stretch', width: 9, display: 'grid', placeItems: 'center' }}>
-              <span style={{ position: 'absolute', top: 2, bottom: 2, left: 4, width: 1, background: 'linear-gradient(180deg, transparent, rgba(138,109,69,.55) 30%, rgba(138,109,69,.55) 70%, transparent)' }} />
-              <span style={{ position: 'relative', width: 7, height: 7, transform: 'rotate(45deg)', background: '#FAF8F5', border: '1px solid rgba(138,109,69,.7)' }} />
-            </span>
-            {/* The book's running total, on the right: its name above, the count beneath. */}
-            <span style={{ flex: 'none', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', textAlign: 'right', whiteSpace: 'nowrap' }}>
-              <span style={{ fontSize: 9.5, letterSpacing: '.24em', textTransform: 'uppercase', color: '#8A6D45' }}>{t.yourBook}</span>
-              <span style={{ marginTop: 4, color: '#1C1917' }}>
-                <span style={{ fontFamily: FONT_DISPLAY, fontSize: 24, fontWeight: 500, lineHeight: 1, fontVariantNumeric: 'lining-nums' }}>{total}</span>
-                <span style={{ fontSize: 10.5, letterSpacing: '.16em', textTransform: 'uppercase', color: 'rgba(28,25,23,.55)', marginLeft: 6 }}>{total === 1 ? t.shade : t.shades}</span>
-              </span>
-            </span>
-          </div>
-          <button
-            onClick={onOrder}
-            className="pc-hv-gold-fill pc-cta"
-            style={{ cursor: 'pointer', width: '100%', marginTop: 16, background: '#1C1917', color: '#FAF8F5', border: '1px solid #1C1917', borderRadius: 999, padding: '15px 18px', fontFamily: FONT_BODY, fontSize: 12, letterSpacing: '.18em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}
-          >
-            {t.orderBook} →
-          </button>
-          <button
-            onClick={onClose}
-            className="pc-hv-ink"
-            style={{ cursor: 'pointer', display: 'block', margin: '8px auto 0', background: 'none', border: 'none', padding: '10px 12px', fontFamily: FONT_BODY, fontSize: 11, letterSpacing: '.16em', textTransform: 'uppercase', color: 'rgba(28,25,23,.5)', whiteSpace: 'nowrap' }}
-          >
-            {t.keepBrowsing}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 
 /** The frosted glass the stage's controls sit on. */
 const GLASS = {

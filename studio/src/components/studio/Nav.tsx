@@ -46,6 +46,7 @@ export function Nav({ studio }: { studio: Studio }) {
             key={n.k}
             onClick={() => go(n.k)}
             data-cart-target={n.k === 'cart' ? '' : undefined}
+            data-book-target={n.k === 'book' ? '' : undefined}
             className="pc-hv-ink"
             style={{
               cursor: 'pointer', border: 'none',
@@ -57,7 +58,7 @@ export function Nav({ studio }: { studio: Studio }) {
           >
             {n.label}
             {n.count ? (
-              <span key={n.k === 'cart' ? studio.cartBump : undefined} className={n.k === 'cart' ? 'pc-cart-count' : undefined} style={{ display: 'inline-block', color: '#8A6D45', marginLeft: 4, fontSize: 10 }}>
+              <span key={n.k === 'cart' ? studio.cartBump : n.k === 'book' ? studio.bookBump : undefined} className={n.k === 'cart' || n.k === 'book' ? 'pc-cart-count' : undefined} style={{ display: 'inline-block', color: '#8A6D45', marginLeft: 4, fontSize: 10 }}>
                 {n.count}
               </span>
             ) : null}

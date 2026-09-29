@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Studio } from './state';
 import type { ColourRow, FabricRow } from '@/lib/types';
@@ -15,13 +15,13 @@ const inr = (n: number) => n.toLocaleString('en-IN');
  * shades as small pinked chips; a gold slider chooses between the cart (the fabric itself, by the
  * metre) and the swatch book (a cutting of each shade); a single ruled row gives what that choice
  * means — for the cart, the metres and the value, both in the display face on one baseline — and
- * one button acts on it. Choosing the cart sends the cuttings flying into the cart button, which
- * bumps as they land; choosing the book hands on to the lab's own "Added to your book".
+ * one button acts on it. Either way the cuttings fly into the tab they were added to — the cart or
+ * the swatch book — which bumps as they land.
  */
 export function AddChooser({
   studio, fabric, colours, leaving, onBook, onCart, onClose,
 }: {
-  studio: Studio; fabric: FabricRow; colours: ColourRow[]; leaving: boolean; onBook: () => void; onCart: (metres: number, from: DOMRect | null) => void; onClose: () => void;
+  studio: Studio; fabric: FabricRow; colours: ColourRow[]; leaving: boolean; onBook: (from: DOMRect | null) => void; onCart: (metres: number, from: DOMRect | null) => void; onClose: () => void;
 }) {
   const { t } = studio;
   const [where, setWhere] = useState<'cart' | 'book'>('cart');
@@ -108,7 +108,7 @@ export function AddChooser({
 
         <button
           className="pc-auth-btn"
-          onClick={() => (where === 'cart' ? onCart(metres, sheet.current?.getBoundingClientRect() ?? null) : onBook())}
+          onClick={() => (where === 'cart' ? onCart(metres, sheet.current?.getBoundingClientRect() ?? null) : onBook(sheet.current?.getBoundingClientRect() ?? null))}
           style={{ marginTop: 18 }}
         >
           <span aria-hidden className="pc-auth-star">✦</span>
@@ -130,13 +130,13 @@ function BookGlyph() {
 }
 
 /**
- * Cuttings flying into the cart: each a small pinked scrap that arcs from where it was chosen to
- * the cart button, shrinking and turning as it goes; the cart bumps as they land. Drawn as plain
- * elements moved by transform, removed when they arrive.
+ * Cuttings flying into the cart or the swatch book: each a small pinked scrap that arcs from where
+ * it was chosen to that tab, shrinking and turning as it goes; the tab bumps as they land. Drawn as
+ * plain elements moved by transform, removed when they arrive.
  */
-export function flyToCart(from: DOMRect | null, backgrounds: string[]) {
+export function flyInto(kind: 'cart' | 'book', from: DOMRect | null, backgrounds: string[]) {
   if (typeof window === 'undefined' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const target = [...document.querySelectorAll<HTMLElement>('[data-cart-target]')].find((el) => el.offsetParent !== null);
+  const target = [...document.querySelectorAll<HTMLElement>(`[data-${kind}-target]`)].find((el) => el.offsetParent !== null);
   if (!target) return;
   const to = target.getBoundingClientRect();
   const sx = from ? from.left + from.width / 2 : window.innerWidth / 2;
@@ -167,17 +167,52 @@ export function flyToCart(from: DOMRect | null, backgrounds: string[]) {
   });
 }
 
-/** "Added to your cart", briefly, above the tab bar, with the way to the cart. */
-export function CartToast({ studio, text, leaving, onView }: { studio: Studio; text: string; leaving: boolean; onView: () => void }) {
+/**
+ * "Added to your cart" (or book), briefly: a small cream note on the studio's paper with a gold
+ * hairline, its shades as pinked chips, what was added in two short lines, and the way there. On a
+ * phone it stands just above the tab it was added to, a small point aimed at it; on a wide screen
+ * it sits under that item in the top bar.
+ */
+export function AddedToast({
+  studio, kind, eyebrow, text, swatches, leaving, onView,
+}: {
+  studio: Studio; kind: 'cart' | 'book'; eyebrow: string; text: string; swatches: string[]; leaving: boolean; onView: () => void;
+}) {
   const { t } = studio;
+  const card = useRef<HTMLDivElement | null>(null);
+  const [place, setPlace] = useState<{ left: number; caret: number; top?: number; bottom?: number; up: boolean } | null>(null);
+  useLayoutEffect(() => {
+    const target = [...document.querySelectorAll<HTMLElement>(`[data-${kind}-target]`)].find((el) => el.offsetParent !== null);
+    const el = card.current;
+    if (!el) return;
+    const w = el.offsetWidth;
+    const vw = window.innerWidth;
+    const r = target?.getBoundingClientRect();
+    const cx = r ? r.left + r.width / 2 : vw / 2;
+    const left = Math.max(12, Math.min(vw - w - 12, cx - w / 2));
+    const caret = Math.max(18, Math.min(w - 18, cx - left));
+    const up = !!r && r.top < window.innerHeight / 2;
+    setPlace(up ? { left, caret, top: (r?.bottom ?? 0) + 12, up } : { left, caret, bottom: window.innerHeight - (r?.top ?? window.innerHeight - 24) + 12, up });
+  }, [kind]);
   return createPortal(
-    <div className={`pc-cart-toast${leaving ? ' is-leaving' : ''}`} role="status">
-      <span aria-hidden className="pc-cart-toast-icon">
-        <CartGlyph size={16} />
+    <div
+      ref={card}
+      role="status"
+      className={`pc-added${place?.up ? ' is-up' : ''}${leaving ? ' is-leaving' : ''}`}
+      style={{ left: place?.left ?? 0, top: place?.top, bottom: place?.bottom, visibility: place ? 'visible' : 'hidden', ['--caret' as string]: `${place?.caret ?? 0}px` }}
+    >
+      <span aria-hidden className="pc-added-chips">
+        {swatches.slice(0, 3).map((bg, k) => (
+          <span key={k} className="pc-pinked" style={{ background: bg, marginLeft: k ? -9 : 0, zIndex: 3 - k, transform: `rotate(${(k - 1) * 7}deg)` }} />
+        ))}
       </span>
-      <span style={{ minWidth: 0, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{text}</span>
-      <button onClick={onView} className="pc-cart-toast-go">
-        {t.viewCart} →
+      <span className="pc-added-text">
+        <span className="pc-added-eyebrow">✓ {eyebrow}</span>
+        <span className="pc-added-line">{text}</span>
+      </span>
+      <button onClick={onView} className="pc-added-go">
+        {kind === 'cart' ? t.viewCart : t.viewBook}
+        <span aria-hidden> →</span>
       </button>
     </div>,
     document.body,
