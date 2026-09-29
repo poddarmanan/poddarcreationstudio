@@ -13,6 +13,7 @@ export type ErrorCode =
   | 'PAYLOAD_TOO_LARGE'
   | 'UNSUPPORTED_MEDIA_TYPE'
   | 'RATE_LIMITED'
+  | 'UNAVAILABLE'
   | 'INTERNAL';
 
 const STATUS: Record<ErrorCode, number> = {
@@ -25,6 +26,7 @@ const STATUS: Record<ErrorCode, number> = {
   UNSUPPORTED_MEDIA_TYPE: 415,
   RATE_LIMITED: 429,
   INTERNAL: 500,
+  UNAVAILABLE: 503,
 };
 
 /**
@@ -73,6 +75,10 @@ export class AppError extends Error {
   }
   static rateLimited(message = 'Too many requests') {
     return new AppError('RATE_LIMITED', message);
+  }
+  /** A service the request needs is not set up, or not answering. */
+  static unavailable(message = 'This is not available just now') {
+    return new AppError('UNAVAILABLE', message);
   }
   static internal(message = 'Something went wrong') {
     return new AppError('INTERNAL', message);

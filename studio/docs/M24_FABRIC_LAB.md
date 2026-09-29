@@ -287,47 +287,79 @@ account.
 - **Not signed in:** the sign-in page opens. Once the buyer signs in or creates an account, the
   confetti bursts and the ceremony starts.
 
-The confetti is drawn on one canvas laid over everything, which removes itself when the last piece
-has fallen (`src/components/studio/confetti.ts`). The pieces are the book's own shades, cut as
-tiny pinked scraps, with gold-foil strips and cream paper among them. They tumble, flutter and
-fade. None is drawn under reduced motion.
+The confetti is drawn on one canvas laid over everything, which removes itself when done
+(`src/components/studio/confetti.ts`). It is described in full under the sign-in page below. None
+is drawn under reduced motion.
 
 **The sign-in page** (`AuthScreen.tsx`) is a page of the studio like any other, not an overlay.
 It sits under the same top bar and above the same tabs, with a "← Swatch Book" link back. While
 ordering it takes the Swatch Book's place; from the studio menu it takes the current view's place,
 and any tab leaves it. It is set in the Swatch Book's cream reading room, and ordering shows the
-buyer's own cuttings fanned under the heading, with their count. It is choreographed:
+buyer's own cuttings fanned under the heading, with their count.
 
-- **The light:** warm light comes up over the room and breathes. Gold dust turns slowly in it.
-- **The book arriving:** the closed volume glides out of the dark, turning into place in 3D.
-- **The book at rest:** it floats and turns a little, with a halo and a breathing shadow beneath.
-  Now and then a glint of light runs across its foil. Its cover takes the buyer's name as they
-  type it.
-- **The heading:** "Poddar Creation" rises. "Your book awaits" comes up word by word in gold
-  foil, the line under it fades in, and a printer's rule draws out from its diamond.
-- **Tabs:** "Sign in" and "Create account" share a gold underline that slides to the chosen one,
-  and the fields rise in one after another.
-- **Fields:**
-  - Each field's name rests in it like a pencilled note and floats up, small and gold, as the
-    field is entered.
-  - A gold line draws out from the centre under the caret.
-  - A small gold tick settles at the end once the entry is good.
-  - Sign in asks for email and password. Create account also asks for full name, company, city
-    and WhatsApp number (starting "+91 "; 8 to 15 digits, checked here and by the API).
-- **Button:** the studio's ink pill, with a gold star and a sheen passing across it now and
-  then. While it works, three gold dots beat in it.
-- **Errors:** a mistake shakes the message.
-- **Success:** the page glides back to the book. Its cover swings open, marbled endpaper first,
-  light spills from the pages, and the form fades away. The confetti bursts out of the open book,
-  and the binding ceremony takes over.
-- **Closing:** the room fades out.
+It offers four ways in, as buttons:
+- **Continue with WhatsApp**, the ink pill;
+- **Continue with Google**, in white;
+- after "or", **Sign in** and **Create account**, outlined side by side.
 
-Everything moves by transform or opacity, and the few loops are on small layers, so a phone
-composites the page without repainting it. Under reduced motion the loops stop and the dust is
-not drawn. The studio menu's sign-in uses the same page, without the order.
+Each opens its form in a sheet. On a phone the sheet rises from the foot of the screen, with a
+grip and a gold rule along its top, over a plain veil (no blur). On a wider screen it is a card at
+the centre. It goes back down as it closes.
+
+- **WhatsApp** (M46), in three steps:
+  1. The number, starting "+91 ".
+  2. A six-digit code, sent on WhatsApp. It is typed into six boxes: each digit pops into its box,
+     the next box glows, and the sixth digit submits. A phone can fill the code from the message
+     (`one-time-code`). There is a resend countdown (30 s) and a way to change the number.
+  3. For a number no account has: name, company and city, which create the account with the same
+     code.
+  A number already on an account signs straight in. That includes accounts made with email that
+  gave the number at sign-up.
+- **Google** leaves for Google's sign-in and returns. What must survive the trip is kept in the
+  session first: the view, the shades picked before signing in, and whether an order was under
+  way. On return the order carries on. A Google account signs in as the buyer with the same email,
+  who is created if new; they are asked for a WhatsApp number when they first order.
+- **Sign in** asks for email and password, with links to reset the password or to create an
+  account.
+- **Create account** asks for full name, company, city, WhatsApp number, email and password.
+
+WhatsApp and Google each say "being set up" in place of their form until their keys are set (see
+`DEPLOYMENT.md`).
+
+The page is choreographed:
+- **The light:** warm light comes up over the room and breathes, with gold dust turning in it.
+- **The book:** the closed volume glides in, turning into place in 3D. It then floats and turns a
+  little over a halo and a breathing shadow, and light glints across its foil. Its cover takes
+  the buyer's name as they type it.
+- **The heading:** it rises word by word, the cuttings fan in, and a printer's rule draws out.
+  The buttons then rise in turn.
+- **Fields:** each field's name floats up as the field is entered. A gold line draws out from the
+  centre, and a gold tick settles once the entry is good. A mistake shakes the message.
+- **Success:** the sheet goes down and the page glides back to the book. Its cover swings open and
+  light spills from the pages. The confetti bursts out of the open book, and the ceremony takes
+  over.
+
+Everything moves by transform or opacity, so a phone composites the page without repainting it.
+Under reduced motion the loops stop and the dust is not drawn.
+
+On the static preview, which has no accounts, WhatsApp accepts the code 246810 (the sheet says
+so), and every way in shows the ordering experience without creating an account.
+
+**The confetti** fills the room and lingers for some seven seconds. Two bursts fan out from the
+source (the order button, or the open book), a beat apart. Then a slow rain falls across the whole
+screen. The pieces are large scraps of the book's own shades, pinked, with gold-foil strips and
+cream paper. They drift down like paper. "Preview your book" bursts it too.
+
+**The Swatch Book's heading** is set as a title plate, each part rising in turn:
+- "Poddar Creation" in spaced capitals, between hairlines that draw in;
+- "Swatch *Book*" set large, "Book" in italic antique gold (`.pc-foil-deep`, a deeper foil that
+  reads on cream) with one glint across it;
+- what the book holds, e.g. "8 shades · 1 fabric — bound to order";
+- a printer's rule.
 
 **Registration.** It now records the WhatsApp number, company and city on the buyer's profile
-(`DealerProfile`), so ordering never asks again. `POST /api/register` accepts optional `whatsapp`
+(`DealerProfile`), and the number on the account (`User.whatsapp`, as digits with the country code,
+unless another account signs in with it), so ordering never asks again. `POST /api/register` accepts optional `whatsapp`
 and `city`, and `POST /api/quotes` takes a signed-in buyer's name and company from the account
 when they are left out.
 

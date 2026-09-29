@@ -183,6 +183,20 @@ export function SwatchBook({ studio }: { studio: Studio }) {
     if (!onFile) return toAuth('whatsapp');
     begin(onFile, false);
   };
+  // Back from Google's sign-in in the middle of ordering: carry on with the order.
+  const orderRef = useRef(order);
+  useEffect(() => {
+    orderRef.current = order;
+  });
+  const { resumeOrder, signedIn, clearResumeOrder } = studio;
+  useEffect(() => {
+    if (!resumeOrder || !signedIn) return;
+    const tm = window.setTimeout(() => {
+      clearResumeOrder();
+      orderRef.current();
+    }, 600);
+    return () => window.clearTimeout(tm);
+  }, [resumeOrder, signedIn, clearResumeOrder]);
 
   // Signing in is a page of the studio: it takes the Swatch Book's place under the same top bar.
   if (ordering?.step === 'auth')
@@ -208,9 +222,32 @@ export function SwatchBook({ studio }: { studio: Studio }) {
   return (
     <Room>
       <div style={{ textAlign: 'center', userSelect: 'none', WebkitUserSelect: 'none' }}>
-        <h1 style={{ margin: 0, fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(40px,7vw,64px)', lineHeight: 1.02, color: INK }}>{t.book}</h1>
-        <div style={{ marginTop: 12 }}>
-          <Fleuron width={30} color="rgba(138,109,69,.7)" />
+        {/* The title plate: the house above in spaced capitals between hairlines that draw in, the
+            title set large with its last word in italic antique gold, what the book holds beneath,
+            and a printer's rule. Each part rises in turn. */}
+        <div aria-hidden style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14 }}>
+          <span style={{ width: 'clamp(26px,8vw,56px)', height: 1, background: 'linear-gradient(90deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'right', animation: 'pcRuleDraw 1s .15s cubic-bezier(.2,.8,.2,1) both' }} />
+          <span style={{ fontSize: 9.5, letterSpacing: '.5em', paddingLeft: '.5em', textTransform: 'uppercase', color: UMBER, animation: 'pcRiseIn .9s .1s cubic-bezier(.2,.8,.2,1) both' }}>Poddar Creation</span>
+          <span style={{ width: 'clamp(26px,8vw,56px)', height: 1, background: 'linear-gradient(270deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'left', animation: 'pcRuleDraw 1s .15s cubic-bezier(.2,.8,.2,1) both' }} />
+        </div>
+        <h1 style={{ margin: '14px 0 0', fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(50px,13vw,84px)', lineHeight: 0.98, letterSpacing: '-.012em', color: INK, perspective: 500 }}>
+          {t.book.split(' ').map((w, i, all) => (
+            <span
+              key={i}
+              className={i === all.length - 1 ? 'pc-foil-deep' : undefined}
+              style={{ display: 'inline-block', marginRight: i < all.length - 1 ? '.2em' : 0, fontStyle: i === all.length - 1 ? 'italic' : undefined, paddingRight: i === all.length - 1 ? '.06em' : 0, transformOrigin: '50% 100%', animation: `pcWordIn 1.1s ${0.25 + i * 0.12}s cubic-bezier(.2,.8,.2,1) both${i === all.length - 1 ? ', pcFoil 2.8s .7s cubic-bezier(.45,.05,.3,1) both' : ''}` }}
+            >
+              {w}
+            </span>
+          ))}
+        </h1>
+        <div style={{ marginTop: 10, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 16.5, color: UMBER, fontVariantNumeric: 'lining-nums', animation: 'pcRiseIn .9s .55s cubic-bezier(.2,.8,.2,1) both' }}>
+          {studio.pins.length} {studio.pins.length === 1 ? t.shade : t.shades} · {groups.length} {groups.length === 1 ? t.fabricWordOne : t.fabricWordMany} — {t.boundToOrder}
+        </div>
+        <div aria-hidden style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 16 }}>
+          <span style={{ width: 30, height: 1, background: 'linear-gradient(90deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'right', animation: 'pcRuleDraw 1s .75s cubic-bezier(.2,.8,.2,1) both' }} />
+          <span style={{ width: 6, height: 6, background: 'rgba(168,134,79,.95)', animation: 'pcDiamondIn .8s .65s cubic-bezier(.2,.8,.2,1) both' }} />
+          <span style={{ width: 30, height: 1, background: 'linear-gradient(270deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'left', animation: 'pcRuleDraw 1s .75s cubic-bezier(.2,.8,.2,1) both' }} />
         </div>
         {groups.length > 1 && (
           // The fabrics in the book, by their numerals: the one open is underlined in gold.
@@ -316,18 +353,19 @@ export function SwatchBook({ studio }: { studio: Studio }) {
           {t.orderBook}
         </button>
         <button
-          onClick={() => setPreview(true)}
-          className="pc-hv-ink"
-          style={{ cursor: 'pointer', marginTop: 14, background: 'none', border: 'none', padding: '6px 10px', display: 'inline-flex', alignItems: 'center', gap: 9, fontFamily: FONT_BODY, fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'rgba(28,25,23,.62)' }}
+          onClick={(e) => {
+            // The preview celebrates as the order does: the book's own shades burst from the button.
+            confettiBurst(e.currentTarget.getBoundingClientRect(), groups.flatMap((g) => g.items.map(({ colour: c }) => rgbToHex(oklchToRgb(c.l, c.c, c.h)))));
+            setPreview(true);
+          }}
+          className="pc-auth-ghost"
+          style={{ marginTop: 12, width: 'min(100%, 460px)', gap: 10 }}
         >
-          <svg aria-hidden width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={UMBER} strokeWidth="1.4" strokeLinejoin="round">
+          <svg aria-hidden width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round">
             <path d="M3 5.5c3-1.3 6-1.3 9 .5v13c-3-1.8-6-1.8-9-.5v-13ZM21 5.5c-3-1.3-6-1.3-9 .5v13c3-1.8 6-1.8 9-.5v-13Z" />
           </svg>
           {t.previewBook}
         </button>
-        <div style={{ marginTop: 6, fontSize: 11, letterSpacing: '.06em', color: 'rgba(28,25,23,.5)', fontVariantNumeric: 'lining-nums' }}>
-          {studio.pins.length} {studio.pins.length === 1 ? t.shade : t.shades} · {groups.length} {groups.length === 1 ? t.fabricWordOne : t.fabricWordMany}
-        </div>
       </div>
       {preview && <BookCeremony studio={studio} mode="preview" onDone={() => setPreview(false)} />}
       {ordering?.step === 'ceremony' && <BookCeremony studio={studio} mode="order" whatsapp={ordering.whatsapp} order={ordering.order} onDone={() => setOrdering(null)} />}

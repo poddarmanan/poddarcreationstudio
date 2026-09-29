@@ -107,6 +107,22 @@ export interface Studio {
   closeSignIn: () => void;
   doSignIn: (email: string, password: string) => Promise<string | null>;
   doRegister: (fields: { name: string; email: string; password: string; company?: string; whatsapp?: string; city?: string }) => Promise<string | null>;
+  /** Sends a sign-in code to a WhatsApp number. `devCode` comes back only where no provider is configured. */
+  startWhatsapp: (whatsapp: string) => Promise<{ ok: true; to: string; devCode?: string } | { ok: false; error: string }>;
+  /**
+   * Signs in with the code sent on WhatsApp. For a number with no account, the first try answers
+   * 'needs_profile'; the same code with the buyer's name (and company, city) then creates one.
+   */
+  verifyWhatsapp: (whatsapp: string, code: string, details?: { name: string; company?: string; city?: string }) => Promise<'ok' | 'needs_profile' | 'bad_code' | 'error'>;
+  /** Whether Google sign-in is configured on this server. */
+  googleReady: () => Promise<boolean>;
+  /** Whether WhatsApp sign-in can send codes on this server. */
+  whatsappReady: () => Promise<boolean>;
+  /** Leaves for Google's sign-in; the studio picks up where it was (and the order, if `order`) on return. */
+  signInGoogle: (order: boolean) => void;
+  /** Set when the page has come back from Google's sign-in in the middle of ordering. */
+  resumeOrder: boolean;
+  clearResumeOrder: () => void;
   doSignOut: () => void;
   fab: (id: string) => FabricRow;
   currentFabric: FabricRow;
@@ -160,6 +176,7 @@ export function useStudio(rawFabrics: FabricRow[]): Studio {
   const [aiBusy, setAiBusy] = useState(false);
   const [ai, setAi] = useState<AiMatch | null>(null);
   const [signInOpen, setSignInOpen] = useState(false);
+  const [resumeOrder, setResumeOrder] = useState(false);
   const reduceMotion = useSyncExternalStore(subscribeReduceMotion, getReduceMotion, () => false);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
@@ -405,6 +422,76 @@ export function useStudio(rawFabrics: FabricRow[]): Studio {
     return null;
   }, []);
 
+  const startWhatsapp = useCallback(async (whatsapp: string) => {
+    try {
+      const res = await fetch('/api/auth/whatsapp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ whatsapp }) });
+      const data = (await res.json().catch(() => ({}))) as { to?: string; devCode?: string; error?: string };
+      if (!res.ok) return { ok: false as const, error: data.error ?? 'We could not send the code just now.' };
+      return { ok: true as const, to: data.to ?? whatsapp, devCode: data.devCode };
+    } catch {
+      return { ok: false as const, error: 'We could not reach the studio just now.' };
+    }
+  }, []);
+
+  const verifyWhatsapp = useCallback(async (whatsapp: string, code: string, details?: { name: string; company?: string; city?: string }) => {
+    try {
+      const res = await signIn('whatsapp', { whatsapp, code, ...(details ?? {}), redirect: false });
+      if (!res?.error) return 'ok' as const;
+      if (res.code === 'needs_profile') return 'needs_profile' as const;
+      return 'bad_code' as const;
+    } catch {
+      return 'error' as const;
+    }
+  }, []);
+
+  const googleReady = useCallback(async () => {
+    try {
+      const res = await fetch('/api/auth/providers');
+      if (!res.ok) return false;
+      return 'google' in ((await res.json()) as Record<string, unknown>);
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const whatsappReady = useCallback(async () => {
+    try {
+      const res = await fetch('/api/auth/whatsapp');
+      return res.ok && !!((await res.json()) as { ready?: boolean }).ready;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const signInGoogle = useCallback(
+    (order: boolean) => {
+      // Google's sign-in leaves the page. What must survive the round trip — the view, the shades
+      // picked before signing in, and whether an order was under way — waits in the session.
+      try {
+        sessionStorage.setItem('pc-resume', JSON.stringify({ view, pins: pins.filter((p) => !p.id), order }));
+      } catch {}
+      signIn('google', { redirectTo: window.location.href });
+    },
+    [view, pins]
+  );
+
+  // Back from Google: restore the view, the loose shades and the order under way.
+  useEffect(() => {
+    let saved: { view: View; pins: Pin[]; order: boolean } | null = null;
+    try {
+      saved = JSON.parse(sessionStorage.getItem('pc-resume') || 'null');
+      sessionStorage.removeItem('pc-resume');
+    } catch {}
+    if (!saved) return;
+    const back = saved;
+    const tm = setTimeout(() => {
+      setView(back.view);
+      if (back.pins?.length) setPins((p) => (p.length ? p : back.pins));
+      if (back.order) setResumeOrder(true);
+    }, 0);
+    return () => clearTimeout(tm);
+  }, []);
+
   const doRegister = useCallback(
     async ({ name, email, password, company, whatsapp, city }: { name: string; email: string; password: string; company?: string; whatsapp?: string; city?: string }): Promise<string | null> => {
       const res = await fetch('/api/register', {
@@ -492,6 +579,13 @@ export function useStudio(rawFabrics: FabricRow[]): Studio {
     closeSignIn: () => setSignInOpen(false),
     doSignIn,
     doRegister,
+    startWhatsapp,
+    verifyWhatsapp,
+    googleReady,
+    whatsappReady,
+    signInGoogle,
+    resumeOrder,
+    clearResumeOrder: () => setResumeOrder(false),
     doSignOut: () => signOut({ redirect: false }),
     fab,
     currentFabric,

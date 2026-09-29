@@ -6,6 +6,7 @@ import { run, parseJson, clientInfo } from '@/server/core/http';
 import { AppError } from '@/server/core/errors';
 import { RATE_LIMITS } from '@/server/core/rate-limit';
 import { getContainer } from '@/server/container';
+import { normalizeWhatsapp } from '@/server/whatsapp/otp.service';
 
 const RegisterInput = z.object({
   name: z.string().min(1).max(200),
@@ -27,8 +28,12 @@ export async function POST(req: Request) {
     const passwordHash = await bcrypt.hash(data.password, 10);
     // New buyers start unapproved: they can sign in but pricing stays gated until the
     // sales team approves them — mirrors the "Prices behind login (approved buyers)" flow.
+    // The number goes on the account too, so the buyer can later sign in with WhatsApp — unless
+    // another account already signs in with it.
+    const phone = data.whatsapp ? normalizeWhatsapp(data.whatsapp) : null;
+    const phoneFree = phone ? !(await prisma.user.findUnique({ where: { whatsapp: phone } })) : false;
     const user = await prisma.user.create({
-      data: { name: data.name, email, passwordHash, company: data.company, role: 'BUYER', approved: false },
+      data: { name: data.name, email, passwordHash, company: data.company, role: 'BUYER', approved: false, ...(phone && phoneFree ? { whatsapp: phone } : {}) },
     });
 
     const info = clientInfo(req);

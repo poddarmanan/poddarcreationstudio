@@ -94,6 +94,10 @@ model User {
   approved        Boolean          @default(false)
   company         String?
   emailVerifiedAt DateTime?
+  /// The buyer's WhatsApp number as digits with its country code (919825011223). Unique, so it
+  /// can sign in: a one-time code sent there proves it (M46).
+  whatsapp           String?   @unique
+  whatsappVerifiedAt DateTime?
   /// Last successful credential sign-in (Phase 3 M12). Powers "returning customers"
   /// analytics and the sales workspace's engagement view.
   lastLoginAt     DateTime?
@@ -431,6 +435,20 @@ enum TokenType {
   EMAIL_VERIFICATION
   PASSWORD_RESET
   INVITE
+}
+
+/// A one-time code sent on WhatsApp to sign in or sign up (M46). Only the code's hash is kept; it
+/// lasts ten minutes and allows five tries.
+model OtpCode {
+  id        String    @id @default(cuid())
+  phone     String
+  codeHash  String
+  attempts  Int       @default(0)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([phone, createdAt])
 }
 
 /// Single-use, expiring tokens for email verification, password reset, and invites

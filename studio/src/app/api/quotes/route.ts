@@ -45,7 +45,8 @@ export async function POST(req: Request) {
         userId: session?.user?.id ?? null,
         name,
         company,
-        email: data.email ?? session?.user?.email ?? null,
+        // A WhatsApp-only account's reserved address can never receive mail.
+        email: data.email ?? (session?.user?.email?.endsWith('.invalid') ? null : session?.user?.email) ?? null,
         whatsapp,
         quantity: data.quantity,
         subject: data.subject,

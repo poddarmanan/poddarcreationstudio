@@ -38,6 +38,8 @@ Environment variables — set every one of these before the first deploy:
 | `APP_URL`, `NEXTAUTH_URL` | Your https origin. Not optional: cookies and every email link derive from it. |
 | `STORAGE_DRIVER=s3` + `S3_*` | **Required on Vercel.** The filesystem is ephemeral — `local` means uploads vanish on the next deploy. |
 | `RESEND_API_KEY`, `EMAIL_FROM` | Without a key the dev transport writes `.eml` files to a disk that does not persist. |
+| `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID` | Sign-in with WhatsApp (M46). Send codes through the WhatsApp Business Cloud API. You need a Meta Business account, a WhatsApp sender number, and an approved **authentication** template whose body takes the code and whose copy-code button takes it again. Name the template in `WHATSAPP_OTP_TEMPLATE` (default `login_code`) and its language in `WHATSAPP_OTP_LANG` (default `en`). Without these, production refuses to start a WhatsApp sign-in and the page says it is being set up. `WHATSAPP_DEV_CODES=1` returns the code to the page instead; use it only on a test deployment. |
+| `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` | "Continue with Google". Create an OAuth client (type: web application) in Google Cloud, with the redirect URI `https://<your origin>/api/auth/callback/google`. Without them, the button says Google sign-in is being set up. |
 | `SENTRY_DSN`, `POSTHOG_KEY` | Optional; see OPERATIONS.md. |
 
 Migrations do **not** run on Vercel's build. Run them from CI or a machine that can reach the

@@ -563,6 +563,80 @@ button, a { transition: transform .6s var(--pc-ease), background-color .55s ease
   transform: scaleX(.35); transition: transform .5s cubic-bezier(.22, .8, .2, 1);
 }
 .pc-auth-link:hover::after { transform: scaleX(1); }
+button.pc-auth-link { background: none; border: none; cursor: pointer; font-family: inherit; }
+
+/* Antique gold for type on cream: deeper than the cover's foil, so it reads on paper, with the same
+   single glint passing across it. */
+.pc-foil-deep {
+  background-image: linear-gradient(100deg, #6E4E1C 0%, #A57C35 22%, #D9B670 34%, #8A6524 48%, #B89045 64%, #6E4E1C 82%, #9C7630 100%);
+  background-size: 260% 100%; background-position: 0 0;
+  -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent;
+}
+button.pc-auth-link:disabled { cursor: default; }
+
+/* The other ways in: Google in white, and email's two buttons outlined in ink. */
+.pc-auth-alt, .pc-auth-ghost {
+  position: relative; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 11px; width: 100%; border-radius: 999px;
+  font-family: var(--font-body), 'Jost', sans-serif; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; white-space: nowrap; color: #1C1917;
+  transition: transform .35s cubic-bezier(.22, .8, .2, 1), box-shadow .35s ease, background-color .35s ease, border-color .35s ease;
+}
+.pc-auth-alt { padding: 16px 18px; background: #FFFDF8; border: 1px solid rgba(28, 25, 23, .12); box-shadow: 0 10px 26px rgba(40, 26, 12, .1); }
+.pc-auth-ghost { padding: 14px 10px; background: rgba(255, 253, 248, .35); border: 1px solid rgba(28, 25, 23, .55); }
+.pc-auth-alt:hover, .pc-auth-ghost:hover { transform: translateY(-2px); box-shadow: 0 16px 34px rgba(40, 26, 12, .16); }
+.pc-auth-ghost:hover { background: #1C1917; color: #FAF8F5; border-color: #1C1917; }
+.pc-auth-alt:active, .pc-auth-ghost:active { transform: scale(.975); transition-duration: .15s; }
+.pc-auth-or {
+  display: flex; align-items: center; gap: 14px; margin: 4px 0; font-family: var(--font-display), 'Cormorant Garamond', serif; font-style: italic;
+  font-size: 15px; color: rgba(138, 109, 69, .9);
+}
+.pc-auth-or span { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, rgba(138, 109, 69, .45), transparent); }
+
+/* The sheet a form rises in: from the foot of a phone's screen, or as a card at the centre of a
+   wider one. No blur behind it — a plain veil, which a phone draws for free. */
+.pc-sheet-root { position: fixed; inset: 0; z-index: 90; }
+.pc-sheet-backdrop { position: absolute; inset: 0; background: rgba(28, 25, 23, .42); animation: pcFadeIn .4s ease both; }
+.pc-sheet-backdrop.is-leaving { animation: pcAuthOut .38s ease forwards; }
+.pc-sheet {
+  position: absolute; left: 0; right: 0; bottom: 0; max-height: 92vh; overflow-y: auto; padding: 14px 24px max(26px, env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, #FDFAF3, #F6EEDF); border-radius: 26px 26px 0 0; box-shadow: 0 -24px 60px rgba(28, 25, 23, .28), inset 0 1px 0 rgba(255, 255, 255, .8);
+  animation: pcSheetUp .6s cubic-bezier(.2, .9, .25, 1) both;
+}
+.pc-sheet::before {
+  content: ''; position: absolute; left: 24px; right: 24px; top: 0; height: 2px; border-radius: 2px;
+  background: linear-gradient(90deg, transparent, #D8B670 30%, #F2DDA2 50%, #D8B670 70%, transparent);
+}
+.pc-sheet.is-leaving { animation: pcSheetDown .38s cubic-bezier(.5, 0, .75, 0) forwards; }
+.pc-sheet-grip { width: 42px; height: 4px; border-radius: 4px; margin: 0 auto 16px; background: rgba(28, 25, 23, .16); }
+@keyframes pcSheetUp { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes pcSheetDown { from { transform: none; } to { transform: translateY(100%); } }
+@media (min-width: 640px) {
+  .pc-sheet { left: 50%; right: auto; bottom: auto; top: 50%; width: 460px; max-height: 88vh; border-radius: 24px; padding: 26px 34px 32px; transform: translate(-50%, -50%); animation: pcCardIn .55s cubic-bezier(.2, .9, .25, 1) both; }
+  .pc-sheet.is-leaving { animation: pcCardOut .34s ease forwards; }
+  .pc-sheet-grip { display: none; }
+  @keyframes pcCardIn { from { opacity: 0; transform: translate(-50%, calc(-50% + 30px)) scale(.96); } to { opacity: 1; transform: translate(-50%, -50%); } }
+  @keyframes pcCardOut { to { opacity: 0; transform: translate(-50%, calc(-50% + 20px)) scale(.97); } }
+}
+.pc-sheet-close {
+  flex: none; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; background: transparent;
+  border: 1px solid rgba(28, 25, 23, .18); color: #1C1917; font-size: 18px; line-height: 1;
+}
+.pc-sheet-close span { display: block; transition: transform .5s cubic-bezier(.22, .8, .2, 1); }
+.pc-sheet-close:hover span { transform: rotate(90deg); }
+
+/* The six-digit code: one input under six boxes. A digit pops into its box; the next box glows. */
+.pc-otp { display: block; }
+.pc-otp-label { display: block; margin-bottom: 10px; font-family: var(--font-display), 'Cormorant Garamond', serif; font-style: italic; font-size: 14px; color: #8A6D45; text-align: center; }
+.pc-otp-input { position: absolute; inset: 0; width: 100%; opacity: .01; font-size: 16px; border: none; background: transparent; color: transparent; caret-color: transparent; z-index: 1; }
+.pc-otp-boxes { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+.pc-otp-box {
+  position: relative; height: 56px; border-radius: 12px; display: grid; place-items: center; background: #FFFDF8; border: 1px solid rgba(138, 109, 69, .28);
+  font-family: var(--font-display), 'Cormorant Garamond', serif; font-size: 30px; color: #1C1917; font-variant-numeric: lining-nums;
+  transition: border-color .3s ease, box-shadow .3s ease, transform .3s ease;
+}
+.pc-otp-box.is-filled { border-color: rgba(168, 134, 79, .8); }
+.pc-otp-input:focus + .pc-otp-boxes .pc-otp-box.is-next { border-color: #B8904A; box-shadow: 0 0 0 3px rgba(216, 182, 112, .28); transform: translateY(-2px); }
+.pc-otp-digit { display: block; animation: pcDigitIn .35s cubic-bezier(.2, 1.4, .4, 1) both; }
+@keyframes pcDigitIn { from { opacity: 0; transform: translateY(8px) scale(.6); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) {
   .pc-auth-beam, .pc-auth-mote, .pc-auth-halo, .pc-auth [style*="pcFanIn"], .pc-auth-shadow, .pc-auth-float, .pc-auth-glint, .pc-auth-btn::after, .pc-auth-star { animation: none !important; }
   .pc-auth-mote { display: none; }

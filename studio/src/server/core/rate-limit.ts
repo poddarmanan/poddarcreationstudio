@@ -60,4 +60,6 @@ export const RATE_LIMITS = {
   quote: { name: 'quote', limit: 15, windowMs: 60_000 },
   upload: { name: 'upload', limit: 60, windowMs: 60_000 },
   write: { name: 'write', limit: 40, windowMs: 60_000 },
+  /** Sending WhatsApp sign-in codes, per address (each number has its own limit too). */
+  otp: { name: 'otp', limit: 6, windowMs: 10 * 60_000 },
 } as const satisfies Record<string, RateLimitPolicy>;
