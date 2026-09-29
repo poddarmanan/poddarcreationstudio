@@ -138,7 +138,7 @@ export function QuoteModal({ studio }: { studio: Studio }) {
         ) : (
           <>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-              <div style={{ fontFamily: FONT_DISPLAY, fontSize: 26, fontWeight: 500 }}>{t.quote}</div>
+              <div style={{ fontFamily: FONT_DISPLAY, fontSize: 26, fontWeight: 500 }}>{quoteFromBook ? t.orderBook : t.quote}</div>
               <button onClick={studio.closeQuote} style={{ cursor: 'pointer', border: 'none', background: 'none', fontSize: 18, color: 'rgba(28,25,23,.5)' }}>
                 ×
               </button>

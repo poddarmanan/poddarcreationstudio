@@ -128,6 +128,26 @@ export function SwatchBook({ studio }: { studio: Studio }) {
       </div>
 
       <Book key={group.x.id} studio={studio} fabric={group.x} items={group.items} t={t} />
+
+      {/* The book's one action: order it — every shade in it, across all its fabrics. */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 22, animation: 'rise 1s .35s cubic-bezier(.22,.8,.2,1) both' }}>
+        <button
+          onClick={studio.openQuoteBook}
+          className="pc-book"
+          style={{
+            cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 10, width: 'min(100%, 460px)',
+            borderRadius: 999, padding: '16px 18px', fontFamily: FONT_BODY, fontSize: 12, letterSpacing: '.2em', textTransform: 'uppercase', whiteSpace: 'nowrap',
+            backdropFilter: 'blur(18px) saturate(1.4)', WebkitBackdropFilter: 'blur(18px) saturate(1.4)',
+            background: 'linear-gradient(135deg, rgba(255,255,255,.55), rgba(250,248,245,.22))', color: '#1C1917', border: '1px solid rgba(201,169,110,.5)',
+          }}
+        >
+          <span aria-hidden className="pc-book-star">✦</span>
+          {t.orderBook}
+        </button>
+        <div style={{ marginTop: 10, fontSize: 11, letterSpacing: '.06em', color: 'rgba(28,25,23,.5)', fontVariantNumeric: 'lining-nums' }}>
+          {studio.pins.length} {studio.pins.length === 1 ? t.shade : t.shades} · {groups.length} {groups.length === 1 ? t.fabricWordOne : t.fabricWordMany}
+        </div>
+      </div>
     </div>
   );
 }

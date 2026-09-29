@@ -237,6 +237,8 @@ away to the right and tucks under the stack as the next page comes forward. Each
 shade, opens it in the lab, and has a remove mark. An empty book is the closed cover with its title
 in gold foil and the way to the Showroom.
 
-The Quote, PDF / Print and WhatsApp buttons that stood over the old grid are removed at the owner's
-word; with them the quote form has no way in from the studio (its code is kept).
+Under the book, the book's one action: "Order swatch book", in the frosted glass of Add to book,
+with how many shades and fabrics the book holds beneath it. It opens the order form — titled "Order
+swatch book" — listing every shade in the book across all its fabrics. The Quote, PDF / Print and
+WhatsApp buttons that stood over the old grid are removed at the owner's word.
 
