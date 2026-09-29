@@ -242,3 +242,12 @@ with how many shades and fabrics the book holds beneath it. It opens the order f
 swatch book" — listing every shade in the book across all its fabrics. The Quote, PDF / Print and
 WhatsApp buttons that stood over the old grid are removed at the owner's word.
 
+The book is read in a reading room rather than on the plain page: a warm spotlight falls from
+above onto parchment that deepens to a tan floor, with a soft vignette at the edges, and the empty
+book sits in the same room. The book opens every time the page is visited. The closed cover, with
+its gold-foil title, swings open on its spine (about 1.3 s). Behind it is a chapter title page:
+"Chapter", the fabric's number in Roman numerals, its name in italic, its hand and its shade count.
+That page then turns over like a leaf to reveal the cuttings. Changing fabric is turning to another
+chapter. The book slides in from the side it was reached from, and the new chapter's title page
+shows briefly and then turns. With reduced motion, the cover and leaf are already open.
+

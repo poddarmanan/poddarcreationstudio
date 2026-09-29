@@ -18,6 +18,13 @@ const PER_PAGE = 6;
 
 type Cutting = { pin: Pin; colour: ColourRow };
 
+function roman(n: number) {
+  const table: [number, string][] = [[10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']];
+  let out = '';
+  for (const [v, r] of table) while (n >= v) { out += r; n -= v; }
+  return out;
+}
+
 /**
  * The Swatch Book: one fabric at a time. Its name is the heading, its particulars beneath; when more
  * than one fabric is in the book, the heading can be swiped (or its arrows tapped) to change fabric.
@@ -44,6 +51,12 @@ export function SwatchBook({ studio }: { studio: Studio }) {
   const at = Math.max(0, groups.findIndex((g) => g.x.id === chosen));
   const group = groups[at];
   const [dir, setDir] = useState<1 | -1>(1);
+  // The book arrives closed and its cover swings open once, on arriving at the page.
+  const [opened, setOpened] = useState(false);
+  useEffect(() => {
+    const tm = window.setTimeout(() => setOpened(true), 1900);
+    return () => window.clearTimeout(tm);
+  }, []);
 
   const step = (d: 1 | -1) => {
     if (groups.length < 2) return;
@@ -58,7 +71,12 @@ export function SwatchBook({ studio }: { studio: Studio }) {
   if (!group) return <EmptyBook studio={studio} />;
 
   return (
-    <div className="pc-view" style={{ padding: 'clamp(26px,5vw,52px) clamp(16px,5vw,64px) 90px', animation: 'layCloth .95s cubic-bezier(.22,.8,.2,1) both' }}>
+    <div className="pc-view" style={{ position: 'relative', overflow: 'hidden', padding: 'clamp(26px,5vw,52px) clamp(16px,5vw,64px) 90px', animation: 'layCloth .95s cubic-bezier(.22,.8,.2,1) both' }}>
+      {/* The room: warm light pooling on the book from above, and a darker surface beneath it that
+          the book rests on, fading back into the page at the foot. */}
+      <div aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0, background: 'radial-gradient(70% 42% at 50% 30%, rgba(255,246,228,.95), transparent 70%), linear-gradient(180deg, #F3ECE1 0%, #EBE1D2 46%, #DCCDB6 72%, #CDBC9F 88%, #E8DFD0 100%)' }} />
+      <div aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0, background: 'radial-gradient(120% 90% at 50% 45%, transparent 55%, rgba(60,44,28,.16))' }} />
+      <div style={{ position: 'relative', zIndex: 1 }}>
       <div
         tabIndex={0}
         role="group"
@@ -127,7 +145,7 @@ export function SwatchBook({ studio }: { studio: Studio }) {
         )}
       </div>
 
-      <Book key={group.x.id} studio={studio} fabric={group.x} items={group.items} t={t} />
+      <Book key={group.x.id} studio={studio} fabric={group.x} items={group.items} t={t} chapter={at + 1} closed={!opened} />
 
       {/* The book's one action: order it — every shade in it, across all its fabrics. */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 22, animation: 'rise 1s .35s cubic-bezier(.22,.8,.2,1) both' }}>
@@ -147,6 +165,7 @@ export function SwatchBook({ studio }: { studio: Studio }) {
         <div style={{ marginTop: 10, fontSize: 11, letterSpacing: '.06em', color: 'rgba(28,25,23,.5)', fontVariantNumeric: 'lining-nums' }}>
           {studio.pins.length} {studio.pins.length === 1 ? t.shade : t.shades} · {groups.length} {groups.length === 1 ? t.fabricWordOne : t.fabricWordMany}
         </div>
+      </div>
       </div>
     </div>
   );
@@ -175,7 +194,23 @@ function ArrowButton({ label, onClick, glyph }: { label: string; onClick: () => 
  * sideways, and let go past a threshold (or with the corner button) it slides away to the right,
  * tucks under the stack and the next page comes forward; short of it, it springs back.
  */
-function Book({ studio, fabric, items, t }: { studio: Studio; fabric: FabricRow; items: Cutting[]; t: Record<string, string> }) {
+function Book({ studio, fabric, items, t, chapter, closed }: { studio: Studio; fabric: FabricRow; items: Cutting[]; t: Record<string, string>; chapter: number; closed: boolean }) {
+  // Each fabric is a chapter: its title page sits on top when the fabric comes up, then turns over
+  // on the spine to show the cuttings. On arriving at the page, the closed cover opens first.
+  const [coverUp] = useState(closed);
+  const [chapterUp, setChapterUp] = useState(true);
+  const [coverGone, setCoverGone] = useState(!closed);
+  useEffect(() => {
+    const timers = [window.setTimeout(() => setChapterUp(false), coverUp ? 2150 : 850)];
+    if (coverUp) timers.push(window.setTimeout(() => setCoverGone(true), 1900));
+    return () => timers.forEach((x) => window.clearTimeout(x));
+  }, [coverUp]);
+  const [chapterGone, setChapterGone] = useState(false);
+  useEffect(() => {
+    if (chapterUp) return;
+    const tm = window.setTimeout(() => setChapterGone(true), 1150);
+    return () => window.clearTimeout(tm);
+  }, [chapterUp]);
   const pages: Cutting[][] = [];
   for (let i = 0; i < items.length; i += PER_PAGE) pages.push(items.slice(i, i + PER_PAGE));
   const [orderRaw, setOrder] = useState<number[]>(pages.map((_, i) => i));
@@ -213,13 +248,38 @@ function Book({ studio, fabric, items, t }: { studio: Studio; fabric: FabricRow;
           background: 'linear-gradient(135deg, #2B2521, #1B1714 60%, #231E1A)',
           boxShadow: '0 30px 60px rgba(28,25,23,.28), 0 8px 18px rgba(28,25,23,.18), inset 0 0 0 1px rgba(201,169,110,.18)',
           padding: '14px 14px 14px 30px', animation: 'rise 1s .1s cubic-bezier(.22,.8,.2,1) both',
+          perspective: '1800px',
         }}
       >
         <div aria-hidden style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 22, borderRadius: '6px 0 0 6px', background: 'linear-gradient(90deg, #120F0D, #2A2420 70%, #1A1613)', boxShadow: 'inset -1px 0 0 rgba(201,169,110,.25)' }}>
           <span style={{ position: 'absolute', left: 7, right: 7, top: 22, height: 1, background: 'rgba(201,169,110,.7)' }} />
           <span style={{ position: 'absolute', left: 7, right: 7, bottom: 22, height: 1, background: 'rgba(201,169,110,.7)' }} />
         </div>
-        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+        <div style={{ position: 'relative', width: '100%', height: '100%', perspective: '1600px' }}>
+          {/* The chapter's title page, turning over on the spine to show the cuttings. */}
+          {!chapterGone && (
+            <div
+              aria-hidden
+              style={{
+                position: 'absolute', inset: 0, zIndex: 20, transformOrigin: 'left center', transformStyle: 'preserve-3d',
+                animation: chapterUp ? 'none' : 'pcLeafTurn 1.1s cubic-bezier(.55,.06,.35,1) both', pointerEvents: 'none',
+              }}
+            >
+              <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', borderRadius: 3, background: 'linear-gradient(90deg, #EFE9DE 0%, #FBF9F4 7%, #FBF9F4 100%)', boxShadow: '0 2px 6px rgba(0,0,0,.18), inset 8px 0 14px -10px rgba(28,25,23,.35)', display: 'grid', placeItems: 'center', textAlign: 'center', padding: 24 }}>
+                <div>
+                  <div style={{ fontSize: 9.5, letterSpacing: '.42em', textTransform: 'uppercase', color: '#8A6D45' }}>{t.chapterWord}</div>
+                  <div style={{ fontFamily: FONT_DISPLAY, fontSize: 'clamp(48px,10vw,66px)', fontWeight: 500, lineHeight: 1, marginTop: 8, color: '#1C1917' }}>{roman(chapter)}</div>
+                  <div style={{ width: 44, height: 1, background: 'linear-gradient(90deg, transparent, #8A6D45, transparent)', margin: '16px auto' }} />
+                  <div style={{ fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 'clamp(24px,5vw,32px)', color: '#1C1917' }}>{fabric.name}</div>
+                  <div style={{ marginTop: 8, fontSize: 10, letterSpacing: '.18em', textTransform: 'uppercase', color: 'rgba(28,25,23,.5)' }}>{fabric.hand}</div>
+                  <div style={{ marginTop: 18, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 14, color: '#8A6D45', fontVariantNumeric: 'lining-nums' }}>
+                    {items.length} {items.length === 1 ? t.shade : t.shades}
+                  </div>
+                </div>
+              </div>
+              <div style={{ position: 'absolute', inset: 0, transform: 'rotateY(180deg)', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', borderRadius: 3, background: 'linear-gradient(270deg, #E7DFD1, #F6F2EA 30%)' }} />
+            </div>
+          )}
           {order.slice(0, 3).map((pi, k) => {
             const top = k === 0;
             const page = pages[pi];
@@ -282,6 +342,26 @@ function Book({ studio, fabric, items, t }: { studio: Studio; fabric: FabricRow;
             );
           })}
         </div>
+        {/* The front cover, hinged at the spine: closed with its title in gold foil as the book
+            arrives, then swinging open. */}
+        {!coverGone && (
+          <div
+            aria-hidden
+            style={{
+              position: 'absolute', top: 0, bottom: 0, left: 22, right: 0, zIndex: 30, transformOrigin: 'left center', transformStyle: 'preserve-3d',
+              animation: 'pcCoverOpen 1.3s .55s cubic-bezier(.6,.02,.3,1) both', pointerEvents: 'none',
+            }}
+          >
+            <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', borderRadius: '0 10px 10px 0', background: 'linear-gradient(135deg, #2E2723, #1B1714 60%, #251F1B)', boxShadow: 'inset 0 0 0 1px rgba(201,169,110,.2), inset 14px 0 18px -14px rgba(0,0,0,.6)', display: 'grid', placeItems: 'center', textAlign: 'center' }}>
+              <div style={{ color: '#C9A96E' }}>
+                <div style={{ fontSize: 9, letterSpacing: '.42em', textTransform: 'uppercase', opacity: 0.8 }}>Poddar</div>
+                <div style={{ fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 32, marginTop: 6 }}>{t.book}</div>
+                <div style={{ width: 48, height: 1, background: 'rgba(201,169,110,.7)', margin: '12px auto 0' }} />
+              </div>
+            </div>
+            <div style={{ position: 'absolute', inset: 0, transform: 'rotateY(180deg)', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', borderRadius: '10px 0 0 10px', background: 'linear-gradient(90deg, #D9CDB8, #EFE6D6)', boxShadow: 'inset 0 0 0 10px #231E1A' }} />
+          </div>
+        )}
       </div>
       {pages.length > 1 && (
         <button
@@ -354,7 +434,12 @@ function Page({ studio, fabric, cuttings, interactive }: { studio: Studio; fabri
 function EmptyBook({ studio }: { studio: Studio }) {
   const { t } = studio;
   return (
-    <div className="pc-view" style={{ padding: 'clamp(26px,5vw,52px) clamp(16px,5vw,64px) 90px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', animation: 'layCloth .95s cubic-bezier(.22,.8,.2,1) both' }}>
+    <div className="pc-view" style={{ position: 'relative', overflow: 'hidden', padding: 'clamp(26px,5vw,52px) clamp(16px,5vw,64px) 90px', animation: 'layCloth .95s cubic-bezier(.22,.8,.2,1) both' }}>
+      {/* The room: warm light pooling on the book from above, and a darker surface beneath it that
+          the book rests on, fading back into the page at the foot. */}
+      <div aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0, background: 'radial-gradient(70% 42% at 50% 30%, rgba(255,246,228,.95), transparent 70%), linear-gradient(180deg, #F3ECE1 0%, #EBE1D2 46%, #DCCDB6 72%, #CDBC9F 88%, #E8DFD0 100%)' }} />
+      <div aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0, background: 'radial-gradient(120% 90% at 50% 45%, transparent 55%, rgba(60,44,28,.16))' }} />
+      <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
       <div style={{ fontSize: 9.5, letterSpacing: '.42em', textTransform: 'uppercase', color: '#8A6D45' }}>Poddar Creation</div>
       <h1 style={{ margin: '12px 0 0', fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(36px,6vw,62px)', lineHeight: 1.02 }}>{t.book}</h1>
       <div
@@ -384,6 +469,7 @@ function EmptyBook({ studio }: { studio: Studio }) {
       >
         {t.showroom} →
       </button>
+      </div>
     </div>
   );
 }
