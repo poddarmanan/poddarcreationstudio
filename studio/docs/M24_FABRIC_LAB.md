@@ -553,8 +553,21 @@ total metres, the shades (or how many are not set) and the value, and an ink "Ch
   glowing print line that stays just above the dock and never backs up. It is driven imperatively
   (a clip on the paper each frame), so scrolling renders nothing.
 - **A note for the mill** is a small butter-yellow sticky note with a strip of tape, ruled lines
-  and a folded corner. It is pressed onto the slip's torn foot when printing finishes. Then
-  "Continue →" in the dock.
+  and a folded corner. It is pressed onto the slip's torn foot when printing finishes.
+- **Tear to continue.** There is no Continue button. The dock holds a dark strip perforated in
+  gold, with a gold pair of scissors at its start that nudges a few times as a hint. Drawing the
+  scissors along tears the perforation open behind them as the label fades. Let go short of
+  three-quarters and they spring back; carry them past and the slip is torn off. A tap, Enter or
+  Space runs them along by themselves.
+
+  Tearing plays out in order:
+  1. Whatever has not printed prints at once.
+  2. The page glides the printer into view.
+  3. The printer gives a tug, the slip's top edge goes jagged, and a torn stub stays in the slot.
+  4. The slip and its note drop away with a slight turn, and the dispatch (or sign-in) opens.
+
+  With nothing to order, the strip shakes and the scissors return. Coming back to the review
+  prints the slip afresh.
 
 **III Dispatch** (`ShipPay.tsx`), titled "Delivery & *Payment*", comes after the review. A buyer
 who is not signed in signs in first, since the address book belongs to the account. It has three
