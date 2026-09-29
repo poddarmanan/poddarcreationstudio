@@ -396,3 +396,30 @@ button, a { transition: transform .6s var(--pc-ease), background-color .55s ease
 @media (prefers-reduced-motion: reduce) {
   [style*="pcCoverOpen"], [style*="pcLeafTurn"] { animation-duration: .01s !important; animation-delay: 0s !important; }
 }
+
+/* The Swatch Book's gold foil: a burnished gradient clipped to type (or filling a rule), with a
+   single glint passing across it as the book comes up. */
+.pc-foil, .pc-foil-bg {
+  background-image: linear-gradient(100deg, #C0964C 0%, #EACF8C 16%, #FCF1CC 27%, #D5AE62 42%, #F2DDA2 58%, #B98F45 78%, #E6C882 100%);
+  background-size: 260% 100%;
+  background-position: 0 0;
+  animation: pcFoil 2.6s .25s cubic-bezier(.45,.05,.3,1) both;
+}
+.pc-foil { -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; }
+@keyframes pcFoil { from { background-position: 100% 0; } to { background-position: 0 0; } }
+/* A cutting pinked along its top and bottom edges, as pinking shears leave it. */
+.pc-pinked {
+  --pk: 8px;
+  -webkit-mask:
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / var(--pk) 51% repeat-x,
+    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top / var(--pk) 51% repeat-x;
+  mask:
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / var(--pk) 51% repeat-x,
+    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top / var(--pk) 51% repeat-x;
+}
+/* The silk ribbon marker hanging from the foot of the book stirs now and then. */
+@keyframes pcRibbon { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(2.2deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .pc-foil, .pc-foil-bg { animation: none; }
+  [style*="pcRibbon"] { animation: none !important; }
+}

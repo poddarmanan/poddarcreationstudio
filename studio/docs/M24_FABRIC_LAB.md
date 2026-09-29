@@ -224,18 +224,39 @@ Every assertion is a claim about behaviour that no type checker can reach:
 
 ## The Swatch Book
 
-One fabric at a time. The fabric's name is the heading, with "Swatch Book · 01 / 02" above it
+One fabric at a time. The fabric's name is the heading, with "Swatch Book" above it
 between hairlines and its particulars beneath (weight, width, composition; its hand and how many of
 its shades are in the book, in italic). With more than one fabric in the book, the heading swipes or
-scrolls sideways, or its arrows are tapped, to change fabric; dots mark which. Below it, the book
-itself: a cloth-bound hardcover with a darker spine carrying two gold foil rules, and a paper page
-holding up to six of that fabric's shades as pinked cuttings, laid out by their number — one fills
-the page, two and three share it in horizontal bands, four is 2 × 2, five is 2 + 2 + 1, six is
-2 × 3. More than six fill further pages, stacked beneath with their edges showing; the top page
-follows a finger sideways and, let go past a threshold (or with "Slide the page to turn it"), slides
-away to the right and tucks under the stack as the next page comes forward. Each cutting names its
-shade, opens it in the lab, and has a remove mark. An empty book is the closed cover with its title
-in gold foil and the way to the Showroom.
+scrolls sideways, or its arrows are tapped, to change fabric; beneath it the chapters' Roman numerals,
+the open one underlined in gold, jump straight to a fabric.
+
+The book is a bound volume, not a card. It is covered in oxblood morocco, with a pebbled grain lit
+from the upper left. The spine has four raised bands, each set between gold fillets. The outer
+corners carry brass protectors, and a champagne silk ribbon marker, cut to a swallowtail, hangs
+from its foot and stirs now and then. The front cover has a blind-tooled frame and a double gold
+fillet with curled ornaments at its corners. Inside that is a "PC" monogram in an oval cartouche,
+with "Swatch Book" in burnished gold foil that catches a single glint as the book comes up.
+Beneath the title are how many fabrics and shades the book holds, then "Prepared for" and the
+buyer's name when they are signed in (otherwise "Surat"). The inside of the cover is a marbled
+endpaper in the leather's oxblood with cream, gold and ink.
+
+The pages are cotton-rag paper with a shaded gutter. Their fore-edge and foot are gilt, so the
+text block shows as a stack of gold leaves beside the page. Each page is set like a specimen plate:
+
+- **Running head:** the chapter and the fabric, with a hairline beneath.
+- **Cuttings:** up to six of the fabric's shades, laid out by how many there are. One fills the
+  page, two and three share it in horizontal bands, four is 2 × 2, five is 2 + 2 + 1, and six is
+  2 × 3.
+- **Each cutting:** pinked top and bottom as pinking shears leave it, held to the page by oxblood
+  photo corners, and casting a soft shadow. Its label beneath gives its number and its name ("No.
+  12 *Falsa*"). A cutting opens that shade in the lab, and it has a small remove mark.
+- **Foot:** the page's shade count, a folio in italic Roman numerals, and "Page 1 / 2" when there
+  are more pages.
+
+More than six shades fill further pages, stacked beneath. The top page follows a finger sideways.
+Let go past a threshold (or with "Slide the page to turn it"), it slides away to the right and
+tucks under the stack as the next page comes forward. An empty book is the closed volume, cover
+and all, with the way to the Showroom.
 
 Under the book, the book's one action: "Order swatch book", in the frosted glass of Add to book,
 with how many shades and fabrics the book holds beneath it. It opens the order form — titled "Order
@@ -243,11 +264,13 @@ swatch book" — listing every shade in the book across all its fabrics. The Quo
 WhatsApp buttons that stood over the old grid are removed at the owner's word.
 
 The book is read in a reading room rather than on the plain page: a warm spotlight falls from
-above onto parchment that deepens to a tan floor, with a soft vignette at the edges, and the empty
-book sits in the same room. The book opens every time the page is visited. The closed cover, with
-its gold-foil title, swings open on its spine (about 1.3 s). Behind it is a chapter title page:
-"Chapter", the fabric's number in Roman numerals, its name in italic, its hand and its shade count.
+above onto parchment that deepens to a tan floor, with a soft vignette at the edges, and the book
+casts its shadow on it. The book opens every time the page is visited. The closed cover holds for
+a moment, then swings open on its spine (about 1.5 s). Behind it is a chapter title page inside a
+gold double rule with corner ornaments. It shows "Chapter", the fabric's number in gold-foil Roman
+numerals, a printer's rule, the fabric's name in italic, its hand, a round die-cut window onto its
+first cutting, and its shade count.
 That page then turns over like a leaf to reveal the cuttings. Changing fabric is turning to another
 chapter. The book slides in from the side it was reached from, and the new chapter's title page
-shows briefly and then turns. With reduced motion, the cover and leaf are already open.
+shows briefly and then turns. With reduced motion, the cover and leaf turn at once and the foil does not glint.
 
