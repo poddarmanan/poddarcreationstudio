@@ -385,3 +385,7 @@ button, a { transition: transform .6s var(--pc-ease), background-color .55s ease
 @media (prefers-reduced-motion: reduce) {
   svg path, svg g { animation: none !important; }
 }
+
+/* The Swatch Book's heading slides in from the side it was swiped towards. */
+@keyframes pcBookInRight { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
+@keyframes pcBookInLeft { from { opacity: 0; transform: translateX(-28px); } to { opacity: 1; transform: none; } }

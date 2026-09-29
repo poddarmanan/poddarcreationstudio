@@ -221,3 +221,22 @@ Every assertion is a claim about behaviour that no type checker can reach:
   turns it off first — the lab opens with it on — and back on for that check)
 - each shade renders as its own colour — a viewer that shows the same cloth whatever you open
   is the failure mode that looks fine
+
+## The Swatch Book
+
+One fabric at a time. The fabric's name is the heading, with "Swatch Book · 01 / 02" above it
+between hairlines and its particulars beneath (weight, width, composition; its hand and how many of
+its shades are in the book, in italic). With more than one fabric in the book, the heading swipes or
+scrolls sideways, or its arrows are tapped, to change fabric; dots mark which. Below it, the book
+itself: a cloth-bound hardcover with a darker spine carrying two gold foil rules, and a paper page
+holding up to six of that fabric's shades as pinked cuttings, laid out by their number — one fills
+the page, two and three share it in horizontal bands, four is 2 × 2, five is 2 + 2 + 1, six is
+2 × 3. More than six fill further pages, stacked beneath with their edges showing; the top page
+follows a finger sideways and, let go past a threshold (or with "Slide the page to turn it"), slides
+away to the right and tucks under the stack as the next page comes forward. Each cutting names its
+shade, opens it in the lab, and has a remove mark. An empty book is the closed cover with its title
+in gold foil and the way to the Showroom.
+
+The Quote, PDF / Print and WhatsApp buttons that stood over the old grid are removed at the owner's
+word; with them the quote form has no way in from the studio (its code is kept).
+
