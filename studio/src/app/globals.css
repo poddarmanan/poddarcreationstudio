@@ -390,11 +390,10 @@ button, a { transition: transform .6s var(--pc-ease), background-color .55s ease
 @keyframes pcBookInRight { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
 @keyframes pcBookInLeft { from { opacity: 0; transform: translateX(-28px); } to { opacity: 1; transform: none; } }
 
-/* The Swatch Book's cover swings open on its spine, and each chapter's title page turns over. */
-@keyframes pcCoverOpen { 0% { transform: rotateY(0); } 100% { transform: rotateY(-178deg); } }
+/* A leaf of the Swatch Book turns over on its binding. */
 @keyframes pcLeafTurn { 0% { transform: rotateY(0); } 100% { transform: rotateY(-176deg); } }
 @media (prefers-reduced-motion: reduce) {
-  [style*="pcCoverOpen"], [style*="pcLeafTurn"] { animation-duration: .01s !important; animation-delay: 0s !important; }
+  [style*="pcLeafTurn"] { animation-duration: .01s !important; animation-delay: 0s !important; }
 }
 
 /* The Swatch Book's gold foil: a burnished gradient clipped to type (or filling a rule), with a
@@ -423,6 +422,23 @@ button, a { transition: transform .6s var(--pc-ease), background-color .55s ease
   .pc-foil, .pc-foil-bg { animation: none; }
   [style*="pcRibbon"] { animation: none !important; }
 }
-/* The Swatch Book's clasp is tugged and slid off its catch before the cover opens. */
-@keyframes pcUnclasp { 0% { transform: none; } 35% { transform: translateX(3px); } 100% { transform: translateX(-16px); } }
-@media (prefers-reduced-motion: reduce) { [style*="pcUnclasp"] { animation-duration: .01s !important; animation-delay: 0s !important; } }
+/* Loose cuttings on the Swatch Book's table: each lies at its own slight angle (set per cutting as
+   --jx, --jy and --r), falls in from above and the side, and lifts and squares up under the pointer. */
+.pc-loose { transform: translate(var(--jx), var(--jy)) rotate(var(--r)); transition: transform .55s cubic-bezier(.22,.8,.2,1); }
+@media (hover: hover) {
+  .pc-loose:hover { transform: translate(var(--jx), calc(var(--jy) - 6px)) rotate(calc(var(--r) * .3)) scale(1.04); z-index: 40 !important; }
+}
+@keyframes pcDrop {
+  from { opacity: 0; transform: translate(calc(var(--jx) + var(--dx, 0px)), calc(var(--jy) - 70px)) rotate(calc(var(--r) + 26deg)) scale(1.1); }
+  60% { opacity: 1; }
+  to { opacity: 1; transform: translate(var(--jx), var(--jy)) rotate(var(--r)); }
+}
+/* The ceremony's cover swings shut and its clasp is pushed home over the catch. */
+@keyframes pcCoverClose { 0% { transform: rotateY(-178deg); } 100% { transform: rotateY(0); } }
+@keyframes pcClaspOn { 0% { transform: translateX(-16px); } 70% { transform: translateX(2px); } 100% { transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  [style*="pcDrop"], [style*="pcCoverClose"], [style*="pcClaspOn"] { animation-duration: .01s !important; animation-delay: 0s !important; }
+}
+/* The ceremony comes up over the page, and the book arrives as a chat bubble. */
+@keyframes pcFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pcBubbleIn { from { opacity: 0; transform: translateY(14px) scale(.92); transform-origin: 100% 0; } to { opacity: 1; transform: none; } }

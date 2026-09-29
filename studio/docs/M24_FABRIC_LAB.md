@@ -224,62 +224,77 @@ Every assertion is a claim about behaviour that no type checker can reach:
 
 ## The Swatch Book
 
-One fabric at a time. The fabric's name is the heading, with "Swatch Book" above it
-between hairlines and its particulars beneath (weight, width, composition; its hand and how many of
-its shades are in the book, in italic). With more than one fabric in the book, the heading swipes or
-scrolls sideways, or its arrows are tapped, to change fabric; beneath it the chapters' Roman numerals,
-the open one underlined in gold, jump straight to a fabric.
+The Swatch Book shows one fabric at a time. The fabric's name is the heading, with "Swatch Book"
+above it between hairlines. Beneath it are the fabric's particulars (weight, width, composition),
+and in italic its hand and how many of its shades are in the book. With more than one fabric in
+the book, you can change fabric by swiping or scrolling the heading sideways, or with its arrows.
+The chapters' Roman numerals beneath it, the open one underlined in gold, jump straight to a
+fabric.
 
-The book is a bound volume, not a card. It is covered in oxblood morocco, with a pebbled grain lit
-from the upper left. The spine has four raised bands, each set between gold fillets. The outer
-corners carry brass protectors, and a champagne silk ribbon marker, cut to a swallowtail, hangs
-from its foot and stirs now and then. The front cover has a blind-tooled frame and a double gold
-fillet with curled ornaments at its corners. Inside that is a "PC" monogram in an oval cartouche,
-with "Swatch Book" in burnished gold foil that catches a single glint as the book comes up.
-Beneath the title are how many fabrics and shades the book holds, then "Prepared for" and the
-buyer's name when they are signed in (otherwise "Surat"). The inside of the cover is a marbled
-endpaper in the leather's oxblood with cream, gold and ink.
+### Browsing: loose cuttings
 
-The pages are held in the book, not laid on it. A leather binding strip runs down their inner margin, held by
-three brass posts with slotted heads and edged with a gold fillet. The pages turn on its edge. At
-the fore-edge a brass catch is fixed to the back board. On the closed book, a stitched leather strap
-crosses the cover's right edge and ends in a brass clasp plate fastened over that catch. When the
-book opens, the clasp is tugged and slides off the catch first, then the cover swings open with
-the strap on it.
+While the buyer is still choosing, the book is not bound. Its cuttings lie loose on the reading
+room's table:
 
-The pages are cotton-rag paper with a shaded gutter. Their fore-edge and foot are gilt, so the
-text block shows as a stack of gold leaves beside the page. Each page is set like a specimen plate:
+- **Each cutting** is pinked top and bottom and lies at its own slight angle and offset (seeded
+  from the shade, so a cutting always falls the same way).
+- **Pin and label:** a pearl-headed dressmaker's pin holds each cutting, and a small luggage tag
+  gives its number and name ("No. 12 *Falsa*").
+- **Arrival:** a new fabric's cuttings fall onto the table one after another, in from the side
+  the fabric was reached from.
+- **Pointer:** a cutting lifts and squares up under the pointer. Tapping it opens that shade in
+  the lab, and its small × takes it out of the book.
+- **Layout:** one cutting lies alone, two to four share two columns, and more spread over three.
 
-- **Running head:** the chapter and the fabric, with a hairline beneath.
-- **Cuttings:** up to six of the fabric's shades, laid out by how many there are. One fills the
-  page, two and three share it in horizontal bands, four is 2 × 2, five is 2 + 2 + 1, and six is
-  2 × 3.
-- **Each cutting:** pinked top and bottom as pinking shears leave it, held to the page by oxblood
-  photo corners, and casting a soft shadow. Its label beneath gives its number and its name ("No.
-  12 *Falsa*"). A cutting opens that shade in the lab, and it has a small remove mark.
-- **Foot:** the page's shade count, a folio in italic Roman numerals, and "Page 1 / 2" when there
-  are more pages.
+A note beneath says the cuttings are loose for now and will be bound into the book when it is
+ordered. An empty Swatch Book shows the closed volume described below, with the way to the
+Showroom.
 
-More than six shades fill further pages, stacked beneath. The top page is turned as in a bound
-book: dragged to the left, it lifts on its binding and darkens as it rises. Let go past a
-threshold (or with "Slide the page to turn it"), it turns over to the left and goes to the back
-of the stack, and the next page is revealed. Short of the threshold, it falls back. A drag that
-turns a page does not also open the cutting under the finger. An empty book is the closed volume, cover
-and all, with the way to the Showroom.
+### Ordering
 
-Under the book, the book's one action: "Order swatch book", in the frosted glass of Add to book,
-with how many shades and fabrics the book holds beneath it. It opens the order form — titled "Order
-swatch book" — listing every shade in the book across all its fabrics. The Quote, PDF / Print and
-WhatsApp buttons that stood over the old grid are removed at the owner's word.
+"Order swatch book", in the frosted glass of Add to book, opens the order form. It lists every
+shade in the book, across all its fabrics, and asks for a name, a company and a WhatsApp number
+with its country code (it starts with "+91 "). A swatch book order does not ask for a quantity;
+it is recorded as "N shades · Swatch Book". A number with fewer than 8 or more than 15 digits is
+refused in the form, and the API checks the same.
 
-The book is read in a reading room rather than on the plain page: a warm spotlight falls from
-above onto parchment that deepens to a tan floor, with a soft vignette at the edges, and the book
-casts its shadow on it. The book opens every time the page is visited. The closed cover holds for
-a moment, then swings open on its spine (about 1.5 s). Behind it is a chapter title page inside a
-gold double rule with corner ornaments. It shows "Chapter", the fabric's number in gold-foil Roman
-numerals, a printer's rule, the fabric's name in italic, its hand, a round die-cut window onto its
-first cutting, and its shade count.
-That page then turns over like a leaf to reveal the cuttings. Changing fabric is turning to another
-chapter. The book slides in from the side it was reached from, and the new chapter's title page
-shows briefly and then turns. With reduced motion, the cover and leaf turn at once and the foil does not glint.
+The number is stored on the quote (`Quote.whatsapp`, migration `m45_quote_whatsapp`). The admin
+quote desk shows it as "Send the book on WhatsApp", linked to `wa.me`, because the platform does
+not send WhatsApp messages itself. The team sends the compiled book from there.
 
+### The binding ceremony
+
+Once the order is sent, the page darkens into a lamplit room and the book is made up in front of
+the buyer:
+
+1. **Compiling your fine choices.** The buyer's cuttings (up to eighteen are shown) appear
+   scattered round the room, below the caption. Beside them lies the open book, its page empty.
+   The cuttings fly one by one onto the page and settle there as miniatures, three to a row.
+2. **Binding your book.** Leaves are collated over the page, turning on the binding one after
+   another.
+3. **Bound and fastened.** The cover swings shut over the pages, marbled endpaper first. The
+   clasp is then pushed home over the catch, and the foil title catches the light.
+4. **On its way.** The book gives way to the buyer's number, in gold, "on WhatsApp", and a chat
+   as it will arrive: "Poddar Creation" with the buyer's number. The message is a bubble holding
+   the closed book as the file's preview, "Poddar Swatch Book.pdf", the shade and fabric count,
+   and the time. Its tick doubles once it has been shown for a moment. A line beneath says the
+   team will share the compiled book on this number shortly, and "Done" closes the room.
+
+With reduced motion, the ceremony goes straight to the last stage.
+
+### The volume
+
+The bound book, as it appears in the ceremony and on the empty page:
+
+- **Binding:** oxblood morocco with a pebbled grain lit from the upper left. The spine has four
+  raised bands, each set between gold fillets. The outer corners carry brass protectors, and a
+  champagne silk ribbon marker, cut to a swallowtail, hangs from its foot.
+- **Front cover:** a blind-tooled frame and a double gold fillet with curled ornaments at its
+  corners. Inside that is a "PC" monogram in an oval cartouche, with "Swatch Book" in burnished
+  gold foil. Beneath the title are the book's fabric and shade counts, then "Prepared for" and
+  the buyer's name when they are signed in (otherwise "Surat").
+- **Inside the cover:** a marbled endpaper.
+- **Clasp:** a stitched leather strap across the cover's right edge ends in a brass plate over a
+  brass catch on the back board.
+- **Pages:** cotton-rag paper, gilt on the fore-edge and foot. They are held by a leather binding
+  strip down their inner margin, with three brass posts.

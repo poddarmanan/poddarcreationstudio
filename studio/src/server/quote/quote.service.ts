@@ -11,6 +11,7 @@ export interface CreateQuoteInput {
   name: string;
   company: string;
   email?: string | null;
+  whatsapp?: string | null;
   quantity: string;
   subject: string;
   moq?: string | null;
@@ -98,6 +99,7 @@ export class QuoteService {
         name: input.name,
         company: input.company,
         email: input.email,
+        whatsapp: input.whatsapp,
         quantity: input.quantity,
         subject: input.subject,
         moq: input.moq,

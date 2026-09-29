@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import type { Studio } from './state';
 import { MicroscopeView } from '@/components/three/MicroscopeView';
 import { FONT_DISPLAY, FONT_BODY, fabricTex, colourCss, colourFg } from './helpers';
+import { BookCeremony } from './BookCeremony';
 
 export function UnrollTransition({ studio }: { studio: Studio }) {
   const { trans } = studio;
@@ -103,7 +104,12 @@ export function QuoteModal({ studio }: { studio: Studio }) {
   const [name, setName] = useState('');
   const [company, setCompany] = useState('');
   const [quantity, setQuantity] = useState('');
+  const [whatsapp, setWhatsapp] = useState('+91 ');
+  const [waBad, setWaBad] = useState(false);
   if (!quoteOpen) return null;
+
+  // A swatch book, once ordered, is compiled and bound before the buyer's eyes and sent to their WhatsApp.
+  if (quoteSent && quoteFromBook) return <BookCeremony studio={studio} whatsapp={whatsapp.trim()} onDone={studio.closeQuote} />;
 
   const subject = quoteFromBook
     ? pins
@@ -147,14 +153,46 @@ export function QuoteModal({ studio }: { studio: Studio }) {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                if (!name || !company || !quantity || quoteBusy) return;
+                if (quoteBusy || !name || !company) return;
+                if (quoteFromBook) {
+                  // A number with its country code: 8 to 15 digits, spaces and dashes allowed.
+                  const digits = whatsapp.replace(/\D/g, '');
+                  if (!/^\+?[\d\s-]+$/.test(whatsapp.trim()) || digits.length < 8 || digits.length > 15) {
+                    setWaBad(true);
+                    return;
+                  }
+                  studio.sendQuote({ name, company, quantity: `${pins.length} ${pins.length === 1 ? t.shade : t.shades} · ${t.book}`, whatsapp: whatsapp.trim() });
+                  return;
+                }
+                if (!quantity) return;
                 studio.sendQuote({ name, company, quantity });
               }}
               style={{ display: 'flex', flexDirection: 'column', gap: 10 }}
             >
               <input required placeholder={t.fName} value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} />
               <input required placeholder={t.fCompany} value={company} onChange={(e) => setCompany(e.target.value)} style={inputStyle} />
-              <input required placeholder={t.fQty} value={quantity} onChange={(e) => setQuantity(e.target.value)} style={inputStyle} />
+              {quoteFromBook ? (
+                <>
+                  <input
+                    required
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    aria-label={t.waPh}
+                    aria-invalid={waBad || undefined}
+                    placeholder={t.waPh}
+                    value={whatsapp}
+                    onChange={(e) => {
+                      setWhatsapp(e.target.value);
+                      setWaBad(false);
+                    }}
+                    style={{ ...inputStyle, ...(waBad ? { borderColor: '#A33' } : {}), fontVariantNumeric: 'lining-nums' }}
+                  />
+                  {waBad && <div style={{ fontSize: 12, color: '#A33', marginTop: -4 }}>{t.waBad}</div>}
+                </>
+              ) : (
+                <input required placeholder={t.fQty} value={quantity} onChange={(e) => setQuantity(e.target.value)} style={inputStyle} />
+              )}
               <button
                 type="submit"
                 disabled={quoteBusy}

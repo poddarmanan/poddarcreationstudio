@@ -81,7 +81,7 @@ export interface Studio {
   openQuote: () => void;
   openQuoteBook: () => void;
   closeQuote: () => void;
-  sendQuote: (fields: { name: string; company: string; quantity: string }) => Promise<void>;
+  sendQuote: (fields: { name: string; company: string; quantity: string; whatsapp?: string }) => Promise<void>;
   quoteBusy: boolean;
   aiOpen: boolean;
   aiBusy: boolean;
@@ -286,7 +286,7 @@ export function useStudio(rawFabrics: FabricRow[]): Studio {
   }, []);
 
   const sendQuote = useCallback(
-    async (fields: { name: string; company: string; quantity: string }) => {
+    async (fields: { name: string; company: string; quantity: string; whatsapp?: string }) => {
       setQuoteBusy(true);
       try {
         const f = fab(fid);

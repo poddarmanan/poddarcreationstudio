@@ -11,6 +11,8 @@ const QuoteInput = z.object({
   name: z.string().min(1).max(200),
   company: z.string().min(1).max(200),
   email: z.string().email().max(320).nullish(),
+  // A phone number with its country code: digits, spaces, dashes, an optional leading +.
+  whatsapp: z.string().trim().regex(/^\+?[\d\s-]{8,24}$/).nullish(),
   quantity: z.string().min(1).max(200),
   subject: z.string().min(1).max(1000),
   moq: z.string().max(120).nullish(),
@@ -35,6 +37,7 @@ export async function POST(req: Request) {
         name: data.name,
         company: data.company,
         email: data.email ?? session?.user?.email ?? null,
+        whatsapp: data.whatsapp ?? null,
         quantity: data.quantity,
         subject: data.subject,
         moq: data.moq,

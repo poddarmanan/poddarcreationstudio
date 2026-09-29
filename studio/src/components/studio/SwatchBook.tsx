@@ -1,24 +1,13 @@
 'use client';
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { Studio, Pin } from './state';
 import type { FabricRow, ColourRow } from '@/lib/types';
 import { FONT_DISPLAY, FONT_BODY, fabricTex } from './helpers';
 
-/** How a page of up to six cuttings is laid out: [columns, rows, does the last cutting span both columns]. */
-const LAYOUT: Record<number, [number, number, boolean]> = {
-  1: [1, 1, false],
-  2: [1, 2, false],
-  3: [1, 3, false],
-  4: [2, 2, false],
-  5: [2, 3, true],
-  6: [2, 3, false],
-};
-const PER_PAGE = 6;
+export type Cutting = { pin: Pin; colour: ColourRow };
 
-type Cutting = { pin: Pin; colour: ColourRow };
-
-function roman(n: number) {
+export function roman(n: number) {
   const table: [number, string][] = [[10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']];
   let out = '';
   for (const [v, r] of table) while (n >= v) { out += r; n -= v; }
@@ -39,15 +28,15 @@ const PAPER = svgTile(
   220, 220,
 );
 /** Marbled endpaper, in the leather's oxblood with cream, gold and ink. */
-const MARBLE = svgTile(
+export const MARBLE = svgTile(
   `<filter id='m' x='0' y='0'><feTurbulence type='turbulence' baseFrequency='.006 .028' numOctaves='3' seed='11'/><feColorMatrix values='2.2 0 0 0 0  2.2 0 0 0 0  2.2 0 0 0 0  0 0 0 0 1'/><feComponentTransfer><feFuncR type='discrete' tableValues='.353 .937 .769 .122 .627 .937 .353 .769'/><feFuncG type='discrete' tableValues='.102 .890 .604 .165 .278 .890 .102 .604'/><feFuncB type='discrete' tableValues='.122 .784 .322 .227 .290 .784 .122 .322'/></feComponentTransfer></filter><rect width='100%' height='100%' filter='url(#m)'/>`,
   320, 420,
 );
-const LEATHER = 'radial-gradient(130% 95% at 22% 8%, #5E1B21 0%, #40101A 44%, #2A080D 100%)';
+export const LEATHER = 'radial-gradient(130% 95% at 22% 8%, #5E1B21 0%, #40101A 44%, #2A080D 100%)';
 const BRASS = 'linear-gradient(135deg, #F6E3A8 0%, #C9A04B 28%, #8A6524 52%, #D8B866 76%, #9C7630 100%)';
-const GOLD = '#CDA960';
-const INK = '#1C1917';
-const UMBER = '#8A6D45';
+export const GOLD = '#CDA960';
+export const INK = '#1C1917';
+export const UMBER = '#8A6D45';
 
 /**
  * The Swatch Book: one fabric at a time, each fabric a chapter. Its name is the heading, its
@@ -75,12 +64,6 @@ export function SwatchBook({ studio }: { studio: Studio }) {
   const at = Math.max(0, groups.findIndex((g) => g.x.id === chosen));
   const group = groups[at];
   const [dir, setDir] = useState<1 | -1>(1);
-  // The book arrives closed and its cover swings open once, on arriving at the page.
-  const [opened, setOpened] = useState(false);
-  useEffect(() => {
-    const tm = window.setTimeout(() => setOpened(true), COVER_GONE);
-    return () => window.clearTimeout(tm);
-  }, []);
 
   const step = (d: 1 | -1) => {
     if (groups.length < 2) return;
@@ -171,10 +154,14 @@ export function SwatchBook({ studio }: { studio: Studio }) {
         )}
       </div>
 
-      <Book key={group.x.id} studio={studio} fabric={group.x} items={group.items} t={t} chapter={at + 1} closed={!opened} coverLine={`${groups.length} ${groups.length === 1 ? t.fabricWordOne : t.fabricWordMany} · ${studio.pins.length} ${studio.pins.length === 1 ? t.shade : t.shades}`} />
+      <LooseCuttings key={group.x.id} studio={studio} fabric={group.x} items={group.items} dir={dir} />
+      <div style={{ marginTop: 26, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, animation: 'rise 1s .6s cubic-bezier(.22,.8,.2,1) both' }}>
+        <Fleuron width={26} color="rgba(138,109,69,.6)" />
+        <p style={{ margin: 0, maxWidth: 320, textAlign: 'center', fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 15, lineHeight: 1.45, color: 'rgba(28,25,23,.58)' }}>{t.looseNote}</p>
+      </div>
 
       {/* The book's one action: order it — every shade in it, across all its fabrics. */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 30, animation: 'rise 1s .35s cubic-bezier(.22,.8,.2,1) both' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 22, animation: 'rise 1s .35s cubic-bezier(.22,.8,.2,1) both' }}>
         <button
           onClick={studio.openQuoteBook}
           className="pc-book"
@@ -207,7 +194,7 @@ function Room({ children, center }: { children: ReactNode; center?: boolean }) {
   );
 }
 
-function Eyebrow({ children }: { children: ReactNode }) {
+export function Eyebrow({ children }: { children: ReactNode }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, fontSize: 9.5, letterSpacing: '.42em', textTransform: 'uppercase', color: UMBER }}>
       <span aria-hidden style={{ width: 'clamp(22px,6vw,48px)', height: 1, background: `linear-gradient(90deg, transparent, ${UMBER})`, opacity: 0.7 }} />
@@ -300,7 +287,7 @@ function CornerOrnament({ corner, inset, size = 22 }: { corner: 'tl' | 'tr' | 'b
 }
 
 /** A small printer's rule: two hairlines and a diamond. */
-function Fleuron({ width = 30, color = GOLD }: { width?: number; color?: string }) {
+export function Fleuron({ width = 30, color = GOLD }: { width?: number; color?: string }) {
   return (
     <div aria-hidden style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
       <span style={{ width, height: 1, background: `linear-gradient(90deg, transparent, ${color})` }} />
@@ -347,11 +334,11 @@ function Catch() {
 
 /**
  * The fore-edge clasp: a stitched leather strap across the cover's right edge ending in a brass plate
- * over the catch. As the book is opened it unbuckles first, sliding off the catch.
+ * over the catch; it can be animated sliding on (as the book is fastened) or off.
  */
-function Clasp({ unclasp }: { unclasp?: boolean }) {
+function Clasp({ animation }: { animation?: string }) {
   return (
-    <div aria-hidden style={{ position: 'absolute', right: -9, top: '50%', width: 84, height: 34, marginTop: -17, animation: unclasp ? `pcUnclasp .5s ${COVER_DELAY - 520}ms cubic-bezier(.3,.7,.3,1) both` : undefined }}>
+    <div aria-hidden style={{ position: 'absolute', right: -9, top: '50%', width: 84, height: 34, marginTop: -17, animation }}>
       <div style={{ position: 'absolute', inset: '0 8px 0 0', borderRadius: '17px 3px 3px 17px', overflow: 'hidden', background: 'linear-gradient(180deg, #52151C, #300A0F)', boxShadow: '0 3px 7px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,220,200,.16)' }}>
         <Grain />
         <div style={{ position: 'absolute', inset: 4, borderRadius: '13px 2px 2px 13px', border: '1px dashed rgba(215,182,112,.75)' }} />
@@ -368,7 +355,7 @@ function Clasp({ unclasp }: { unclasp?: boolean }) {
  * The front cover: oxblood morocco, a blind-tooled frame, a double gold fillet with ornaments at its
  * corners, a monogram cartouche, the title in gold foil, and — for a signed-in buyer — their name.
  */
-function CoverFace({ t, userName, line, unclasp }: { t: Record<string, string>; userName: string | null; line?: string; unclasp?: boolean }) {
+export function CoverFace({ t, userName, line, claspAnimation }: { t: Record<string, string>; userName: string | null; line?: string; claspAnimation?: string }) {
   return (
     <>
     <div style={{ position: 'absolute', inset: 0, borderRadius: '0 10px 10px 0', background: LEATHER, overflow: 'hidden', boxShadow: 'inset 16px 0 22px -16px rgba(0,0,0,.75), inset 0 0 0 1px rgba(0,0,0,.35)' }}>
@@ -384,7 +371,7 @@ function CoverFace({ t, userName, line, unclasp }: { t: Record<string, string>; 
       <BrassCorner at="top" />
       <BrassCorner at="bottom" />
       <div style={{ position: 'absolute', inset: '40px 40px 40px 48px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', filter: 'drop-shadow(0 1px 0 rgba(0,0,0,.6))' }}>
-        <div className="pc-foil" style={{ fontSize: 8.5, letterSpacing: '.5em', textTransform: 'uppercase', paddingLeft: '.5em' }}>Poddar Creation</div>
+        <div className="pc-foil" style={{ fontSize: 8.5, letterSpacing: '.42em', textTransform: 'uppercase', paddingLeft: '.42em', whiteSpace: 'nowrap' }}>Poddar Creation</div>
         {/* The monogram, in an oval cartouche. */}
         <div style={{ position: 'relative', width: 'clamp(70px,20vw,88px)', aspectRatio: '4 / 5', margin: '16px 0 14px', display: 'grid', placeItems: 'center' }}>
           <svg aria-hidden viewBox="0 0 80 100" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} fill="none" stroke={GOLD}>
@@ -398,7 +385,7 @@ function CoverFace({ t, userName, line, unclasp }: { t: Record<string, string>; 
         <div style={{ margin: '12px 0 10px' }}>
           <Fleuron width={26} />
         </div>
-        {line && <div className="pc-foil" style={{ fontSize: 8, letterSpacing: '.32em', textTransform: 'uppercase', fontVariantNumeric: 'lining-nums' }}>{line}</div>}
+        {line && <div className="pc-foil" style={{ fontSize: 7.5, letterSpacing: '.22em', textTransform: 'uppercase', fontVariantNumeric: 'lining-nums', whiteSpace: 'nowrap' }}>{line}</div>}
       </div>
       <div style={{ position: 'absolute', left: 48, right: 40, bottom: 44, textAlign: 'center', filter: 'drop-shadow(0 1px 0 rgba(0,0,0,.6))' }}>
         {userName ? (
@@ -411,7 +398,7 @@ function CoverFace({ t, userName, line, unclasp }: { t: Record<string, string>; 
         )}
       </div>
     </div>
-    <Clasp unclasp={unclasp} />
+    <Clasp animation={claspAnimation} />
     </>
   );
 }
@@ -420,7 +407,7 @@ function CoverFace({ t, userName, line, unclasp }: { t: Record<string, string>; 
  * The bound volume's shell: the silk ribbon marker hanging from its foot, its shadow on the table,
  * and the leather boards with spine and brass corners. What lies on the board comes as children.
  */
-function Binding({ children, width, padded }: { children: ReactNode; width: string; padded: boolean }) {
+export function Binding({ children, width, padded }: { children: ReactNode; width: string; padded: boolean }) {
   return (
     <div style={{ position: 'relative', width, animation: 'rise 1s .1s cubic-bezier(.22,.8,.2,1) both' }}>
       <div aria-hidden style={{ position: 'absolute', left: '4%', right: '2%', bottom: -16, height: 34, background: 'radial-gradient(closest-side, rgba(46,26,10,.42), transparent)', filter: 'blur(3px)' }} />
@@ -454,315 +441,108 @@ function Binding({ children, width, padded }: { children: ReactNode; width: stri
 
 // ─── The book ───────────────────────────────────────────────────────────────────────────────────
 
-/** When the cover starts to swing, how long it takes, and when it has gone (ms). */
-const COVER_DELAY = 900;
-const COVER_SWING = 1500;
-const COVER_GONE = COVER_DELAY + COVER_SWING;
-
 /** How much of the pages' inner margin the binding strip covers; pages turn on its edge (px). */
-const HINGE = 18;
+export const HINGE = 18;
 
-const paperFace = (gutter: 'left' | 'right') =>
+export const paperFace = (gutter: 'left' | 'right') =>
   `${PAPER}, linear-gradient(${gutter === 'left' ? 90 : 270}deg, rgba(92,64,30,.22) 0%, rgba(92,64,30,.05) 5%, rgba(92,64,30,0) 9%), linear-gradient(180deg, #FDFAF2, #F6EFE0)`;
 
+/** The text block under the pages, its fore-edge and foot gilt. */
+export function GiltBlock() {
+  return <div aria-hidden style={{ position: 'absolute', inset: 0, borderRadius: 2, background: '#F7F1E4', boxShadow: '1px 1px 0 #EADFC4, 2px 2px 0 #C7A45C, 3px 3px 0 #F0E4C6, 4px 4px 0 #B48C45, 5px 5px 0 #E6D3A3, 6px 6px 0 #9E7736, 7px 8px 12px rgba(0,0,0,.4)' }} />;
+}
+
 /**
- * The open book and its pages. The pages are a stack: the top page follows a finger or the pointer
- * sideways, and let go past a threshold (or with the button beneath) it slides away to the right,
- * tucks under the stack and the next page comes forward; short of it, it springs back.
+ * The binding: a leather strip over the pages' inner margin, screwed through with brass posts, so
+ * the pages are held to the book and turn on it.
  */
-function Book({ studio, fabric, items, t, chapter, closed, coverLine }: { studio: Studio; fabric: FabricRow; items: Cutting[]; t: Record<string, string>; chapter: number; closed: boolean; coverLine: string }) {
-  // Each fabric is a chapter: its title page sits on top when the fabric comes up, then turns over
-  // on the spine to show the cuttings. On arriving at the page, the closed cover opens first.
-  const [coverUp] = useState(closed);
-  const [chapterUp, setChapterUp] = useState(true);
-  const [coverGone, setCoverGone] = useState(!closed);
-  useEffect(() => {
-    const timers = [window.setTimeout(() => setChapterUp(false), coverUp ? COVER_GONE + 200 : 900)];
-    if (coverUp) timers.push(window.setTimeout(() => setCoverGone(true), COVER_GONE));
-    return () => timers.forEach((x) => window.clearTimeout(x));
-  }, [coverUp]);
-  const [chapterGone, setChapterGone] = useState(false);
-  useEffect(() => {
-    if (chapterUp) return;
-    const tm = window.setTimeout(() => setChapterGone(true), 1250);
-    return () => window.clearTimeout(tm);
-  }, [chapterUp]);
-  const pages: Cutting[][] = [];
-  for (let i = 0; i < items.length; i += PER_PAGE) pages.push(items.slice(i, i + PER_PAGE));
-  const [orderRaw, setOrder] = useState<number[]>(pages.map((_, i) => i));
-  const order = orderRaw.length === pages.length ? orderRaw : pages.map((_, i) => i);
-  // The top page is bound at the left: dragged leftwards it lifts and turns on its binding.
-  const [angle, setAngle] = useState(0);
-  const [dragging, setDragging] = useState(false);
-  const [flinging, setFlinging] = useState(false);
-  const [settled, setSettled] = useState<number | null>(null);
-  const drag = useRef<{ x: number; w: number; moved: boolean; a: number } | null>(null);
-  const dragged = useRef(false);
-
-  const turn = () => {
-    if (pages.length < 2 || flinging) return;
-    setFlinging(true);
-    window.setTimeout(() => {
-      // The turned page goes to the back of the stack at once, without swinging back across.
-      setSettled(order[0]);
-      setOrder([...order.slice(1), order[0]]);
-      setFlinging(false);
-      setAngle(0);
-      window.setTimeout(() => setSettled(null), 80);
-    }, 760);
-  };
-  const turnRef = useRef(turn);
-  useEffect(() => {
-    turnRef.current = turn;
-  });
-
-  useEffect(() => {
-    if (!dragging) return;
-    const move = (e: PointerEvent) => {
-      const d = drag.current;
-      if (!d) return;
-      const mx = e.clientX - d.x;
-      if (Math.abs(mx) > 6) d.moved = true;
-      d.a = mx < 0 ? Math.max(-165, (mx / d.w) * 190) : 0;
-      setAngle(d.a);
-    };
-    const up = () => {
-      const d = drag.current;
-      drag.current = null;
-      dragged.current = !!d?.moved;
-      setDragging(false);
-      if (d?.moved && d.a < -38) turnRef.current();
-      else setAngle(0);
-    };
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', up);
-    window.addEventListener('pointercancel', up);
-    return () => {
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', up);
-      window.removeEventListener('pointercancel', up);
-    };
-  }, [dragging]);
-
-  const first = items[0].colour;
-
+export function BindingStrip() {
   return (
-    <div style={{ marginTop: 'clamp(24px,4vw,36px)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <Binding width="min(100%, 460px)" padded>
-        <div style={{ position: 'relative', width: '100%', height: '100%', perspective: '1600px' }}>
-          {/* The text block, its fore-edge and foot gilt. */}
-          <div aria-hidden style={{ position: 'absolute', inset: 0, borderRadius: 2, background: '#F7F1E4', boxShadow: '1px 1px 0 #EADFC4, 2px 2px 0 #C7A45C, 3px 3px 0 #F0E4C6, 4px 4px 0 #B48C45, 5px 5px 0 #E6D3A3, 6px 6px 0 #9E7736, 7px 8px 12px rgba(0,0,0,.4)' }} />
-
-          {/* The chapter's title page, turning over on the spine to show the cuttings. */}
-          {!chapterGone && (
-            <div
-              aria-hidden
-              style={{
-                position: 'absolute', inset: 0, zIndex: 20, transformOrigin: `${HINGE}px 50%`, transformStyle: 'preserve-3d',
-                animation: chapterUp ? 'none' : 'pcLeafTurn 1.2s cubic-bezier(.55,.06,.35,1) both', pointerEvents: 'none',
-              }}
-            >
-              <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', borderRadius: 2, background: paperFace('left'), boxShadow: '0 1px 3px rgba(0,0,0,.2)', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', inset: '14px 14px 14px 26px', border: '1px solid rgba(184,144,74,.7)' }} />
-                <div style={{ position: 'absolute', inset: '18px 18px 18px 30px', border: '.5px solid rgba(184,144,74,.45)' }} />
-                <div style={{ position: 'absolute', inset: '21px 21px 21px 33px' }}>
-                  {(['tl', 'tr', 'bl', 'br'] as const).map((c) => <CornerOrnament key={c} corner={c} inset={0} size={20} />)}
-                </div>
-                <div style={{ position: 'absolute', inset: '30px 30px 30px 42px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
-                  <div style={{ fontSize: 8.5, letterSpacing: '.48em', textTransform: 'uppercase', color: UMBER, paddingLeft: '.48em' }}>{t.chapterWord}</div>
-                  <div className="pc-foil" style={{ fontFamily: FONT_DISPLAY, fontSize: 'clamp(56px,13vw,76px)', fontWeight: 500, lineHeight: 1, marginTop: 6 }}>{roman(chapter)}</div>
-                  <div style={{ margin: '14px 0 12px' }}>
-                    <Fleuron width={28} color="#B8904A" />
-                  </div>
-                  <div style={{ fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 'clamp(24px,5.6vw,32px)', lineHeight: 1.1, color: INK }}>{fabric.name}</div>
-                  <div style={{ marginTop: 8, fontSize: 9, letterSpacing: '.22em', textTransform: 'uppercase', color: 'rgba(28,25,23,.5)' }}>{fabric.hand}</div>
-                  {/* A die-cut window onto the chapter's first cutting. */}
-                  <div
-                    style={{
-                      width: 'clamp(60px,17vw,78px)', aspectRatio: '1', borderRadius: '50%', marginTop: 'clamp(16px,4vw,22px)', background: fabricTex(fabric, first, 3),
-                      boxShadow: 'inset 0 3px 9px rgba(0,0,0,.5), inset 0 0 0 1px rgba(0,0,0,.25), 0 0 0 5px #FAF5EA, 0 0 0 6px rgba(184,144,74,.75)',
-                    }}
-                  />
-                  <div style={{ marginTop: 14, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 14, color: UMBER, fontVariantNumeric: 'lining-nums' }}>
-                    {items.length} {items.length === 1 ? t.shade : t.shades}
-                  </div>
-                </div>
-              </div>
-              <div style={{ position: 'absolute', inset: 0, transform: 'rotateY(180deg)', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', borderRadius: 2, background: paperFace('right'), filter: 'brightness(.96)' }} />
-            </div>
-          )}
-
-          {order.slice(0, 3).map((pi, k) => {
-            const top = k === 0;
-            const page = pages[pi];
-            const rot = top ? (flinging ? -178 : angle) : 0;
-            return (
-              <div
-                key={pi}
-                onPointerDown={
-                  top && pages.length > 1
-                    ? (e) => {
-                        drag.current = { x: e.clientX, w: e.currentTarget.getBoundingClientRect().width, moved: false, a: 0 };
-                        setDragging(true);
-                      }
-                    : undefined
-                }
-                onClickCapture={(e) => {
-                  // A drag that turned (or tried to turn) the page is not a tap on a cutting.
-                  if (!dragged.current) return;
-                  dragged.current = false;
-                  e.stopPropagation();
-                }}
-                style={{
-                  position: 'absolute', inset: 0, zIndex: 10 - k, transformOrigin: `${HINGE}px 50%`, transformStyle: 'preserve-3d',
-                  transform: top ? `rotateY(${rot}deg)` : `translate(${k * 1.5}px, ${k * 1.5}px)`,
-                  transition: (dragging && top) || pi === settled ? 'none' : 'transform .76s cubic-bezier(.55,.06,.35,1)',
-                  touchAction: 'pan-y', userSelect: 'none', WebkitUserSelect: 'none', cursor: top && pages.length > 1 ? 'grab' : 'default',
-                }}
-              >
-                <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', borderRadius: 2, background: paperFace('left'), boxShadow: '0 1px 2px rgba(0,0,0,.14)', padding: `14px 16px 11px ${HINGE + 14}px` }}>
-                  <Page studio={studio} fabric={fabric} cuttings={page} interactive={top} t={t} chapter={chapter} folio={pi + 1} pages={pages.length} />
-                  {/* The page darkens as it lifts away from the light. */}
-                  <div aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'linear-gradient(90deg, rgba(40,24,10,.05), rgba(40,24,10,.32))', opacity: Math.min(1, -rot / 110), transition: dragging ? 'none' : 'opacity .76s ease' }} />
-                </div>
-                <div aria-hidden style={{ position: 'absolute', inset: 0, transform: 'rotateY(180deg)', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', borderRadius: 2, background: paperFace('right'), filter: 'brightness(.95)' }} />
-              </div>
-            );
-          })}
-
-          {/* The binding: a leather strip over the pages' inner margin, screwed through with brass
-              posts, so the pages are held to the book and turn on it. */}
-          <div aria-hidden style={{ position: 'absolute', left: -10, top: -3, bottom: -3, width: HINGE + 10, zIndex: 25, borderRadius: '0 3px 3px 0', background: LEATHER, overflow: 'hidden', boxShadow: '3px 0 6px rgba(30,10,4,.32), inset -1px 0 0 rgba(255,220,200,.14)' }}>
-            <Grain />
-            <div className="pc-foil-bg" style={{ position: 'absolute', right: 4, top: 8, bottom: 8, width: 1, opacity: 0.85 }} />
-            {[12, 50, 88].map((y) => <Screw key={y} y={y} x={HINGE + 10 - 11} />)}
-          </div>
-        </div>
-
-        {/* The front cover, hinged at the spine: closed with its title in gold foil as the book
-            arrives, then swinging open onto its marbled endpaper. */}
-        {!coverGone && (
-          <div
-            aria-hidden
-            style={{
-              position: 'absolute', top: 0, bottom: 0, left: 26, right: 0, zIndex: 30, transformOrigin: 'left center', transformStyle: 'preserve-3d',
-              animation: `pcCoverOpen ${COVER_SWING}ms ${COVER_DELAY}ms cubic-bezier(.6,.02,.3,1) both`, pointerEvents: 'none',
-            }}
-          >
-            <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}>
-              <CoverFace t={t} userName={studio.userName} line={coverLine} unclasp />
-            </div>
-            <div
-              style={{
-                position: 'absolute', inset: 0, transform: 'rotateY(180deg)', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', borderRadius: '10px 0 0 10px',
-                background: `${MARBLE} center / cover`, boxShadow: 'inset 0 0 0 10px #40101A, inset 0 0 0 11px rgba(205,169,96,.7), inset 0 0 30px rgba(0,0,0,.35)',
-              }}
-            />
-          </div>
-        )}
-      </Binding>
-      {pages.length > 1 && (
-        <button
-          onClick={turn}
-          className="pc-hv-ink"
-          style={{ cursor: 'pointer', marginTop: 34, background: 'none', border: 'none', fontFamily: FONT_BODY, fontSize: 10.5, letterSpacing: '.2em', textTransform: 'uppercase', color: 'rgba(28,25,23,.5)', display: 'inline-flex', alignItems: 'center', gap: 10 }}
-        >
-          {t.turnPage}
-          <svg width="22" height="10" viewBox="0 0 26 10" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden style={{ animation: 'pcNudge 2.4s ease-in-out infinite' }}>
-            <path d="M26 5H4M8 1L4 5l4 4" />
-          </svg>
-        </button>
-      )}
+    <div aria-hidden style={{ position: 'absolute', left: -10, top: -3, bottom: -3, width: HINGE + 10, zIndex: 25, borderRadius: '0 3px 3px 0', background: LEATHER, overflow: 'hidden', boxShadow: '3px 0 6px rgba(30,10,4,.32), inset -1px 0 0 rgba(255,220,200,.14)' }}>
+      <Grain />
+      <div className="pc-foil-bg" style={{ position: 'absolute', right: 4, top: 8, bottom: 8, width: 1, opacity: 0.85 }} />
+      {[12, 50, 88].map((y) => <Screw key={y} y={y} x={HINGE + 10 - 11} />)}
     </div>
   );
 }
 
-/** A photo-mount corner holding a cutting to the page. */
-function MountCorner({ corner }: { corner: 'tl' | 'tr' | 'bl' | 'br' }) {
-  const clip = {
-    tl: 'polygon(0 0, 100% 0, 0 100%)',
-    tr: 'polygon(0 0, 100% 0, 100% 100%)',
-    bl: 'polygon(0 0, 0 100%, 100% 100%)',
-    br: 'polygon(100% 0, 100% 100%, 0 100%)',
-  }[corner];
-  return (
-    <span
-      aria-hidden
-      style={{
-        position: 'absolute', width: 14, height: 14, pointerEvents: 'none', clipPath: clip,
-        [corner[0] === 't' ? 'top' : 'bottom']: -3, [corner[1] === 'l' ? 'left' : 'right']: -3,
-        background: 'linear-gradient(135deg, #6E242A, #3A0F14)',
-      }}
-    />
-  );
+/** A seeded pseudo-random in [0, 1) — the same cutting always falls the same way. */
+function seeded(key: string, salt: number) {
+  let h = 2166136261 ^ salt;
+  for (let i = 0; i < key.length; i++) h = Math.imul(h ^ key.charCodeAt(i), 16777619);
+  h = Math.imul(h ^ (h >>> 15), 2246822507);
+  return ((h ^ (h >>> 13)) >>> 0) / 4294967296;
 }
 
 /**
- * One page, set like a specimen plate: a running head with the chapter and fabric, up to six
- * cuttings in the layout for their number — each pinked, held by photo corners and labelled with
- * its shade number and name — and a folio at the foot.
+ * While browsing, the book is not yet bound: its cuttings lie loose on the table, each dropped at
+ * its own slight angle and pinned with its label, and a new fabric's cuttings fall in from the side
+ * it was reached from. Ordering binds them into the book.
  */
-function Page({ studio, fabric, cuttings, interactive, t, chapter, folio, pages }: { studio: Studio; fabric: FabricRow; cuttings: Cutting[]; interactive: boolean; t: Record<string, string>; chapter: number; folio: number; pages: number }) {
-  const [cols, rows, spanLast] = LAYOUT[cuttings.length] ?? LAYOUT[6];
-  const big = cuttings.length <= 2;
-  const small = { fontSize: 7.5, letterSpacing: '.3em', textTransform: 'uppercase' as const, color: 'rgba(138,109,69,.85)' };
+function LooseCuttings({ studio, fabric, items, dir }: { studio: Studio; fabric: FabricRow; items: Cutting[]; dir: 1 | -1 }) {
+  const { t } = studio;
+  const n = items.length;
+  const cols = n === 1 ? 1 : n <= 4 ? 2 : 3;
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 8, ...small }}>
-        <span style={{ textAlign: 'left', whiteSpace: 'nowrap' }}>
-          {t.chapterWord} {roman(chapter)}
-        </span>
-        <span aria-hidden style={{ width: 4, height: 4, transform: 'rotate(45deg)', background: '#B8904A' }} />
-        <span style={{ textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fabric.name}</span>
-      </div>
-      <div aria-hidden style={{ height: 1, marginTop: 7, background: 'linear-gradient(90deg, rgba(138,109,69,.1), rgba(138,109,69,.45), rgba(138,109,69,.1))' }} />
-      <div style={{ flex: 1, minHeight: 0, marginTop: 12, display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))`, gridTemplateRows: `repeat(${rows}, minmax(0,1fr))`, columnGap: 14, rowGap: 10 }}>
-        {cuttings.map(({ pin, colour }, i) => {
-          const last = i === cuttings.length - 1;
-          return (
-            <div
-              key={`${pin.fabricId}-${pin.colourOrder}`}
-              style={{ display: 'flex', flexDirection: 'column', minHeight: 0, gridColumn: spanLast && last ? '1 / -1' : undefined, animation: `tileIn .8s ${150 + i * 80}ms cubic-bezier(.22,.8,.2,1) both` }}
-            >
-              <div style={{ position: 'relative', flex: 1, minHeight: 0, margin: '3px 3px 0', filter: 'drop-shadow(0 1px 1px rgba(40,26,12,.3)) drop-shadow(0 5px 8px rgba(40,26,12,.14))' }}>
-                <div
-                  onClick={interactive ? () => studio.openFabric(pin.fabricId, fabric.colours.indexOf(colour)) : undefined}
-                  className="pc-pinked"
-                  style={{ position: 'absolute', inset: 0, cursor: interactive ? 'pointer' : 'default', background: fabricTex(fabric, colour, 4) }}
-                />
-                <div aria-hidden className="pc-pinked" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'linear-gradient(155deg, rgba(255,255,255,.18), transparent 38%, transparent 70%, rgba(0,0,0,.14))' }} />
-                {(['tl', 'tr', 'bl', 'br'] as const).map((c) => <MountCorner key={c} corner={c} />)}
-                {interactive && (
-                  <button
-                    aria-label={`Remove ${colour.name}`}
-                    onClick={() => studio.removePin(pin)}
-                    className="pc-hv-scale-06"
-                    style={{
-                      position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: '50%', display: 'grid', placeItems: 'center', cursor: 'pointer', padding: 0,
-                      background: 'rgba(252,249,241,.94)', border: '1px solid rgba(201,169,110,.6)', fontSize: 13, lineHeight: 1, color: '#6B5433',
-                    }}
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-              <div style={{ marginTop: big ? 8 : 6, textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.1 }}>
-                <span style={{ fontSize: big ? 8.5 : 7, letterSpacing: '.22em', textTransform: 'uppercase', color: '#9C7A45', fontVariantNumeric: 'lining-nums' }}>
+    <div
+      style={{
+        margin: 'clamp(26px,4vw,40px) auto 0', width: n === 1 ? 'min(100%, 330px)' : cols === 2 ? 'min(100%, 440px)' : 'min(100%, 540px)',
+        display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))`, columnGap: cols === 3 ? 'clamp(6px,2vw,18px)' : 'clamp(12px,3vw,24px)', rowGap: 'clamp(4px,1.6vw,14px)',
+        padding: '6px 8px 10px',
+      }}
+    >
+      {items.map(({ pin, colour }, i) => {
+        const key = `${pin.fabricId}-${pin.colourOrder}`;
+        const r = (seeded(key, 3) - 0.5) * 16;
+        const vars = {
+          '--jx': `${((seeded(key, 1) - 0.5) * 12).toFixed(1)}%`,
+          '--jy': `${((seeded(key, 2) - 0.5) * 10).toFixed(1)}%`,
+          '--r': `${r.toFixed(1)}deg`,
+          '--dx': `${dir * 90}px`,
+        } as CSSProperties;
+        const small = cols === 3;
+        return (
+          <div key={key} className="pc-loose" style={{ ...vars, position: 'relative', aspectRatio: n === 1 ? '5 / 4' : '4 / 5', zIndex: 1 + ((i * 7) % n), animation: `pcDrop .95s ${140 + i * 75}ms cubic-bezier(.2,.8,.25,1) backwards` }}>
+            <div style={{ position: 'absolute', inset: 0, filter: 'drop-shadow(0 2px 2px rgba(40,26,12,.28)) drop-shadow(0 10px 14px rgba(40,26,12,.16))' }}>
+              <div
+                onClick={() => studio.openFabric(pin.fabricId, fabric.colours.indexOf(colour))}
+                className="pc-pinked"
+                style={{ position: 'absolute', inset: 0, cursor: 'pointer', background: fabricTex(fabric, colour, 4) }}
+              />
+              <div aria-hidden className="pc-pinked" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'linear-gradient(155deg, rgba(255,255,255,.2), transparent 38%, transparent 68%, rgba(0,0,0,.16))' }} />
+              {/* A dressmaker's pin through the top, pearl head and steel shank. */}
+              <span aria-hidden style={{ position: 'absolute', top: small ? 7 : 10, left: small ? 12 : 16, width: small ? 24 : 32, height: 1.4, transformOrigin: '0 50%', transform: 'rotate(-22deg)', background: 'linear-gradient(90deg, #8E9297, #E6E8EA 45%, #9EA3A8)', borderRadius: 1, pointerEvents: 'none' }} />
+              <span aria-hidden style={{ position: 'absolute', top: small ? 3 : 6, left: small ? 8 : 12, width: small ? 8 : 10, height: small ? 8 : 10, borderRadius: '50%', background: 'radial-gradient(circle at 35% 30%, #FFFFFF, #F1E6D2 45%, #BFA27A)', boxShadow: '0 1px 2px rgba(0,0,0,.35)', pointerEvents: 'none' }} />
+              {/* The label, a small luggage tag with its punched hole. */}
+              <div
+                style={{
+                  position: 'absolute', left: small ? 5 : 9, bottom: small ? 9 : 13, maxWidth: `calc(100% - ${small ? 10 : 18}px)`, pointerEvents: 'none',
+                  padding: small ? '3px 7px 3px 13px' : '5px 10px 5px 17px', background: '#FBF6EA',
+                  clipPath: `polygon(${small ? 7 : 9}px 0, 100% 0, 100% 100%, ${small ? 7 : 9}px 100%, 0 50%)`,
+                  display: 'flex', alignItems: 'baseline', gap: 5, whiteSpace: 'nowrap', overflow: 'hidden',
+                }}
+              >
+                <span aria-hidden style={{ position: 'absolute', left: small ? 5 : 7, top: '50%', width: 4, height: 4, marginTop: -2, borderRadius: '50%', background: 'rgba(60,40,20,.35)' }} />
+                <span style={{ fontSize: small ? 6.5 : 8, letterSpacing: '.18em', textTransform: 'uppercase', color: '#9C7A45', fontVariantNumeric: 'lining-nums' }}>
                   {t.shadeNo} {String(colour.order).padStart(2, '0')}
                 </span>
-                <span style={{ marginLeft: 7, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: big ? 17 : 13.5, color: INK }}>{colour.name}</span>
+                <span style={{ fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: small ? 12 : n === 1 ? 17 : 14.5, color: INK, overflow: 'hidden', textOverflow: 'ellipsis' }}>{colour.name}</span>
               </div>
+              <button
+                aria-label={`Remove ${colour.name}`}
+                onClick={() => studio.removePin(pin)}
+                className="pc-hv-scale-06"
+                style={{
+                  position: 'absolute', top: small ? 6 : 9, right: small ? 6 : 9, width: small ? 20 : 24, height: small ? 20 : 24, borderRadius: '50%', display: 'grid', placeItems: 'center', cursor: 'pointer', padding: 0,
+                  background: 'rgba(252,249,241,.94)', border: '1px solid rgba(201,169,110,.6)', fontSize: 13, lineHeight: 1, color: '#6B5433',
+                }}
+              >
+                ×
+              </button>
             </div>
-          );
-        })}
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'baseline', gap: 8, marginTop: 9, ...small, fontVariantNumeric: 'lining-nums' }}>
-        <span style={{ textAlign: 'left', whiteSpace: 'nowrap' }}>
-          {cuttings.length} {cuttings.length === 1 ? t.shade : t.shades}
-        </span>
-        <span style={{ fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 12, letterSpacing: 0, textTransform: 'none', color: UMBER }}>— {roman(folio).toLowerCase()} —</span>
-        <span style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>{pages > 1 ? `${t.pageWord} ${folio} / ${pages}` : ''}</span>
-      </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

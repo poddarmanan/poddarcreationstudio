@@ -630,6 +630,8 @@ model Quote {
   subject        String
   // Inquiry details (Priority 7).
   email          String?
+  /// Where the buyer asked to receive their compiled swatch book.
+  whatsapp       String?
   moq            String?
   expectedQty    String?
   country        String?

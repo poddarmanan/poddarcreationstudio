@@ -7,7 +7,7 @@ type QuoteItem = { id: string; fabric: { name: string }; colour: { name: string;
 type QuoteEvent = { id: string; type: string; fromStatus: string | null; toStatus: string | null; note: string | null; createdAt: string };
 type Quote = {
   id: string; name: string; company: string; email: string | null; quantity: string; subject: string;
-  moq: string | null; expectedQty: string | null; country: string | null; shippingMethod: string | null; timeline: string | null; message: string | null;
+  whatsapp?: string | null; moq: string | null; expectedQty: string | null; country: string | null; shippingMethod: string | null; timeline: string | null; message: string | null;
   status: string; createdAt: string; assignee: { id: string; name: string } | null; items: QuoteItem[]; events?: QuoteEvent[];
   currency: string; totalValue: number | null; priceNote: string | null; validUntil: string | null;
 };
@@ -187,8 +187,16 @@ export function QuoteDesk({ quotes: initial, staff, me }: { quotes: Quote[]; sta
                     {priceError && <div style={{ marginTop: 8, fontSize: 12.5, color: '#A33' }}>{priceError}</div>}
                   </div>
 
-                  {(q.message || q.expectedQty || q.shippingMethod || q.timeline) && (
+                  {(q.message || q.expectedQty || q.shippingMethod || q.timeline || q.whatsapp) && (
                     <div style={{ marginTop: 14, fontSize: 13, fontWeight: 300, lineHeight: 1.7, color: 'rgba(28,25,23,.65)' }}>
+                      {q.whatsapp && (
+                        <div>
+                          <b style={{ fontWeight: 500 }}>Send the book on WhatsApp:</b>{' '}
+                          <a href={`https://wa.me/${q.whatsapp.replace(/[^\d]/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#8A6D45' }}>
+                            {q.whatsapp}
+                          </a>
+                        </div>
+                      )}
                       {q.expectedQty && <div><b style={{ fontWeight: 500 }}>Expected:</b> {q.expectedQty}</div>}
                       {q.shippingMethod && <div><b style={{ fontWeight: 500 }}>Shipping:</b> {q.shippingMethod}</div>}
                       {q.timeline && <div><b style={{ fontWeight: 500 }}>Timeline:</b> {q.timeline}</div>}
