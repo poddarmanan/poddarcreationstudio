@@ -7,6 +7,7 @@ import { FONT_DISPLAY, fabricTex } from './helpers';
 import { Room, roman } from './SwatchBook';
 import { AuthScreen } from './AuthScreen';
 import { CartGlyph } from './CartGlyph';
+import { ShipPay, Steps, addressText, PAYMENT_LABEL, type Payment, type When } from './ShipPay';
 import { confettiBurst } from './confetti';
 import { oklchToRgb, rgbToHex } from '@/lib/colour-science';
 import type { OrderState } from './BookCeremony';
@@ -56,9 +57,13 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
     const next = fn(cartMetres);
     for (const l of lines) if (next[l.key] !== cartMetres[l.key]) studio.setCartMetres(l.x.id, l.c.order, next[l.key]);
   };
-  const [when, setWhen] = useState<'soon' | '2w' | 'month'>('soon');
+  const [when, setWhen] = useState<When>('soon');
+  const [payment, setPayment] = useState<Payment>('upi');
+  const [addressId, setAddressId] = useState<string | null>(null);
   const [note, setNote] = useState('');
-  const [phase, setPhase] = useState<'edit' | 'auth' | 'dispatch'>('edit');
+  // The review, then signing in if need be, then the dispatch details, then the parcel.
+  const [phase, setPhase] = useState<'edit' | 'auth' | 'ship' | 'dispatch'>('edit');
+  const [buyer, setBuyer] = useState<{ whatsapp: string | null; demo: boolean }>({ whatsapp: null, demo: false });
   const [order, setOrder] = useState<{ state: OrderState; ref?: string; whatsapp: string | null }>({ state: 'pending', whatsapp: null });
   const [warn, setWarn] = useState(0);
 
@@ -72,7 +77,12 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
 
   // What was ordered stays on the dispatch page even as the cart empties behind it.
   const [sent, setSent] = useState<{ lines: Line[]; total: number; value: number } | null>(null);
-  const send = (whatsapp: string | null, demo: boolean) => {
+  const go = (p: typeof phase) => {
+    window.scrollTo(0, 0);
+    setPhase(p);
+  };
+  const send = (shipTo: string) => {
+    const { whatsapp, demo } = buyer;
     window.scrollTo(0, 0);
     setSent({ lines: chosen, total, value });
     setPhase('dispatch');
@@ -82,20 +92,20 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
     };
     if (demo) return placed();
     studio
-      .orderFabric({ lines: chosen.map((l) => ({ fabricId: l.x.id, colourId: l.c.id, metres: m(l.key) })), timeline: whenLabel, note, whatsapp: whatsapp ?? undefined })
+      .orderFabric({ lines: chosen.map((l) => ({ fabricId: l.x.id, colourId: l.c.id, metres: m(l.key) })), timeline: whenLabel, note, whatsapp: whatsapp ?? undefined, shipTo, payment: PAYMENT_LABEL[payment] })
       .then((r) => {
         if (r.ok) placed();
         setOrder((o) => ({ ...o, state: r.ok ? 'sent' : 'failed', ref: r.ref }));
       });
   };
-  const place = async () => {
+  // On to the dispatch details, signing in first if need be: the address book is the account's.
+  const next = async () => {
     if (!chosen.length) return setWarn((n) => n + 1);
-    if (PREVIEW || !studio.signedIn) {
-      window.scrollTo(0, 0);
-      return setPhase('auth');
-    }
-    send(await studio.accountWhatsapp(), false);
+    if (PREVIEW || !studio.signedIn) return go('auth');
+    setBuyer({ whatsapp: await studio.accountWhatsapp(), demo: false });
+    go('ship');
   };
+  const onStep = (i: 0 | 1) => (i === 0 ? onBack() : go('edit'));
 
   if (phase === 'auth')
     return (
@@ -103,11 +113,29 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
         studio={studio}
         intent="order"
         metres={total}
-        onClose={() => {
-          setPhase('edit');
-          window.scrollTo(0, 0);
+        onClose={() => go('edit')}
+        onDone={async (r) => {
+          setBuyer({ whatsapp: r.whatsapp || (r.demo ? null : await studio.accountWhatsapp()), demo: r.demo });
+          go('ship');
         }}
-        onDone={(r) => send(r.whatsapp, r.demo)}
+      />
+    );
+  if (phase === 'ship')
+    return (
+      <ShipPay
+        studio={studio}
+        fromCart={fromCart}
+        shades={chosen.length}
+        total={total}
+        value={value}
+        when={when}
+        setWhen={setWhen}
+        payment={payment}
+        setPayment={setPayment}
+        addressId={addressId}
+        setAddressId={setAddressId}
+        onStep={onStep}
+        onPlace={(a) => send(addressText(a))}
       />
     );
   if (phase === 'dispatch')
@@ -119,10 +147,7 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
         value={sent?.value ?? value}
         order={order}
         onDone={onBack}
-        onRetry={() => {
-          setPhase('edit');
-          window.scrollTo(0, 0);
-        }}
+        onRetry={() => go('ship')}
       />
     );
 
@@ -139,23 +164,7 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
       </div>
 
       {/* Where the buyer is: the cart (or book), this review, then the dispatch. */}
-      <ol className="pc-steps" aria-label={t.stepReview}>
-        {[fromCart ? t.cartWord : t.book, t.stepReview, t.stepDispatch].map((label, i) => (
-          <li key={i} className={i === 1 ? 'is-on' : i === 0 ? 'is-done' : undefined} aria-current={i === 1 ? 'step' : undefined}>
-            {i === 0 ? (
-              <button onClick={onBack}>
-                <span className="pc-steps-num">{roman(i + 1)}</span>
-                {label}
-              </button>
-            ) : (
-              <>
-                <span className="pc-steps-num">{roman(i + 1)}</span>
-                {label}
-              </>
-            )}
-          </li>
-        ))}
-      </ol>
+      <Steps studio={studio} fromCart={fromCart} at={1} onStep={onStep} />
 
       {/* The title plate. */}
       <div aria-hidden style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, marginTop: 14 }}>
@@ -194,7 +203,7 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
             <div style={{ textAlign: 'right' }}>
               <span className="pc-slip-small">{today}</span>
               <span className="pc-slip-small" style={{ marginTop: 4 }}>
-                {groups.length} {groups.length === 1 ? t.fabricWordOne : t.fabricWordMany} · {lines.length} {t.shadesChosen}
+                {groups.length} {groups.length === 1 ? t.fabricWordOne : t.fabricWordMany} · {lines.length} {lines.length === 1 ? t.shade : t.shadesChosen}
               </span>
             </div>
           </div>
@@ -268,24 +277,13 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
         <div aria-hidden className="pc-slip-edge" />
       </div>
 
-      {/* When it is needed, as three tiles, and a note for the mill. */}
-      <section className="pc-order-sheet pc-when" style={{ animation: `pcFieldIn .9s ${0.95 + groups.length * 0.1}s cubic-bezier(.2,.8,.2,1) both` }}>
-        <div className="pc-when-title">{t.whenNeeded}</div>
-        <div role="radiogroup" aria-label={t.whenNeeded} className="pc-when-tiles">
-          {(['soon', '2w', 'month'] as const).map((w) => (
-            <button key={w} role="radio" aria-checked={when === w} className={`pc-add-tile pc-when-tile${when === w ? ' is-on' : ''}`} onClick={() => setWhen(w)}>
-              <span aria-hidden className="pc-add-tick">✓</span>
-              <span className="pc-when-fig">{w === 'soon' ? t.whenSoonShort : w === '2w' ? t.when2wShort : t.whenMonthShort}</span>
-              <span className="pc-add-tile-sub">{w === 'soon' ? t.whenSoon : w === '2w' ? t.when2w : t.whenMonth}</span>
-            </button>
-          ))}
-        </div>
-        <label className="pc-auth-field" style={{ marginTop: 16 }}>
-          <input className="pc-auth-input" value={note} placeholder=" " onChange={(e) => setNote(e.target.value.slice(0, 500))} />
-          <span className="pc-auth-label">{t.noteForMill}</span>
-          <span aria-hidden className="pc-auth-line" />
-        </label>
-      </section>
+      {/* A note for the mill; when it is needed, where it goes and how it is paid for follow at dispatch. */}
+      <label className="pc-note" style={{ animation: `pcFieldIn .9s ${0.95 + groups.length * 0.1}s cubic-bezier(.2,.8,.2,1) both` }}>
+        <svg aria-hidden width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17z" />
+        </svg>
+        <input aria-label={t.noteForMill} value={note} placeholder={t.noteForMill} onChange={(e) => setNote(e.target.value.slice(0, 500))} />
+      </label>
 
       {/* The dock: the running total, the estimate, and the order. */}
       <div className="pc-order-dock" style={{ animation: 'pcDockIn .9s 1.1s cubic-bezier(.2,.9,.25,1) both' }}>
@@ -294,14 +292,14 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
             {inr(total)} <span>m</span>
           </div>
           <div className="pc-dock-meta">
-            {chosen.length} {t.shadesChosen}
+            {chosen.length} {chosen.length === 1 ? t.shade : t.shadesChosen}
             <br />
             <b>₹ {inr(value)}</b>
           </div>
         </div>
-        <button key={warn} className="pc-order-place" onClick={place} style={{ animation: warn ? 'pcShake .5s cubic-bezier(.36,.07,.19,.97) both' : undefined }}>
-          <span aria-hidden>✦</span>
-          {t.placeOrder}
+        <button key={warn} className="pc-order-place" onClick={next} style={{ animation: warn ? 'pcShake .5s cubic-bezier(.36,.07,.19,.97) both' : undefined }}>
+          {t.continueWord}
+          <span aria-hidden>→</span>
         </button>
       </div>
       {warn > 0 && !chosen.length && <div style={{ marginTop: 10, fontSize: 12.5, color: '#A5392B' }}>{t.nothingChosen}</div>}
@@ -436,7 +434,7 @@ function Dispatch({
             ))}
           </div>
           <div style={{ marginTop: 6, fontSize: 10.5, letterSpacing: '.18em', textTransform: 'uppercase', color: 'rgba(28,25,23,.5)', fontVariantNumeric: 'lining-nums' }}>
-            {inr(total)} m · {lines.length} {t.shadesChosen}
+            {inr(total)} m · {lines.length} {lines.length === 1 ? t.shade : t.shadesChosen}
           </div>
         </div>
 

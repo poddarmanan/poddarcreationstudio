@@ -11,6 +11,22 @@ import { FABRIC_STORIES } from '@/lib/fabric-generator';
 export type View = 'home' | 'showroom' | 'fabric' | 'colours' | 'book' | 'cart' | 'admin';
 
 /** A line in the cart: a shade, and how many metres of it. */
+/** A delivery address from the buyer's address book. */
+export interface Address {
+  id: string;
+  label: string;
+  contactName?: string | null;
+  phone?: string | null;
+  line1: string;
+  line2?: string | null;
+  city: string;
+  state?: string | null;
+  pincode?: string | null;
+  country?: string;
+  isDefault?: boolean;
+}
+export type AddressInput = Omit<Address, 'id' | 'isDefault'>;
+
 export interface CartLine {
   fabricId: string;
   colourOrder: number;
@@ -110,7 +126,11 @@ export interface Studio {
    * Orders the fabric itself, skipping the swatch book: the metres for each shade, when it is
    * needed, and a note. Resolves to whether the server took it, and its reference.
    */
-  orderFabric: (order: { lines: { fabricId: string; colourId: string; metres: number }[]; timeline: string; note: string; whatsapp?: string }) => Promise<{ ok: boolean; status: number; ref?: string }>;
+  orderFabric: (order: { lines: { fabricId: string; colourId: string; metres: number }[]; timeline: string; note: string; whatsapp?: string; shipTo?: string; payment?: string }) => Promise<{ ok: boolean; status: number; ref?: string }>;
+  /** The buyer's saved delivery addresses, default first (kept on this device on the static preview). */
+  listAddresses: () => Promise<Address[]>;
+  /** Saves a delivery address to the buyer's book; the first becomes the default. */
+  addAddress: (input: AddressInput) => Promise<Address | null>;
   /** The signed-in buyer's WhatsApp number on file, or null (and null when signed out). */
   accountWhatsapp: () => Promise<string | null>;
   /** Saves a WhatsApp number to the signed-in buyer's profile. */
@@ -446,7 +466,7 @@ export function useStudio(rawFabrics: FabricRow[]): Studio {
   );
 
   const orderFabric = useCallback(
-    async ({ lines, timeline, note, whatsapp }: { lines: { fabricId: string; colourId: string; metres: number }[]; timeline: string; note: string; whatsapp?: string }) => {
+    async ({ lines, timeline, note, whatsapp, shipTo, payment }: { lines: { fabricId: string; colourId: string; metres: number }[]; timeline: string; note: string; whatsapp?: string; shipTo?: string; payment?: string }) => {
       const total = lines.reduce((s, l) => s + l.metres, 0);
       const subject = lines
         .map((l) => {
@@ -468,6 +488,8 @@ export function useStudio(rawFabrics: FabricRow[]): Studio {
             message: note.trim() || undefined,
             items: lines.map((l) => ({ fabricId: l.fabricId, colourId: l.colourId, quantity: l.metres, unit: 'm' })),
             ...(whatsapp ? { whatsapp } : {}),
+            ...(shipTo ? { shipTo } : {}),
+            ...(payment ? { paymentMethod: payment } : {}),
           }),
         });
         const data = (await res.json().catch(() => ({}))) as { quote?: { id?: string } };
@@ -477,6 +499,45 @@ export function useStudio(rawFabrics: FabricRow[]): Studio {
       }
     },
     [fab]
+  );
+
+  // The address book: the account's on the live site, this device's on the static preview.
+  const listAddresses = useCallback(async (): Promise<Address[]> => {
+    if (process.env.NEXT_PUBLIC_BASE_PATH) {
+      try {
+        const saved = JSON.parse(localStorage.getItem('pc-addresses') || '[]') as Address[];
+        return Array.isArray(saved) ? saved : [];
+      } catch {
+        return [];
+      }
+    }
+    try {
+      const res = await fetch('/api/portal/addresses');
+      if (!res.ok) return [];
+      return ((await res.json()) as { addresses: Address[] }).addresses;
+    } catch {
+      return [];
+    }
+  }, []);
+  const addAddress = useCallback(
+    async (input: AddressInput): Promise<Address | null> => {
+      if (process.env.NEXT_PUBLIC_BASE_PATH) {
+        const was = await listAddresses();
+        const address: Address = { ...input, id: `local-${Date.now()}`, isDefault: !was.length };
+        try {
+          localStorage.setItem('pc-addresses', JSON.stringify([...was, address]));
+        } catch {}
+        return address;
+      }
+      try {
+        const res = await fetch('/api/portal/addresses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) });
+        if (!res.ok) return null;
+        return ((await res.json()) as { address: Address }).address;
+      } catch {
+        return null;
+      }
+    },
+    [listAddresses]
   );
 
   const accountWhatsapp = useCallback(async () => {
@@ -664,6 +725,8 @@ export function useStudio(rawFabrics: FabricRow[]): Studio {
     orderBook,
     orderFabric,
     accountWhatsapp,
+    listAddresses,
+    addAddress,
     saveWhatsapp,
     quoteBusy,
     aiOpen,

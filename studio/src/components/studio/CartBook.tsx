@@ -142,7 +142,7 @@ export function CartBook({ studio }: { studio: Studio }) {
               {inr(total)} <span>m</span>
             </div>
             <div className="pc-dock-meta">
-              {unset ? <span style={{ color: '#A5392B' }}>{unset} {t.notSet.toLowerCase()}</span> : `${cuts.length} ${t.shadesChosen}`}
+              {unset ? <span style={{ color: '#A5392B' }}>{unset} {t.notSet.toLowerCase()}</span> : `${cuts.length} ${cuts.length === 1 ? t.shade : t.shadesChosen}`}
               <br />
               <b>₹ {inr(value)}</b>
             </div>

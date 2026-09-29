@@ -536,7 +536,7 @@ total metres, the shades (or how many are not set) and the value, and an ink "Ch
 
 **The checkout page** (and the direct order page) has three parts:
 - **Steps:** a line of three steps by numeral: I Cart (or Book) · II Review · III Dispatch. The
-  current step's numeral is gold, and the first step is a way back.
+  current step's numeral is gold, and the steps behind it (ticked) are ways back.
 - **The order slip:** letterpress paper with a gold rule at its top. Its head reads "Poddar
   Creation · Surat" and "Order slip", with the date and the count of fabrics and shades opposite,
   over a gold double rule. Each fabric then follows:
@@ -547,9 +547,33 @@ total metres, the shades (or how many are not set) and the value, and an ink "Ch
   The totals are ruled off as in a ledger: metres and shades on dotted leaders, then the estimate
   large under a double gold rule. The fine print sits beneath, and the slip ends in a pinked foot,
   as if torn from a pad.
-- **When it is needed:** three tiles like the chooser's ("Now", "2 weeks", "1 month", each with
-  its full wording beneath). The chosen tile turns to ink edged in gold. The note for the mill
-  follows.
+- **A note for the mill:** one slim line with a pen mark, then "Continue →" in the dock.
+
+**III Dispatch** (`ShipPay.tsx`), titled "Delivery & *Payment*", comes after the review. A buyer
+who is not signed in signs in first, since the address book belongs to the account. It has three
+sections, each headed by its numeral in a gold ring:
+- **Ship to:** the buyer's saved addresses as cards (`/api/portal/addresses`, the
+  `ShippingAddress` book), default first and chosen already. Each card shows its label (with a gold
+  "Default" pill), contact name, lines, city, state and PIN, and phone; the chosen one is edged in
+  gold with a gold dot. "+ Add a new address" opens a sheet with the form:
+  - label, contact name and phone;
+  - address lines, city, PIN code and state.
+
+  Saving adds the address to the book, the first becoming the default, and chooses it. With no
+  saved address, the form opens by itself. On the static preview the book is kept on the device
+  (`localStorage` `pc-addresses`).
+- **When do you need it?** Three tiles like the chooser's ("Now", "2 weeks", "1 month", each with
+  its full wording beneath). The chosen tile turns to ink edged in gold.
+- **Payment:** UPI, Bank transfer (NEFT · RTGS · IMPS) and Credit terms (for approved accounts), as
+  rows with an icon disc and a radio ring. Nothing is charged on the site. The note says so: once
+  the team confirms the final price on WhatsApp, it sends the payment details for the chosen
+  method.
+
+The dock gives the metres, where the order ships and the estimate, with "Place order". Without an
+address, it shakes and opens the form.
+
+The order (`Quote`) carries the address written out (`shipTo`) and the payment method
+(`paymentMethod`, migration `m47_order_ship_pay`), with the timing. The quote desk shows both.
 
 **Italics are kept for accents only.** Only the last word of a page's heading is italic (Swatch
 *Book*, Your *Cart*, Your *Order*), as is the PC monogram on the cover. Body copy, names,

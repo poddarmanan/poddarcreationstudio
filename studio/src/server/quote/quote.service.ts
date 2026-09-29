@@ -18,6 +18,8 @@ export interface CreateQuoteInput {
   expectedQty?: string | null;
   country?: string | null;
   shippingMethod?: string | null;
+  shipTo?: string | null;
+  paymentMethod?: string | null;
   timeline?: string | null;
   message?: string | null;
   items: { fabricId: string; colourId: string; quantity?: number; unit?: string }[];
@@ -106,6 +108,8 @@ export class QuoteService {
         expectedQty: input.expectedQty,
         country: input.country,
         shippingMethod: input.shippingMethod,
+        shipTo: input.shipTo,
+        paymentMethod: input.paymentMethod,
         timeline: input.timeline,
         message: input.message,
         status: 'SUBMITTED',

@@ -747,7 +747,7 @@ button.pc-auth-link:disabled { cursor: default; }
    above the tabs; the order itself is the one ink mark on it. */
 .pc-order-dock {
   position: sticky; bottom: calc(86px + env(safe-area-inset-bottom)); z-index: 5; width: min(100%, 560px); margin-top: 22px; display: flex; align-items: center; justify-content: space-between; gap: 14px;
-  padding: 13px 12px 13px 20px; border-radius: 20px; background: linear-gradient(180deg, #FFFCF4, #F5ECDA); border: 1px solid rgba(184, 144, 74, .55);
+  padding: 13px 12px 13px 20px; border-radius: 20px; text-align: left; background: linear-gradient(180deg, #FFFCF4, #F5ECDA); border: 1px solid rgba(184, 144, 74, .55);
   box-shadow: 0 16px 36px rgba(60, 40, 18, .2), 0 2px 6px rgba(60, 40, 18, .08), inset 0 1px 0 #FFFFFF;
 }
 .pc-order-dock::before { content: ''; position: absolute; left: 22px; right: 22px; top: -1px; height: 1px; background: linear-gradient(90deg, transparent, #D8B670, transparent); }
@@ -818,6 +818,63 @@ button.pc-auth-link:disabled { cursor: default; }
 .pc-when-tile { padding: 12px 6px 10px; gap: 3px; }
 .pc-when-fig { font-family: var(--font-display), 'Cormorant Garamond', serif; font-size: 19px; line-height: 1.1; font-variant-numeric: lining-nums; }
 .pc-when-tile .pc-add-tile-sub { font-size: 9px; letter-spacing: .06em; line-height: 1.3; }
+
+/* A note for the mill, on the review: one slim line. */
+.pc-note {
+  display: flex; align-items: center; gap: 10px; width: min(100%, 560px); margin-top: 14px; padding: 0 14px; height: 46px; border-radius: 14px; cursor: text;
+  border: 1px solid rgba(184, 144, 74, .35); background: rgba(255, 253, 247, .85); color: #8A6D45; transition: border-color .3s ease, box-shadow .3s ease;
+}
+.pc-note:focus-within { border-color: rgba(184, 144, 74, .9); box-shadow: 0 0 0 3px rgba(216, 182, 112, .18); }
+.pc-note input { flex: 1; min-width: 0; height: 100%; border: none; outline: none; background: transparent; font-family: var(--font-body), 'Jost', sans-serif; font-size: 13.5px; color: #1C1917; }
+.pc-note input::placeholder { color: rgba(28, 25, 23, .42); }
+
+/* Dispatch details: each section headed by its numeral in a gold ring. */
+.pc-ship-head { display: flex; align-items: center; gap: 12px; }
+.pc-ship-head .pc-slip-num { width: 30px; height: 30px; font-size: 13px; }
+/* Saved addresses: cards with a radio ring; the chosen one edged in gold with a gold dot. */
+.pc-addr-list { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+.pc-addr {
+  display: flex; align-items: flex-start; gap: 12px; width: 100%; padding: 14px 14px 14px 12px; border-radius: 14px; cursor: pointer; text-align: left;
+  border: 1px solid rgba(184, 144, 74, .3); background: linear-gradient(180deg, #FFFDF7, #F8F0E0); color: #1C1917;
+  transition: border-color .35s ease, box-shadow .35s ease, transform .3s cubic-bezier(.22, .8, .2, 1);
+}
+.pc-addr:active { transform: scale(.99); }
+.pc-addr.is-on { border-color: rgba(184, 144, 74, .95); box-shadow: 0 0 0 1px rgba(184, 144, 74, .6), 0 10px 22px rgba(40, 26, 12, .12); }
+.pc-addr-radio { flex: none; position: relative; width: 20px; height: 20px; margin-top: 1px; border-radius: 50%; border: 1px solid rgba(138, 109, 69, .55); background: #FFFDF8; transition: border-color .3s ease; }
+.pc-addr-radio::after { content: ''; position: absolute; inset: 4px; border-radius: 50%; background: linear-gradient(135deg, #E9CF8F, #B8904A); transform: scale(0); transition: transform .4s cubic-bezier(.3, 1.6, .5, 1); }
+.pc-addr.is-on .pc-addr-radio, .pc-pay.is-on .pc-addr-radio { border-color: #B8904A; }
+.pc-addr.is-on .pc-addr-radio::after, .pc-pay.is-on .pc-addr-radio::after { transform: none; }
+.pc-addr-label { display: flex; align-items: center; gap: 8px; font-size: 9.5px; letter-spacing: .22em; text-transform: uppercase; color: #8A6D45; }
+.pc-addr-default { padding: 2px 7px; border-radius: 999px; font-size: 8px; letter-spacing: .16em; color: #1C1917; background: linear-gradient(135deg, #F6E3A8, #D8B670); }
+.pc-addr-name { display: block; margin-top: 5px; font-family: var(--font-display), 'Cormorant Garamond', serif; font-size: 18px; line-height: 1.15; }
+.pc-addr-lines { display: block; margin-top: 3px; font-size: 12.5px; line-height: 1.5; color: rgba(28, 25, 23, .68); }
+.pc-addr-phone { display: block; margin-top: 3px; font-size: 11px; letter-spacing: .06em; color: rgba(28, 25, 23, .5); font-variant-numeric: lining-nums; }
+.pc-addr-add {
+  display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 14px; border-radius: 14px; cursor: pointer;
+  border: 1px dashed rgba(138, 109, 69, .55); background: rgba(255, 253, 248, .5); font-family: var(--font-body), 'Jost', sans-serif; font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: #1C1917;
+  transition: background-color .3s ease, border-color .3s ease;
+}
+.pc-addr-add span { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; font-size: 15px; letter-spacing: 0; color: #1C1917; background: linear-gradient(135deg, #F6E3A8, #D8B670); }
+.pc-addr-add:hover { background: #FFFDF8; border-color: rgba(138, 109, 69, .9); }
+.pc-addr-loading { height: 96px; border-radius: 14px; background: linear-gradient(90deg, rgba(255, 253, 248, .5), rgba(255, 250, 238, .95), rgba(255, 253, 248, .5)); background-size: 200% 100%; animation: pcShimmer 1.4s ease-in-out 4; }
+@keyframes pcShimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+.pc-addr-form { display: flex; flex-direction: column; gap: 4px; margin-top: 12px; }
+/* Payment: rows with an icon disc and a radio ring. */
+.pc-pay-list { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+.pc-pay {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 11px 14px 11px 11px; border-radius: 14px; cursor: pointer;
+  border: 1px solid rgba(184, 144, 74, .3); background: linear-gradient(180deg, #FFFDF7, #F8F0E0); color: #1C1917;
+  transition: border-color .35s ease, box-shadow .35s ease;
+}
+.pc-pay.is-on { border-color: rgba(184, 144, 74, .95); box-shadow: 0 0 0 1px rgba(184, 144, 74, .6), 0 8px 18px rgba(40, 26, 12, .1); }
+.pc-pay-icon { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; color: #8A6D45; border: 1px solid rgba(184, 144, 74, .5); background: #FFFDF8; transition: color .35s ease, background-color .35s ease; }
+.pc-pay.is-on .pc-pay-icon { color: #1C1917; background: linear-gradient(135deg, #F6E3A8, #D8B670); border-color: rgba(255, 240, 200, .6); }
+.pc-pay-name { display: block; font-family: var(--font-display), 'Cormorant Garamond', serif; font-size: 18px; line-height: 1.15; }
+.pc-pay-sub { display: block; margin-top: 2px; font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: rgba(28, 25, 23, .5); }
+.pc-pay-note { display: flex; gap: 8px; margin: 14px 0 0; font-size: 11.5px; line-height: 1.55; color: rgba(28, 25, 23, .58); }
+.pc-pay-note span { flex: none; font-size: 9px; color: #C9A45A; margin-top: 3px; }
+.pc-order-place span:last-child:not(:first-child) { color: #D8B670; }
+@media (prefers-reduced-motion: reduce) { .pc-addr-loading { animation: none !important; } }
 
 /* The dispatch: a kraft parcel seen from a little above. */
 .pc-parcel-shadow { position: absolute; left: 50%; bottom: 8%; width: 70%; height: 24%; border-radius: 50%; background: radial-gradient(closest-side, rgba(60, 38, 16, .35), transparent); transition: transform 1.2s cubic-bezier(.22, .8, .2, 1); }

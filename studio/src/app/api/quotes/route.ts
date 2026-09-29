@@ -21,6 +21,9 @@ const QuoteInput = z.object({
   expectedQty: z.string().max(120).nullish(),
   country: z.string().max(120).nullish(),
   shippingMethod: z.string().max(120).nullish(),
+  // A fabric order's delivery address, written out, and the chosen payment method.
+  shipTo: z.string().max(1000).nullish(),
+  paymentMethod: z.string().max(120).nullish(),
   timeline: z.string().max(120).nullish(),
   message: z.string().max(2000).nullish(),
   // A direct fabric order gives the metres for each shade; a swatch book or a quote request does not.
@@ -55,6 +58,8 @@ export async function POST(req: Request) {
         expectedQty: data.expectedQty,
         country: data.country,
         shippingMethod: data.shippingMethod,
+        shipTo: data.shipTo,
+        paymentMethod: data.paymentMethod,
         timeline: data.timeline,
         message: data.message,
         items: data.items,

@@ -650,6 +650,10 @@ model Quote {
   email          String?
   /// Where the buyer asked to receive their compiled swatch book.
   whatsapp       String?
+  /// A fabric order's delivery address, written out as it stood when the order was placed.
+  shipTo         String?
+  /// How the buyer chose to pay (UPI, bank transfer, credit terms); collected after pricing.
+  paymentMethod  String?
   moq            String?
   expectedQty    String?
   country        String?

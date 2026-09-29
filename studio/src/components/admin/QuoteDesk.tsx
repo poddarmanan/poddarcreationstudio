@@ -7,7 +7,7 @@ type QuoteItem = { id: string; fabric: { name: string }; colour: { name: string;
 type QuoteEvent = { id: string; type: string; fromStatus: string | null; toStatus: string | null; note: string | null; createdAt: string };
 type Quote = {
   id: string; name: string; company: string; email: string | null; quantity: string; subject: string;
-  whatsapp?: string | null; moq: string | null; expectedQty: string | null; country: string | null; shippingMethod: string | null; timeline: string | null; message: string | null;
+  whatsapp?: string | null; moq: string | null; expectedQty: string | null; country: string | null; shippingMethod: string | null; shipTo?: string | null; paymentMethod?: string | null; timeline: string | null; message: string | null;
   status: string; createdAt: string; assignee: { id: string; name: string } | null; items: QuoteItem[]; events?: QuoteEvent[];
   currency: string; totalValue: number | null; priceNote: string | null; validUntil: string | null;
 };
@@ -187,7 +187,7 @@ export function QuoteDesk({ quotes: initial, staff, me }: { quotes: Quote[]; sta
                     {priceError && <div style={{ marginTop: 8, fontSize: 12.5, color: '#A33' }}>{priceError}</div>}
                   </div>
 
-                  {(q.message || q.expectedQty || q.shippingMethod || q.timeline || q.whatsapp) && (
+                  {(q.message || q.expectedQty || q.shippingMethod || q.shipTo || q.paymentMethod || q.timeline || q.whatsapp) && (
                     <div style={{ marginTop: 14, fontSize: 13, fontWeight: 300, lineHeight: 1.7, color: 'rgba(28,25,23,.65)' }}>
                       {q.whatsapp && (
                         <div>
@@ -199,6 +199,8 @@ export function QuoteDesk({ quotes: initial, staff, me }: { quotes: Quote[]; sta
                       )}
                       {q.expectedQty && <div><b style={{ fontWeight: 500 }}>Expected:</b> {q.expectedQty}</div>}
                       {q.shippingMethod && <div><b style={{ fontWeight: 500 }}>Shipping:</b> {q.shippingMethod}</div>}
+                      {q.shipTo && <div style={{ whiteSpace: 'pre-line' }}><b style={{ fontWeight: 500 }}>Ship to:</b> {q.shipTo}</div>}
+                      {q.paymentMethod && <div><b style={{ fontWeight: 500 }}>Payment:</b> {q.paymentMethod}</div>}
                       {q.timeline && <div><b style={{ fontWeight: 500 }}>Timeline:</b> {q.timeline}</div>}
                       {q.message && <div style={{ marginTop: 6, fontStyle: 'italic' }}>“{q.message}”</div>}
                     </div>
