@@ -955,6 +955,42 @@ button.pc-auth-link:disabled { cursor: default; }
   .pc-money { display: none; }
 }
 
+/* Checking out, measured: a brass tape case, the gold tape unrolling with its ticks and numbers,
+   the metres and the value counting up, and scissors snipping it. */
+.pc-measure { position: fixed; inset: 0; z-index: 150; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity .45s ease; }
+.pc-measure.is-out { opacity: 0; }
+.pc-measure-veil { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 45%, rgba(255, 251, 240, .97), rgba(238, 228, 208, .97)); animation: pcFadeIn .35s ease both; }
+.pc-measure-read { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; animation: pcRiseIn .6s .2s ease both; }
+.pc-measure-label { font-size: 9.5px; letter-spacing: .42em; padding-left: .42em; text-transform: uppercase; color: #8A6D45; }
+.pc-measure-metres { margin-top: 8px; font-family: var(--font-display), 'Cormorant Garamond', serif; font-weight: 500; font-size: clamp(52px, 14vw, 72px); line-height: 1; color: #1C1917; font-variant-numeric: lining-nums tabular-nums; }
+.pc-measure-metres em { font-style: normal; font-size: .4em; color: #8A6D45; }
+.pc-measure-value { margin-top: 6px; font-size: 11px; letter-spacing: .2em; color: #8A6D45; font-variant-numeric: lining-nums tabular-nums; }
+.pc-measure-band { position: relative; width: min(92vw, 560px); height: 72px; margin-top: 30px; }
+.pc-measure-case {
+  position: absolute; left: 0; top: 50%; z-index: 2; width: 66px; height: 66px; margin-top: -33px; border-radius: 50%; display: grid; place-items: center;
+  background: radial-gradient(circle at 35% 30%, #FFF1C2, #D8B25E 45%, #8A6524 100%); border: 1px solid rgba(90, 62, 20, .6); box-shadow: 0 8px 18px rgba(60, 40, 10, .3), inset 0 0 0 5px rgba(255, 240, 200, .25);
+  animation: pcCaseIn .5s .1s cubic-bezier(.3, 1.5, .5, 1) both, pcCaseSpin 1.2s .7s cubic-bezier(.3, .7, .3, 1) both;
+}
+.pc-measure-case span { width: 16px; height: 16px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #FFF8E0, #A77E2E 70%); box-shadow: 0 1px 2px rgba(0, 0, 0, .4); }
+.pc-measure-case::after { content: ''; position: absolute; inset: 12px; border-radius: 50%; border: 1px dashed rgba(90, 62, 20, .45); }
+@keyframes pcCaseIn { from { transform: scale(.3); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes pcCaseSpin { from { rotate: 0deg; } to { rotate: -900deg; } }
+.pc-measure-tape { position: absolute; left: 40px; right: 0; top: 50%; height: 30px; margin-top: -15px; clip-path: inset(0 100% 0 0); animation: pcTapeOut 1.2s .7s cubic-bezier(.3, .7, .3, 1) forwards; }
+@keyframes pcTapeOut { to { clip-path: inset(0 0 0 0); } }
+.pc-measure-cutoff {
+  position: absolute; inset: 0; overflow: hidden; border-top: 1px solid rgba(120, 90, 30, .5); border-bottom: 1px solid rgba(120, 90, 30, .5); box-shadow: 0 6px 12px rgba(60, 40, 10, .18);
+  background:
+    repeating-linear-gradient(90deg, rgba(28, 25, 23, .7) 0 1px, transparent 1px 5px) top / 100% 7px no-repeat,
+    repeating-linear-gradient(90deg, rgba(28, 25, 23, .85) 0 1.5px, transparent 1.5px 50px) top / 100% 13px no-repeat,
+    linear-gradient(180deg, #F6E0A0, #E2C063);
+  transition: transform .55s cubic-bezier(.5, 0, .75, .3), opacity .55s ease;
+}
+.pc-measure-cutoff i { position: absolute; bottom: 2px; transform: translateX(-50%); font-family: var(--font-body), 'Jost', sans-serif; font-style: normal; font-size: 9px; font-weight: 600; color: rgba(28, 25, 23, .8); }
+.pc-measure.is-cut .pc-measure-cutoff, .pc-measure.is-out .pc-measure-cutoff { transform: translateY(90px) rotate(7deg); opacity: 0; }
+.pc-measure-scissors { position: absolute; right: -8px; top: 50%; z-index: 3; margin-top: -15px; color: #1C1917; opacity: 0; animation: pcRiseIn .4s 1.6s ease both; }
+.pc-measure.is-cut .pc-measure-scissors svg { animation: pcSnipShut .28s ease both; }
+@keyframes pcSnipShut { 50% { transform: rotate(-22deg) scale(1.15); } 100% { transform: rotate(0); } }
+
 /* Ship to: the route from the mill to the address chosen. */
 .pc-route { margin-top: 12px; }
 .pc-route svg { display: block; width: 100%; height: auto; overflow: visible; }

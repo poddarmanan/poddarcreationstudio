@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import type { Studio } from './state';
 import type { FabricRow } from '@/lib/types';
@@ -40,6 +40,9 @@ export function CartBook({ studio }: { studio: Studio }) {
   const [checkout, setCheckout] = useState(false);
   const [picking, setPicking] = useState<Picking | null>(null);
   const [warn, setWarn] = useState(0);
+  // Checking out is measured first: the open sheet's cuttings fly into a tailor's tape, which
+  // unrolls to the order's metres and is snipped, and the review opens under it.
+  const [measuring, setMeasuring] = useState<{ total: number; value: number; flights: { rect: DOMRect; bg: string }[] } | null>(null);
   const pickPresence = usePresence(!!picking, 380);
   // The picker keeps what it was showing while it animates out.
   const [shownPick, setShownPick] = useState<Picking | null>(null);
@@ -55,8 +58,24 @@ export function CartBook({ studio }: { studio: Studio }) {
     }))
     .filter((g) => g.items.length);
 
+  const measure = measuring && (
+    <MeasureMoment
+      studio={studio}
+      total={measuring.total}
+      value={measuring.value}
+      flights={measuring.flights}
+      onCut={() => {
+        window.scrollTo(0, 0);
+        setCheckout(true);
+      }}
+      onGone={() => setMeasuring(null)}
+    />
+  );
+
   if (checkout)
     return (
+      <>
+      {measure}
       <FabricOrder
         studio={studio}
         source="cart"
@@ -65,6 +84,7 @@ export function CartBook({ studio }: { studio: Studio }) {
           window.scrollTo(0, 0);
         }}
       />
+      </>
     );
   if (!groups.length) return <EmptyCart studio={studio} />;
 
@@ -83,7 +103,10 @@ export function CartBook({ studio }: { studio: Studio }) {
     setPicking(null);
   };
 
+  // The measuring sits first in both this and the checkout, so it carries on across the switch.
   return (
+    <>
+    {measure}
     <Room>
       <div style={{ textAlign: 'center', userSelect: 'none', WebkitUserSelect: 'none' }}>
         {/* The title plate, as the Swatch Book's. */}
@@ -154,8 +177,17 @@ export function CartBook({ studio }: { studio: Studio }) {
             onClick={() => {
               // Every shade needs its metres first: the button shakes, and the ask above does too.
               if (unset) return setWarn((n) => n + 1);
-              window.scrollTo(0, 0);
-              setCheckout(true);
+              if (measuring) return;
+              if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                window.scrollTo(0, 0);
+                return setCheckout(true);
+              }
+              // The cuttings on the sheet in view, to fly into the tape.
+              const flights = [...document.querySelectorAll<HTMLElement>('[aria-roledescription="sheets"] > div:last-child .pc-pinked')]
+                .slice(0, 9)
+                .map((el) => ({ rect: el.getBoundingClientRect(), bg: el.style.background }))
+                .filter((f) => f.rect.bottom > 0 && f.rect.top < window.innerHeight);
+              setMeasuring({ total, value, flights });
             }}
           >
             <span aria-hidden>✦</span>
@@ -184,6 +216,7 @@ export function CartBook({ studio }: { studio: Studio }) {
         />
       )}
     </Room>
+    </>
   );
 }
 
@@ -299,6 +332,117 @@ function MetrePicker({
             {t.removeFromCart}
           </button>
         )}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+/**
+ * Checking out, measured: the cuttings on the sheet in view lift off and fly into a brass tape
+ * case; the gold tape unrolls across the screen, ticked and numbered, while the metres and the
+ * value count up; then scissors snip it, the cut length falls away, and the review opens beneath.
+ */
+function MeasureMoment({
+  studio, total, value, flights, onCut, onGone,
+}: {
+  studio: Studio; total: number; value: number; flights: { rect: DOMRect; bg: string }[]; onCut: () => void; onGone: () => void;
+}) {
+  const { t } = studio;
+  const caseRef = useRef<HTMLDivElement | null>(null);
+  const metresRef = useRef<HTMLSpanElement | null>(null);
+  const valueRef = useRef<HTMLSpanElement | null>(null);
+  const [stage, setStage] = useState<'in' | 'cut' | 'out'>('in');
+  const hooks = useRef({ onCut, onGone });
+  useEffect(() => {
+    hooks.current = { onCut, onGone };
+  });
+
+  useEffect(() => {
+    // The cuttings fly into the case.
+    const to = caseRef.current?.getBoundingClientRect();
+    const layer = document.body;
+    const made: HTMLElement[] = [];
+    if (to) {
+      flights.forEach((f, i) => {
+        const el = document.createElement('span');
+        el.className = 'pc-pinked';
+        Object.assign(el.style, {
+          position: 'fixed', left: `${f.rect.left}px`, top: `${f.rect.top}px`, width: `${f.rect.width}px`, height: `${f.rect.height}px`,
+          background: f.bg, zIndex: '160', pointerEvents: 'none', boxShadow: '0 8px 16px rgba(40,26,12,.3)', willChange: 'transform, opacity',
+        });
+        layer.appendChild(el);
+        made.push(el);
+        const dx = to.left + to.width / 2 - (f.rect.left + f.rect.width / 2);
+        const dy = to.top + to.height / 2 - (f.rect.top + f.rect.height / 2);
+        el.animate(
+          [
+            { transform: 'none', opacity: 1 },
+            { transform: `translate(${dx * 0.3}px, ${dy * 0.3 - 60}px) rotate(${(i % 2 ? 1 : -1) * 40}deg) scale(.8)`, opacity: 1, offset: 0.45 },
+            { transform: `translate(${dx}px, ${dy}px) rotate(${(i % 2 ? 1 : -1) * 220}deg) scale(.12)`, opacity: 0.3 },
+          ],
+          { duration: 750, delay: 120 + i * 60, easing: 'cubic-bezier(.45,.05,.4,1)', fill: 'both' },
+        ).onfinish = () => el.remove();
+      });
+    }
+    // The metres and the value count up as the tape runs out.
+    const started = performance.now() + 700;
+    let raf = 0;
+    const tick = (now: number) => {
+      const k = Math.max(0, Math.min(1, (now - started) / 1100));
+      const e = 1 - Math.pow(1 - k, 3);
+      if (metresRef.current) metresRef.current.textContent = Math.round(total * e).toLocaleString('en-IN');
+      if (valueRef.current) valueRef.current.textContent = Math.round(value * e).toLocaleString('en-IN');
+      if (k < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    const timers = [
+      window.setTimeout(() => setStage('cut'), 2000),
+      window.setTimeout(() => hooks.current.onCut(), 2450),
+      window.setTimeout(() => setStage('out'), 2500),
+      window.setTimeout(() => hooks.current.onGone(), 2950),
+    ];
+    return () => {
+      cancelAnimationFrame(raf);
+      timers.forEach((x) => window.clearTimeout(x));
+      made.forEach((el) => el.remove());
+    };
+  }, [flights, total, value]);
+
+  // Numbers along the tape, every 50 px.
+  const marks = Array.from({ length: 24 }, (_, i) => (i + 1) * 10);
+  return createPortal(
+    <div className={`pc-measure is-${stage}`} role="status" aria-live="polite">
+      <div className="pc-measure-veil" />
+      <div className="pc-measure-read">
+        <span className="pc-measure-label">{t.measuring}</span>
+        <span className="pc-measure-metres">
+          <span ref={metresRef}>0</span> <em>m</em>
+        </span>
+        <span className="pc-measure-value">
+          ₹ <span ref={valueRef}>0</span>
+        </span>
+      </div>
+      <div className="pc-measure-band">
+        <div ref={caseRef} className="pc-measure-case" aria-hidden>
+          <span />
+        </div>
+        <div className="pc-measure-tape" aria-hidden>
+          <div className="pc-measure-cutoff">
+            {marks.map((n) => (
+              <i key={n} style={{ left: `${n * 5}px` }}>
+                {n}
+              </i>
+            ))}
+          </div>
+        </div>
+        <span className="pc-measure-scissors" aria-hidden>
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="6" cy="6" r="3" />
+            <circle cx="6" cy="18" r="3" />
+            <path d="M8.1 8.1 20 20M8.1 15.9 20 4" />
+          </svg>
+        </span>
       </div>
     </div>,
     document.body,

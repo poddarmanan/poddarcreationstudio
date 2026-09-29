@@ -528,6 +528,13 @@ with a slider alone.
 
 **The dock** follows the page on a slip of the studio's cream paper, edged in gold. It shows the
 total metres, the shades (or how many are not set) and the value, and an ink "Checkout" button.
+- **Checking out is measured first** (`MeasureMoment` in `CartBook.tsx`, about 2.5 seconds). A
+  cream veil comes over the page and the cuttings on the open sheet lift off and fly into a brass
+  tailor's tape case. The case spins as the gold tape unrolls across the screen, ticked every
+  centimetre and numbered every ten, while "Measuring your order" counts the metres and the value
+  up to the order's own. Scissors then snip the tape and the cut length drops away, as the review
+  opens beneath and its printer starts. The measuring is kept mounted across that switch, so it
+  plays once. With reduced motion, Checkout goes straight to the review.
 - **While any shade is unset,** "Checkout" is dimmed. Pressing it shakes the button and the notice,
   and says "Select metres for every shade to check out."
 - **Checkout** is the direct order page (`FabricOrder` with `source="cart"`), titled "Your *Order*",
