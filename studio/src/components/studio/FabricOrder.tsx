@@ -46,7 +46,8 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
     .filter((g) => g.lines.length);
   const lines: Line[] = groups.flatMap((g) => g.lines);
 
-  const [bookMetres, setBookMetres] = useState<Record<string, number>>(() => Object.fromEntries(lines.map((l) => [l.key, 100])));
+  // Nothing is assumed: every shade starts without metres, and the buyer sets them.
+  const [bookMetres, setBookMetres] = useState<Record<string, number>>(() => Object.fromEntries(lines.map((l) => [l.key, 0])));
   // The cart's metres live in the cart itself, so they are kept between visits.
   const cartMetres = Object.fromEntries(lines.map((l) => [l.key, studio.cart.find((c) => c.fabricId === l.x.id && c.colourOrder === l.c.order)?.metres ?? 0]));
   const metres = fromCart ? cartMetres : bookMetres;
@@ -153,7 +154,7 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
           </span>
         ))}
       </h1>
-      <p style={{ margin: '12px 0 0', maxWidth: 360, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 16.5, lineHeight: 1.45, color: UMBER, animation: 'pcRiseIn .9s .6s cubic-bezier(.2,.8,.2,1) both' }}>{fromCart ? t.cartSub : t.directSub}</p>
+      <p style={{ margin: '12px 0 0', maxWidth: 360, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 16.5, lineHeight: 1.45, color: UMBER, animation: 'pcRiseIn .9s .6s cubic-bezier(.2,.8,.2,1) both' }}>{fromCart ? t.checkoutSub : t.directSub}</p>
       <div aria-hidden style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 16 }}>
         <span style={{ width: 30, height: 1, background: 'linear-gradient(90deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'right', animation: 'pcRuleDraw 1s .8s cubic-bezier(.2,.8,.2,1) both' }} />
         <span style={{ width: 6, height: 6, background: 'rgba(168,134,79,.95)', animation: 'pcDiamondIn .8s .7s cubic-bezier(.2,.8,.2,1) both' }} />
@@ -184,21 +185,23 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
                   <div style={{ marginTop: 3, fontSize: 9, letterSpacing: '.2em', textTransform: 'uppercase', color: 'rgba(28,25,23,.5)' }}>{t.perMetre}</div>
                 </div>
               </div>
-              {/* Set every shade of the fabric at once. */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 14 }}>
-                <span style={{ fontSize: 9, letterSpacing: '.24em', textTransform: 'uppercase', color: 'rgba(28,25,23,.5)', marginRight: 4 }}>{t.setAll}</span>
-                {PRESETS.map((v) => {
-                  const on = g.lines.every((l) => m(l.key) === v);
-                  return (
-                    <button key={v} className={`pc-order-chip${on ? ' is-on' : ''}`} onClick={() => setMetres((was) => ({ ...was, ...Object.fromEntries(g.lines.map((l) => [l.key, v])) }))}>
-                      {v} m
-                    </button>
-                  );
-                })}
-              </div>
+              {/* Set every shade of the fabric at once (the cart's are set in the cart, by slider). */}
+              {!fromCart && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 14 }}>
+                  <span style={{ fontSize: 9, letterSpacing: '.24em', textTransform: 'uppercase', color: 'rgba(28,25,23,.5)', marginRight: 4 }}>{t.setAll}</span>
+                  {PRESETS.map((v) => {
+                    const on = g.lines.every((l) => m(l.key) === v);
+                    return (
+                      <button key={v} className={`pc-order-chip${on ? ' is-on' : ''}`} onClick={() => setMetres((was) => ({ ...was, ...Object.fromEntries(g.lines.map((l) => [l.key, v])) }))}>
+                        {v} m
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
               <div style={{ marginTop: 10 }}>
                 {g.lines.map((l, i) => (
-                  <Row key={l.key} line={l} metres={m(l.key)} t={t} delay={1 + gi * 0.12 + i * 0.05} onChange={(v) => setM(l.key, v)} onRemove={fromCart ? () => studio.removeFromCart(l.x.id, l.c.order) : undefined} />
+                  <Row key={l.key} line={l} metres={m(l.key)} t={t} delay={1 + gi * 0.12 + i * 0.05} onChange={(v) => setM(l.key, v)} readOnly={fromCart} onRemove={fromCart ? () => studio.removeFromCart(l.x.id, l.c.order) : undefined} />
                 ))}
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(138,109,69,.25)', fontSize: 10, letterSpacing: '.2em', textTransform: 'uppercase', color: UMBER, fontVariantNumeric: 'lining-nums' }}>
@@ -255,33 +258,39 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
 }
 
 /** A shade's row: its cutting, its name, a stepper for the metres, and the line's value. */
-function Row({ line, metres, t, delay, onChange, onRemove }: { line: Line; metres: number; t: Record<string, string>; delay: number; onChange: (v: number) => void; onRemove?: () => void }) {
+function Row({ line, metres, t, delay, onChange, onRemove, readOnly }: { line: Line; metres: number; t: Record<string, string>; delay: number; onChange: (v: number) => void; onRemove?: () => void; readOnly?: boolean }) {
   const off = metres === 0;
   return (
-    <div className="pc-order-row" style={{ opacity: off ? 0.5 : 1, animation: `pcFieldIn .7s ${delay}s cubic-bezier(.2,.8,.2,1) both` }}>
+    <div className="pc-order-row" style={{ animation: `pcFieldIn .7s ${delay}s cubic-bezier(.2,.8,.2,1) both` }}>
       <span aria-hidden className="pc-pinked" style={{ width: 38, height: 46, flex: 'none', background: fabricTex(line.x, line.c, 3), transform: `rotate(${((line.c.order * 37) % 9) - 4}deg)`, boxShadow: '0 3px 6px rgba(40,26,12,.22)' }} />
       <div style={{ minWidth: 0, flex: 1 }}>
         <div style={{ fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 18, lineHeight: 1.1, color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{line.c.name}</div>
         <div style={{ marginTop: 2, fontSize: 9, letterSpacing: '.2em', textTransform: 'uppercase', color: off ? '#A5392B' : 'rgba(28,25,23,.45)', fontVariantNumeric: 'lining-nums' }}>
-          {off ? t.notIncluded : onRemove ? `₹ ${inr(metres * line.x.price)}` : `${t.shadeNo} ${String(line.c.order).padStart(2, '0')} · ₹ ${inr(metres * line.x.price)}`}
+          {off ? t.notSet : onRemove ? `₹ ${inr(metres * line.x.price)}` : `${t.shadeNo} ${String(line.c.order).padStart(2, '0')} · ₹ ${inr(metres * line.x.price)}`}
         </div>
       </div>
-      <div className="pc-stepper">
-        <button aria-label={`Fewer metres of ${line.c.name}`} onClick={() => onChange(metres - STEP)} disabled={off}>
-          −
-        </button>
-        <input
-          aria-label={`Metres of ${line.c.name}`}
-          inputMode="numeric"
-          value={metres}
-          onChange={(e) => onChange(Number(e.target.value.replace(/\D/g, '')) || 0)}
-          style={{ fontVariantNumeric: 'lining-nums' }}
-        />
-        <span aria-hidden className="pc-stepper-unit">m</span>
-        <button aria-label={`More metres of ${line.c.name}`} onClick={() => onChange(metres + STEP)}>
-          +
-        </button>
-      </div>
+      {readOnly ? (
+        <div className="pc-order-metres">
+          {inr(metres)} <span>m</span>
+        </div>
+      ) : (
+        <div className="pc-stepper">
+          <button aria-label={`Fewer metres of ${line.c.name}`} onClick={() => onChange(metres - STEP)} disabled={off}>
+            −
+          </button>
+          <input
+            aria-label={`Metres of ${line.c.name}`}
+            inputMode="numeric"
+            value={metres}
+            onChange={(e) => onChange(Number(e.target.value.replace(/\D/g, '')) || 0)}
+            style={{ fontVariantNumeric: 'lining-nums' }}
+          />
+          <span aria-hidden className="pc-stepper-unit">m</span>
+          <button aria-label={`More metres of ${line.c.name}`} onClick={() => onChange(metres + STEP)}>
+            +
+          </button>
+        </div>
+      )}
       {onRemove && (
         <button aria-label={`${t.removeWord} ${line.c.name}`} className="pc-order-remove" onClick={onRemove}>
           ×

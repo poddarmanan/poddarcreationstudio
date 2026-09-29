@@ -52,8 +52,8 @@ const sheetGrid = (n: number): [number, number] => (n <= 1 ? [1, 1] : n <= 2 ? [
 const AREA_ASPECT = 1.13;
 
 export type Group = { x: FabricRow; items: Cutting[] };
-/** What the cart's sheets do: a cutting opens its metres; a fabric's title sets all of its shades at once (or, with no figure, opens the picker for all). */
-export type CartHooks = { onPick: (c: Cutting, g: Group) => void; onAll: (g: Group, metres: number | null) => void };
+/** What the cart's sheets do: a cutting opens the metre picker for it; a fabric's title opens it for all of its shades. */
+export type CartHooks = { onPick: (c: Cutting, g: Group) => void; onAll: (g: Group) => void };
 type Sheet = { key: string; g: number; kind: 'title' } | { key: string; g: number; kind: 'plate'; page: number; pages: number; items: Cutting[] };
 
 /**
@@ -727,6 +727,7 @@ function SheetFace({ studio, sheet, group, interactive, cart }: { studio: Studio
   if (sheet.kind === 'title') {
     const pages = Math.ceil(group.items.length / PER_SHEET);
     const metres = group.items.reduce((sum, c) => sum + (c.metres ?? 0), 0);
+    const unset = group.items.filter((c) => !c.metres).length;
     return (
       <div style={{ position: 'absolute', inset: 0 }}>
         <div style={{ position: 'absolute', inset: 14, border: '1px solid rgba(184,144,74,.7)' }} />
@@ -756,20 +757,16 @@ function SheetFace({ studio, sheet, group, interactive, cart }: { studio: Studio
               <div style={{ marginTop: 12, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 14, color: UMBER, fontVariantNumeric: 'lining-nums', whiteSpace: 'nowrap' }}>
                 ₹ {inr(group.x.price)} / {t.metre} · {group.items.length} {group.items.length === 1 ? t.shade : t.shades}
               </div>
-              <div key={metres} style={{ marginTop: 2, fontFamily: FONT_DISPLAY, fontSize: 21, color: INK, fontVariantNumeric: 'lining-nums', whiteSpace: 'nowrap', animation: 'pcTick .35s cubic-bezier(.2,1.4,.4,1)' }}>
-                {inr(metres)} m <span style={{ color: 'rgba(138,109,69,.6)' }}>·</span> ₹ {inr(metres * group.x.price)}
-              </div>
-              <div className="pc-sheet-presets" style={{ pointerEvents: interactive ? 'auto' : 'none' }}>
-                <span>{t.setAll}</span>
-                {[50, 100, 250, 500].map((v) => (
-                  <button key={v} tabIndex={interactive ? 0 : -1} className={group.items.every((c) => c.metres === v) ? 'is-on' : undefined} onClick={() => cart.onAll(group, v)}>
-                    {v}
-                  </button>
-                ))}
-                <button tabIndex={interactive ? 0 : -1} aria-label={t.setMetres} onClick={() => cart.onAll(group, null)}>
-                  ···
-                </button>
-              </div>
+              {unset ? (
+                <div className="pc-sheet-ask">{unset === 1 ? t.metresNeededOne : t.metresNeeded.replace('{n}', String(unset))}</div>
+              ) : (
+                <div key={metres} style={{ marginTop: 2, fontFamily: FONT_DISPLAY, fontSize: 21, color: INK, fontVariantNumeric: 'lining-nums', whiteSpace: 'nowrap', animation: 'pcTick .35s cubic-bezier(.2,1.4,.4,1)' }}>
+                  {inr(metres)} m <span style={{ color: 'rgba(138,109,69,.6)' }}>·</span> ₹ {inr(metres * group.x.price)}
+                </div>
+              )}
+              <button className="pc-sheet-set" tabIndex={interactive ? 0 : -1} style={{ pointerEvents: interactive ? 'auto' : 'none' }} onClick={() => cart.onAll(group)}>
+                {t.setAllMetres}
+              </button>
             </>
           ) : (
             <div style={{ marginTop: 14, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 14, color: UMBER, fontVariantNumeric: 'lining-nums' }}>
@@ -886,8 +883,14 @@ function LooseCutting({
       {/* In the cart, its metres on a small ink tab above the label: tapping the cutting sets them. */}
       {metres !== undefined && (
         <span key={metres} className={`pc-cut-metres${tiny ? ' is-tiny' : ''}${metres === 0 ? ' is-off' : ''}`} style={{ left: tiny ? 3 : 9, bottom: tiny ? 28 : big ? 50 : 44 }}>
-          {inr(metres)}
-          <small> m</small>
+          {metres ? (
+            <>
+              {inr(metres)}
+              <small> m</small>
+            </>
+          ) : (
+            t.setMetres
+          )}
         </span>
       )}
       {/* Always drawn, so a sheet arriving on top shows the same marks it had beneath; only

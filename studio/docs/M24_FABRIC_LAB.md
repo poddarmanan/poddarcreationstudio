@@ -421,7 +421,8 @@ as it arrives. It opens the order page (`FabricOrder.tsx`), in the Swatch Book's
   - its numeral, name, weight and width, and its price per metre;
   - "All" presets (50, 100, 250 or 500 m) that set every shade of the fabric at once;
   - a row for each shade: a pinked cutting, the name, its number, the line's value, and a
-    stepper (± 25 m, or typed). A shade set to 0 m dims and reads "Not included";
+    stepper (± 25 m, or typed). Every shade starts at 0 m, with nothing assumed, and reads
+    "Not set" until its metres are chosen; shades left at 0 m are not ordered;
   - the fabric's metres and value at the foot.
 - **When it is needed** (as soon as possible, within two weeks, within a month), and a note for
   the mill.
@@ -461,18 +462,25 @@ container and the dock sticks to the window.
 ### The cart
 
 The lab's action is now **"Add to…"**. It asks where the shades go, in a compact sheet over the lab
-(`AddChooser.tsx`). The sheet keeps one type scale and one left edge: 9.5px spaced capitals for
-labels, the display face at 20–22px for the fabric and figures, and 26px for the heading. From the
-top:
-- **Header:** the shades as small pinked chips, their count, the fabric's name, and a close mark.
-- **Heading:** "Where shall it go?".
-- **Switch:** Cart or Swatch Book, with an ink thumb edged in gold that slides to the one chosen.
-- **The choice, on ruled lines.** Its height stays the same whichever is chosen.
-  - Cart: the metres as a segmented 50 · 100 · 250 · 500 (100 by default), then the price per
-    metre (and "3 × 250 m" for several shades) with the value, which ticks as it changes. A note
-    gives any metres already in the cart.
-  - Swatch Book: "A cutting of each shade, bound and sent to you", with "✓ In your book" if so.
-- **Button:** the studio's ink pill, "Add to Cart · ₹ 55,500" or "Add to Swatch Book".
+(`AddChooser.tsx`). From the top:
+- **The shades,** fanned as pinked cuttings. Under them are the fabric's name in spaced capitals
+  and the shades by name in italic (or "N shades"). A close mark sits at the corner.
+- **The question:** a gold rule with a diamond, then "Where shall it go?", centred.
+- **Two paper tiles, side by side:**
+  - Cart, "The fabric, by the metre";
+  - Swatch Book, "A cutting of each shade".
+
+  Each has its icon in a gold-ringed disc. The chosen tile turns to ink edged in gold, lifts
+  slightly, fills its disc with gold and shows a gold tick at its corner.
+- **One italic line** says what the choice means:
+  - for the cart, "₹ 96 / metre ✦ metres chosen in your cart", plus a note of any metres already
+    there;
+  - for the book, "Bound into your book when you order it".
+- **The button:** the studio's ink pill, "Add to Cart" or "Add to Swatch Book".
+
+**No metres are asked for, or assumed, when adding to the cart.** The shades go into the cart
+with none set. The buyer chooses them in the cart, and the note that follows says so ("… · choose
+metres in cart").
 
 Under the button, "✓ In your book" and "✓ In your cart" say where the shade on the stage already
 is.
@@ -497,27 +505,33 @@ fabric numerals. Its title plate reads "Your *Cart*", with the shades, the fabri
 metres.
 - **Each fabric's title sheet** also gives:
   - the price per metre;
-  - what the fabric comes to (metres and ₹);
-  - an "All" row of 50 · 100 · 250 · 500 and "···" that sets every shade at once.
+  - what the fabric comes to (metres and ₹), or "Select metres for N shades" in red while any are
+    unset;
+  - a "Set metres for all" button that opens the picker for every shade of it.
 - **Its sheets of scattered cuttings** carry each shade's metres on a small ink tab above its
-  label. The × takes the shade out of the cart, and each sheet's foot gives its metres.
+  label. A shade without metres shows "Set metres" instead, on a cream tab edged in red that
+  pulses a few times. The × takes the shade out of the cart, and each sheet's foot gives its
+  metres.
+- **The title plate** adds a notice while any shade is unset: "Select metres for N shades", with
+  "Tap a cutting for its metres".
 
-**Tapping a cutting opens the metre picker**, a compact sheet.
-- **The figure:** set large between − and +. Held, − and + run on, 25 m at a time and then 100 m.
-  The figure can also be typed.
-- **A gold slider** in steps of 25 m, up to 1,000 m or beyond the figure.
-- **Presets:** 50 · 100 · 250 · 500 · 1,000.
-- **This shade or all N shades:** only when the fabric has more than one shade.
+**Tapping a cutting opens the metre picker,** which sets metres with a slider alone.
+- **The slider** is a gold rule with an ink thumb. It stops every 25 m up to 1,000 m, every 100 m
+  up to 2,000 m, and every 250 m up to 5,000 m. That is fine where most orders fall, and still
+  reaches a large order. It is labelled 0 · 250 · 500 · 1k · 2k · 5k at those stops.
+- **The figure** stands large above the slider. Nothing is preset: until the slider is moved it
+  reads "Slide to choose the metres", and the button, "Set metres", is disabled.
+- **This shade or all N shades** is offered when the fabric has more than one shade.
 - **Value:** the price per metre and the value.
-- **Buttons:** "Done · 250 m", and "Remove from cart".
-
-"···" on a title sheet opens the picker for all of the fabric's shades.
+- **Buttons:** "Done · 250 m", and "Remove from cart" (for a single shade).
 
 **The dock** follows the page on a slip of the studio's cream paper, edged in gold. It shows the
-total metres, the shades and the value, and an ink "Checkout" button. Checkout is the direct order
-page (`FabricOrder` with `source="cart"`), titled "Your *Order*", with "← Cart" as the way back.
-There the metres can still be adjusted row by row, and the page adds when it is needed and a note
-for the mill. Placing the order goes through the same sign-in, dispatch and confetti. Once the
+total metres, the shades (or how many are not set) and the value, and an ink "Checkout" button.
+- **While any shade is unset,** "Checkout" is dimmed. Pressing it shakes the button and the notice,
+  and says "Select metres for every shade to check out."
+- **Checkout** is the direct order page (`FabricOrder` with `source="cart"`), titled "Your *Order*",
+  with "← Cart" as the way back. There each shade's metres are shown rather than edited, since
+  they are set in the cart. The page adds when it is needed and a note for the mill. Placing the order goes through the same sign-in, dispatch and confetti. Once the
 order is taken, its lines leave the cart.
 
 An empty cart shows a floating ink bag, "Your cart is empty" and the way to the Showroom.

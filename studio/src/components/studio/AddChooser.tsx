@@ -7,25 +7,23 @@ import type { ColourRow, FabricRow } from '@/lib/types';
 import { fabricTex } from './helpers';
 import { CartGlyph } from './CartGlyph';
 
-const PRESETS = [50, 100, 250, 500];
 const inr = (n: number) => n.toLocaleString('en-IN');
 
 /**
  * Where the shades go, asked in a compact sheet over the lab. A line names the fabric with its
  * shades as small pinked chips; a gold slider chooses between the cart (the fabric itself, by the
  * metre) and the swatch book (a cutting of each shade); a single ruled row gives what that choice
- * means — for the cart, the metres and the value, both in the display face on one baseline — and
- * one button acts on it. Either way the cuttings fly into the tab they were added to — the cart or
+ * means — for the cart, the price by the metre and that the metres are chosen in the cart, so
+ * nothing is assumed — and one button acts on it. Either way the cuttings fly into the tab they were added to — the cart or
  * the swatch book — which bumps as they land.
  */
 export function AddChooser({
   studio, fabric, colours, leaving, onBook, onCart, onClose,
 }: {
-  studio: Studio; fabric: FabricRow; colours: ColourRow[]; leaving: boolean; onBook: (from: DOMRect | null) => void; onCart: (metres: number, from: DOMRect | null) => void; onClose: () => void;
+  studio: Studio; fabric: FabricRow; colours: ColourRow[]; leaving: boolean; onBook: (from: DOMRect | null) => void; onCart: (from: DOMRect | null) => void; onClose: () => void;
 }) {
   const { t } = studio;
   const [where, setWhere] = useState<'cart' | 'book'>('cart');
-  const [metres, setMetres] = useState(100);
   const sheet = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -35,7 +33,6 @@ export function AddChooser({
   const n = colours.length;
   const inCartM = colours.reduce((s, c) => s + (studio.cart.find((l) => l.fabricId === fabric.id && l.colourOrder === c.order)?.metres ?? 0), 0);
   const inBook = colours.every((c) => studio.pins.some((p) => p.fabricId === fabric.id && p.colourOrder === c.order));
-  const value = metres * n * fabric.price;
   const chips = colours.slice(0, 5);
 
   return createPortal(
@@ -44,75 +41,75 @@ export function AddChooser({
       <div ref={sheet} className={`pc-sheet pc-add${leaving ? ' is-leaving' : ''}`}>
         <div aria-hidden className="pc-sheet-grip" />
 
-        {/* The fabric, its shades as small chips, and the way out. */}
-        <div className="pc-add-head">
-          <span aria-hidden className="pc-add-chips">
-            {chips.map((c, k) => (
-              <span key={c.order} className="pc-pinked" style={{ background: fabricTex(fabric, c, 3), marginLeft: k ? -8 : 0, zIndex: chips.length - k, animation: `pcFieldIn .5s ${0.1 + k * 0.05}s cubic-bezier(.2,.8,.2,1) both` }} />
-            ))}
+        <button aria-label={t.closeWord} className="pc-sheet-close pc-add-close" onClick={onClose}>
+          <span aria-hidden>×</span>
+        </button>
+
+        {/* The shades as pinned cuttings, fanned; the fabric and the shades by name beneath. */}
+        <div className="pc-add-hero">
+          <span aria-hidden className="pc-add-fan">
+            {chips.map((c, k) => {
+              const mid = (chips.length - 1) / 2;
+              return (
+                <span
+                  key={c.order}
+                  className="pc-pinked"
+                  style={{
+                    background: `linear-gradient(155deg, rgba(255,255,255,.22), transparent 40%, rgba(0,0,0,.14)), ${fabricTex(fabric, c, 3)}`,
+                    zIndex: 10 - Math.round(Math.abs(k - mid)),
+                    ['--fan' as string]: `translate(${(k - mid) * 17}px, ${Math.abs(k - mid) * 3}px) rotate(${(k - mid) * 9}deg)`,
+                    animationDelay: `${0.05 + k * 0.06}s`,
+                  }}
+                />
+              );
+            })}
           </span>
-          <span style={{ minWidth: 0, flex: 1 }}>
-            <span className="pc-add-eyebrow">
-              {n} {n === 1 ? t.shade : t.shades}
-            </span>
-            <span className="pc-add-fabric">{fabric.name}</span>
-          </span>
-          <button aria-label={t.closeWord} className="pc-sheet-close" onClick={onClose}>
-            <span aria-hidden>×</span>
-          </button>
+          <span className="pc-add-eyebrow">{fabric.name}</span>
+          <span className="pc-add-fabric">{colours.length > 2 ? `${n} ${t.shades}` : colours.map((c) => c.name).join(' · ')}</span>
         </div>
 
+        <div aria-hidden className="pc-add-rule">
+          <span />
+          <i />
+          <span />
+        </div>
         <h2 className="pc-add-title">{t.addWhere}</h2>
 
-        {/* Cart or swatch book: a gold slider moves to the one chosen. */}
-        <div role="radiogroup" aria-label={t.addWhere} className="pc-add-switch">
-          <span aria-hidden className="pc-add-thumb" style={{ transform: `translateX(${where === 'book' ? 100 : 0}%)` }} />
+        {/* Two tiles of paper: the chosen one turns to ink edged in gold, a tick at its corner. */}
+        <div role="radiogroup" aria-label={t.addWhere} className="pc-add-tiles">
           {(['cart', 'book'] as const).map((w) => (
-            <button key={w} role="radio" aria-checked={where === w} className={where === w ? 'is-on' : undefined} onClick={() => setWhere(w)}>
-              {w === 'cart' ? <CartGlyph size={15} /> : <BookGlyph />}
-              {w === 'cart' ? t.cartWord : t.book}
+            <button key={w} role="radio" aria-checked={where === w} className={`pc-add-tile${where === w ? ' is-on' : ''}`} onClick={() => setWhere(w)}>
+              <span aria-hidden className="pc-add-tick">✓</span>
+              <span aria-hidden className="pc-add-icon">{w === 'cart' ? <CartGlyph size={18} /> : <BookGlyph />}</span>
+              <span className="pc-add-tile-name">{w === 'cart' ? t.cartWord : t.book}</span>
+              <span className="pc-add-tile-sub">{w === 'cart' ? t.tileCart : t.tileBook}</span>
             </button>
           ))}
         </div>
 
-        {/* What the choice means, on one ruled line of the same scale. */}
+        {/* What the choice means, in a line. */}
         <div key={where} className="pc-add-detail">
           {where === 'cart' ? (
             <>
-              <div className="pc-add-row">
-                <span className="pc-add-label">{t.metresWord}</span>
-                <span className="pc-add-seg" role="radiogroup" aria-label={t.metresWord}>
-                  {PRESETS.map((v) => (
-                    <button key={v} role="radio" aria-checked={metres === v} className={metres === v ? 'is-on' : undefined} onClick={() => setMetres(v)}>
-                      {v}
-                    </button>
-                  ))}
-                </span>
-              </div>
-              <div className="pc-add-row">
-                <span className="pc-add-label">
-                  ₹ {inr(fabric.price)} / {t.metre}
-                  {n > 1 ? ` · ${n} × ${metres} m` : ''}
-                </span>
-                <span key={value} className="pc-add-value">₹ {inr(value)}</span>
-              </div>
-              {inCartM > 0 && <div className="pc-add-note">✓ {inr(inCartM)} m {t.inCartAlready}</div>}
+              <span>
+                ₹ {inr(fabric.price)} / {t.metre}
+              </span>
+              <i aria-hidden>✦</i>
+              <span>{t.chooseInCartLong}</span>
             </>
           ) : (
-            <>
-              <p className="pc-add-copy">{t.toBookSub}.</p>
-              {inBook && <div className="pc-add-note">✓ {t.inBook}</div>}
-            </>
+            <span>{inBook ? `✓ ${t.inBook}` : t.bookLine}</span>
           )}
         </div>
+        {where === 'cart' && inCartM > 0 && <div className="pc-add-note">✓ {inr(inCartM)} m {t.inCartAlready}</div>}
 
         <button
           className="pc-auth-btn"
-          onClick={() => (where === 'cart' ? onCart(metres, sheet.current?.getBoundingClientRect() ?? null) : onBook(sheet.current?.getBoundingClientRect() ?? null))}
-          style={{ marginTop: 18 }}
+          onClick={() => (where === 'cart' ? onCart : onBook)(sheet.current?.getBoundingClientRect() ?? null)}
+          style={{ marginTop: 16 }}
         >
           <span aria-hidden className="pc-auth-star">✦</span>
-          {where === 'cart' ? `${t.toCart} · ₹ ${inr(value)}` : t.toBook}
+          {where === 'cart' ? t.toCart : t.toBook}
         </button>
       </div>
     </div>,
@@ -122,7 +119,7 @@ export function AddChooser({
 
 function BookGlyph() {
   return (
-    <svg aria-hidden width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <svg aria-hidden width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z" />
       <path d="M5 17h14" />
     </svg>

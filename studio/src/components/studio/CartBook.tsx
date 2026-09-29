@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import type { Studio } from './state';
 import type { FabricRow } from '@/lib/types';
@@ -9,8 +9,20 @@ import { Room, SheetStack, Fleuron, roman, UMBER, INK, type Cutting, type Group 
 import { FabricOrder, EmptyCart } from './FabricOrder';
 import { usePresence } from './motion';
 
-const STEP = 25;
-const PRESETS = [50, 100, 250, 500, 1000];
+/**
+ * The figures the slider stops at: every 25 m to 1,000 m, then every 100 m to 2,000 m, then every
+ * 250 m to 5,000 m — fine where most orders fall, and still reaching a large one.
+ */
+const STOPS = [
+  ...Array.from({ length: 41 }, (_, i) => i * 25),
+  ...Array.from({ length: 10 }, (_, i) => 1100 + i * 100),
+  ...Array.from({ length: 12 }, (_, i) => 2250 + i * 250),
+];
+const LAST = STOPS.length - 1;
+const stopOf = (v: number) => {
+  const i = STOPS.findIndex((x) => x >= v);
+  return i < 0 ? LAST : i;
+};
 const inr = (n: number) => n.toLocaleString('en-IN');
 
 /** What the metre picker is setting: one shade, or every shade of a fabric. */
@@ -27,6 +39,7 @@ export function CartBook({ studio }: { studio: Studio }) {
   const { t, fabrics, cart } = studio;
   const [checkout, setCheckout] = useState(false);
   const [picking, setPicking] = useState<Picking | null>(null);
+  const [warn, setWarn] = useState(0);
   const pickPresence = usePresence(!!picking, 380);
   // The picker keeps what it was showing while it animates out.
   const [shownPick, setShownPick] = useState<Picking | null>(null);
@@ -56,6 +69,8 @@ export function CartBook({ studio }: { studio: Studio }) {
   if (!groups.length) return <EmptyCart studio={studio} />;
 
   const cuts = groups.flatMap((g) => g.items);
+  // Shades still without metres: nothing is assumed, so the buyer is asked to choose them.
+  const unset = cuts.filter((c) => !c.metres).length;
   const total = cuts.reduce((s, c) => s + (c.metres ?? 0), 0);
   const value = groups.reduce((s, g) => s + g.items.reduce((m, c) => m + (c.metres ?? 0), 0) * g.x.price, 0);
   const setAll = (g: Group, v: number) => g.items.forEach((c) => studio.setCartMetres(g.x.id, c.colour.order, v));
@@ -89,8 +104,16 @@ export function CartBook({ studio }: { studio: Studio }) {
           ))}
         </h1>
         <div style={{ marginTop: 10, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 16.5, color: UMBER, fontVariantNumeric: 'lining-nums', animation: 'pcRiseIn .9s .55s cubic-bezier(.2,.8,.2,1) both' }}>
-          {cuts.length} {cuts.length === 1 ? t.shade : t.shades} · {groups.length} {groups.length === 1 ? t.fabricWordOne : t.fabricWordMany} — {inr(total)} m
+          {cuts.length} {cuts.length === 1 ? t.shade : t.shades} · {groups.length} {groups.length === 1 ? t.fabricWordOne : t.fabricWordMany}
+          {total > 0 ? ` — ${inr(total)} m` : ''}
         </div>
+        {unset > 0 && (
+          <div key={warn} className="pc-cart-ask" style={{ animation: warn ? 'pcShake .5s cubic-bezier(.36,.07,.19,.97) both' : undefined }}>
+            <span aria-hidden>✦</span>
+            {(unset === 1 ? t.metresNeededOne : t.metresNeeded.replace('{n}', String(unset)))}
+            <small>{t.tapForMetres}</small>
+          </div>
+        )}
         <div aria-hidden style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 16 }}>
           <span style={{ width: 30, height: 1, background: 'linear-gradient(90deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'right', animation: 'pcRuleDraw 1s .75s cubic-bezier(.2,.8,.2,1) both' }} />
           <span style={{ width: 6, height: 6, background: 'rgba(168,134,79,.95)', animation: 'pcDiamondIn .8s .65s cubic-bezier(.2,.8,.2,1) both' }} />
@@ -101,7 +124,7 @@ export function CartBook({ studio }: { studio: Studio }) {
           groups={groups}
           cart={{
             onPick: (cut, g) => open({ g, gi: groups.indexOf(g), cut }),
-            onAll: (g, v) => (v === null ? open({ g, gi: groups.indexOf(g), cut: null }) : setAll(g, v)),
+            onAll: (g) => open({ g, gi: groups.indexOf(g), cut: null }),
           }}
         />
       </div>
@@ -119,14 +142,18 @@ export function CartBook({ studio }: { studio: Studio }) {
               {inr(total)} <span>m</span>
             </div>
             <div className="pc-dock-meta">
-              {cuts.length} {t.shadesChosen}
+              {unset ? <span style={{ color: '#A5392B' }}>{unset} {t.notSet.toLowerCase()}</span> : `${cuts.length} ${t.shadesChosen}`}
               <br />
               <b>₹ {inr(value)}</b>
             </div>
           </div>
           <button
-            className="pc-order-place"
+            key={warn}
+            className={`pc-order-place${unset ? ' is-waiting' : ''}`}
+            style={{ animation: warn ? 'pcShake .5s cubic-bezier(.36,.07,.19,.97) both' : undefined }}
             onClick={() => {
+              // Every shade needs its metres first: the button shakes, and the ask above does too.
+              if (unset) return setWarn((n) => n + 1);
               window.scrollTo(0, 0);
               setCheckout(true);
             }}
@@ -136,6 +163,7 @@ export function CartBook({ studio }: { studio: Studio }) {
           </button>
         </div>
       </div>
+      {warn > 0 && unset > 0 && <p style={{ margin: '10px 0 0', textAlign: 'center', fontSize: 12.5, color: '#A5392B' }}>{t.selectAllFirst}</p>}
 
       {pickPresence.shown && pick && (
         <MetrePicker
@@ -160,11 +188,10 @@ export function CartBook({ studio }: { studio: Studio }) {
 }
 
 /**
- * Setting metres, in a compact sheet: the shade (or the fabric) above, the figure large in the
- * display face between − and + (held, they run on, faster the longer they are held), a gold rule
- * slid to a figure in steps of 25 m, presets for the usual lengths, and — where the fabric has more
- * than one shade — whether this shade or every shade of it takes the figure. The value follows as
- * the figure changes; "Done" sets it.
+ * Setting metres, with a slider alone: the shade (or the fabric) above, the figure large in the
+ * display face, and a gold rule slid to it — every 25 m to 1,000 m, then in larger steps to
+ * 5,000 m. Nothing is chosen until the buyer slides it. Where the fabric has more than one shade,
+ * this shade or every shade of it takes the figure. The value follows; "Done" sets it.
  */
 function MetrePicker({
   studio, pick, leaving, onApply, onRemove, onClose,
@@ -174,40 +201,16 @@ function MetrePicker({
   const { t } = studio;
   const { g, cut } = pick;
   const n = g.items.length;
-  const start = cut ? (cut.metres ?? 100) : g.items.every((c) => c.metres === g.items[0].metres) ? (g.items[0].metres ?? 100) : 100;
-  const [v, setV] = useState(start);
+  const start = cut ? (cut.metres ?? 0) : g.items.every((c) => c.metres === g.items[0].metres) ? (g.items[0].metres ?? 0) : 0;
+  const [at, setAt] = useState(stopOf(start));
   const [all, setAll] = useState(!cut);
-  const hold = useRef<{ tm: number; iv: number }>({ tm: 0, iv: 0 });
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', onKey);
-    const h = hold.current;
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      window.clearTimeout(h.tm);
-      window.clearInterval(h.iv);
-    };
+    return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const clamp = (x: number) => Math.max(0, Math.min(100_000, Math.round(x)));
-  const nudge = (d: number) => setV((was) => clamp(Math.round((was + d * STEP) / STEP) * STEP));
-  // Held, − and + run on: after a pause, a step every 90 ms, then 100 m at a time.
-  const press = (d: number) => {
-    nudge(d);
-    const h = hold.current;
-    let k = 0;
-    h.tm = window.setTimeout(() => {
-      h.iv = window.setInterval(() => {
-        k++;
-        setV((was) => clamp(was + d * (k > 12 ? 100 : STEP)));
-      }, 90);
-    }, 380);
-  };
-  const release = () => {
-    window.clearTimeout(hold.current.tm);
-    window.clearInterval(hold.current.iv);
-  };
-  const max = Math.max(1000, Math.ceil(v / 250) * 250);
+  const v = STOPS[at];
   const shades = all ? n : 1;
   const value = v * shades * g.x.price;
   const fabric: FabricRow = g.x;
@@ -235,56 +238,41 @@ function MetrePicker({
           </button>
         </div>
 
-        {/* The figure, between − and +. */}
-        <div className="pc-metres-figure">
-          <button aria-label="−25 m" onPointerDown={() => press(-1)} onPointerUp={release} onPointerLeave={release} onPointerCancel={release} disabled={v <= 0}>
-            −
-          </button>
-          <label style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 6, minWidth: 0 }}>
-            <input
-              aria-label={t.metresWord}
-              inputMode="numeric"
-              value={v}
-              onChange={(e) => setV(clamp(Number(e.target.value.replace(/\D/g, '')) || 0))}
-              onFocus={(e) => e.currentTarget.select()}
-              style={{ width: `${Math.max(2, String(v).length) + 0.4}ch` }}
-            />
-            <span>m</span>
-          </label>
-          <button aria-label="+25 m" onPointerDown={() => press(1)} onPointerUp={release} onPointerLeave={release} onPointerCancel={release}>
-            +
-          </button>
+        {/* The figure, large; until the slider is moved, the ask to move it. */}
+        <div className="pc-metres-figure" aria-live="polite">
+          {v ? (
+            <span key="v">
+              <b key={v}>{inr(v)}</b> <em>m</em>
+            </span>
+          ) : (
+            <span key="ask" className="pc-metres-ask">{t.slideToChoose}</span>
+          )}
         </div>
 
-        {/* The gold rule, in steps of 25 m. */}
+        {/* The gold rule. */}
         <input
           type="range"
           className="pc-metres-range"
           aria-label={t.metresWord}
+          aria-valuetext={`${inr(v)} m`}
           min={0}
-          max={max}
-          step={STEP}
-          value={Math.min(v, max)}
-          onChange={(e) => setV(Number(e.target.value))}
-          style={{ '--p': `${(Math.min(v, max) / max) * 100}%` } as CSSProperties}
+          max={LAST}
+          step={1}
+          value={at}
+          onChange={(e) => setAt(Number(e.target.value))}
+          style={{ '--p': `${(at / LAST) * 100}%` } as CSSProperties}
         />
         <div aria-hidden className="pc-metres-scale">
-          {[0, 0.25, 0.5, 0.75, 1].map((f) => (
-            <span key={f}>{inr(max * f)}</span>
-          ))}
-        </div>
-
-        <div className="pc-metres-presets" role="radiogroup" aria-label={t.metresWord}>
-          {PRESETS.map((p) => (
-            <button key={p} role="radio" aria-checked={v === p} className={v === p ? 'is-on' : undefined} onClick={() => setV(p)}>
-              {inr(p)}
-            </button>
+          {[0, 250, 500, 1000, 2000, 5000].map((x) => (
+            <span key={x} style={{ left: `${(stopOf(x) / LAST) * 100}%` }}>
+              {x >= 1000 ? `${x / 1000}k` : x}
+            </span>
           ))}
         </div>
 
         {/* This shade, or every shade of the fabric. */}
         {cut && n > 1 && (
-          <div role="radiogroup" aria-label={t.setMetres} className="pc-add-switch" style={{ marginTop: 14 }}>
+          <div role="radiogroup" aria-label={t.setMetres} className="pc-add-switch" style={{ marginTop: 18 }}>
             <span aria-hidden className="pc-add-thumb" style={{ transform: `translateX(${all ? 100 : 0}%)` }} />
             {[false, true].map((a) => (
               <button key={String(a)} role="radio" aria-checked={all === a} className={all === a ? 'is-on' : undefined} onClick={() => setAll(a)}>
@@ -297,14 +285,14 @@ function MetrePicker({
         <div className="pc-add-row" style={{ marginTop: 6 }}>
           <span className="pc-add-label">
             ₹ {inr(fabric.price)} / {t.metre}
-            {shades > 1 ? ` · ${shades} × ${inr(v)} m` : ''}
+            {shades > 1 && v ? ` · ${shades} × ${inr(v)} m` : ''}
           </span>
           <span key={value} className="pc-add-value">₹ {inr(value)}</span>
         </div>
 
-        <button className="pc-auth-btn" style={{ marginTop: 16 }} onClick={() => onApply(v, all)}>
+        <button className="pc-auth-btn" style={{ marginTop: 16 }} disabled={!v} onClick={() => v && onApply(v, all)}>
           <span aria-hidden className="pc-auth-star">✦</span>
-          {t.done} · {inr(v)} m
+          {v ? `${t.done} · ${inr(v)} m` : t.setMetres}
         </button>
         {cut && !all && (
           <button className="pc-metres-remove" onClick={onRemove}>

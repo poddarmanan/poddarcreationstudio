@@ -88,9 +88,10 @@ export function FabricLab({ studio }: { studio: Studio }) {
     toastTimer.current = window.setTimeout(() => setToast((x) => ({ ...x, open: false })), 3600);
   };
   const names = (cs: typeof chosenColours) => (cs.length > 2 ? `${cs.length} ${t.shades}` : cs.map((c) => c.name).join(', '));
-  const toCart = (metres: number, from: DOMRect | null) => {
-    studio.addToCart(f.id, chosenColours.map((c) => c.order), metres);
-    added('cart', from, `${names(chosenColours)} · ${metres} m`);
+  // Into the cart with no metres: the buyer chooses them there.
+  const toCart = (from: DOMRect | null) => {
+    studio.addToCart(f.id, chosenColours.map((c) => c.order), 0);
+    added('cart', from, `${names(chosenColours)} · ${t.chooseInCart}`);
   };
   const toBook = (from: DOMRect | null) => {
     chosenColours.forEach((c) => studio.pinShade(f.id, c.order));
