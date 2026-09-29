@@ -292,20 +292,36 @@ has fallen (`src/components/studio/confetti.ts`). The pieces are the book's own 
 tiny pinked scraps, with gold-foil strips and cream paper among them. They tumble, flutter and
 fade. None is drawn under reduced motion.
 
-**The sign-in page** (`AuthScreen.tsx`) is a page of its own, in the lamplit room of the ceremony:
+**The sign-in page** (`AuthScreen.tsx`) is a page of its own, set in the lamplit room of the
+ceremony. It is choreographed:
 
-- **Top:** the closed volume under the lamp (its cover takes the buyer's name as they type it),
-  "Your book awaits" in gold foil, and how many shades will be bound and sent.
-- **Tabs:** "Sign in" and "Create account", the chosen one underlined in gold.
-- **Fields:** ruled in gold rather than boxed, with labels in spaced capitals.
-  - Sign in: email and password.
-  - Create account: full name, company, city, WhatsApp number (starting "+91 "; 8 to 15 digits,
-    checked here and by the API), email and password.
-- **Button:** a gold "Sign in & order", "Create account & order" or "Save & order".
-- **Below:** a link to reset a password.
+- **The lamp:** it flickers on, then glows and breathes. Gold dust turns slowly in its beam.
+- **The book arriving:** the closed volume glides out of the dark, turning into place in 3D.
+- **The book at rest:** it floats and turns a little, with a halo and a breathing shadow beneath.
+  Now and then a glint of light runs across its foil. Its cover takes the buyer's name as they
+  type it.
+- **The heading:** "Poddar Creation" rises. "Your book awaits" comes up word by word in gold
+  foil, the line under it fades in, and a printer's rule draws out from its diamond.
+- **Tabs:** "Sign in" and "Create account" share a gold underline that slides to the chosen one,
+  and the fields rise in one after another.
+- **Fields:**
+  - Each field's name rests in it like a pencilled note and floats up, small and gold, as the
+    field is entered.
+  - A gold line draws out from the centre under the caret.
+  - A small gold tick settles at the end once the entry is good.
+  - Sign in asks for email and password. Create account also asks for full name, company, city
+    and WhatsApp number (starting "+91 "; 8 to 15 digits, checked here and by the API).
+- **Button:** gold, with a sheen passing across it now and then. While it works, three dots beat
+  in it.
+- **Errors:** a mistake shakes the message.
+- **Success:** the page glides back to the book. Its cover swings open, marbled endpaper first,
+  light spills from the pages, the form fades away, and the confetti and binding ceremony take
+  over.
+- **Closing:** the room fades out.
 
-It uses no backdrop blur and no looping animation. The studio menu's sign-in uses the same page,
-without the order.
+Everything moves by transform or opacity, and the few loops are on small layers, so a phone
+composites the page without repainting it. Under reduced motion the loops stop and the dust is
+not drawn. The studio menu's sign-in uses the same page, without the order.
 
 **Registration.** It now records the WhatsApp number, company and city on the buyer's profile
 (`DealerProfile`), so ordering never asks again. `POST /api/register` accepts optional `whatsapp`

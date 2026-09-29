@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import type { Studio } from './state';
 import { FONT_DISPLAY, FONT_BODY } from './helpers';
-import { Binding, CoverFace, Fleuron } from './SwatchBook';
+import { Binding, CoverFace, MARBLE } from './SwatchBook';
 
 /** Why the page was opened: from the menu, to order the swatch book, or for the one detail an order still needs. */
 export type AuthIntent = 'account' | 'order' | 'whatsapp';
@@ -44,12 +44,19 @@ export function AuthScreen({
   const { t } = studio;
   const [mode, setMode] = useState<'signin' | 'create' | 'whatsapp'>(intent === 'whatsapp' ? 'whatsapp' : 'signin');
   const [f, setF] = useState({ name: '', company: '', city: '', whatsapp: '+91 ', email: '', password: '' });
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ text: string; n: number } | null>(null);
   const [busy, setBusy] = useState(false);
+  // How the page leaves: the book opens and hands on to the ceremony, or the room fades out.
+  const [leaving, setLeaving] = useState<null | 'open' | 'close'>(null);
+  const timers = useRef<number[]>([]);
+  const roomRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => () => timers.current.forEach((x) => window.clearTimeout(x)), []);
+
   const set = (k: keyof typeof f) => (v: string) => {
     setF((was) => ({ ...was, [k]: v }));
     setError(null);
   };
+  const fail = (text: string) => setError((e) => ({ text, n: (e?.n ?? 0) + 1 }));
   const ordering = intent !== 'account';
   const shades = studio.pins.length;
 
@@ -57,190 +64,295 @@ export function AuthScreen({
   const sub = mode === 'whatsapp' ? t.authWaSub : ordering ? t.authOrderSub.replace('{n}', String(shades)) : t.authAccountSub;
   const action = mode === 'whatsapp' ? t.saveOrder : mode === 'create' ? (ordering ? t.createOrder : t.createBtn) : ordering ? t.signInOrder : t.signInTab;
 
+  /** The book opens, its light spills out, and the page hands on. */
+  const finish = (result: { whatsapp: string | null; demo: boolean }) => {
+    // The page glides back up to the book first, so the buyer sees it open.
+    const room = roomRef.current;
+    const far = room ? room.scrollTop > 40 : false;
+    if (far) room?.scrollTo({ top: 0, behavior: 'smooth' });
+    timers.current.push(window.setTimeout(() => setLeaving('open'), far ? 420 : 0));
+    timers.current.push(window.setTimeout(() => onDone(result), (far ? 420 : 0) + 1250));
+  };
+  const close = () => {
+    if (leaving) return;
+    setLeaving('close');
+    timers.current.push(window.setTimeout(onClose, 380));
+  };
+
   const submit = async () => {
-    if (busy) return;
-    if ((mode === 'create' || mode === 'whatsapp') && !validWhatsapp(f.whatsapp)) return setError(t.waBad);
-    if (mode === 'create' && f.password.length < 8) return setError(t.pwShort);
+    if (busy || leaving) return;
+    if ((mode === 'create' || mode === 'whatsapp') && !validWhatsapp(f.whatsapp)) return fail(t.waBad);
+    if (mode === 'create' && f.password.length < 8) return fail(t.pwShort);
     const whatsapp = f.whatsapp.trim();
 
     if (PREVIEW) {
       // No accounts here: a sign-in still needs a number to show the book going out.
       if (mode === 'signin' && ordering) return setMode('whatsapp');
-      return onDone({ whatsapp: mode === 'signin' ? null : whatsapp, demo: true });
+      return finish({ whatsapp: mode === 'signin' ? null : whatsapp, demo: true });
     }
 
     setBusy(true);
     try {
       if (mode === 'whatsapp') {
-        if (!(await studio.saveWhatsapp(whatsapp))) return setError(t.saveFailed);
-        return onDone({ whatsapp, demo: false });
+        if (!(await studio.saveWhatsapp(whatsapp))) return fail(t.saveFailed);
+        return finish({ whatsapp, demo: false });
       }
       if (mode === 'create') {
         const err = await studio.doRegister({ name: f.name.trim(), email: f.email, password: f.password, company: f.company.trim(), whatsapp, city: f.city.trim() });
-        if (err) return setError(err);
-        return onDone({ whatsapp, demo: false });
+        if (err) return fail(err);
+        return finish({ whatsapp, demo: false });
       }
       const err = await studio.doSignIn(f.email.trim().toLowerCase(), f.password);
-      if (err) return setError(err);
-      if (!ordering) return onDone({ whatsapp: null, demo: false });
+      if (err) return fail(err);
+      if (!ordering) return finish({ whatsapp: null, demo: false });
       // An account made before sign-up asked for a number: ask for it now, once.
       const onFile = await studio.accountWhatsapp();
       if (!onFile) return setMode('whatsapp');
-      return onDone({ whatsapp: onFile, demo: false });
+      return finish({ whatsapp: onFile, demo: false });
     } finally {
       setBusy(false);
     }
   };
+
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(f.email.trim());
+  const fields: { key: string; node: ReactNode }[] = [];
+  if (mode === 'create') {
+    fields.push({ key: 'name', node: <Field label={t.fFullName} value={f.name} onChange={set('name')} autoComplete="name" required ok={f.name.trim().length > 1} /> });
+    fields.push({
+      key: 'co',
+      node: (
+        <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 16 }}>
+          <Field label={t.fCompanyOnly} value={f.company} onChange={set('company')} autoComplete="organization" required ok={f.company.trim().length > 1} />
+          <Field label={t.fCity} value={f.city} onChange={set('city')} autoComplete="address-level2" required ok={f.city.trim().length > 1} />
+        </div>
+      ),
+    });
+  }
+  if (mode === 'create' || mode === 'whatsapp')
+    fields.push({
+      key: 'wa',
+      node: (
+        <Field label={t.fWhatsapp} value={f.whatsapp} onChange={set('whatsapp')} type="tel" inputMode="tel" autoComplete="tel" required numeric ok={validWhatsapp(f.whatsapp)}>
+          <WhatsAppGlyph />
+        </Field>
+      ),
+    });
+  if (mode !== 'whatsapp') {
+    fields.push({ key: 'em', node: <Field label={t.fEmail} value={f.email} onChange={set('email')} type="email" autoComplete="email" required ok={emailOk} /> });
+    fields.push({
+      key: 'pw',
+      node: <Field label={t.fPassword} value={f.password} onChange={set('password')} type="password" autoComplete={mode === 'create' ? 'new-password' : 'current-password'} required ok={mode === 'create' ? f.password.length >= 8 : f.password.length > 0} />,
+    });
+  }
+
+  const cover = mode === 'create' && f.name.trim() ? f.name.trim() : studio.userName;
+  const opening = leaving === 'open';
 
   return createPortal(
     <div
       role="dialog"
       aria-modal="true"
       aria-label={title}
+      className="pc-auth"
+      ref={roomRef}
       style={{
-        position: 'fixed', inset: 0, zIndex: 118, overflowY: 'auto', color: CREAM, fontFamily: FONT_BODY,
-        background: 'radial-gradient(90% 55% at 50% 18%, #3E2819 0%, #23160D 52%, #110A05 100%)', animation: 'pcFadeIn .45s ease both',
+        position: 'fixed', inset: 0, zIndex: 118, overflowY: 'auto', overflowX: 'hidden', color: CREAM, fontFamily: FONT_BODY,
+        background: 'radial-gradient(90% 55% at 50% 18%, #3A2517 0%, #20140B 52%, #0E0804 100%)',
+        animation: leaving === 'close' ? 'pcAuthOut .38s ease forwards' : 'pcFadeIn .6s ease both',
       }}
     >
-      <div aria-hidden style={{ position: 'fixed', inset: 0, pointerEvents: 'none', background: 'radial-gradient(34% 22% at 50% 16%, rgba(255,214,150,.14), transparent 70%)' }} />
-      <button
-        onClick={onClose}
-        aria-label={t.closeWord}
-        className="pc-hv-scale-06"
-        style={{ position: 'fixed', top: 'max(14px, env(safe-area-inset-top))', right: 14, zIndex: 2, width: 40, height: 40, borderRadius: '50%', display: 'grid', placeItems: 'center', cursor: 'pointer', background: 'rgba(255,255,255,.06)', border: '1px solid rgba(205,169,96,.4)', color: CREAM, fontSize: 18, lineHeight: 1 }}
-      >
-        ×
+      {/* The lamp: it flickers on, then glows and breathes; gold dust turns in its light. */}
+      <div aria-hidden className="pc-auth-beam" />
+      <div aria-hidden style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+        {MOTES.map((m, i) => (
+          <span
+            key={i}
+            className="pc-auth-mote"
+            style={{ left: m.left, top: m.top, width: m.size, height: m.size, ['--dx' as string]: m.dx, ['--op' as string]: m.op, animationDuration: m.dur, animationDelay: m.delay } as CSSProperties}
+          />
+        ))}
+      </div>
+
+      <button onClick={close} aria-label={t.closeWord} className="pc-auth-close">
+        <span aria-hidden>×</span>
       </button>
 
       <div style={{ position: 'relative', width: 'min(100%, 420px)', margin: '0 auto', padding: 'max(5vh, 34px) 24px 40px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-        {/* The volume, closed, under the lamp. */}
-        <div aria-hidden style={{ width: 118, height: 157, position: 'relative', animation: 'rise .9s .05s cubic-bezier(.22,.8,.2,1) both' }}>
-          {/* Drawn at a cover's full size and scaled down, so its title keeps to one line. */}
-          <div style={{ position: 'absolute', left: 0, top: 0, width: 314, transform: 'scale(.376)', transformOrigin: '0 0' }}>
-            <Binding width="314px" padded={false}>
-              <div style={{ position: 'absolute', top: 0, bottom: 0, left: 26, right: 0 }}>
-                <CoverFace t={t} userName={mode === 'create' && f.name.trim() ? f.name.trim() : studio.userName} />
+        {/* The volume under the lamp: it arrives out of the dark, floats and turns a little, and
+            light runs across its foil. Signing in opens it, and its light spills out. */}
+        <div aria-hidden style={{ position: 'relative', width: 128, height: 170, perspective: 900 }}>
+          <div className="pc-auth-halo" style={{ opacity: opening ? 1 : undefined, transform: opening ? 'scale(1.6)' : undefined, transition: 'transform 1.1s cubic-bezier(.2,.8,.2,1), opacity .6s ease' }} />
+          <div className="pc-auth-shadow" />
+          <div style={{ position: 'absolute', inset: 0, transformStyle: 'preserve-3d', animation: 'pcBookArrive 1.5s cubic-bezier(.16,.84,.24,1) both' }}>
+            <div className="pc-auth-float" style={{ position: 'absolute', inset: 0, transformStyle: 'preserve-3d', animationPlayState: opening ? 'paused' : undefined }}>
+              {/* Drawn at a cover's full size and scaled down, so its title keeps to one line. */}
+              <div style={{ position: 'absolute', left: 0, top: 0, width: 314, transform: 'scale(.4)', transformOrigin: '0 0' }}>
+                <Binding width="314px" padded={false}>
+                  {/* The pages, and the light waiting inside. */}
+                  <div style={{ position: 'absolute', top: 7, bottom: 7, left: 28, right: 9, borderRadius: 2, background: 'linear-gradient(90deg, #E9DFC9, #FBF6EA 12%, #F6EEDC)', boxShadow: 'inset 6px 0 14px -8px rgba(0,0,0,.4)' }} />
+                  <div style={{ position: 'absolute', top: 7, bottom: 7, left: 28, right: 9, background: 'radial-gradient(60% 50% at 40% 50%, rgba(255,236,190,.95), rgba(255,210,140,.35) 55%, transparent 80%)', opacity: opening ? 1 : 0, transition: 'opacity .9s .25s ease' }} />
+                  <div
+                    style={{
+                      position: 'absolute', top: 0, bottom: 0, left: 26, right: 0, zIndex: 2, transformOrigin: 'left center', transformStyle: 'preserve-3d',
+                      transform: opening ? 'rotateY(-158deg)' : 'rotateY(0deg)', transition: 'transform 1.15s cubic-bezier(.6,.02,.28,1)',
+                    }}
+                  >
+                    <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', overflow: 'hidden', borderRadius: '0 10px 10px 0' }}>
+                      <CoverFace t={t} userName={cover} />
+                      <span className="pc-auth-glint" />
+                    </div>
+                    <div style={{ position: 'absolute', inset: 0, transform: 'rotateY(180deg)', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', borderRadius: '10px 0 0 10px', background: `${MARBLE} center / cover`, boxShadow: 'inset 0 0 0 10px #40101A, inset 0 0 0 11px rgba(205,169,96,.7)' }} />
+                  </div>
+                </Binding>
               </div>
-            </Binding>
+            </div>
           </div>
         </div>
 
-        <div style={{ marginTop: 28, fontSize: 9.5, letterSpacing: '.46em', textTransform: 'uppercase', color: GOLD, paddingLeft: '.46em', animation: 'rise .8s .15s cubic-bezier(.22,.8,.2,1) both' }}>Poddar Creation</div>
-        <h1 key={title} className="pc-foil" style={{ margin: '12px 0 0', fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontWeight: 500, fontSize: 'clamp(34px,9vw,44px)', lineHeight: 1.05, animation: 'rise .8s .2s cubic-bezier(.22,.8,.2,1) both' }}>
-          {title}
-        </h1>
-        <p style={{ margin: '12px 0 0', maxWidth: 320, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 16.5, lineHeight: 1.45, color: 'rgba(243,233,214,.68)', animation: 'rise .8s .25s cubic-bezier(.22,.8,.2,1) both' }}>{sub}</p>
-        <div style={{ marginTop: 20, animation: 'rise .8s .3s cubic-bezier(.22,.8,.2,1) both' }}>
-          <Fleuron width={30} color="rgba(205,169,96,.7)" />
-        </div>
-
-        {mode !== 'whatsapp' && (
-          // Sign in, or create an account: two words, the chosen one underlined in gold.
-          <div role="tablist" style={{ display: 'flex', gap: 28, marginTop: 24, animation: 'rise .8s .35s cubic-bezier(.22,.8,.2,1) both' }}>
-            {(['signin', 'create'] as const).map((m) => (
-              <button
-                key={m}
-                role="tab"
-                aria-selected={mode === m}
-                onClick={() => {
-                  setMode(m);
-                  setError(null);
-                }}
-                style={{
-                  position: 'relative', cursor: 'pointer', background: 'none', border: 'none', padding: '6px 2px 10px', fontFamily: FONT_BODY, fontSize: 11, letterSpacing: '.24em',
-                  textTransform: 'uppercase', color: mode === m ? CREAM : 'rgba(243,233,214,.45)', transition: 'color .4s ease',
-                }}
+        <div style={{ opacity: opening ? 0 : 1, transform: opening ? 'translateY(14px)' : 'none', transition: 'opacity .55s ease, transform .7s ease', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ marginTop: 34, fontSize: 9.5, letterSpacing: '.46em', textTransform: 'uppercase', color: GOLD, paddingLeft: '.46em', animation: 'pcRiseIn .9s .5s cubic-bezier(.2,.8,.2,1) both' }}>Poddar Creation</div>
+          <h1 key={title} style={{ margin: '12px 0 0', fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontWeight: 500, fontSize: 'clamp(34px,9vw,44px)', lineHeight: 1.08, perspective: 400 }}>
+            {title.split(' ').map((w, i) => (
+              <span
+                key={i}
+                className="pc-foil"
+                style={{ display: 'inline-block', marginRight: '.24em', transformOrigin: '50% 100%', animation: `pcWordIn 1s ${0.62 + i * 0.1}s cubic-bezier(.2,.8,.2,1) both, pcFoil 2.6s ${0.9 + i * 0.1}s cubic-bezier(.45,.05,.3,1) both` }}
               >
-                {m === 'signin' ? t.signInTab : t.createTab}
-                <span aria-hidden className="pc-foil-bg" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 1, transform: `scaleX(${mode === m ? 1 : 0})`, transition: 'transform .5s cubic-bezier(.22,.8,.2,1)' }} />
-              </button>
+                {w}
+              </span>
             ))}
+          </h1>
+          <p key={sub} style={{ margin: '12px 0 0', maxWidth: 320, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 16.5, lineHeight: 1.45, color: 'rgba(243,233,214,.68)', animation: 'pcRiseIn 1s 1s cubic-bezier(.2,.8,.2,1) both' }}>
+            {sub}
+          </p>
+          {/* A printer's rule that draws itself out from its diamond. */}
+          <div aria-hidden style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 22 }}>
+            <span style={{ width: 34, height: 1, background: 'linear-gradient(90deg, transparent, rgba(205,169,96,.8))', transformOrigin: 'right', animation: 'pcRuleDraw 1s 1.15s cubic-bezier(.2,.8,.2,1) both' }} />
+            <span style={{ width: 6, height: 6, background: 'rgba(222,190,120,.95)', animation: 'pcDiamondIn .8s 1.05s cubic-bezier(.2,.8,.2,1) both' }} />
+            <span style={{ width: 34, height: 1, background: 'linear-gradient(270deg, transparent, rgba(205,169,96,.8))', transformOrigin: 'left', animation: 'pcRuleDraw 1s 1.15s cubic-bezier(.2,.8,.2,1) both' }} />
           </div>
-        )}
 
-        <form
-          key={mode}
-          onSubmit={(e) => {
-            e.preventDefault();
-            submit();
-          }}
-          style={{ width: '100%', marginTop: 22, display: 'flex', flexDirection: 'column', gap: 18, textAlign: 'left', animation: 'rise .6s cubic-bezier(.22,.8,.2,1) both' }}
-        >
-          {mode === 'create' && (
-            <>
-              <Field label={t.fFullName} value={f.name} onChange={set('name')} autoComplete="name" required />
-              <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 16 }}>
-                <Field label={t.fCompanyOnly} value={f.company} onChange={set('company')} autoComplete="organization" required />
-                <Field label={t.fCity} value={f.city} onChange={set('city')} autoComplete="address-level2" required />
-              </div>
-            </>
-          )}
-          {(mode === 'create' || mode === 'whatsapp') && (
-            <Field label={t.fWhatsapp} value={f.whatsapp} onChange={set('whatsapp')} type="tel" inputMode="tel" autoComplete="tel" required numeric>
-              <WhatsAppGlyph />
-            </Field>
-          )}
           {mode !== 'whatsapp' && (
-            <>
-              <Field label={t.fEmail} value={f.email} onChange={set('email')} type="email" autoComplete="email" required />
-              <Field label={t.fPassword} value={f.password} onChange={set('password')} type="password" autoComplete={mode === 'create' ? 'new-password' : 'current-password'} required />
-            </>
+            // Sign in, or create an account: a gold underline slides to the one chosen.
+            <div role="tablist" style={{ position: 'relative', display: 'grid', gridTemplateColumns: '1fr 1fr', width: 'min(100%, 300px)', marginTop: 24, animation: 'pcRiseIn .9s 1.2s cubic-bezier(.2,.8,.2,1) both' }}>
+              {(['signin', 'create'] as const).map((m) => (
+                <button
+                  key={m}
+                  role="tab"
+                  aria-selected={mode === m}
+                  onClick={() => {
+                    setMode(m);
+                    setError(null);
+                  }}
+                  style={{
+                    cursor: 'pointer', background: 'none', border: 'none', padding: '6px 2px 12px', fontFamily: FONT_BODY, fontSize: 11, letterSpacing: '.24em',
+                    textTransform: 'uppercase', whiteSpace: 'nowrap', color: mode === m ? CREAM : 'rgba(243,233,214,.42)', transition: 'color .45s ease',
+                  }}
+                >
+                  {m === 'signin' ? t.signInTab : t.createTab}
+                </button>
+              ))}
+              <span aria-hidden style={{ position: 'absolute', left: 0, bottom: 0, width: '50%', height: 1, transform: `translateX(${mode === 'create' ? 100 : 0}%)`, transition: 'transform .6s cubic-bezier(.65,0,.25,1)' }}>
+                <span className="pc-foil-bg" style={{ display: 'block', width: '70%', height: 1, margin: '0 auto', boxShadow: '0 0 8px rgba(233,207,143,.55)' }} />
+              </span>
+            </div>
           )}
 
-          <div role="alert" aria-live="polite" style={{ minHeight: 18, marginTop: -6, fontSize: 12.5, color: '#E8A48E', textAlign: 'center' }}>
-            {error}
-          </div>
-
-          <button
-            type="submit"
-            disabled={busy}
-            className="pc-book"
-            style={{
-              cursor: busy ? 'wait' : 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 10, width: '100%', borderRadius: 999, padding: '16px 18px',
-              fontFamily: FONT_BODY, fontSize: 11.5, letterSpacing: '.22em', textTransform: 'uppercase', whiteSpace: 'nowrap', color: '#1C1917',
-              background: 'linear-gradient(135deg, #F6E7BE, #D8B670 55%, #E9CF8F)', border: '1px solid rgba(255,240,200,.6)', boxShadow: '0 14px 34px rgba(0,0,0,.4)', opacity: busy ? 0.75 : 1,
+          <form
+            key={mode}
+            onSubmit={(e) => {
+              e.preventDefault();
+              submit();
             }}
+            style={{ width: '100%', marginTop: 26, display: 'flex', flexDirection: 'column', gap: 16, textAlign: 'left' }}
           >
-            {ordering && <span aria-hidden>✦</span>}
-            {busy ? '…' : action}
-          </button>
-        </form>
+            {fields.map((x, i) => (
+              <div key={x.key} style={{ animation: `pcFieldIn .8s ${(mode === 'signin' ? 1.3 : 0.05) + i * 0.08}s cubic-bezier(.2,.8,.2,1) both` }}>
+                {x.node}
+              </div>
+            ))}
 
-        {mode === 'signin' && !PREVIEW && (
-          <a href="/forgot-password" style={{ marginTop: 16, fontSize: 11, letterSpacing: '.14em', color: 'rgba(243,233,214,.55)', textDecoration: 'none', borderBottom: '1px solid rgba(205,169,96,.35)', paddingBottom: 2 }}>
-            {t.forgotPw}
-          </a>
-        )}
-        <p style={{ margin: '22px 0 0', maxWidth: 320, fontSize: 11.5, lineHeight: 1.6, color: 'rgba(243,233,214,.42)' }}>{PREVIEW ? t.authPreview : t.authFine}</p>
+            <div key={error?.n ?? 0} role="alert" aria-live="polite" style={{ minHeight: 18, marginTop: -2, fontSize: 12.5, color: '#E8A48E', textAlign: 'center', animation: error ? 'pcShake .5s cubic-bezier(.36,.07,.19,.97) both' : undefined }}>
+              {error?.text}
+            </div>
+
+            <button
+              type="submit"
+              disabled={busy || !!leaving}
+              className="pc-auth-btn"
+              style={{ animation: `pcFieldIn .8s ${(mode === 'signin' ? 1.3 : 0.05) + fields.length * 0.08 + 0.05}s cubic-bezier(.2,.8,.2,1) both` }}
+            >
+              {ordering && !busy && <span aria-hidden className="pc-auth-star">✦</span>}
+              {busy ? (
+                <span aria-label="…" style={{ display: 'inline-flex', gap: 6 }}>
+                  {[0, 1, 2].map((k) => (
+                    <span key={k} className="pc-auth-dot" style={{ animationDelay: `${k * 0.16}s` }} />
+                  ))}
+                </span>
+              ) : (
+                action
+              )}
+            </button>
+          </form>
+
+          {mode === 'signin' && !PREVIEW && (
+            <a href="/forgot-password" className="pc-auth-link" style={{ marginTop: 18, animation: 'pcRiseIn .9s 1.7s ease both' }}>
+              {t.forgotPw}
+            </a>
+          )}
+          <p style={{ margin: '22px 0 0', maxWidth: 320, fontSize: 11.5, lineHeight: 1.6, color: 'rgba(243,233,214,.42)', animation: 'pcRiseIn .9s 1.8s ease both' }}>{PREVIEW ? t.authPreview : t.authFine}</p>
+        </div>
       </div>
     </div>,
     document.body,
   );
 }
 
-/** A field ruled in gold: its label in spaced capitals above, the entry on a single hairline. */
+/** Gold dust in the lamplight: where each mote starts, how it drifts, and how long it takes. */
+const MOTES = Array.from({ length: 18 }, (_, i) => ({
+  left: `${30 + ((i * 37) % 41)}%`,
+  top: `${6 + ((i * 53) % 46)}%`,
+  size: 2 + (i % 3),
+  dx: `${((i * 29) % 40) - 20}px`,
+  op: (0.35 + (i % 4) * 0.15).toFixed(2),
+  dur: `${8 + ((i * 3.3) % 7)}s`,
+  delay: `${-((i * 1.7) % 11)}s`,
+}));
+
+/**
+ * A field ruled in gold. Its name sits in the field like a pencilled note and floats up, small and
+ * gold, as the field is entered; a gold line draws out from the centre under the caret, and a small
+ * gold tick settles at the end once the entry is good.
+ */
 function Field({
-  label, value, onChange, type = 'text', autoComplete, inputMode, required, numeric, children,
+  label, value, onChange, type = 'text', autoComplete, inputMode, required, numeric, ok, children,
 }: {
   label: string; value: string; onChange: (v: string) => void; type?: string; autoComplete?: string;
-  inputMode?: 'tel' | 'email' | 'text'; required?: boolean; numeric?: boolean; children?: ReactNode;
+  inputMode?: 'tel' | 'email' | 'text'; required?: boolean; numeric?: boolean; ok?: boolean; children?: ReactNode;
 }) {
   return (
-    <label style={{ display: 'block' }}>
-      <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 9, letterSpacing: '.3em', textTransform: 'uppercase', color: GOLD }}>
-        {children}
-        {label}
-      </span>
+    <label className="pc-auth-field">
       <input
         className="pc-auth-input"
         type={type}
         value={value}
+        placeholder=" "
         onChange={(e) => onChange(e.target.value)}
         autoComplete={autoComplete}
         inputMode={inputMode}
         required={required}
         style={{ fontVariantNumeric: numeric ? 'lining-nums' : undefined }}
       />
+      <span className="pc-auth-label">
+        {children}
+        {label}
+      </span>
+      <span aria-hidden className="pc-auth-line" />
+      {ok && (
+        <span aria-hidden className="pc-auth-ok">
+          ✓
+        </span>
+      )}
     </label>
   );
 }
