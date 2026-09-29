@@ -23,7 +23,8 @@ const QuoteInput = z.object({
   shippingMethod: z.string().max(120).nullish(),
   timeline: z.string().max(120).nullish(),
   message: z.string().max(2000).nullish(),
-  items: z.array(z.object({ fabricId: z.string(), colourId: z.string() })).max(100).default([]),
+  // A direct fabric order gives the metres for each shade; a swatch book or a quote request does not.
+  items: z.array(z.object({ fabricId: z.string(), colourId: z.string(), quantity: z.number().positive().max(1_000_000).optional(), unit: z.enum(['m', 'kg']).optional() })).max(300).default([]),
 });
 
 export async function POST(req: Request) {

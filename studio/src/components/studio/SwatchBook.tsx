@@ -6,6 +6,7 @@ import type { FabricRow, ColourRow } from '@/lib/types';
 import { FONT_DISPLAY, FONT_BODY, fabricTex } from './helpers';
 import { BookCeremony, type OrderState } from './BookCeremony';
 import { AuthScreen } from './AuthScreen';
+import { FabricOrder } from './FabricOrder';
 import { confettiBurst } from './confetti';
 import { oklchToRgb, rgbToHex } from '@/lib/colour-science';
 
@@ -92,7 +93,7 @@ export function SwatchBook({ studio }: { studio: Studio }) {
   const [preview, setPreview] = useState(false);
   // Ordering: a buyer who is signed in (with a WhatsApp number on file) goes straight to the
   // binding ceremony; anyone else signs in or creates an account first.
-  const [ordering, setOrdering] = useState<null | { step: 'auth'; intent: 'order' | 'whatsapp' } | { step: 'ceremony'; whatsapp: string; order: OrderState }>(null);
+  const [ordering, setOrdering] = useState<null | { step: 'auth'; intent: 'order' | 'whatsapp' } | { step: 'ceremony'; whatsapp: string; order: OrderState } | { step: 'fabric' }>(null);
   const orderButton = useRef<HTMLButtonElement | null>(null);
   const drag = useRef<{ x: number; y: number; moved: boolean; dx: number } | null>(null);
   const dragged = useRef(false);
@@ -168,6 +169,7 @@ export function SwatchBook({ studio }: { studio: Studio }) {
   const begin = (whatsapp: string | null, demo: boolean, from?: DOMRect) => {
     const at = from ?? orderButton.current?.getBoundingClientRect() ?? new DOMRect(window.innerWidth / 2 - 60, window.innerHeight * 0.72, 120, 44);
     confettiBurst(at, groups.flatMap((g) => g.items.map(({ colour: c }) => rgbToHex(oklchToRgb(c.l, c.c, c.h)))));
+    window.scrollTo(0, 0);
     setOrdering({ step: 'ceremony', whatsapp: whatsapp ?? '', order: demo ? 'demo' : 'pending' });
     if (demo) return;
     studio.orderBook(whatsapp ?? undefined).then((r) => setOrdering((o) => (o?.step === 'ceremony' ? { ...o, order: r.ok ? 'sent' : 'failed' } : o)));
@@ -198,6 +200,16 @@ export function SwatchBook({ studio }: { studio: Studio }) {
     return () => window.clearTimeout(tm);
   }, [resumeOrder, signedIn, clearResumeOrder]);
 
+  // The binding ceremony is a page of the studio too, in the Swatch Book's place.
+  const done = () => {
+    setPreview(false);
+    setOrdering(null);
+    window.scrollTo(0, 0);
+  };
+  if (preview) return <BookCeremony studio={studio} mode="preview" onDone={done} />;
+  // Skipping the swatch book to order the fabric itself: its own page, in the Swatch Book's place.
+  if (ordering?.step === 'fabric') return <FabricOrder studio={studio} onBack={done} />;
+  if (ordering?.step === 'ceremony') return <BookCeremony studio={studio} mode="order" whatsapp={ordering.whatsapp} order={ordering.order} onDone={done} />;
   // Signing in is a page of the studio: it takes the Swatch Book's place under the same top bar.
   if (ordering?.step === 'auth')
     return (
@@ -356,6 +368,7 @@ export function SwatchBook({ studio }: { studio: Studio }) {
           onClick={(e) => {
             // The preview celebrates as the order does: the book's own shades burst from the button.
             confettiBurst(e.currentTarget.getBoundingClientRect(), groups.flatMap((g) => g.items.map(({ colour: c }) => rgbToHex(oklchToRgb(c.l, c.c, c.h)))));
+            window.scrollTo(0, 0);
             setPreview(true);
           }}
           className="pc-auth-ghost"
@@ -366,9 +379,34 @@ export function SwatchBook({ studio }: { studio: Studio }) {
           </svg>
           {t.previewBook}
         </button>
+        {/* Or skip the swatch book altogether, and order the fabric itself. */}
+        <div className="pc-auth-or" style={{ width: 'min(100%, 460px)', marginTop: 18 }}>
+          <span />
+          {t.orWord}
+          <span />
+        </div>
+        <button
+          className="pc-direct"
+          style={{ marginTop: 10 }}
+          onClick={() => {
+            window.scrollTo(0, 0);
+            setOrdering({ step: 'fabric' });
+          }}
+        >
+          <span aria-hidden className="pc-direct-bolt">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1C1917" strokeWidth="1.4">
+              <circle cx="12" cy="12" r="8.5" />
+              <circle cx="12" cy="12" r="5" />
+              <circle cx="12" cy="12" r="1.6" fill="#1C1917" />
+            </svg>
+          </span>
+          <span style={{ minWidth: 0 }}>
+            <span style={{ display: 'block', fontFamily: FONT_DISPLAY, fontSize: 21, lineHeight: 1.1 }}>{t.skipBook}</span>
+            <span style={{ display: 'block', marginTop: 3, fontSize: 10, letterSpacing: '.16em', textTransform: 'uppercase', color: 'rgba(250,248,245,.6)' }}>{t.skipBookSub}</span>
+          </span>
+          <span aria-hidden className="pc-direct-arrow">→</span>
+        </button>
       </div>
-      {preview && <BookCeremony studio={studio} mode="preview" onDone={() => setPreview(false)} />}
-      {ordering?.step === 'ceremony' && <BookCeremony studio={studio} mode="order" whatsapp={ordering.whatsapp} order={ordering.order} onDone={() => setOrdering(null)} />}
     </Room>
   );
 }
@@ -376,7 +414,9 @@ export function SwatchBook({ studio }: { studio: Studio }) {
 /** The reading room the book is read in: warm light pooling on it from above, and a darker surface beneath. */
 export function Room({ children, center }: { children: ReactNode; center?: boolean }) {
   return (
-    <div className="pc-view" style={{ position: 'relative', overflow: 'hidden', padding: 'clamp(26px,5vw,52px) clamp(16px,5vw,64px) 90px', animation: 'layCloth .95s cubic-bezier(.22,.8,.2,1) both' }}>
+    // `clip`, not `hidden`: the room clips its light without becoming a scroll container, so a
+    // sticky element inside it (the order's dock) follows the window.
+    <div className="pc-view" style={{ position: 'relative', overflow: 'clip', padding: 'clamp(26px,5vw,52px) clamp(16px,5vw,64px) 90px', animation: 'layCloth .95s cubic-bezier(.22,.8,.2,1) both' }}>
       <div aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0, background: 'radial-gradient(70% 42% at 50% 30%, rgba(255,246,228,.95), transparent 70%), linear-gradient(180deg, #F3ECE1 0%, #EBE1D2 46%, #DCCDB6 72%, #CDBC9F 88%, #E8DFD0 100%)' }} />
       <div aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0, background: 'radial-gradient(120% 90% at 50% 45%, transparent 55%, rgba(60,44,28,.16))' }} />
       <div style={{ position: 'relative', zIndex: 1, ...(center ? { display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' } : {}) }}>{children}</div>

@@ -87,6 +87,11 @@ export interface Studio {
    * the server took the order, and its status (0 if unreachable).
    */
   orderBook: (whatsapp?: string) => Promise<{ ok: boolean; status: number }>;
+  /**
+   * Orders the fabric itself, skipping the swatch book: the metres for each shade, when it is
+   * needed, and a note. Resolves to whether the server took it, and its reference.
+   */
+  orderFabric: (order: { lines: { fabricId: string; colourId: string; metres: number }[]; timeline: string; note: string; whatsapp?: string }) => Promise<{ ok: boolean; status: number; ref?: string }>;
   /** The signed-in buyer's WhatsApp number on file, or null (and null when signed out). */
   accountWhatsapp: () => Promise<string | null>;
   /** Saves a WhatsApp number to the signed-in buyer's profile. */
@@ -380,6 +385,40 @@ export function useStudio(rawFabrics: FabricRow[]): Studio {
     [fab, pins]
   );
 
+  const orderFabric = useCallback(
+    async ({ lines, timeline, note, whatsapp }: { lines: { fabricId: string; colourId: string; metres: number }[]; timeline: string; note: string; whatsapp?: string }) => {
+      const total = lines.reduce((s, l) => s + l.metres, 0);
+      const subject = lines
+        .map((l) => {
+          const x = fab(l.fabricId);
+          const c = x.colours.find((cc) => cc.id === l.colourId);
+          return c ? `${c.name} (${x.name}) × ${l.metres} m` : '';
+        })
+        .filter(Boolean)
+        .join(', ');
+      try {
+        const res = await fetch('/api/quotes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            quantity: `${total.toLocaleString('en-IN')} m · Fabric order`,
+            expectedQty: `${total} m`,
+            subject: subject || '—',
+            timeline: timeline || undefined,
+            message: note.trim() || undefined,
+            items: lines.map((l) => ({ fabricId: l.fabricId, colourId: l.colourId, quantity: l.metres, unit: 'm' })),
+            ...(whatsapp ? { whatsapp } : {}),
+          }),
+        });
+        const data = (await res.json().catch(() => ({}))) as { quote?: { id?: string } };
+        return { ok: res.ok, status: res.status, ref: data.quote?.id ? `PC-${data.quote.id.slice(-6).toUpperCase()}` : undefined };
+      } catch {
+        return { ok: false, status: 0 };
+      }
+    },
+    [fab]
+  );
+
   const accountWhatsapp = useCallback(async () => {
     try {
       const res = await fetch('/api/portal/profile');
@@ -555,6 +594,7 @@ export function useStudio(rawFabrics: FabricRow[]): Studio {
     closeQuote: () => setQuoteOpen(false),
     sendQuote,
     orderBook,
+    orderFabric,
     accountWhatsapp,
     saveWhatsapp,
     quoteBusy,

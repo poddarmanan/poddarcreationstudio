@@ -38,7 +38,20 @@ type Result = { whatsapp: string | null; demo: boolean; from?: DOMRect };
  * With `intent="order"` it ends by handing the order on (with the buyer's WhatsApp number); with
  * `intent="whatsapp"` it asks a signed-in buyer only for the number their account lacks.
  */
-export function AuthScreen({ studio, intent, onClose, onDone }: { studio: Studio; intent: AuthIntent; onClose: () => void; onDone: (result: Result) => void }) {
+export function AuthScreen({
+  studio,
+  intent,
+  onClose,
+  onDone,
+  metres,
+}: {
+  studio: Studio;
+  intent: AuthIntent;
+  onClose: () => void;
+  onDone: (result: Result) => void;
+  /** Ordering the fabric itself rather than the swatch book: how many metres, for the page's words. */
+  metres?: number;
+}) {
   const { t } = studio;
   const ordering = intent !== 'account';
   const [sheet, setSheet] = useState<Sheet | null>(intent === 'whatsapp' ? 'number' : null);
@@ -80,8 +93,16 @@ export function AuthScreen({ studio, intent, onClose, onDone }: { studio: Studio
   const fail = (text: string) => setError((e) => ({ text, n: (e?.n ?? 0) + 1 }));
   const shades = studio.pins.length;
 
-  const title = intent === 'whatsapp' ? t.authWaTitle : ordering ? t.authOrderTitle : t.authAccountTitle;
-  const sub = intent === 'whatsapp' ? t.authWaSub : ordering ? t.authOrderSub.replace('{n}', String(shades)) : t.authAccountSub;
+  const fabricOrder = metres !== undefined;
+  const title = intent === 'whatsapp' ? t.authWaTitle : fabricOrder ? t.authFabricTitle : ordering ? t.authOrderTitle : t.authAccountTitle;
+  const sub =
+    intent === 'whatsapp'
+      ? t.authWaSub
+      : fabricOrder
+        ? t.authFabricSub.replace('{m}', (metres ?? 0).toLocaleString('en-IN'))
+        : ordering
+          ? t.authOrderSub.replace('{n}', String(shades))
+          : t.authAccountSub;
 
   const openSheet = (s: Sheet) => {
     setError(null);
@@ -321,7 +342,7 @@ export function AuthScreen({ studio, intent, onClose, onDone }: { studio: Studio
         <div style={{ alignSelf: 'stretch', display: 'flex', justifyContent: 'flex-start', marginTop: -6, animation: 'pcRiseIn .8s .2s ease both' }}>
           <button onClick={close} className="pc-auth-back">
             <span aria-hidden className="pc-auth-back-arrow">←</span>
-            {ordering ? t.book : t.closeWord}
+            {fabricOrder ? t.fabricOrderBack : ordering ? t.book : t.closeWord}
           </button>
         </div>
 

@@ -378,6 +378,10 @@ the bound book with a note to order again, and the PDF.
 
 ### The binding ceremony
 
+The ceremony is a page of the studio, not an overlay. It takes the Swatch Book's place under the
+same top bar and above the same tabs. It is set in the reading room's cream light, with the
+caption in antique gold foil (`.pc-foil-deep`) and the buttons in the studio's own styles.
+
 The page darkens into a lamplit room, and the book is made up in front of the buyer. Only
 transforms and opacity are animated. Each cutting is one element from start to finish: it is laid
 out in its place on the page and measured there. It is then moved out across the room by a
@@ -402,6 +406,55 @@ nothing is swapped mid-flight.
 
 Each caption fades out before the next fades in. With reduced motion, the ceremony goes straight
 to the bound book.
+
+### Ordering the fabric directly
+
+Under "Order swatch book" and "Preview your book", after "or", an ink card edged in gold offers
+**"Skip the swatch book — order the fabric itself, by the metre"**. A rolled bolt on it turns
+under the pointer, and a sheen passes across it a few times as it arrives. It opens the order page
+(`FabricOrder.tsx`), in the Swatch Book's place:
+
+- **Heading:** "Direct from the mill" between hairlines that draw in, and "Order the *Fabric*"
+  rising word by word, "Fabric" in italic antique gold.
+- **A sheet for each fabric in the book:**
+  - its numeral, name, weight and width, and its price per metre;
+  - "All" presets (50, 100, 250 or 500 m) that set every shade of the fabric at once;
+  - a row for each shade: a pinked cutting, the name, its number, the line's value, and a
+    stepper (± 25 m, or typed). A shade set to 0 m dims and reads "Not included";
+  - the fabric's metres and value at the foot.
+- **When it is needed** (as soon as possible, within two weeks, within a month), and a note for
+  the mill.
+- **The dock:** an ink bar that follows the page above the tabs, with the total metres (which
+  tick as they change), the shade count, the estimate and a gold "Place order". Pressing it with
+  nothing set shakes it and asks for at least one shade. The estimate is indicative, before taxes
+  and freight.
+
+Placing the order signs the buyer in first if need be, using the same sign-in page, whose words
+change to "Your order awaits — your N metres go straight to the mill". It then sends a quote with:
+- each shade's metres on its line (`QuoteItem.quantity`, unit `m`);
+- `quantity` "1,250 m · Fabric order" and `expectedQty`;
+- the timeline and the note as `message`;
+- the buyer's details from their account.
+
+The order's reference is PC- and the last six characters of its id.
+
+**The dispatch** plays in the reading room while the order goes in:
+1. **Folding your fabrics:** kraft paper is laid out and the fabrics fall onto it, folded, one
+   after another.
+2. **Wrapped in kraft:** its four flaps fold over them in turn.
+3. **Tied with twine:** twine is drawn across both ways.
+4. **Sealed by the house:** an oxblood wax seal with the "PC" monogram stamps down over the knot,
+   and a gold ripple spreads from it.
+5. A shipping tag swings in on its string with the order's reference.
+
+Once the order has settled, the parcel lifts, confetti bursts from the seal, and the order is
+summed up: its reference, metres and estimate. Below that, a line says the price and dispatch
+date will be confirmed on WhatsApp to the buyer's number, followed by "Back to the Showroom" and
+"Done". If the order failed, the page says so and offers to try again, keeping the selection. On
+the static preview it notes that orders are not sent.
+
+The reading room clips with `overflow: clip`, not `hidden`, so it does not become a scroll
+container and the dock sticks to the window.
 
 ### The PDF
 

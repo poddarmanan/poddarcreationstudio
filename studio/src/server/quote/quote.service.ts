@@ -20,7 +20,7 @@ export interface CreateQuoteInput {
   shippingMethod?: string | null;
   timeline?: string | null;
   message?: string | null;
-  items: { fabricId: string; colourId: string }[];
+  items: { fabricId: string; colourId: string; quantity?: number; unit?: string }[];
 }
 
 const APP_URL = () => (process.env.APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000').replace(/\/$/, '');

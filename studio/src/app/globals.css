@@ -641,3 +641,121 @@ button.pc-auth-link:disabled { cursor: default; }
   .pc-auth-beam, .pc-auth-mote, .pc-auth-halo, .pc-auth [style*="pcFanIn"], .pc-auth-shadow, .pc-auth-float, .pc-auth-glint, .pc-auth-btn::after, .pc-auth-star { animation: none !important; }
   .pc-auth-mote { display: none; }
 }
+
+/* ── Ordering the fabric directly ─────────────────────────────────────────────────────────────
+   The way in from the Swatch Book: an ink card edged in gold, a rolled bolt that turns under the
+   pointer, and a sheen that passes a few times as it arrives. */
+.pc-direct {
+  position: relative; overflow: hidden; cursor: pointer; display: flex; align-items: center; gap: 14px; width: min(100%, 460px); text-align: left;
+  padding: 16px 18px; border-radius: 20px; color: #FAF8F5; background: linear-gradient(135deg, #25201C, #1C1917 55%, #2A221B);
+  border: 1px solid rgba(216, 182, 112, .55); box-shadow: 0 18px 40px rgba(28, 25, 23, .24), inset 0 1px 0 rgba(255, 236, 196, .12);
+  transition: transform .4s cubic-bezier(.22, .8, .2, 1), box-shadow .4s ease;
+}
+.pc-direct:hover { transform: translateY(-3px); box-shadow: 0 26px 54px rgba(28, 25, 23, .3), 0 0 0 1px rgba(216, 182, 112, .7); }
+.pc-direct:active { transform: scale(.98); transition-duration: .15s; }
+.pc-direct::after {
+  content: ''; position: absolute; top: 0; bottom: 0; left: -40%; width: 28%; pointer-events: none;
+  background: linear-gradient(100deg, transparent, rgba(255, 236, 196, .22), transparent); transform: translateX(0) skewX(-18deg);
+  animation: pcSheen 4.8s 1.6s ease-in-out 3;
+}
+.pc-direct-bolt { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 35% 30%, #F2DDA2, #B8904A 70%); box-shadow: inset 0 0 0 3px rgba(28, 25, 23, .25); transition: transform .8s cubic-bezier(.22, .8, .2, 1); }
+.pc-direct:hover .pc-direct-bolt { transform: rotate(-200deg); }
+.pc-direct-arrow { margin-left: auto; font-size: 18px; color: #D8B670; transition: transform .5s cubic-bezier(.22, .8, .2, 1); }
+.pc-direct:hover .pc-direct-arrow { transform: translateX(5px); }
+
+/* The order page: a sheet of paper for each fabric, its shades in rows with steppers. */
+.pc-order-sheet {
+  position: relative; padding: 18px 18px 14px; border-radius: 6px; background: linear-gradient(180deg, #FDFAF2, #F6EEDF);
+  box-shadow: 0 14px 30px rgba(40, 24, 10, .12), 0 1px 3px rgba(40, 24, 10, .1), inset 0 0 0 1px rgba(120, 90, 50, .08);
+}
+.pc-order-sheet::before { content: ''; position: absolute; left: 18px; right: 18px; top: 0; height: 2px; background: linear-gradient(90deg, transparent, #D8B670, transparent); }
+.pc-order-chip {
+  cursor: pointer; padding: 6px 11px; border-radius: 999px; border: 1px solid rgba(138, 109, 69, .35); background: rgba(255, 253, 248, .7);
+  font-family: var(--font-body), 'Jost', sans-serif; font-size: 10.5px; letter-spacing: .08em; color: #1C1917; font-variant-numeric: lining-nums;
+  transition: background-color .3s ease, color .3s ease, border-color .3s ease, transform .3s ease;
+}
+.pc-order-chip.is-wide { padding: 9px 14px; font-size: 11px; letter-spacing: .1em; }
+.pc-order-chip:hover { transform: translateY(-1px); border-color: rgba(138, 109, 69, .7); }
+.pc-order-chip.is-on { background: #1C1917; color: #FAF8F5; border-color: #1C1917; }
+.pc-order-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px dashed rgba(138, 109, 69, .22); transition: opacity .35s ease; }
+.pc-order-row:first-child { border-top: none; }
+.pc-stepper { flex: none; display: flex; align-items: center; height: 38px; border-radius: 999px; border: 1px solid rgba(28, 25, 23, .18); background: #FFFDF8; overflow: hidden; }
+.pc-stepper button { width: 34px; height: 100%; border: none; background: none; cursor: pointer; font-size: 17px; color: #1C1917; transition: background-color .25s ease; }
+.pc-stepper button:hover:not(:disabled) { background: rgba(216, 182, 112, .22); }
+.pc-stepper button:disabled { color: rgba(28, 25, 23, .25); cursor: default; }
+.pc-stepper input { width: 48px; border: none; background: transparent; text-align: right; font-family: var(--font-display), 'Cormorant Garamond', serif; font-size: 18px; color: #1C1917; outline: none; padding: 0; }
+.pc-stepper-unit { padding: 0 6px 0 3px; font-size: 11px; color: #8A6D45; }
+/* The dock: the running total in ink, following the page above the tabs. */
+.pc-order-dock {
+  position: sticky; bottom: calc(86px + env(safe-area-inset-bottom)); z-index: 5; width: min(100%, 560px); margin-top: 22px; display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 14px 14px 14px 20px; border-radius: 22px; background: linear-gradient(135deg, #25201C, #1C1917); border: 1px solid rgba(216, 182, 112, .45);
+  box-shadow: 0 20px 44px rgba(28, 25, 23, .3);
+}
+.pc-order-place {
+  position: relative; overflow: hidden; flex: none; cursor: pointer; display: inline-flex; align-items: center; gap: 9px; padding: 14px 20px; border-radius: 999px;
+  border: 1px solid rgba(255, 240, 200, .6); background: linear-gradient(135deg, #F8EBC4, #D9B670 50%, #EDD497); color: #1C1917;
+  font-family: var(--font-body), 'Jost', sans-serif; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; white-space: nowrap;
+  transition: transform .35s cubic-bezier(.22, .8, .2, 1);
+}
+.pc-order-place:hover { transform: translateY(-2px); }
+.pc-order-place:active { transform: scale(.97); }
+@keyframes pcDockIn { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: none; } }
+@keyframes pcTick { from { transform: translateY(6px); opacity: .4; } to { transform: none; opacity: 1; } }
+
+/* The dispatch: a kraft parcel seen from a little above. */
+.pc-parcel-shadow { position: absolute; left: 50%; bottom: 8%; width: 70%; height: 24%; border-radius: 50%; background: radial-gradient(closest-side, rgba(60, 38, 16, .35), transparent); transition: transform 1.2s cubic-bezier(.22, .8, .2, 1); }
+.pc-kraft {
+  border-radius: 3px; backface-visibility: visible;
+  background: repeating-linear-gradient(8deg, rgba(120, 80, 40, .05) 0 2px, transparent 2px 7px), repeating-linear-gradient(97deg, rgba(255, 240, 210, .06) 0 1px, transparent 1px 5px), linear-gradient(135deg, #C9A06A, #B5894F 55%, #C39A62);
+  box-shadow: inset 0 0 0 1px rgba(90, 60, 25, .25);
+}
+.pc-kraft-flap { background-color: #BE945C; box-shadow: inset 0 0 0 1px rgba(90, 60, 25, .3), inset 0 0 18px rgba(90, 60, 25, .18); }
+.pc-bundle {
+  position: absolute; width: calc(100% - 48px); height: 64px; border-radius: 4px;
+  box-shadow: 0 3px 5px rgba(40, 20, 5, .35), inset 0 -14px 16px -10px rgba(0, 0, 0, .25), inset 0 12px 12px -10px rgba(255, 255, 255, .35);
+}
+@keyframes pcBundleDrop { from { opacity: 0; transform: translateZ(90px) translateY(-40px) rotate(-14deg) scale(1.15); } to { opacity: 1; } }
+.pc-twine {
+  position: absolute; border-radius: 2px; transform-origin: center;
+  background: repeating-linear-gradient(45deg, #E8D3A8 0 2px, #C8A874 2px 4px); box-shadow: 0 1px 2px rgba(40, 20, 5, .4);
+}
+.pc-seal {
+  position: absolute; left: 50%; top: 50%; width: 58px; height: 58px; margin: -29px 0 0 -29px; display: grid; place-items: center;
+  border-radius: 47% 53% 49% 51% / 52% 46% 54% 48%;
+  background: radial-gradient(circle at 38% 32%, #9B2C35, #6E1A22 55%, #4A0F16); box-shadow: 0 3px 6px rgba(40, 10, 10, .45), inset 0 -3px 6px rgba(0, 0, 0, .35), inset 0 2px 3px rgba(255, 180, 170, .25);
+}
+.pc-seal span {
+  font-family: var(--font-display), 'Cormorant Garamond', serif; font-style: italic; font-size: 22px; letter-spacing: -.04em; color: #5A1219;
+  text-shadow: 0 1px 0 rgba(255, 170, 160, .35), 0 -1px 0 rgba(0, 0, 0, .45);
+}
+@keyframes pcSealStamp { 0% { transform: scale(2.1); opacity: 0; } 55% { opacity: 1; transform: scale(.88); } 100% { transform: scale(1); opacity: 1; } }
+.pc-seal-ripple {
+  position: absolute; left: 50%; top: 50%; width: 58px; height: 58px; margin: -29px 0 0 -29px; border-radius: 50%; border: 2px solid rgba(216, 182, 112, .8);
+  animation: pcRipple 1s .3s ease-out both; pointer-events: none;
+}
+@keyframes pcRipple { from { opacity: 1; transform: scale(.8); } to { opacity: 0; transform: scale(2.6); } }
+.pc-tag-wrap { position: absolute; left: calc(50% + 8px); top: calc(50% + 8px); transform-origin: 0 0; }
+.pc-tag-string { position: absolute; left: 0; top: 0; width: 46px; height: 1.5px; background: #C8A874; transform-origin: 0 0; transform: rotate(38deg); }
+.pc-tag {
+  position: absolute; left: 30px; top: 26px; min-width: 96px; white-space: nowrap; padding: 8px 12px 8px 20px; border-radius: 4px;
+  background: linear-gradient(135deg, #F2E4C6, #E6D2A8); box-shadow: 0 4px 8px rgba(40, 20, 5, .35);
+  clip-path: polygon(10px 0, 100% 0, 100% 100%, 10px 100%, 0 50%);
+}
+.pc-tag-hole { position: absolute; left: 8px; top: 50%; width: 5px; height: 5px; margin-top: -2.5px; border-radius: 50%; background: rgba(90, 60, 25, .45); }
+@keyframes pcTagSwing {
+  0% { transform: rotate(-80deg); opacity: 0; }
+  25% { transform: rotate(22deg); opacity: 1; }
+  45% { transform: rotate(-12deg); }
+  65% { transform: rotate(6deg); }
+  82% { transform: rotate(-2deg); }
+  100% { transform: rotate(0deg); opacity: 1; }
+}
+.pc-order-summary { display: grid; grid-template-columns: 1.25fr 1fr 1.15fr; width: 100%; border-top: 1px solid rgba(138, 109, 69, .35); border-bottom: 1px solid rgba(138, 109, 69, .35); }
+.pc-order-summary > div { padding: 12px 6px; display: flex; flex-direction: column; gap: 4px; }
+.pc-order-summary > div + div { border-left: 1px solid rgba(138, 109, 69, .2); }
+.pc-order-summary span { font-size: 8.5px; letter-spacing: .26em; text-transform: uppercase; color: #8A6D45; }
+.pc-order-summary b { font-family: var(--font-display), 'Cormorant Garamond', serif; font-weight: 500; font-size: clamp(16px, 4.6vw, 20px); color: #1C1917; font-variant-numeric: lining-nums; white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) {
+  .pc-direct::after { animation: none; }
+  [style*="pcBundleDrop"], [style*="pcSealStamp"], [style*="pcTagSwing"], .pc-seal-ripple { animation-duration: .01s !important; animation-delay: 0s !important; }
+}
