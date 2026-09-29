@@ -929,27 +929,79 @@ button.pc-auth-link:disabled { cursor: default; }
 .pc-paid-amount { margin-top: 8px; font-family: var(--font-display), 'Cormorant Garamond', serif; font-weight: 500; font-size: clamp(44px, 12vw, 64px); line-height: 1; color: #1C1917; font-variant-numeric: lining-nums; animation: pcWordIn 1s .2s cubic-bezier(.2, .8, .2, 1) both; }
 .pc-paid-slip {
   position: relative; width: min(100%, 420px); margin-top: 26px; text-align: left; filter: drop-shadow(0 16px 26px rgba(40, 24, 10, .16));
-  animation: pcSlipDrop .8s .35s cubic-bezier(.2, .9, .3, 1.1) both, pcJolt .35s 1.02s ease both;
+  animation: pcSlipDrop .8s .35s cubic-bezier(.2, .9, .3, 1.1) both, pcJolt .5s 1.56s cubic-bezier(.3, .8, .4, 1) both;
 }
 @keyframes pcSlipDrop { from { opacity: 0; transform: translateY(-40px) rotate(-2deg); } to { opacity: 1; transform: none; } }
-@keyframes pcJolt { 30% { transform: translateY(5px) scale(.99); } 60% { transform: translateY(-1px); } }
+/* The blow: the slip is driven down and squashed, then springs back. */
+@keyframes pcJolt { 0% { transform: none; } 18% { transform: translateY(11px) scale(.972, .955); } 45% { transform: translateY(-3px) scale(1.006); } 70% { transform: translateY(1px); } 100% { transform: none; } }
+/* The whole page takes the knock. */
+.pc-paid { animation: pcKnock .42s 1.56s linear both; }
+@keyframes pcKnock { 0%, 100% { translate: 0 0; } 15% { translate: -4px 5px; } 30% { translate: 4px -3px; } 45% { translate: -3px 2px; } 60% { translate: 2px -1px; } 80% { translate: -1px 1px; } }
 .pc-paid-slip .pc-slip { padding-bottom: 18px; }
+/* The impression: double-ruled, bold, worn and a touch bled, in green ink. */
 .pc-bigstamp {
-  position: absolute; left: 50%; top: 52%; z-index: 3; display: flex; flex-direction: column; align-items: center; padding: 10px 22px 8px; border: 3px solid #2F7A4F; border-radius: 8px;
-  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .6), inset 0 0 0 4px #2F7A4F; color: #2F7A4F; background: rgba(240, 250, 240, .35);
-  transform: translate(-50%, -50%) rotate(-14deg); mix-blend-mode: multiply;
-  animation: pcSlam .5s .7s cubic-bezier(.5, 0, .7, .4) both, pcSlamSettle .35s 1.2s cubic-bezier(.3, 1.6, .5, 1) both;
+  position: absolute; left: 50%; top: 54%; z-index: 3; display: flex; flex-direction: column; align-items: center; padding: 12px 24px 9px; border: 4px solid #2A7048; border-radius: 10px;
+  box-shadow: inset 0 0 0 2.5px rgba(255, 255, 255, .7), inset 0 0 0 5px #2A7048; color: #2A7048;
+  transform: translate(-50%, -50%) rotate(-8deg); mix-blend-mode: multiply; filter: url(#pc-ink-rough);
+  opacity: 0; animation: pcImprint .7s 1.98s cubic-bezier(.2, .8, .3, 1) both;
 }
-@keyframes pcSlam { from { opacity: 0; transform: translate(-50%, -50%) rotate(-24deg) scale(2.8); } to { opacity: 1; transform: translate(-50%, -50%) rotate(-14deg) scale(.92); } }
-@keyframes pcSlamSettle { from { transform: translate(-50%, -50%) rotate(-14deg) scale(.92); } to { transform: translate(-50%, -50%) rotate(-14deg) scale(1); } }
-.pc-bigstamp-word { font-family: var(--font-body), 'Jost', sans-serif; font-weight: 700; font-size: 40px; line-height: 1; letter-spacing: .22em; padding-left: .22em; text-transform: uppercase; }
-.pc-bigstamp-line { margin-top: 5px; font-size: 10px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; font-variant-numeric: lining-nums; white-space: nowrap; }
-.pc-bigstamp-ref { margin-top: 2px; font-size: 8.5px; letter-spacing: .12em; opacity: .8; }
-.pc-bigstamp-ink {
-  position: absolute; left: 50%; top: 52%; z-index: 2; width: 220px; height: 220px; margin: -110px 0 0 -110px; border-radius: 50%; pointer-events: none;
-  background: radial-gradient(circle, rgba(47, 122, 79, .22), rgba(47, 122, 79, 0) 65%); opacity: 0; animation: pcInk .9s 1.18s ease-out both;
+@keyframes pcImprint { 0% { opacity: 0; } 1% { opacity: 1; transform: translate(-50%, -50%) rotate(-8deg) scale(.985); text-shadow: none; } 100% { opacity: .92; transform: translate(-50%, -50%) rotate(-8deg); text-shadow: 0 0 1px rgba(42, 112, 72, .6); } }
+.pc-bigstamp-word { font-family: var(--font-body), 'Jost', sans-serif; font-weight: 800; font-size: 50px; line-height: .95; letter-spacing: .16em; padding-left: .16em; text-transform: uppercase; }
+.pc-bigstamp-line { margin-top: 6px; padding-top: 5px; border-top: 2px solid #2A7048; font-size: 10.5px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; font-variant-numeric: lining-nums; white-space: nowrap; }
+.pc-bigstamp-ref { margin-top: 3px; font-size: 8.5px; font-weight: 600; letter-spacing: .14em; opacity: .85; }
+/* The stamp: a turned wooden knob, a brass collar, a wooden block with a gold-stamped maker's
+   name, and a dark rubber sole wet with green ink. It swings in, hovers, draws back, slams down,
+   squashes, rocks as it is pressed home, and lifts away. */
+.pc-stamptool {
+  position: absolute; left: 50%; top: 54%; z-index: 5; width: 230px; height: 190px; margin: -122px 0 0 -115px; pointer-events: none;
+  transform-origin: 50% 100%; opacity: 0; animation: pcStampTool 1.5s .95s both;
 }
-@keyframes pcInk { from { opacity: .9; transform: scale(.3); } to { opacity: 0; transform: scale(1.5); } }
+@keyframes pcStampTool {
+  0% { opacity: 0; transform: translate(150px, -300px) rotate(24deg) scale(1.3); animation-timing-function: cubic-bezier(.2, .8, .3, 1); }
+  20% { opacity: 1; transform: translate(18px, -120px) rotate(2deg) scale(1.14); animation-timing-function: ease-in-out; }
+  30% { transform: translate(6px, -112px) rotate(-5deg) scale(1.13); animation-timing-function: cubic-bezier(.3, 0, .4, 1); }
+  38% { transform: translate(0, -150px) rotate(-8deg) scale(1.16); animation-timing-function: cubic-bezier(.7, 0, 1, .55); }
+  41% { transform: translate(0, 0) rotate(-8deg) scale(1); animation-timing-function: ease-out; }
+  44% { transform: translate(0, 4px) rotate(-8deg) scale(1.035, .93); animation-timing-function: ease-in-out; }
+  50% { transform: translate(0, 2px) rotate(-5.5deg) scale(1.02, .96); animation-timing-function: ease-in-out; }
+  57% { transform: translate(0, 2px) rotate(-10.5deg) scale(1.02, .96); animation-timing-function: ease-in-out; }
+  64% { transform: translate(0, 1px) rotate(-8deg) scale(1.01, .98); animation-timing-function: cubic-bezier(.4, 0, .6, 1); }
+  72% { opacity: 1; transform: translate(0, -26px) rotate(-8deg) scale(1.03); animation-timing-function: cubic-bezier(.4, 0, .8, .5); }
+  100% { opacity: 0; transform: translate(170px, -340px) rotate(16deg) scale(1.25); }
+}
+.pc-stamptool > span { position: absolute; left: 50%; transform: translateX(-50%); }
+.pc-stamptool-knob {
+  top: 0; width: 78px; height: 58px; border-radius: 50% 50% 44% 44%;
+  background: radial-gradient(ellipse at 35% 28%, #C89063, #8A4F2B 45%, #4E2A14 100%); box-shadow: inset 0 -6px 10px rgba(0, 0, 0, .35), inset 0 3px 5px rgba(255, 220, 180, .3);
+}
+.pc-stamptool-neck { top: 50px; width: 38px; height: 36px; background: linear-gradient(90deg, #4E2A14, #9A5E35 40%, #B97E52 55%, #5A321A); }
+.pc-stamptool-collar { top: 82px; width: 70px; height: 16px; border-radius: 3px; background: linear-gradient(90deg, #7D5E22, #D8B866 35%, #F6E3A8 50%, #B8913F 70%, #7D5E22); box-shadow: 0 2px 3px rgba(0, 0, 0, .35); }
+.pc-stamptool-block {
+  top: 96px; width: 230px; height: 70px; border-radius: 6px 6px 3px 3px; display: grid; place-items: center;
+  background: repeating-linear-gradient(92deg, rgba(0, 0, 0, .06) 0 2px, transparent 2px 9px), linear-gradient(180deg, #A86B40, #7A4424 60%, #5C3219);
+  box-shadow: inset 0 2px 0 rgba(255, 220, 180, .25), inset 0 -4px 6px rgba(0, 0, 0, .3), 0 6px 10px rgba(0, 0, 0, .25);
+}
+.pc-stamptool-block b { font-family: var(--font-display), 'Cormorant Garamond', serif; font-weight: 500; font-size: 15px; letter-spacing: .24em; text-transform: uppercase; color: #E8C878; text-shadow: 0 1px 0 rgba(0, 0, 0, .4); }
+.pc-stamptool-rubber { top: 166px; width: 222px; height: 16px; border-radius: 0 0 4px 4px; background: linear-gradient(180deg, #2B2A26 0 60%, #1F5C3A 60%, #2A7048); box-shadow: 0 2px 2px rgba(0, 0, 0, .3); }
+/* Its shadow on the paper: wide and faint while the stamp is high, tight and dark as it lands. */
+.pc-stamptool-shadow {
+  position: absolute; left: 50%; top: 54%; z-index: 4; width: 240px; height: 110px; margin: -55px 0 0 -120px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(closest-side, rgba(30, 20, 10, .5), rgba(30, 20, 10, 0)); opacity: 0; animation: pcStampShadow 1.5s .95s both;
+}
+@keyframes pcStampShadow {
+  0% { opacity: 0; transform: translate(60px, 40px) scale(1.7); }
+  20% { opacity: .18; transform: translate(10px, 26px) scale(1.4); }
+  38% { opacity: .12; transform: translate(0, 34px) scale(1.55); animation-timing-function: cubic-bezier(.7, 0, 1, .55); }
+  41%, 64% { opacity: .55; transform: rotate(-8deg) scale(.95); }
+  72% { opacity: .35; transform: rotate(-8deg) scale(1.05, 1.1); }
+  100% { opacity: 0; transform: translate(60px, 40px) scale(1.7); }
+}
+/* The thud: a ring of air and specks of ink thrown out. */
+.pc-stamp-impact { position: absolute; left: 50%; top: 54%; z-index: 4; width: 0; height: 0; pointer-events: none; }
+.pc-stamp-ring { position: absolute; left: -130px; top: -60px; width: 260px; height: 120px; border-radius: 50%; border: 2px solid rgba(42, 112, 72, .35); opacity: 0; animation: pcStampRing .6s 1.56s ease-out both; }
+@keyframes pcStampRing { 0% { opacity: 0; } 1% { opacity: .9; transform: rotate(-8deg) scale(.7); } 100% { opacity: 0; transform: rotate(-8deg) scale(1.45); } }
+.pc-stamp-impact i { position: absolute; left: 0; top: 0; border-radius: 50%; background: #2A7048; opacity: 0; animation: pcSpeck .55s 1.56s cubic-bezier(.2, .8, .3, 1) both; }
+@keyframes pcSpeck { 0% { opacity: 0; } 1% { opacity: .9; transform: rotate(var(--a)) translateX(60px) scale(1); } 100% { opacity: 0; transform: rotate(var(--a)) translateX(var(--d)) scale(.4); } }
 .pc-paid-copy { margin: 26px 0 0; max-width: 340px; font-family: var(--font-display), 'Cormorant Garamond', serif; font-size: 17px; line-height: 1.45; color: #8A6D45; animation: pcRiseIn .8s 1.5s ease both; }
 .pc-money { position: fixed; inset: 0; z-index: 80; pointer-events: none; overflow: hidden; }
 .pc-money > span { position: absolute; top: -60px; animation-name: pcMoneyFall; animation-timing-function: cubic-bezier(.35, .1, .6, 1); animation-fill-mode: both; will-change: transform; }
@@ -970,7 +1022,9 @@ button.pc-auth-link:disabled { cursor: default; }
 }
 .pc-money-note b { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; border: 1px solid rgba(47, 122, 79, .5); font-family: var(--font-display), 'Cormorant Garamond', serif; font-size: 12px; color: #2F7A4F; }
 @media (prefers-reduced-motion: reduce) {
-  .pc-printer.is-running .pc-printer-slot, .pc-paid-slip, .pc-bigstamp, .pc-bigstamp-ink { animation: none !important; }
+  .pc-printer.is-running .pc-printer-slot, .pc-paid, .pc-paid-slip, .pc-stamp-impact i, .pc-stamp-ring { animation: none !important; }
+  .pc-bigstamp { animation: none !important; opacity: .92; }
+  .pc-stamptool, .pc-stamptool-shadow { display: none; }
   .pc-money { display: none; }
 }
 

@@ -641,8 +641,20 @@ gateway.
 - **Paid orders:** once an online payment is confirmed, "Payment received" comes first
   (`PaidMoment.tsx`):
   1. The amount is set large, and the order slip drops in with its shades, metres and date.
-  2. A green rubber stamp slams down on the slip: PAID, with the amount, date and payment
-     reference. It falls from above at a tilt, the slip jolts under it, and the ink spreads.
+  2. A wooden rubber stamp is brought down on it with force, in about a second and a half.
+     - It has a turned knob, a brass collar, a block gold-stamped "Poddar Creation" and a
+       green-inked rubber sole.
+     - It swings in from above and hovers, its shadow wide and faint on the paper, then draws back
+       for the blow.
+     - It slams down, accelerating. The rubber squashes; the slip is driven down and springs back;
+       the whole page takes the knock; a ring of air and specks of ink are thrown out; and a phone
+       gives a short buzz.
+     - It is rocked side to side as it is pressed home, then lifts and swings away.
+
+     Underneath is the impression: PAID, the amount, date and reference, double-ruled in bold
+     green. It is worn and grainy where the rubber met the paper less than fully (a noise filter
+     on that one element) and bleeds a little into the paper. The coins and notes fall only after
+     the thud.
   3. Gold ₹ coins and pale green ₹ notes shower past, each on its own path, spin and sway.
   4. "Thank you. Your order is on its way to the mill." After about four seconds (or a tap) the
      parcel is wrapped, and a smaller PAID stamp comes down on its tag, with "✓ Paid ₹ …" in the
