@@ -11,6 +11,7 @@ import { oklchToHex } from '@/lib/three/colour';
 import { metamerism, shiftVerdict } from '@/lib/three/metamerism';
 import { FONT_DISPLAY, FONT_BODY, fabricTex, fabricWeave, colourCss, colourFg, colourShade, fabricNo } from './helpers';
 import { useDragScroll } from './interactions';
+import { AddChooser, CartToast, flyToCart } from './AddChooser';
 import {
   GARMENTS, LIGHTS, PHYSICS_NOTES, STRETCH_TEST_NOTES,
   type GarmentKey, type LightKey,
@@ -72,6 +73,35 @@ export function FabricLab({ studio }: { studio: Studio }) {
     setPrompt({ n: targetColours.length, open: true, swatches: targetColours.map((c) => colourCss(c)), names: targetColours.map((c) => c.name) });
     setMulti(null);
   };
+  // "Add to…" asks where the shades go: the cart (the fabric itself, by the metre) or the swatch
+  // book. The choice is made in a sheet; the cart's arrival is a flight into the cart button and a
+  // brief "Added to your cart".
+  const [choosing, setChoosing] = useState(false);
+  const chooserPresence = usePresence(choosing, 400);
+  const [chosenColours, setChosenColours] = useState(targetColours);
+  const [toast, setToast] = useState<{ text: string; open: boolean }>({ text: '', open: false });
+  const toastPresence = usePresence(toast.open, 420);
+  const toastTimer = useRef(0);
+  useEffect(() => () => window.clearTimeout(toastTimer.current), []);
+  const openChooser = () => {
+    setChosenColours(targetColours);
+    setChoosing(true);
+  };
+  const toCart = (metres: number, from: DOMRect | null) => {
+    studio.addToCart(f.id, chosenColours.map((c) => c.order), metres);
+    setChoosing(false);
+    setMulti(null);
+    window.setTimeout(() => flyToCart(from, chosenColours.map((c) => fabricTex(f, c, 3))), 120);
+    window.clearTimeout(toastTimer.current);
+    const names = chosenColours.map((c) => c.name);
+    setToast({ open: true, text: `${t.addedCart} · ${names.length > 2 ? `${names.length} ${t.shades}` : names.join(', ')} · ${metres} m` });
+    toastTimer.current = window.setTimeout(() => setToast((x) => ({ ...x, open: false })), 4200);
+  };
+  const toBook = () => {
+    setChoosing(false);
+    window.setTimeout(pinTargets, 320);
+  };
+  const inCart = targetColours.length > 0 && targetColours.every((c) => studio.cart.some((l) => l.fabricId === f.id && l.colourOrder === c.order));
   // The prompt is fixed to the viewport, so it is portalled to the body: the lab's root animates a
   // transform while it lays in, and a transformed ancestor turns a fixed child page-positioned.
   const [mounted, setMounted] = useState(false);
@@ -536,8 +566,8 @@ export function FabricLab({ studio }: { studio: Studio }) {
                 light crossing it, a lift on hover and a give when pressed, and a star that
                 twinkles. Gold once the shade is in the book, the tick popping in. */}
             <button
-              onClick={pinTargets}
-              aria-pressed={pinned}
+              onClick={openChooser}
+              aria-haspopup="dialog"
               className={`pc-book${pinned ? ' is-done' : ''}`}
               style={{
                 cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 10, borderRadius: 999, whiteSpace: 'nowrap',
@@ -552,9 +582,16 @@ export function FabricLab({ studio }: { studio: Studio }) {
               }}
             >
               <span key={pinned ? 'done' : 'add'} aria-hidden className={pinned ? 'pc-book-tick' : 'pc-book-star'}>{pinned ? '✓' : '✦'}</span>
-              {pinned ? t.inBook : t.pin}
-              {!pinned && targets.length > 1 && <CountBadge n={targets.length} light />}
+              {t.addTo}
+              {targets.length > 1 && <CountBadge n={targets.length} light />}
             </button>
+            {(pinned || inCart) && (
+              // Where the shade on the stage already is.
+              <div style={{ flexBasis: '100%', display: 'flex', justifyContent: 'center', gap: 16, fontSize: 9.5, letterSpacing: '.2em', textTransform: 'uppercase', color: '#8A6D45', animation: 'pcRiseIn .5s ease both' }}>
+                {pinned && <span>✓ {t.inBook}</span>}
+                {inCart && <span>✓ {t.inCart}</span>}
+              </div>
+            )}
           </div>
           <div className="pc-shades-desktop">{shadeChart}</div>
         </div>
@@ -655,6 +692,20 @@ export function FabricLab({ studio }: { studio: Studio }) {
           onClose={() => setScenesOpen(false)}
         />,
         document.body,
+      )}
+      {mounted && chooserPresence.shown && (
+        <AddChooser studio={studio} fabric={f} colours={chosenColours} leaving={chooserPresence.leaving} onBook={toBook} onCart={toCart} onClose={() => setChoosing(false)} />
+      )}
+      {mounted && toastPresence.shown && (
+        <CartToast
+          studio={studio}
+          text={toast.text}
+          leaving={toastPresence.leaving}
+          onView={() => {
+            setToast((x) => ({ ...x, open: false }));
+            studio.go('cart');
+          }}
+        />
       )}
       {mounted && promptPresence.shown && createPortal(
         <BookPrompt

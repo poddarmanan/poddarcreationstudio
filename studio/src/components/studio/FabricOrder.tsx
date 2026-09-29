@@ -6,6 +6,7 @@ import type { ColourRow, FabricRow } from '@/lib/types';
 import { FONT_DISPLAY, fabricTex } from './helpers';
 import { Room, roman } from './SwatchBook';
 import { AuthScreen } from './AuthScreen';
+import { CartGlyph } from './CartGlyph';
 import { confettiBurst } from './confetti';
 import { oklchToRgb, rgbToHex } from '@/lib/colour-science';
 import type { OrderState } from './BookCeremony';
@@ -28,12 +29,15 @@ type Line = { x: FabricRow; c: ColourRow; key: string };
  * plays the dispatch: the fabrics are folded onto kraft paper, wrapped, tied with twine, sealed with
  * the house's wax seal and tagged with the order's reference, and confetti bursts from the seal.
  */
-export function FabricOrder({ studio, onBack }: { studio: Studio; onBack: () => void }) {
+export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studio; onBack: () => void; source?: 'book' | 'cart' }) {
   const { t } = studio;
+  const fromCart = source === 'cart';
+  // What is ordered: the swatch book's shades, or the cart's lines with their metres.
+  const picked = fromCart ? studio.cart : studio.pins;
   const groups = studio.fabrics
     .map((x) => ({
       x,
-      lines: studio.pins
+      lines: picked
         .filter((p) => p.fabricId === x.id)
         .map((p) => x.colours.find((c) => c.order === p.colourOrder))
         .filter((c): c is ColourRow => !!c)
@@ -42,7 +46,15 @@ export function FabricOrder({ studio, onBack }: { studio: Studio; onBack: () => 
     .filter((g) => g.lines.length);
   const lines: Line[] = groups.flatMap((g) => g.lines);
 
-  const [metres, setMetres] = useState<Record<string, number>>(() => Object.fromEntries(lines.map((l) => [l.key, 100])));
+  const [bookMetres, setBookMetres] = useState<Record<string, number>>(() => Object.fromEntries(lines.map((l) => [l.key, 100])));
+  // The cart's metres live in the cart itself, so they are kept between visits.
+  const cartMetres = Object.fromEntries(lines.map((l) => [l.key, studio.cart.find((c) => c.fabricId === l.x.id && c.colourOrder === l.c.order)?.metres ?? 0]));
+  const metres = fromCart ? cartMetres : bookMetres;
+  const setMetres = (fn: (was: Record<string, number>) => Record<string, number>) => {
+    if (!fromCart) return setBookMetres(fn);
+    const next = fn(cartMetres);
+    for (const l of lines) if (next[l.key] !== cartMetres[l.key]) studio.setCartMetres(l.x.id, l.c.order, next[l.key]);
+  };
   const [when, setWhen] = useState<'soon' | '2w' | 'month'>('soon');
   const [note, setNote] = useState('');
   const [phase, setPhase] = useState<'edit' | 'auth' | 'dispatch'>('edit');
@@ -56,14 +68,23 @@ export function FabricOrder({ studio, onBack }: { studio: Studio; onBack: () => 
   const value = chosen.reduce((s, l) => s + m(l.key) * l.x.price, 0);
   const whenLabel = when === 'soon' ? t.whenSoon : when === '2w' ? t.when2w : t.whenMonth;
 
+  // What was ordered stays on the dispatch page even as the cart empties behind it.
+  const [sent, setSent] = useState<{ lines: Line[]; total: number; value: number } | null>(null);
   const send = (whatsapp: string | null, demo: boolean) => {
     window.scrollTo(0, 0);
+    setSent({ lines: chosen, total, value });
     setPhase('dispatch');
     setOrder({ state: demo ? 'demo' : 'pending', whatsapp });
-    if (demo) return;
+    const placed = () => {
+      if (fromCart) for (const l of chosen) studio.removeFromCart(l.x.id, l.c.order);
+    };
+    if (demo) return placed();
     studio
       .orderFabric({ lines: chosen.map((l) => ({ fabricId: l.x.id, colourId: l.c.id, metres: m(l.key) })), timeline: whenLabel, note, whatsapp: whatsapp ?? undefined })
-      .then((r) => setOrder((o) => ({ ...o, state: r.ok ? 'sent' : 'failed', ref: r.ref })));
+      .then((r) => {
+        if (r.ok) placed();
+        setOrder((o) => ({ ...o, state: r.ok ? 'sent' : 'failed', ref: r.ref }));
+      });
   };
   const place = async () => {
     if (!chosen.length) return setWarn((n) => n + 1);
@@ -91,9 +112,9 @@ export function FabricOrder({ studio, onBack }: { studio: Studio; onBack: () => 
     return (
       <Dispatch
         studio={studio}
-        lines={chosen}
-        total={total}
-        value={value}
+        lines={sent?.lines ?? chosen}
+        total={sent?.total ?? total}
+        value={sent?.value ?? value}
         order={order}
         onDone={onBack}
         onRetry={() => {
@@ -103,13 +124,15 @@ export function FabricOrder({ studio, onBack }: { studio: Studio; onBack: () => 
       />
     );
 
+  if (fromCart && !lines.length) return <EmptyCart studio={studio} />;
+
   return (
     <Room center>
       {/* The way back, as every page of the studio has it. */}
       <div style={{ alignSelf: 'stretch', display: 'flex', marginTop: -6, animation: 'pcRiseIn .8s .15s ease both' }}>
         <button onClick={onBack} className="pc-auth-back">
           <span aria-hidden className="pc-auth-back-arrow">←</span>
-          {t.book}
+          {fromCart ? t.showroom : t.book}
         </button>
       </div>
 
@@ -120,7 +143,7 @@ export function FabricOrder({ studio, onBack }: { studio: Studio; onBack: () => 
         <span style={{ width: 'clamp(26px,8vw,56px)', height: 1, background: 'linear-gradient(270deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'left', animation: 'pcRuleDraw 1s .2s cubic-bezier(.2,.8,.2,1) both' }} />
       </div>
       <h1 style={{ margin: '14px 0 0', fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(46px,12vw,78px)', lineHeight: 1, letterSpacing: '-.012em', color: INK, perspective: 500 }}>
-        {[...t.orderThe.split(' '), t.fabricWordTitle].map((w, i, all) => (
+        {(fromCart ? [t.cartTitleA, t.cartTitleB] : [...t.orderThe.split(' '), t.fabricWordTitle]).map((w, i, all) => (
           <span
             key={i}
             className={i === all.length - 1 ? 'pc-foil-deep' : undefined}
@@ -130,7 +153,7 @@ export function FabricOrder({ studio, onBack }: { studio: Studio; onBack: () => 
           </span>
         ))}
       </h1>
-      <p style={{ margin: '12px 0 0', maxWidth: 360, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 16.5, lineHeight: 1.45, color: UMBER, animation: 'pcRiseIn .9s .6s cubic-bezier(.2,.8,.2,1) both' }}>{t.directSub}</p>
+      <p style={{ margin: '12px 0 0', maxWidth: 360, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 16.5, lineHeight: 1.45, color: UMBER, animation: 'pcRiseIn .9s .6s cubic-bezier(.2,.8,.2,1) both' }}>{fromCart ? t.cartSub : t.directSub}</p>
       <div aria-hidden style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 16 }}>
         <span style={{ width: 30, height: 1, background: 'linear-gradient(90deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'right', animation: 'pcRuleDraw 1s .8s cubic-bezier(.2,.8,.2,1) both' }} />
         <span style={{ width: 6, height: 6, background: 'rgba(168,134,79,.95)', animation: 'pcDiamondIn .8s .7s cubic-bezier(.2,.8,.2,1) both' }} />
@@ -175,7 +198,7 @@ export function FabricOrder({ studio, onBack }: { studio: Studio; onBack: () => 
               </div>
               <div style={{ marginTop: 10 }}>
                 {g.lines.map((l, i) => (
-                  <Row key={l.key} line={l} metres={m(l.key)} t={t} delay={1 + gi * 0.12 + i * 0.05} onChange={(v) => setM(l.key, v)} />
+                  <Row key={l.key} line={l} metres={m(l.key)} t={t} delay={1 + gi * 0.12 + i * 0.05} onChange={(v) => setM(l.key, v)} onRemove={fromCart ? () => studio.removeFromCart(l.x.id, l.c.order) : undefined} />
                 ))}
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(138,109,69,.25)', fontSize: 10, letterSpacing: '.2em', textTransform: 'uppercase', color: UMBER, fontVariantNumeric: 'lining-nums' }}>
@@ -232,7 +255,7 @@ export function FabricOrder({ studio, onBack }: { studio: Studio; onBack: () => 
 }
 
 /** A shade's row: its cutting, its name, a stepper for the metres, and the line's value. */
-function Row({ line, metres, t, delay, onChange }: { line: Line; metres: number; t: Record<string, string>; delay: number; onChange: (v: number) => void }) {
+function Row({ line, metres, t, delay, onChange, onRemove }: { line: Line; metres: number; t: Record<string, string>; delay: number; onChange: (v: number) => void; onRemove?: () => void }) {
   const off = metres === 0;
   return (
     <div className="pc-order-row" style={{ opacity: off ? 0.5 : 1, animation: `pcFieldIn .7s ${delay}s cubic-bezier(.2,.8,.2,1) both` }}>
@@ -240,7 +263,7 @@ function Row({ line, metres, t, delay, onChange }: { line: Line; metres: number;
       <div style={{ minWidth: 0, flex: 1 }}>
         <div style={{ fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 18, lineHeight: 1.1, color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{line.c.name}</div>
         <div style={{ marginTop: 2, fontSize: 9, letterSpacing: '.2em', textTransform: 'uppercase', color: off ? '#A5392B' : 'rgba(28,25,23,.45)', fontVariantNumeric: 'lining-nums' }}>
-          {off ? t.notIncluded : `${t.shadeNo} ${String(line.c.order).padStart(2, '0')} · ₹ ${inr(metres * line.x.price)}`}
+          {off ? t.notIncluded : onRemove ? `₹ ${inr(metres * line.x.price)}` : `${t.shadeNo} ${String(line.c.order).padStart(2, '0')} · ₹ ${inr(metres * line.x.price)}`}
         </div>
       </div>
       <div className="pc-stepper">
@@ -259,6 +282,11 @@ function Row({ line, metres, t, delay, onChange }: { line: Line; metres: number;
           +
         </button>
       </div>
+      {onRemove && (
+        <button aria-label={`${t.removeWord} ${line.c.name}`} className="pc-order-remove" onClick={onRemove}>
+          ×
+        </button>
+      )}
     </div>
   );
 }
@@ -467,3 +495,22 @@ function Dispatch({
   );
 }
 
+/** An empty cart: a folded bolt of kraft, waiting, and the way to the Showroom. */
+function EmptyCart({ studio }: { studio: Studio }) {
+  const { t } = studio;
+  return (
+    <Room center>
+      <div aria-hidden className="pc-cart-empty-art">
+        <span className="pc-cart-empty-bag">
+          <CartGlyph size={46} />
+        </span>
+      </div>
+      <h1 style={{ margin: '26px 0 0', fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(38px,10vw,58px)', lineHeight: 1.04, color: INK, animation: 'pcRiseIn .9s .3s cubic-bezier(.2,.8,.2,1) both' }}>{t.cartEmpty}</h1>
+      <p style={{ margin: '12px 0 0', maxWidth: 330, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 17, lineHeight: 1.45, color: UMBER, animation: 'pcRiseIn .9s .5s cubic-bezier(.2,.8,.2,1) both' }}>{t.cartEmptySub}</p>
+      <button className="pc-auth-btn" style={{ marginTop: 26, width: 'min(100%, 380px)', animation: 'pcFieldIn .8s .7s cubic-bezier(.2,.8,.2,1) both' }} onClick={() => studio.go('showroom')}>
+        <span aria-hidden className="pc-auth-star">✦</span>
+        {t.showroom}
+      </button>
+    </Room>
+  );
+}

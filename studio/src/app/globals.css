@@ -759,3 +759,93 @@ button.pc-auth-link:disabled { cursor: default; }
   .pc-direct::after { animation: none; }
   [style*="pcBundleDrop"], [style*="pcSealStamp"], [style*="pcTagSwing"], .pc-seal-ripple { animation-duration: .01s !important; animation-delay: 0s !important; }
 }
+
+/* ── The cart ────────────────────────────────────────────────────────────────────────────────
+   "Add to…": two cards in a sheet. The cart in ink edged with gold, with its metres; the swatch
+   book in cream. */
+.pc-choice { position: relative; overflow: hidden; display: block; width: 100%; border-radius: 20px; padding: 16px 16px 14px; }
+.pc-choice.is-cart {
+  color: #FAF8F5; background: linear-gradient(135deg, #2A231D, #1C1917 55%, #2A221B); border: 1px solid rgba(216, 182, 112, .55);
+  box-shadow: 0 16px 36px rgba(28, 25, 23, .26), inset 0 1px 0 rgba(255, 236, 196, .12);
+}
+.pc-choice.is-cart::after {
+  content: ''; position: absolute; top: 0; bottom: 0; left: -40%; width: 26%; pointer-events: none;
+  background: linear-gradient(100deg, transparent, rgba(255, 236, 196, .2), transparent); transform: translateX(0) skewX(-18deg); animation: pcSheen 4.6s .9s ease-in-out 2;
+}
+.pc-choice.is-book {
+  cursor: pointer; display: flex; align-items: center; gap: 12px; text-align: left; background: #FFFDF8; border: 1px solid rgba(28, 25, 23, .12);
+  box-shadow: 0 10px 24px rgba(40, 26, 12, .1); transition: transform .35s cubic-bezier(.22, .8, .2, 1), box-shadow .35s ease;
+}
+.pc-choice.is-book:hover { transform: translateY(-2px); box-shadow: 0 16px 32px rgba(40, 26, 12, .16); }
+.pc-choice.is-book:active { transform: scale(.98); }
+.pc-choice-icon { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: #1C1917; background: radial-gradient(circle at 35% 30%, #F6E3A8, #C9A04B 70%); box-shadow: inset 0 0 0 2px rgba(28, 25, 23, .2); }
+.pc-choice-icon.is-light { background: rgba(216, 182, 112, .2); color: #8A6D45; box-shadow: inset 0 0 0 1px rgba(138, 109, 69, .35); }
+.pc-choice-arrow { margin-left: auto; font-size: 18px; color: #8A6D45; transition: transform .5s cubic-bezier(.22, .8, .2, 1); }
+.pc-choice.is-book:hover .pc-choice-arrow { transform: translateX(5px); }
+.pc-choice-chip {
+  cursor: pointer; padding: 6px 11px; border-radius: 999px; border: 1px solid rgba(216, 182, 112, .45); background: transparent; color: #FAF8F5;
+  font-family: var(--font-body), 'Jost', sans-serif; font-size: 10.5px; letter-spacing: .08em; font-variant-numeric: lining-nums; transition: background-color .3s ease, color .3s ease, transform .3s ease;
+}
+.pc-choice-chip:hover { transform: translateY(-1px); }
+.pc-choice-chip.is-on { background: linear-gradient(135deg, #F6E3A8, #D8B670); color: #1C1917; border-color: transparent; }
+.pc-choice-go {
+  position: relative; overflow: hidden; cursor: pointer; width: 100%; margin-top: 14px; padding: 14px 16px; border-radius: 999px; border: 1px solid rgba(255, 240, 200, .6);
+  background: linear-gradient(135deg, #F8EBC4, #D9B670 50%, #EDD497); color: #1C1917; font-family: var(--font-body), 'Jost', sans-serif; font-size: 11px;
+  letter-spacing: .18em; text-transform: uppercase; white-space: nowrap; font-variant-numeric: lining-nums; transition: transform .35s cubic-bezier(.22, .8, .2, 1);
+}
+.pc-choice-go:hover { transform: translateY(-2px); }
+.pc-choice-go:active { transform: scale(.975); }
+
+/* The cart in the tab bar: an ink disc edged in gold that bounces, rings and pops its count as
+   things land in it, with a shine crossing it a few times. */
+.pc-cart-btn {
+  position: relative; display: grid; place-items: center; width: 34px; height: 34px; margin-top: -3px; margin-bottom: -3px; border-radius: 50%;
+  color: #FAF8F5; background: radial-gradient(circle at 35% 28%, #3A3129, #1C1917 70%); border: 1px solid rgba(216, 182, 112, .7);
+  box-shadow: 0 6px 14px rgba(28, 25, 23, .28), inset 0 1px 0 rgba(255, 236, 196, .18); overflow: visible;
+}
+.pc-cart-btn::after {
+  content: ''; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  background: linear-gradient(115deg, transparent 35%, rgba(255, 236, 196, .45) 50%, transparent 65%); background-size: 260% 100%; background-position: 130% 0;
+  animation: pcCartShine 3.6s 1.2s ease-in-out 3;
+}
+@keyframes pcCartShine { 0% { background-position: 130% 0; } 40%, 100% { background-position: -130% 0; } }
+.pc-cart-btn.is-active { box-shadow: 0 0 0 3px rgba(216, 182, 112, .3), 0 6px 14px rgba(28, 25, 23, .28); }
+.pc-cart-btn.is-bumped { animation: pcCartBump .75s .75s cubic-bezier(.3, 1.6, .5, 1) both; }
+@keyframes pcCartBump { 0% { transform: none; } 30% { transform: translateY(-5px) scale(1.18) rotate(-8deg); } 60% { transform: translateY(1px) scale(.94) rotate(4deg); } 100% { transform: none; } }
+.pc-cart-ring { position: absolute; inset: -2px; border-radius: 50%; border: 2px solid rgba(216, 182, 112, .9); pointer-events: none; animation: pcCartRing .9s .8s ease-out both; }
+@keyframes pcCartRing { from { opacity: 1; transform: scale(.9); } to { opacity: 0; transform: scale(2.1); } }
+.pc-cart-badge {
+  position: absolute; top: -5px; right: -7px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 999px; display: grid; place-items: center;
+  font-family: var(--font-body), 'Jost', sans-serif; font-size: 9.5px; font-weight: 600; color: #1C1917; background: linear-gradient(135deg, #F6E3A8, #D8B670);
+  box-shadow: 0 2px 5px rgba(28, 25, 23, .3); animation: pcBadgePop .5s .85s cubic-bezier(.3, 1.8, .5, 1) both;
+}
+@keyframes pcBadgePop { from { transform: scale(.3); } to { transform: none; } }
+.pc-cart-count { animation: pcBadgePop .5s .85s cubic-bezier(.3, 1.8, .5, 1) both; }
+
+/* "Added to your cart": an ink pill above the tab bar. */
+.pc-cart-toast {
+  position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom)); z-index: 95; width: min(92vw, 440px); display: flex; align-items: center; gap: 10px;
+  padding: 10px 10px 10px 12px; border-radius: 999px; color: #FAF8F5; background: linear-gradient(135deg, #2A231D, #1C1917); border: 1px solid rgba(216, 182, 112, .5);
+  box-shadow: 0 18px 40px rgba(28, 25, 23, .3); font-family: var(--font-display), 'Cormorant Garamond', serif; font-style: italic; font-size: 15px;
+  transform: translateX(-50%); animation: pcToastIn .6s .5s cubic-bezier(.2, .9, .25, 1) both;
+}
+.pc-cart-toast.is-leaving { animation: pcToastOut .4s ease forwards; }
+@keyframes pcToastIn { from { opacity: 0; transform: translate(-50%, 24px) scale(.96); } to { opacity: 1; transform: translateX(-50%); } }
+@keyframes pcToastOut { to { opacity: 0; transform: translate(-50%, 18px); } }
+@media (min-width: 768px) { .pc-cart-toast { bottom: 28px; } }
+.pc-cart-toast-icon { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: #1C1917; background: linear-gradient(135deg, #F6E3A8, #D8B670); }
+.pc-cart-toast-go {
+  flex: none; cursor: pointer; padding: 8px 14px; border-radius: 999px; border: 1px solid rgba(216, 182, 112, .6); background: transparent; color: #E9CF8F;
+  font-family: var(--font-body), 'Jost', sans-serif; font-style: normal; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; white-space: nowrap;
+}
+.pc-order-remove {
+  flex: none; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; display: grid; place-items: center; margin-left: -4px;
+  border: 1px solid rgba(28, 25, 23, .14); background: transparent; color: rgba(28, 25, 23, .55); font-size: 15px; line-height: 1;
+  transition: background-color .3s ease, color .3s ease, transform .3s ease;
+}
+.pc-order-remove:hover { background: #1C1917; color: #FAF8F5; transform: rotate(90deg); }
+.pc-cart-empty-art { position: relative; width: 120px; height: 120px; margin-top: 30px; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle, rgba(255, 250, 236, .95), rgba(255, 236, 200, .3) 60%, transparent 72%); animation: pcFadeIn .8s ease both; }
+.pc-cart-empty-bag { display: grid; place-items: center; width: 86px; height: 86px; border-radius: 50%; color: #FAF8F5; background: radial-gradient(circle at 35% 28%, #3A3129, #1C1917 70%); border: 1px solid rgba(216, 182, 112, .7); box-shadow: 0 16px 34px rgba(28, 25, 23, .3); animation: pcBookFloat 7s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .pc-choice.is-cart::after, .pc-cart-btn::after, .pc-cart-btn.is-bumped, .pc-cart-ring, .pc-cart-badge, .pc-cart-count, .pc-cart-empty-bag { animation: none !important; }
+}

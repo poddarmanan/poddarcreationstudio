@@ -14,6 +14,7 @@ export function Nav({ studio }: { studio: Studio }) {
     { k: 'showroom', label: t.showroom },
     { k: 'colours', label: t.colours },
     { k: 'book', label: t.book, count: pins.length },
+    { k: 'cart', label: t.cartWord, count: studio.cart.length },
     { k: 'admin', label: t.admin, hidden: !isStaff },
   ];
 
@@ -44,6 +45,7 @@ export function Nav({ studio }: { studio: Studio }) {
           <button
             key={n.k}
             onClick={() => go(n.k)}
+            data-cart-target={n.k === 'cart' ? '' : undefined}
             className="pc-hv-ink"
             style={{
               cursor: 'pointer', border: 'none',
@@ -54,7 +56,11 @@ export function Nav({ studio }: { studio: Studio }) {
             }}
           >
             {n.label}
-            {n.count ? <span style={{ color: '#8A6D45', marginLeft: 4, fontSize: 10 }}>{n.count}</span> : null}
+            {n.count ? (
+              <span key={n.k === 'cart' ? studio.cartBump : undefined} className={n.k === 'cart' ? 'pc-cart-count' : undefined} style={{ display: 'inline-block', color: '#8A6D45', marginLeft: 4, fontSize: 10 }}>
+                {n.count}
+              </span>
+            ) : null}
           </button>
         ))}
       </div>

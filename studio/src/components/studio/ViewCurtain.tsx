@@ -27,6 +27,7 @@ export function ViewCurtain({ studio }: { studio: Studio }) {
     fabric: '',
     colours: t.colourWall,
     book: t.book,
+    cart: t.cartWord,
     admin: t.adminTitle,
   };
   return (

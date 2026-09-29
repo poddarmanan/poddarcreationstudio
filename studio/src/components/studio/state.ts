@@ -8,7 +8,14 @@ import { fabricTex, heroColour } from './helpers';
 import { useSearch, type Search } from './search';
 import { FABRIC_STORIES } from '@/lib/fabric-generator';
 
-export type View = 'home' | 'showroom' | 'fabric' | 'colours' | 'book' | 'admin';
+export type View = 'home' | 'showroom' | 'fabric' | 'colours' | 'book' | 'cart' | 'admin';
+
+/** A line in the cart: a shade, and how many metres of it. */
+export interface CartLine {
+  fabricId: string;
+  colourOrder: number;
+  metres: number;
+}
 
 export interface Pin {
   id?: string;
@@ -61,6 +68,15 @@ export interface Studio {
   toggleTest: (k: keyof Tests) => void;
   pins: Pin[];
   pinShade: (fabricId: string, colourOrder: number) => void;
+  /** The cart: fabric to be ordered by the metre. Kept on this device. */
+  cart: CartLine[];
+  /** Adds shades to the cart (a shade already there gains the metres), and bumps the cart. */
+  addToCart: (fabricId: string, colourOrders: number[], metres: number) => void;
+  setCartMetres: (fabricId: string, colourOrder: number, metres: number) => void;
+  removeFromCart: (fabricId: string, colourOrder: number) => void;
+  clearCart: () => void;
+  /** Counts up on every addition, so the cart button can play its arrival. */
+  cartBump: number;
   removePin: (pin: Pin) => void;
   q: string;
   setQ: (q: string) => void;
@@ -168,6 +184,26 @@ export function useStudio(rawFabrics: FabricRow[]): Studio {
   const [wind, setWind] = useState(3);
   const [tests, setTests] = useState<Tests>({ stretch: false, shine: false, d3: false });
   const [pins, setPins] = useState<Pin[]>([]);
+  const [cart, setCart] = useState<CartLine[]>([]);
+  const [cartBump, setCartBump] = useState(0);
+  // The cart lives on this device: read once, and written back whenever it changes.
+  const cartLoaded = useRef(false);
+  useEffect(() => {
+    const tm = setTimeout(() => {
+      try {
+        const saved = JSON.parse(localStorage.getItem('pc-cart') || '[]') as CartLine[];
+        if (Array.isArray(saved) && saved.length) setCart(saved.filter((l) => l && typeof l.metres === 'number'));
+      } catch {}
+      cartLoaded.current = true;
+    }, 0);
+    return () => clearTimeout(tm);
+  }, []);
+  useEffect(() => {
+    if (!cartLoaded.current) return;
+    try {
+      localStorage.setItem('pc-cart', JSON.stringify(cart));
+    } catch {}
+  }, [cart]);
   const [q, setQ] = useState('');
   const [wallFab, setWallFab] = useState<string | null>(null);
   const [scope, setScope] = useState(false);
@@ -290,6 +326,25 @@ export function useStudio(rawFabrics: FabricRow[]): Studio {
     setTests((prev) => ({ ...prev, [k]: !prev[k] }));
   }, []);
 
+
+  const addToCart = useCallback((fabricId: string, colourOrders: number[], metres: number) => {
+    setCart((prev) => {
+      const next = [...prev];
+      for (const colourOrder of colourOrders) {
+        const at = next.findIndex((l) => l.fabricId === fabricId && l.colourOrder === colourOrder);
+        if (at >= 0) next[at] = { ...next[at], metres: Math.min(100_000, next[at].metres + metres) };
+        else next.push({ fabricId, colourOrder, metres });
+      }
+      return next;
+    });
+    setCartBump((n) => n + 1);
+  }, []);
+  const setCartMetres = useCallback((fabricId: string, colourOrder: number, metres: number) => {
+    setCart((prev) => prev.map((l) => (l.fabricId === fabricId && l.colourOrder === colourOrder ? { ...l, metres: Math.max(0, Math.min(100_000, Math.round(metres))) } : l)));
+  }, []);
+  const removeFromCart = useCallback((fabricId: string, colourOrder: number) => {
+    setCart((prev) => prev.filter((l) => !(l.fabricId === fabricId && l.colourOrder === colourOrder)));
+  }, []);
 
   const pinShade = useCallback(
     (fabricId: string, colourOrder: number) => {
@@ -572,6 +627,12 @@ export function useStudio(rawFabrics: FabricRow[]): Studio {
     toggleTest,
     pins,
     pinShade,
+    cart,
+    addToCart,
+    setCartMetres,
+    removeFromCart,
+    clearCart: () => setCart([]),
+    cartBump,
     removePin,
     q,
     setQ,

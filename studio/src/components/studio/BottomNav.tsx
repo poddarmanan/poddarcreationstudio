@@ -2,6 +2,7 @@
 
 import type { Studio, View } from './state';
 import { FONT_BODY } from './helpers';
+import { CartGlyph } from './CartGlyph';
 
 /**
  * The mobile navigation: a floating pill anchored to the bottom of the screen.
@@ -50,6 +51,8 @@ function Icon({ name }: { name: View }) {
           <path d="M5 17h14" />
         </svg>
       );
+    case 'cart':
+      return <CartGlyph />;
     case 'admin':
       return (
         <svg {...common}>
@@ -70,14 +73,15 @@ function Icon({ name }: { name: View }) {
 const short = (label: string) => label.split(' ')[0];
 
 export function BottomNav({ studio }: { studio: Studio }) {
-  const { t, view, go, pins, isStaff } = studio;
+  const { t, view, go, pins, isStaff, cart, cartBump } = studio;
 
-  // Three for everyone: Showroom, Colours and the Swatch Book; the logo in the header is the way
-  // to the Entrance. Staff get Admin as a fourth.
+  // Four for everyone: Showroom, Colours, the Swatch Book and the Cart; the logo in the header is
+  // the way to the Entrance. Staff get Admin as a fifth.
   const items: { k: View; label: string; count?: number }[] = [
     { k: 'showroom', label: t.showroom },
     { k: 'colours', label: t.colours },
     { k: 'book', label: t.book, count: pins.length },
+    { k: 'cart', label: t.cartWord, count: cart.length },
     ...(isStaff ? [{ k: 'admin' as View, label: t.admin }] : []),
   ];
 
@@ -86,6 +90,30 @@ export function BottomNav({ studio }: { studio: Studio }) {
       <div className="pc-bottomnav-pill">
         {items.map((item) => {
           const active = view === item.k;
+          const isCart = item.k === 'cart';
+          // The cart is set apart: an ink disc edged in gold, a shine crossing it now and then, and a
+          // bounce, a gold ring and a popping count each time something lands in it.
+          if (isCart)
+            return (
+              <button
+                key={item.k}
+                onClick={() => go(item.k)}
+                aria-current={active ? 'page' : undefined}
+                aria-label={`${item.label}${item.count ? `, ${item.count}` : ''}`}
+                className="pc-bottomnav-item"
+                style={{ color: active ? INK : 'rgba(28,25,23,.5)' }}
+              >
+                <span data-cart-target key={cartBump} className={`pc-cart-btn${cartBump ? ' is-bumped' : ''}${active ? ' is-active' : ''}`}>
+                  <CartGlyph size={19} />
+                  {cartBump > 0 && <span aria-hidden className="pc-cart-ring" />}
+                  {item.count ? <span className="pc-cart-badge">{item.count > 9 ? '9+' : item.count}</span> : null}
+                </span>
+                <span className="pc-bottomnav-label" style={{ fontFamily: FONT_BODY, color: active ? INK : 'rgba(28,25,23,.5)' }}>
+                  {short(item.label)}
+                </span>
+                {active && <span aria-hidden className="pc-bottomnav-dot" style={{ background: GOLD }} />}
+              </button>
+            );
           return (
             <button
               key={item.k}

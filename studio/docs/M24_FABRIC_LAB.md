@@ -456,6 +456,38 @@ the static preview it notes that orders are not sent.
 The reading room clips with `overflow: clip`, not `hidden`, so it does not become a scroll
 container and the dock sticks to the window.
 
+### The cart
+
+The lab's action is now **"Add to…"**. It asks where the shades go, in a sheet that rises over the
+lab (`AddChooser.tsx`), headed by the fabric, its shade count and the shades fanned out:
+
+- **Add to Cart:** the fabric itself, by the metre. An ink card edged in gold, with the price per
+  metre and 50, 100, 250 or 500 m chips (100 m by default). Its gold button reads "Add to Cart" and
+  the line's value, which ticks as the metres change.
+- **Add to Swatch Book:** a cutting of each shade, as before. It hands on to the lab's own "Added
+  to your book".
+
+Under the button, "✓ In your book" and "✓ In your cart" say where the shade on the stage already
+is.
+
+Adding to the cart sends small pinked cuttings of the shades arcing up and into the cart button
+(in the tab bar, or the header's "Cart" on a desktop), turning and shrinking as they go. The
+cart bounces, a gold ring spreads from it, and its count pops. An ink pill above the tab bar then
+says "Added to your cart", with the shades and metres, and "View cart →". It leaves after four
+seconds.
+
+**The cart in the tab bar** is the fourth item, after the Swatch Book. It is set apart: an ink disc
+edged in gold, with a shine crossing it a few times and a gold count badge.
+
+**The cart page** is the direct order page (`FabricOrder` with `source="cart"`), titled "Your
+*Cart*", with "← Showroom" as the way back. Its metres are the cart's own, so they are kept between
+visits. Each row has a × that takes the shade out of the cart. Placing the order goes through the
+same sign-in, dispatch and confetti; once the order is taken, its lines leave the cart. An empty
+cart shows a floating ink bag, "Your cart is empty" and the way to the Showroom.
+
+The cart is kept on this device in `localStorage` (`pc-cart`): a line per shade with its metres.
+Adding a shade already there adds to its metres.
+
 ### The PDF
 
 "Download PDF" saves `Poddar-Swatch-Book.pdf`, made in the browser (`src/lib/swatch-book-pdf.ts`),

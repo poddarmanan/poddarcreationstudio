@@ -12,6 +12,7 @@ import { SwatchBook } from './SwatchBook';
 import { Admin } from './Admin';
 import { UnrollTransition, ScopeModal, SceneModal, QuoteModal, AiModal, SignInPage } from './Modals';
 import { ViewCurtain } from './ViewCurtain';
+import { FabricOrder } from './FabricOrder';
 
 export function StudioApp({ fabrics }: { fabrics: FabricRow[] }) {
   const studio = useStudio(fabrics);
@@ -30,6 +31,7 @@ export function StudioApp({ fabrics }: { fabrics: FabricRow[] }) {
       {!studio.signInOpen && studio.view === 'fabric' && <FabricLab key={studio.currentFabric.id} studio={studio} />}
       {!studio.signInOpen && studio.view === 'colours' && <ColourWall studio={studio} />}
       {!studio.signInOpen && studio.view === 'book' && <SwatchBook studio={studio} />}
+      {!studio.signInOpen && studio.view === 'cart' && <FabricOrder studio={studio} source="cart" onBack={() => studio.go('showroom')} />}
       {!studio.signInOpen && studio.view === 'admin' && <Admin studio={studio} />}
       <BottomNav studio={studio} />
       <ViewCurtain studio={studio} />
