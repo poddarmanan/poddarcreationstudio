@@ -71,51 +71,86 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
   const [proof, setProof] = useState<{ razorpay: RazorpayProof; amount: number; shipTo: string } | null>(null);
   const [warn, setWarn] = useState(0);
 
-  // The order slip prints out of a slot by itself, line by line at a steady pace, while the page
-  // scrolls along to keep the print line in view, just above the dock. A reader who scrolls or
-  // touches the page takes over: printing carries on, but the page no longer follows. Set on the
-  // elements directly each frame, so printing renders nothing.
+  // The order slip prints as a bill machine does: a stretch prints line by line, the printer stops,
+  // then it carries on, until the slip is out. The page glides along while it prints: first to
+  // bring the printer into view, then keeping the print line in sight above the dock, burst by
+  // burst. A reader who scrolls, touches or presses a key takes over; printing carries on. All is
+  // set on the elements directly each frame, so printing renders nothing.
   const feedRef = useRef<HTMLDivElement | null>(null);
   const headRef = useRef<HTMLDivElement | null>(null);
+  const printerRef = useRef<HTMLDivElement | null>(null);
   const printDone = useRef(false);
+  // Whether the page still follows the printing (the dock's unzip takes the page elsewhere).
+  const printFollow = useRef(true);
   const [printed, setPrinted] = useState(false);
   useEffect(() => {
     if (phase !== 'edit') return;
     const feed = feedRef.current;
     if (!feed) return;
     printDone.current = false;
+    const printer = printerRef.current;
     const quick = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const startAt = performance.now() + (quick ? 0 : 750);
+    const LINE = 6; // the paper advances a line at a time
     let shown = 0;
-    let last = 0;
     let raf = 0;
     let follow = !quick;
+    printFollow.current = true;
+    // The bursts: how far each prints before the printer stops, and for how long it stops.
+    let burstLeft = 0;
+    let pauseUntil = performance.now() + (quick ? 0 : 700);
+    let lastLine = 0;
+    let running = false;
+    const setRunning = (on: boolean) => {
+      if (on === running) return;
+      running = on;
+      printer?.classList.toggle('is-running', on);
+    };
     const letGo = () => {
       follow = false;
     };
     const frame = (now: number) => {
       raf = 0;
       const full = feed.scrollHeight;
-      if (now < startAt) {
-        raf = requestAnimationFrame(frame);
-        return;
+      if (quick || printDone.current) shown = full;
+      else if (now >= pauseUntil) {
+        if (burstLeft <= 0) burstLeft = 70 + Math.random() * 110;
+        setRunning(true);
+        // A line every 14ms or so while running.
+        if (now - lastLine >= 14) {
+          lastLine = now;
+          shown = Math.min(full, shown + LINE);
+          burstLeft -= LINE;
+          if (burstLeft <= 0) {
+            setRunning(false);
+            pauseUntil = now + 260 + Math.random() * 360;
+          }
+        }
       }
-      const dt = last ? Math.min(64, now - last) : 16;
-      last = now;
-      // Easing in over the first stretch, then about 360px a second.
-      const pace = Math.min(0.36, 0.08 + shown / 900);
-      shown = quick || printDone.current ? full : Math.min(full, shown + dt * pace);
       feed.style.clipPath = shown >= full ? 'none' : `inset(0 0 ${full - shown}px 0)`;
       if (headRef.current) headRef.current.style.transform = `translateY(${shown}px)`;
+      if (!printFollow.current) follow = false;
       if (follow) {
-        const line = feed.getBoundingClientRect().top + shown;
-        const want = window.innerHeight - 250;
-        if (line > want) window.scrollBy(0, line - want);
+        // Where the page wants to be: the printer in view at first, then the print line held above
+        // the dock (a little further at the end, for the note). It eases there, so it glides.
+        const rect = feed.getBoundingClientRect();
+        const printerTop = rect.top + window.scrollY - 150;
+        const lineAt = rect.top + window.scrollY + shown + (shown >= full ? 110 : 0) - (window.innerHeight - 260);
+        const want = Math.max(printerTop, lineAt);
+        const step = (want - window.scrollY) * 0.14;
+        if (Math.abs(step) > 0.5) window.scrollTo(0, window.scrollY + step);
       }
       if (shown >= full) {
-        stop();
-        setPrinted(true);
-        return;
+        setRunning(false);
+        if (!printDone.current) {
+          printDone.current = true;
+          setPrinted(true);
+        }
+        // Let the last glide finish, then stop.
+        if (follow && Math.abs(window.scrollY - (feed.getBoundingClientRect().top + window.scrollY + full + 110 - (window.innerHeight - 260))) > 2 && now < pauseUntil + 3000) {
+          raf = requestAnimationFrame(frame);
+          return;
+        }
+        return stop();
       }
       raf = requestAnimationFrame(frame);
     };
@@ -133,6 +168,7 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
     return () => {
       cancelAnimationFrame(raf);
       stop();
+      printer?.classList.remove('is-running');
     };
   }, [phase]);
 
@@ -181,7 +217,7 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
   // and torn along the slot, drops away with its note, and the dispatch opens.
   const printRef = useRef<HTMLDivElement | null>(null);
   const [tearing, setTearing] = useState(false);
-  const tear = (): boolean => {
+  const tear = (scroll = true): boolean => {
     if (!chosen.length) {
       setWarn((n) => n + 1);
       return false;
@@ -192,104 +228,28 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
     if (feed) feed.style.clipPath = 'none';
     setPrinted(true);
     const quick = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const top = printRef.current ? printRef.current.getBoundingClientRect().top + window.scrollY - 140 : 0;
-    window.scrollTo({ top: Math.max(0, top), behavior: quick ? 'auto' : 'smooth' });
-    window.setTimeout(() => setTearing(true), quick ? 0 : 480);
+    if (scroll) {
+      const top = printRef.current ? printRef.current.getBoundingClientRect().top + window.scrollY - 140 : 0;
+      window.scrollTo({ top: Math.max(0, top), behavior: quick ? 'auto' : 'smooth' });
+    }
+    const lead = scroll && !quick ? 480 : 0;
+    window.setTimeout(() => setTearing(true), lead);
     window.setTimeout(() => {
       setTearing(false);
       next();
-    }, quick ? 60 : 1650);
+    }, quick ? 60 : lead + 1170);
     return true;
   };
-  // Or torn straight off the printer: take hold of the slip anywhere and pull it sideways. It swings
-  // from the slot as it is pulled, a rip opening along the slot; let go early and it swings back,
-  // pull far enough and it tears and flies off the way it was pulled. Upward and downward strokes
-  // still scroll the page.
-  const paperRef = useRef<HTMLDivElement | null>(null);
-  const ripRef = useRef<HTMLSpanElement | null>(null);
-  const [flung, setFlung] = useState(false);
-  const pull = useRef<{ x: number; y: number; dx: number; on: boolean; off: boolean } | null>(null);
-  const [pulling, setPulling] = useState(false);
-  const pose = (dx: number, animate: boolean) => {
-    const paper = paperRef.current;
-    if (!paper) return;
-    const w = paper.clientWidth || 360;
-    const p = Math.min(1, Math.abs(dx) / (w * 0.42));
-    paper.style.transition = animate ? 'transform .55s cubic-bezier(.3,1.5,.5,1)' : 'none';
-    paper.style.transform = dx ? `translateX(${dx * 0.35}px) rotate(${dx / 50}deg)` : '';
-    const rip = ripRef.current;
-    if (rip) {
-      rip.style.transition = animate ? 'clip-path .4s ease' : 'none';
-      rip.style.clipPath = dx >= 0 ? `inset(0 ${100 - p * 100}% 0 0)` : `inset(0 0 0 ${100 - p * 100}%)`;
-    }
-    return p;
+  // The zipper along the slot: unzipped by hand (or run by itself from the dock's hint), it tears
+  // the slip off without another scroll.
+  const zipRun = useRef<(() => void) | null>(null);
+  const unzipFromDock = () => {
+    printFollow.current = false;
+    const quick = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const top = printRef.current ? printRef.current.getBoundingClientRect().top + window.scrollY - 140 : 0;
+    window.scrollTo({ top: Math.max(0, top), behavior: quick ? 'auto' : 'smooth' });
+    window.setTimeout(() => zipRun.current?.(), quick ? 0 : 550);
   };
-  const fling = (dir: 1 | -1) => {
-    if (!chosen.length) {
-      setWarn((n) => n + 1);
-      pose(0, true);
-      return;
-    }
-    printDone.current = true;
-    const feed = feedRef.current;
-    if (feed) feed.style.clipPath = 'none';
-    setPrinted(true);
-    setTearing(true);
-    setFlung(true);
-    const paper = paperRef.current;
-    if (paper) {
-      paper.style.transition = 'transform .95s cubic-bezier(.45,.05,.7,.4), opacity .95s ease';
-      paper.style.transform = `translate(${dir * 70}vw, 55vh) rotate(${dir * 28}deg)`;
-      paper.style.opacity = '0';
-    }
-    window.setTimeout(() => {
-      setTearing(false);
-      setFlung(false);
-      if (paper) {
-        paper.style.transition = 'none';
-        paper.style.transform = '';
-        paper.style.opacity = '';
-      }
-      next();
-    }, 1000);
-  };
-  useEffect(() => {
-    if (!pulling) return;
-    const move = (e: PointerEvent) => {
-      const d = pull.current;
-      if (!d || d.off) return;
-      const dx = e.clientX - d.x;
-      const dy = e.clientY - d.y;
-      if (!d.on) {
-        // Decide once: a sideways pull takes the slip; an upward or downward stroke is a scroll.
-        if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) {
-          d.off = true;
-          return;
-        }
-        if (Math.abs(dx) < 10) return;
-        d.on = true;
-      }
-      d.dx = dx;
-      pose(dx, false);
-    };
-    const up = () => {
-      const d = pull.current;
-      pull.current = null;
-      setPulling(false);
-      if (!d || !d.on) return;
-      const w = paperRef.current?.clientWidth || 360;
-      if (Math.abs(d.dx) >= w * 0.42) fling(d.dx > 0 ? 1 : -1);
-      else pose(0, true);
-    };
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', up);
-    window.addEventListener('pointercancel', up);
-    return () => {
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', up);
-      window.removeEventListener('pointercancel', up);
-    };
-  });
   // Placing the order: paying online first when chosen (verified on the server with the order).
   const placeOrder = async (a: Address, demoPaid?: boolean): Promise<string | null> => {
     const shipTo = addressText(a);
@@ -408,26 +368,17 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
       {/* The order slip: the house and the date at its head under a double gold rule; each fabric
           with its numeral in a gold ring, its price by the metre, its shades and its subtotal on a
           dotted leader; then the totals, ruled off as in a ledger; and a pinked foot. */}
-      <div ref={printRef} className={`pc-print${tearing ? ' is-tearing' : ''}${flung ? ' is-flung' : ''}${printed ? ' is-printed' : ''}`}>
+      <div ref={printRef} className={`pc-print${tearing ? ' is-tearing' : ''}${printed ? ' is-printed' : ''}`}>
         {/* The printer's mouth: a slot edged in gold, its light blinking while it prints. */}
-        <div aria-hidden className={`pc-printer${printed ? ' is-done' : ' is-printing'}`}>
+        <div ref={printerRef} aria-hidden className={`pc-printer${printed ? ' is-done' : ''}`}>
           <span className="pc-printer-light" />
           <span className="pc-printer-slot" />
           {/* What stays in the slot once the slip is torn off. */}
           <span className="pc-printer-stub" />
         </div>
-        <div
-          ref={paperRef}
-          className="pc-print-paper"
-          onPointerDown={(e) => {
-            // The note, the × and the like keep their own taps.
-            if (tearing || e.button > 0 || (e.target as HTMLElement).closest('button, textarea, input, a')) return;
-            pull.current = { x: e.clientX, y: e.clientY, dx: 0, on: false, off: false };
-            setPulling(true);
-          }}
-        >
-          {/* The rip opening along the slot as the slip is pulled. */}
-          <span ref={ripRef} aria-hidden className="pc-rip" style={{ clipPath: 'inset(0 100% 0 0)' }} />
+        <div className="pc-print-paper">
+          {/* The zipper along the slot: slide its pull across to tear the slip off. */}
+          <Zipper label={t.unzipLabel} aria={t.tearAria} runRef={zipRun} onDone={() => tear(false)} ready={printed} />
           <div ref={feedRef} className="pc-print-feed" style={{ clipPath: 'inset(0 0 100% 0)' }}>
             <div ref={headRef} aria-hidden className={`pc-print-head${printed ? ' is-done' : ''}`} />
             <div className="pc-slip-wrap">
@@ -535,12 +486,12 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
           </div>
         </div>
         {/* How to go on: pull the slip off the printer (or tap here, which tears it for you). */}
-        <button key={warn} className="pc-tear-hint" aria-label={t.tearAria} onClick={() => tear()} style={{ animation: warn ? 'pcShake .5s cubic-bezier(.36,.07,.19,.97) both' : undefined }}>
+        <button key={warn} className="pc-tear-hint" aria-label={t.tearAria} onClick={unzipFromDock} style={{ animation: warn ? 'pcShake .5s cubic-bezier(.36,.07,.19,.97) both' : undefined }}>
           <span aria-hidden className="pc-tear-hint-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="6" cy="6" r="3" />
-              <circle cx="6" cy="18" r="3" />
-              <path d="M8.1 8.1 20 20M8.1 15.9 20 4" />
+              <path d="M12 2v3M10 5h4M12 8v2M10 10h4M12 13v2" />
+              <rect x="8.5" y="15" width="7" height="5" rx="1.5" />
+              <circle cx="12" cy="21.5" r="1" />
             </svg>
           </span>
           <span className="pc-tear-hint-text">
@@ -551,6 +502,111 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
       </div>
       {warn > 0 && !chosen.length && <div style={{ marginTop: 10, fontSize: 12.5, color: '#A5392B' }}>{t.nothingChosen}</div>}
     </Room>
+  );
+}
+
+/**
+ * The zipper along the printer's slot: interlocking gold teeth on a dark tape, with a pull at the
+ * start. Sliding the pull along opens the teeth behind it; let go before the end and it zips back
+ * shut; carried to the end, the slip is torn off (`onDone`, which answers false when there is
+ * nothing to order, and the zipper closes again). A tap, Enter or Space runs the pull along by
+ * itself, as does the dock's hint (through `runRef`).
+ */
+function Zipper({ label, aria, runRef, onDone, ready }: { label: string; aria: string; runRef: { current: (() => void) | null }; onDone: () => boolean; ready: boolean }) {
+  const strip = useRef<HTMLDivElement | null>(null);
+  const pullRef = useRef<HTMLButtonElement | null>(null);
+  const openRef = useRef<HTMLSpanElement | null>(null);
+  const shutRef = useRef<HTMLSpanElement | null>(null);
+  const textRef = useRef<HTMLSpanElement | null>(null);
+  const at = useRef(0);
+  const drag = useRef<{ x: number; from: number; moved: boolean } | null>(null);
+  const busy = useRef(false);
+  const PULL = 34;
+  const span = () => Math.max(1, (strip.current?.clientWidth ?? 320) - PULL);
+  const paint = (p: number) => {
+    at.current = p;
+    const x = p * span();
+    if (pullRef.current) pullRef.current.style.transform = `translateX(${x}px)`;
+    const edge = `${((x + PULL / 2) / (span() + PULL)) * 100}%`;
+    if (openRef.current) openRef.current.style.clipPath = `inset(0 calc(100% - ${edge}) 0 0)`;
+    if (shutRef.current) shutRef.current.style.clipPath = `inset(0 0 0 ${edge})`;
+    if (textRef.current) textRef.current.style.opacity = String(Math.max(0, 1 - p * 2.2));
+  };
+  // Runs the pull from where it is to `to` over `ms`, then calls `then`.
+  const glide = (to: number, ms: number, then?: () => void) => {
+    const from = at.current;
+    const start = performance.now();
+    const step = (now: number) => {
+      const k = Math.min(1, (now - start) / ms);
+      const e = to > from ? k * k * (3 - 2 * k) : 1 - Math.pow(1 - k, 3);
+      paint(from + (to - from) * e);
+      if (k < 1) requestAnimationFrame(step);
+      else then?.();
+    };
+    requestAnimationFrame(step);
+  };
+  const finish = () => {
+    if (busy.current) return;
+    busy.current = true;
+    glide(1, Math.max(250, (1 - at.current) * 750), () => {
+      if (!onDone()) glide(0, 450, () => (busy.current = false));
+    });
+  };
+  useEffect(() => {
+    runRef.current = finish;
+    return () => {
+      runRef.current = null;
+    };
+  });
+  useEffect(() => {
+    const move = (e: PointerEvent) => {
+      const d = drag.current;
+      if (!d) return;
+      if (Math.abs(e.clientX - d.x) > 4) d.moved = true;
+      paint(Math.max(0, Math.min(1, d.from + (e.clientX - d.x) / span())));
+    };
+    const up = () => {
+      const d = drag.current;
+      if (!d) return;
+      drag.current = null;
+      if (!d.moved || at.current > 0.88) finish();
+      else glide(0, 420);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+    return () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+    };
+  });
+  return (
+    <div ref={strip} className={`pc-zip${ready ? ' is-ready' : ''}`}>
+      <span ref={shutRef} aria-hidden className="pc-zip-shut" />
+      <span ref={openRef} aria-hidden className="pc-zip-open" style={{ clipPath: 'inset(0 100% 0 0)' }} />
+      <span ref={textRef} aria-hidden className="pc-zip-label">
+        {label} ›
+      </span>
+      <button
+        ref={pullRef}
+        className="pc-zip-pull"
+        aria-label={aria}
+        onPointerDown={(e) => {
+          if (busy.current || e.button > 0) return;
+          e.preventDefault();
+          drag.current = { x: e.clientX, from: at.current, moved: false };
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            finish();
+          }
+        }}
+      >
+        <span aria-hidden className="pc-zip-ring" />
+      </button>
+    </div>
   );
 }
 

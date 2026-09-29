@@ -528,13 +528,18 @@ with a slider alone.
 
 **The dock** follows the page on a slip of the studio's cream paper, edged in gold. It shows the
 total metres, the shades (or how many are not set) and the value, and an ink "Checkout" button.
-- **Checking out is measured first** (`MeasureMoment` in `CartBook.tsx`, about 2.5 seconds). A
-  cream veil comes over the page and the cuttings on the open sheet lift off and fly into a brass
-  tailor's tape case. The case spins as the gold tape unrolls across the screen, ticked every
-  centimetre and numbered every ten, while "Measuring your order" counts the metres and the value
-  up to the order's own. Scissors then snip the tape and the cut length drops away, as the review
-  opens beneath and its printer starts. The measuring is kept mounted across that switch, so it
-  plays once. With reduced motion, Checkout goes straight to the review.
+- **Checking out is measured on the Checkout button itself** (`MeasureMoment` in
+  `CartBook.tsx`, about 2.5 seconds):
+  1. The button presses in and becomes a brass tailor's tape case with a running count in place of
+     its label, and the cuttings on the open sheet fly into the case.
+  2. The case spins as the gold tape runs out of it and leftwards along the top of the dock,
+     ticked every centimetre and numbered every ten, under a small "Measuring your order" label.
+     Meanwhile the button counts the metres and the value up to the order's own.
+  3. Scissors snip the tape's far end and the length drops away. The case shows a tick, and the
+     review opens beneath with its printer starting.
+
+  The moment is kept mounted across that switch, so it plays once. With reduced motion, Checkout
+  goes straight to the review.
 - **While any shade is unset,** "Checkout" is dimmed. Pressing it shakes the button and the notice,
   and says "Select metres for every shade to check out."
 - **Checkout** is the direct order page (`FabricOrder` with `source="cart"`), titled "Your *Order*",
@@ -554,29 +559,30 @@ total metres, the shades (or how many are not set) and the value, and an ink "Ch
   The totals are ruled off as in a ledger: metres and shades on dotted leaders, then the estimate
   large under a double gold rule. The fine print sits beneath, and the slip ends in a pinked foot,
   as if torn from a pad.
-- **The slip prints out.** It comes from a printer's mouth: a dark bar with a gold-lipped slot,
-  whose light blinks and slot hums (a tremor of the finest kind) while it prints, turning green
-  once done. It prints by itself, line by line, easing in and then running at about 360px a
-  second, revealed top-down to a glowing print line. The page scrolls along to keep that line in
-  view just above the dock. A reader who scrolls, touches or presses a key takes over: printing
-  carries on, but the page stops following. Everything is set on the elements each frame, so
-  printing renders nothing. Once printed, the slip sways twice from the slot, to say it can be
-  taken.
+- **The slip prints out as a bill machine does,** in bursts. A stretch of 70 to 180px prints line
+  by line (a line every 14ms), then the printer stops for a quarter to half a second, then carries
+  on, until the slip is out. While it runs, the slot hums and the light glows steady; between
+  bursts it blinks. It turns green when done.
+
+  The page glides along during the printing, not after. It first brings the printer into view,
+  then eases to keep the print line in sight above the dock, burst by burst, ending with room for
+  the note. A reader who scrolls, touches or presses a key takes over, and printing carries on.
+  Everything is set on the elements each frame, so printing renders nothing.
 - **A note for the mill** is a small butter-yellow sticky note with a strip of tape, ruled lines
   and a folded corner. It is pressed onto the slip's torn foot when printing finishes.
-- **Tear it off the printer.** There is no button to go on: the slip is taken off the printer
-  by hand. Take hold of it anywhere and pull it sideways; upward and downward strokes still
-  scroll. It swings from the slot as it is pulled, and a rip opens along the slot in the
-  direction of the pull.
-  - Let go before it has gone about two-fifths of its width and it swings back.
-  - Pull past that and it tears. The top edge goes jagged, a torn stub stays in the slot, and the
-    slip flies off the way it was pulled, turning as it falls. Then the dispatch (or sign-in)
-    opens.
+- **Unzip to tear it off.** A zip runs along the tear line just under the printer's slot: gold
+  teeth interlocked on a dark tape, with a brass pull and ring at its left end. Once printed, the
+  pull nudges a few times as a hint.
+  - Slide the pull along and the teeth part behind it. Let go before about nine-tenths and it
+    zips back shut.
+  - Carry it to the end and the slip tears off along the zip: the printer tugs, the slip's top
+    goes jagged, a stub stays in the slot, and the slip and its note drop away. Then the dispatch
+    (or sign-in) opens.
+  - A tap, Enter or Space on the pull runs it along by itself.
 
-  The dock says what to do: "Tear it off · Pull the slip sideways", beside gold scissors that
-  snip a few times. A tap there (or Enter) tears the slip for you: the printer comes into view,
-  tugs, and lets the slip drop. With nothing to order, it shakes instead. Coming back to the
-  review prints the slip afresh.
+  The dock says "Unzip to tear · The zip at the printer". A tap there glides the page up to the
+  printer and unzips it. With nothing to order, the zip runs back shut and the hint shakes.
+  Coming back to the review prints the slip afresh.
 
 **III Dispatch** (`ShipPay.tsx`), titled "Delivery & *Payment*", comes after the review. A buyer
 who is not signed in signs in first, since the address book belongs to the account. It has three

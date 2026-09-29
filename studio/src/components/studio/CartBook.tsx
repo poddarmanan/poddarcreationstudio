@@ -42,7 +42,7 @@ export function CartBook({ studio }: { studio: Studio }) {
   const [warn, setWarn] = useState(0);
   // Checking out is measured first: the open sheet's cuttings fly into a tailor's tape, which
   // unrolls to the order's metres and is snipped, and the review opens under it.
-  const [measuring, setMeasuring] = useState<{ total: number; value: number; flights: { rect: DOMRect; bg: string }[] } | null>(null);
+  const [measuring, setMeasuring] = useState<{ total: number; value: number; anchor: DOMRect; flights: { rect: DOMRect; bg: string }[] } | null>(null);
   const pickPresence = usePresence(!!picking, 380);
   // The picker keeps what it was showing while it animates out.
   const [shownPick, setShownPick] = useState<Picking | null>(null);
@@ -64,6 +64,7 @@ export function CartBook({ studio }: { studio: Studio }) {
       total={measuring.total}
       value={measuring.value}
       flights={measuring.flights}
+      anchor={measuring.anchor}
       onCut={() => {
         window.scrollTo(0, 0);
         setCheckout(true);
@@ -172,9 +173,9 @@ export function CartBook({ studio }: { studio: Studio }) {
           </div>
           <button
             key={warn}
-            className={`pc-order-place${unset ? ' is-waiting' : ''}`}
+            className={`pc-order-place${unset ? ' is-waiting' : ''}${measuring ? ' is-measuring' : ''}`}
             style={{ animation: warn ? 'pcShake .5s cubic-bezier(.36,.07,.19,.97) both' : undefined }}
-            onClick={() => {
+            onClick={(e) => {
               // Every shade needs its metres first: the button shakes, and the ask above does too.
               if (unset) return setWarn((n) => n + 1);
               if (measuring) return;
@@ -187,7 +188,7 @@ export function CartBook({ studio }: { studio: Studio }) {
                 .slice(0, 9)
                 .map((el) => ({ rect: el.getBoundingClientRect(), bg: el.style.background }))
                 .filter((f) => f.rect.bottom > 0 && f.rect.top < window.innerHeight);
-              setMeasuring({ total, value, flights });
+              setMeasuring({ total, value, anchor: e.currentTarget.getBoundingClientRect(), flights });
             }}
           >
             <span aria-hidden>✦</span>
@@ -339,17 +340,19 @@ function MetrePicker({
 }
 
 /**
- * Checking out, measured: the cuttings on the sheet in view lift off and fly into a brass tape
- * case; the gold tape unrolls across the screen, ticked and numbered, while the metres and the
- * value count up; then scissors snip it, the cut length falls away, and the review opens beneath.
+ * Checking out, measured, on the Checkout button itself: the button turns into a brass tape case
+ * (drawn over it, the same size), the cuttings on the sheet in view fly into it, and the gold tape
+ * runs out of it along the foot of the screen, ticked and numbered, while the button counts the
+ * metres and the value up. Scissors snip the tape's end, the length drops away, the case shows a
+ * tick, and the review opens beneath.
  */
 function MeasureMoment({
-  studio, total, value, flights, onCut, onGone,
+  studio, total, value, anchor, flights, onCut, onGone,
 }: {
-  studio: Studio; total: number; value: number; flights: { rect: DOMRect; bg: string }[]; onCut: () => void; onGone: () => void;
+  studio: Studio; total: number; value: number; anchor: DOMRect; flights: { rect: DOMRect; bg: string }[]; onCut: () => void; onGone: () => void;
 }) {
   const { t } = studio;
-  const caseRef = useRef<HTMLDivElement | null>(null);
+  const caseRef = useRef<HTMLSpanElement | null>(null);
   const metresRef = useRef<HTMLSpanElement | null>(null);
   const valueRef = useRef<HTMLSpanElement | null>(null);
   const [stage, setStage] = useState<'in' | 'cut' | 'out'>('in');
@@ -359,9 +362,8 @@ function MeasureMoment({
   });
 
   useEffect(() => {
-    // The cuttings fly into the case.
+    // The cuttings fly into the case on the button.
     const to = caseRef.current?.getBoundingClientRect();
-    const layer = document.body;
     const made: HTMLElement[] = [];
     if (to) {
       flights.forEach((f, i) => {
@@ -371,22 +373,22 @@ function MeasureMoment({
           position: 'fixed', left: `${f.rect.left}px`, top: `${f.rect.top}px`, width: `${f.rect.width}px`, height: `${f.rect.height}px`,
           background: f.bg, zIndex: '160', pointerEvents: 'none', boxShadow: '0 8px 16px rgba(40,26,12,.3)', willChange: 'transform, opacity',
         });
-        layer.appendChild(el);
+        document.body.appendChild(el);
         made.push(el);
         const dx = to.left + to.width / 2 - (f.rect.left + f.rect.width / 2);
         const dy = to.top + to.height / 2 - (f.rect.top + f.rect.height / 2);
         el.animate(
           [
             { transform: 'none', opacity: 1 },
-            { transform: `translate(${dx * 0.3}px, ${dy * 0.3 - 60}px) rotate(${(i % 2 ? 1 : -1) * 40}deg) scale(.8)`, opacity: 1, offset: 0.45 },
-            { transform: `translate(${dx}px, ${dy}px) rotate(${(i % 2 ? 1 : -1) * 220}deg) scale(.12)`, opacity: 0.3 },
+            { transform: `translate(${dx * 0.35}px, ${dy * 0.35 - 70}px) rotate(${(i % 2 ? 1 : -1) * 40}deg) scale(.7)`, opacity: 1, offset: 0.45 },
+            { transform: `translate(${dx}px, ${dy}px) rotate(${(i % 2 ? 1 : -1) * 220}deg) scale(.08)`, opacity: 0.3 },
           ],
-          { duration: 750, delay: 120 + i * 60, easing: 'cubic-bezier(.45,.05,.4,1)', fill: 'both' },
+          { duration: 700, delay: 60 + i * 55, easing: 'cubic-bezier(.45,.05,.4,1)', fill: 'both' },
         ).onfinish = () => el.remove();
       });
     }
     // The metres and the value count up as the tape runs out.
-    const started = performance.now() + 700;
+    const started = performance.now() + 650;
     let raf = 0;
     const tick = (now: number) => {
       const k = Math.max(0, Math.min(1, (now - started) / 1100));
@@ -397,10 +399,10 @@ function MeasureMoment({
     };
     raf = requestAnimationFrame(tick);
     const timers = [
-      window.setTimeout(() => setStage('cut'), 2000),
-      window.setTimeout(() => hooks.current.onCut(), 2450),
-      window.setTimeout(() => setStage('out'), 2500),
-      window.setTimeout(() => hooks.current.onGone(), 2950),
+      window.setTimeout(() => setStage('cut'), 1900),
+      window.setTimeout(() => hooks.current.onCut(), 2350),
+      window.setTimeout(() => setStage('out'), 2400),
+      window.setTimeout(() => hooks.current.onGone(), 2800),
     ];
     return () => {
       cancelAnimationFrame(raf);
@@ -409,39 +411,40 @@ function MeasureMoment({
     };
   }, [flights, total, value]);
 
-  // Numbers along the tape, every 50 px.
-  const marks = Array.from({ length: 24 }, (_, i) => (i + 1) * 10);
+  // The tape runs out of the case and leftwards along the top of the dock.
+  const tapeRight = typeof window === 'undefined' ? 0 : window.innerWidth - anchor.left - 30;
+  const marks = Array.from({ length: 30 }, (_, i) => (i + 1) * 10);
   return createPortal(
-    <div className={`pc-measure is-${stage}`} role="status" aria-live="polite">
-      <div className="pc-measure-veil" />
-      <div className="pc-measure-read">
+    <div className={`pc-measure is-${stage}`} role="status" aria-live="polite" aria-label={t.measuring}>
+      <div className="pc-measure-tape" aria-hidden style={{ top: anchor.top - 44, right: tapeRight }}>
+        <div className="pc-measure-cutoff">
+          {marks.map((n) => (
+            <i key={n} style={{ right: `${n * 5}px` }}>
+              {n}
+            </i>
+          ))}
+        </div>
         <span className="pc-measure-label">{t.measuring}</span>
-        <span className="pc-measure-metres">
-          <span ref={metresRef}>0</span> <em>m</em>
-        </span>
-        <span className="pc-measure-value">
-          ₹ <span ref={valueRef}>0</span>
-        </span>
       </div>
-      <div className="pc-measure-band">
-        <div ref={caseRef} className="pc-measure-case" aria-hidden>
-          <span />
-        </div>
-        <div className="pc-measure-tape" aria-hidden>
-          <div className="pc-measure-cutoff">
-            {marks.map((n) => (
-              <i key={n} style={{ left: `${n * 5}px` }}>
-                {n}
-              </i>
-            ))}
-          </div>
-        </div>
-        <span className="pc-measure-scissors" aria-hidden>
-          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="6" cy="6" r="3" />
-            <circle cx="6" cy="18" r="3" />
-            <path d="M8.1 8.1 20 20M8.1 15.9 20 4" />
-          </svg>
+      <span className="pc-measure-scissors" aria-hidden style={{ top: anchor.top - 46 }}>
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="6" cy="6" r="3" />
+          <circle cx="6" cy="18" r="3" />
+          <path d="M8.1 8.1 20 20M8.1 15.9 20 4" />
+        </svg>
+      </span>
+      {/* The button, turned into the tape case. */}
+      <div className="pc-measure-button" style={{ left: anchor.left, top: anchor.top, width: anchor.width, height: anchor.height }}>
+        <span ref={caseRef} aria-hidden className="pc-measure-case">
+          {stage === 'in' ? <span /> : <b>✓</b>}
+        </span>
+        <span className="pc-measure-count">
+          <span className="pc-measure-metres">
+            <span ref={metresRef}>0</span> m
+          </span>
+          <span className="pc-measure-value">
+            ₹ <span ref={valueRef}>0</span>
+          </span>
         </span>
       </div>
     </div>,
