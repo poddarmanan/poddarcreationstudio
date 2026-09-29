@@ -240,6 +240,13 @@ Beneath the title are how many fabrics and shades the book holds, then "Prepared
 buyer's name when they are signed in (otherwise "Surat"). The inside of the cover is a marbled
 endpaper in the leather's oxblood with cream, gold and ink.
 
+The pages are held in the book, not laid on it. A leather binding strip runs down their inner margin, held by
+three brass posts with slotted heads and edged with a gold fillet. The pages turn on its edge. At
+the fore-edge a brass catch is fixed to the back board. On the closed book, a stitched leather strap
+crosses the cover's right edge and ends in a brass clasp plate fastened over that catch. When the
+book opens, the clasp is tugged and slides off the catch first, then the cover swings open with
+the strap on it.
+
 The pages are cotton-rag paper with a shaded gutter. Their fore-edge and foot are gilt, so the
 text block shows as a stack of gold leaves beside the page. Each page is set like a specimen plate:
 
@@ -253,9 +260,11 @@ text block shows as a stack of gold leaves beside the page. Each page is set lik
 - **Foot:** the page's shade count, a folio in italic Roman numerals, and "Page 1 / 2" when there
   are more pages.
 
-More than six shades fill further pages, stacked beneath. The top page follows a finger sideways.
-Let go past a threshold (or with "Slide the page to turn it"), it slides away to the right and
-tucks under the stack as the next page comes forward. An empty book is the closed volume, cover
+More than six shades fill further pages, stacked beneath. The top page is turned as in a bound
+book: dragged to the left, it lifts on its binding and darkens as it rises. Let go past a
+threshold (or with "Slide the page to turn it"), it turns over to the left and goes to the back
+of the stack, and the next page is revealed. Short of the threshold, it falls back. A drag that
+turns a page does not also open the cutting under the finger. An empty book is the closed volume, cover
 and all, with the way to the Showroom.
 
 Under the book, the book's one action: "Order swatch book", in the frosted glass of Add to book,

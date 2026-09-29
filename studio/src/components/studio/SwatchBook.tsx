@@ -310,12 +310,67 @@ function Fleuron({ width = 30, color = GOLD }: { width?: number; color?: string 
   );
 }
 
+/** A brass binding post, its slotted head sunk in the leather. */
+function Screw({ y, x }: { y: number; x: number }) {
+  return (
+    <span
+      style={{
+        position: 'absolute', left: x, top: `${y}%`, width: 10, height: 10, transform: 'translate(-50%,-50%)', borderRadius: '50%',
+        background: 'radial-gradient(circle at 35% 30%, #FFF4CF, #D9B464 35%, #8A6524 75%, #5E4214)',
+        boxShadow: '0 1px 1.5px rgba(0,0,0,.6), inset 0 0 0 .5px rgba(60,40,10,.6), 0 0 0 1.5px rgba(0,0,0,.25)',
+      }}
+    >
+      <span style={{ position: 'absolute', left: 2, right: 2, top: '50%', height: 1.2, marginTop: -0.6, background: 'rgba(70,45,12,.8)', transform: 'rotate(-35deg)' }} />
+    </span>
+  );
+}
+
+/** Two brass rivets on a plate, top and bottom. */
+function Rivets() {
+  const dot = { position: 'absolute' as const, left: '50%', width: 4, height: 4, marginLeft: -2, borderRadius: '50%', background: 'radial-gradient(circle at 35% 30%, #FFF6D8, #B08A3E 60%, #6B4C18)', boxShadow: '0 .5px 1px rgba(0,0,0,.5)' };
+  return (
+    <>
+      <span style={{ ...dot, top: 5 }} />
+      <span style={{ ...dot, bottom: 5 }} />
+    </>
+  );
+}
+
+/** The brass catch on the back board's fore-edge, which the clasp fastens over. */
+function Catch() {
+  return (
+    <div aria-hidden style={{ position: 'absolute', right: -7, top: '50%', width: 11, height: 46, marginTop: -23, borderRadius: '0 5px 5px 0', background: 'linear-gradient(90deg, #7D5E22, #D8B866 40%, #F6E3A8 55%, #B8913F 80%, #7D5E22)', boxShadow: '1px 1px 2px rgba(0,0,0,.4)' }}>
+      <Rivets />
+    </div>
+  );
+}
+
+/**
+ * The fore-edge clasp: a stitched leather strap across the cover's right edge ending in a brass plate
+ * over the catch. As the book is opened it unbuckles first, sliding off the catch.
+ */
+function Clasp({ unclasp }: { unclasp?: boolean }) {
+  return (
+    <div aria-hidden style={{ position: 'absolute', right: -9, top: '50%', width: 84, height: 34, marginTop: -17, animation: unclasp ? `pcUnclasp .5s ${COVER_DELAY - 520}ms cubic-bezier(.3,.7,.3,1) both` : undefined }}>
+      <div style={{ position: 'absolute', inset: '0 8px 0 0', borderRadius: '17px 3px 3px 17px', overflow: 'hidden', background: 'linear-gradient(180deg, #52151C, #300A0F)', boxShadow: '0 3px 7px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,220,200,.16)' }}>
+        <Grain />
+        <div style={{ position: 'absolute', inset: 4, borderRadius: '13px 2px 2px 13px', border: '1px dashed rgba(215,182,112,.75)' }} />
+      </div>
+      <div style={{ position: 'absolute', right: 0, top: -6, bottom: -6, width: 20, borderRadius: '6px 4px 4px 6px', background: 'linear-gradient(90deg, #8A6524, #E6CB85 35%, #F8E9B8 50%, #C9A04B 72%, #7D5E22)', boxShadow: '0 2px 4px rgba(0,0,0,.5), inset 0 0 0 .5px rgba(60,40,10,.5)' }}>
+        <Rivets />
+        <span style={{ position: 'absolute', left: 4, right: 4, top: '50%', height: 1, background: 'rgba(90,62,20,.55)' }} />
+      </div>
+    </div>
+  );
+}
+
 /**
  * The front cover: oxblood morocco, a blind-tooled frame, a double gold fillet with ornaments at its
  * corners, a monogram cartouche, the title in gold foil, and — for a signed-in buyer — their name.
  */
-function CoverFace({ t, userName, line }: { t: Record<string, string>; userName: string | null; line?: string }) {
+function CoverFace({ t, userName, line, unclasp }: { t: Record<string, string>; userName: string | null; line?: string; unclasp?: boolean }) {
   return (
+    <>
     <div style={{ position: 'absolute', inset: 0, borderRadius: '0 10px 10px 0', background: LEATHER, overflow: 'hidden', boxShadow: 'inset 16px 0 22px -16px rgba(0,0,0,.75), inset 0 0 0 1px rgba(0,0,0,.35)' }}>
       <Grain />
       {/* The hinge groove, pressed into the board beside the spine. */}
@@ -356,6 +411,8 @@ function CoverFace({ t, userName, line }: { t: Record<string, string>; userName:
         )}
       </div>
     </div>
+    <Clasp unclasp={unclasp} />
+    </>
   );
 }
 
@@ -388,6 +445,7 @@ function Binding({ children, width, padded }: { children: ReactNode; width: stri
         <Spine />
         <BrassCorner at="top" />
         <BrassCorner at="bottom" />
+        <Catch />
         {children}
       </div>
     </div>
@@ -400,6 +458,9 @@ function Binding({ children, width, padded }: { children: ReactNode; width: stri
 const COVER_DELAY = 900;
 const COVER_SWING = 1500;
 const COVER_GONE = COVER_DELAY + COVER_SWING;
+
+/** How much of the pages' inner margin the binding strip covers; pages turn on its edge (px). */
+const HINGE = 18;
 
 const paperFace = (gutter: 'left' | 'right') =>
   `${PAPER}, linear-gradient(${gutter === 'left' ? 90 : 270}deg, rgba(92,64,30,.22) 0%, rgba(92,64,30,.05) 5%, rgba(92,64,30,0) 9%), linear-gradient(180deg, #FDFAF2, #F6EFE0)`;
@@ -430,28 +491,58 @@ function Book({ studio, fabric, items, t, chapter, closed, coverLine }: { studio
   for (let i = 0; i < items.length; i += PER_PAGE) pages.push(items.slice(i, i + PER_PAGE));
   const [orderRaw, setOrder] = useState<number[]>(pages.map((_, i) => i));
   const order = orderRaw.length === pages.length ? orderRaw : pages.map((_, i) => i);
-  const [dx, setDx] = useState(0);
+  // The top page is bound at the left: dragged leftwards it lifts and turns on its binding.
+  const [angle, setAngle] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [flinging, setFlinging] = useState(false);
-  const start = useRef<{ x: number; y: number; moved: boolean } | null>(null);
+  const [settled, setSettled] = useState<number | null>(null);
+  const drag = useRef<{ x: number; w: number; moved: boolean; a: number } | null>(null);
+  const dragged = useRef(false);
 
   const turn = () => {
     if (pages.length < 2 || flinging) return;
     setFlinging(true);
     window.setTimeout(() => {
+      // The turned page goes to the back of the stack at once, without swinging back across.
+      setSettled(order[0]);
       setOrder([...order.slice(1), order[0]]);
       setFlinging(false);
-      setDx(0);
-    }, 560);
+      setAngle(0);
+      window.setTimeout(() => setSettled(null), 80);
+    }, 760);
   };
+  const turnRef = useRef(turn);
+  useEffect(() => {
+    turnRef.current = turn;
+  });
 
   useEffect(() => {
-    const up = () => {
-      setDragging(false);
+    if (!dragging) return;
+    const move = (e: PointerEvent) => {
+      const d = drag.current;
+      if (!d) return;
+      const mx = e.clientX - d.x;
+      if (Math.abs(mx) > 6) d.moved = true;
+      d.a = mx < 0 ? Math.max(-165, (mx / d.w) * 190) : 0;
+      setAngle(d.a);
     };
+    const up = () => {
+      const d = drag.current;
+      drag.current = null;
+      dragged.current = !!d?.moved;
+      setDragging(false);
+      if (d?.moved && d.a < -38) turnRef.current();
+      else setAngle(0);
+    };
+    window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
-    return () => window.removeEventListener('pointerup', up);
-  }, []);
+    window.addEventListener('pointercancel', up);
+    return () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+    };
+  }, [dragging]);
 
   const first = items[0].colour;
 
@@ -467,15 +558,17 @@ function Book({ studio, fabric, items, t, chapter, closed, coverLine }: { studio
             <div
               aria-hidden
               style={{
-                position: 'absolute', inset: 0, zIndex: 20, transformOrigin: 'left center', transformStyle: 'preserve-3d',
+                position: 'absolute', inset: 0, zIndex: 20, transformOrigin: `${HINGE}px 50%`, transformStyle: 'preserve-3d',
                 animation: chapterUp ? 'none' : 'pcLeafTurn 1.2s cubic-bezier(.55,.06,.35,1) both', pointerEvents: 'none',
               }}
             >
               <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', borderRadius: 2, background: paperFace('left'), boxShadow: '0 1px 3px rgba(0,0,0,.2)', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', inset: 14, border: '1px solid rgba(184,144,74,.7)' }} />
-                <div style={{ position: 'absolute', inset: 18, border: '.5px solid rgba(184,144,74,.45)' }} />
-                {(['tl', 'tr', 'bl', 'br'] as const).map((c) => <CornerOrnament key={c} corner={c} inset={21} size={20} />)}
-                <div style={{ position: 'absolute', inset: 30, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+                <div style={{ position: 'absolute', inset: '14px 14px 14px 26px', border: '1px solid rgba(184,144,74,.7)' }} />
+                <div style={{ position: 'absolute', inset: '18px 18px 18px 30px', border: '.5px solid rgba(184,144,74,.45)' }} />
+                <div style={{ position: 'absolute', inset: '21px 21px 21px 33px' }}>
+                  {(['tl', 'tr', 'bl', 'br'] as const).map((c) => <CornerOrnament key={c} corner={c} inset={0} size={20} />)}
+                </div>
+                <div style={{ position: 'absolute', inset: '30px 30px 30px 42px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
                   <div style={{ fontSize: 8.5, letterSpacing: '.48em', textTransform: 'uppercase', color: UMBER, paddingLeft: '.48em' }}>{t.chapterWord}</div>
                   <div className="pc-foil" style={{ fontFamily: FONT_DISPLAY, fontSize: 'clamp(56px,13vw,76px)', fontWeight: 500, lineHeight: 1, marginTop: 6 }}>{roman(chapter)}</div>
                   <div style={{ margin: '14px 0 12px' }}>
@@ -502,57 +595,48 @@ function Book({ studio, fabric, items, t, chapter, closed, coverLine }: { studio
           {order.slice(0, 3).map((pi, k) => {
             const top = k === 0;
             const page = pages[pi];
-            const transform = top
-              ? flinging
-                ? 'translateX(118%) rotate(7deg)'
-                : `translateX(${dx}px) rotate(${dx / 45}deg)`
-              : `translate(${k * 1.5}px, ${k * 1.5}px)`;
+            const rot = top ? (flinging ? -178 : angle) : 0;
             return (
               <div
                 key={pi}
                 onPointerDown={
-                  top
+                  top && pages.length > 1
                     ? (e) => {
-                        start.current = { x: e.clientX, y: e.clientY, moved: false };
+                        drag.current = { x: e.clientX, w: e.currentTarget.getBoundingClientRect().width, moved: false, a: 0 };
                         setDragging(true);
                       }
                     : undefined
                 }
-                onPointerMove={
-                  top
-                    ? (e) => {
-                        const s = start.current;
-                        if (!s || !dragging || pages.length < 2) return;
-                        const mx = e.clientX - s.x;
-                        if (Math.abs(mx) > 6) s.moved = true;
-                        // Rightward is the turn; leftward only gives a little.
-                        setDx(mx > 0 ? mx : mx / 4);
-                      }
-                    : undefined
-                }
-                onPointerUp={
-                  top
-                    ? () => {
-                        const s = start.current;
-                        start.current = null;
-                        setDragging(false);
-                        if (s?.moved && dx > 70) turn();
-                        else setDx(0);
-                      }
-                    : undefined
-                }
+                onClickCapture={(e) => {
+                  // A drag that turned (or tried to turn) the page is not a tap on a cutting.
+                  if (!dragged.current) return;
+                  dragged.current = false;
+                  e.stopPropagation();
+                }}
                 style={{
-                  position: 'absolute', inset: 0, zIndex: 10 - k, borderRadius: 2, background: paperFace('left'),
-                  boxShadow: top && (dx > 0 || flinging) ? '0 12px 28px rgba(0,0,0,.28)' : '0 1px 2px rgba(0,0,0,.14)',
-                  padding: '14px 16px 11px 22px', transform, touchAction: 'pan-y',
-                  transition: dragging && top ? 'none' : 'transform .56s cubic-bezier(.4,0,.2,1), box-shadow .4s ease',
-                  cursor: top && pages.length > 1 ? 'grab' : 'default',
+                  position: 'absolute', inset: 0, zIndex: 10 - k, transformOrigin: `${HINGE}px 50%`, transformStyle: 'preserve-3d',
+                  transform: top ? `rotateY(${rot}deg)` : `translate(${k * 1.5}px, ${k * 1.5}px)`,
+                  transition: (dragging && top) || pi === settled ? 'none' : 'transform .76s cubic-bezier(.55,.06,.35,1)',
+                  touchAction: 'pan-y', userSelect: 'none', WebkitUserSelect: 'none', cursor: top && pages.length > 1 ? 'grab' : 'default',
                 }}
               >
-                <Page studio={studio} fabric={fabric} cuttings={page} interactive={top} t={t} chapter={chapter} folio={pi + 1} pages={pages.length} />
+                <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', borderRadius: 2, background: paperFace('left'), boxShadow: '0 1px 2px rgba(0,0,0,.14)', padding: `14px 16px 11px ${HINGE + 14}px` }}>
+                  <Page studio={studio} fabric={fabric} cuttings={page} interactive={top} t={t} chapter={chapter} folio={pi + 1} pages={pages.length} />
+                  {/* The page darkens as it lifts away from the light. */}
+                  <div aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'linear-gradient(90deg, rgba(40,24,10,.05), rgba(40,24,10,.32))', opacity: Math.min(1, -rot / 110), transition: dragging ? 'none' : 'opacity .76s ease' }} />
+                </div>
+                <div aria-hidden style={{ position: 'absolute', inset: 0, transform: 'rotateY(180deg)', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', borderRadius: 2, background: paperFace('right'), filter: 'brightness(.95)' }} />
               </div>
             );
           })}
+
+          {/* The binding: a leather strip over the pages' inner margin, screwed through with brass
+              posts, so the pages are held to the book and turn on it. */}
+          <div aria-hidden style={{ position: 'absolute', left: -10, top: -3, bottom: -3, width: HINGE + 10, zIndex: 25, borderRadius: '0 3px 3px 0', background: LEATHER, overflow: 'hidden', boxShadow: '3px 0 6px rgba(30,10,4,.32), inset -1px 0 0 rgba(255,220,200,.14)' }}>
+            <Grain />
+            <div className="pc-foil-bg" style={{ position: 'absolute', right: 4, top: 8, bottom: 8, width: 1, opacity: 0.85 }} />
+            {[12, 50, 88].map((y) => <Screw key={y} y={y} x={HINGE + 10 - 11} />)}
+          </div>
         </div>
 
         {/* The front cover, hinged at the spine: closed with its title in gold foil as the book
@@ -566,7 +650,7 @@ function Book({ studio, fabric, items, t, chapter, closed, coverLine }: { studio
             }}
           >
             <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}>
-              <CoverFace t={t} userName={studio.userName} line={coverLine} />
+              <CoverFace t={t} userName={studio.userName} line={coverLine} unclasp />
             </div>
             <div
               style={{
@@ -585,7 +669,7 @@ function Book({ studio, fabric, items, t, chapter, closed, coverLine }: { studio
         >
           {t.turnPage}
           <svg width="22" height="10" viewBox="0 0 26 10" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden style={{ animation: 'pcNudge 2.4s ease-in-out infinite' }}>
-            <path d="M0 5h22M18 1l4 4-4 4" />
+            <path d="M26 5H4M8 1L4 5l4 4" />
           </svg>
         </button>
       )}
