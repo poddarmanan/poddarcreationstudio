@@ -254,8 +254,14 @@ fabric after another, so it stays one sheet tall however many shades it holds:
 - **Performance.** While the sheet is being dragged, it follows the finger by setting its
   transform directly, with no re-render per pointer move. Each sheet is its own compositor layer
   (`will-change: transform`, `contain: layout paint`), and the sheets under the stack are plain
-  gradients, not filtered copies. A cutting's shadow is a plain box shadow under its body, which
-  the pinked edges hide, rather than a filter on the masked cutting.
+  gradients on plain paper (no noise texture). A cutting is one clipped box: its pinking is a
+  clip path, not a mask, its light is a layer of its own background, and its shadow is a plain
+  box shadow under its body, hidden by the pinked edges, not a filter. No glass on this page
+  blurs what is behind it: the top bar, the tab bar and the book's buttons are near-opaque. The
+  buttons' shine, the star and the slide hint play a few times as the page arrives and then
+  rest; the shine animates by transform, not `left`. At rest the page draws no frames at all.
+  Measured on a phone-sized screen with the CPU slowed 4×, a swipe's raster time fell from
+  1,369 ms to 394 ms and a scroll's from 340 ms to 149 ms.
 - **Throw.** A sheet let go past the threshold carries on at speed and eases out, instead of
   starting from rest. The sheet beneath already shows its cuttings' remove marks, which only the
   top sheet's respond to, so nothing appears as it arrives.

@@ -24,8 +24,9 @@ export function Nav({ studio }: { studio: Studio }) {
       className="pc-topbar"
       style={{
         position: 'sticky', top: 0, zIndex: 50, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 12px',
-        background: 'rgba(250,248,245,.86)',
-        backdropFilter: 'blur(18px)', borderBottom: '1px solid rgba(28,25,23,.08)',
+        // Near-opaque rather than frosted: a backdrop blur is recomputed on every scrolled frame.
+        background: 'rgba(250,248,245,.97)',
+        borderBottom: '1px solid rgba(28,25,23,.08)',
       }}
     >
       <div onClick={() => go('home')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 9, flex: 'none' }}>

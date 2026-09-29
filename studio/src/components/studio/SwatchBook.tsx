@@ -265,8 +265,7 @@ export function SwatchBook({ studio }: { studio: Studio }) {
           style={{
             cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 10, width: 'min(100%, 460px)',
             borderRadius: 999, padding: '16px 18px', fontFamily: FONT_BODY, fontSize: 12, letterSpacing: '.2em', textTransform: 'uppercase', whiteSpace: 'nowrap',
-            backdropFilter: 'blur(18px) saturate(1.4)', WebkitBackdropFilter: 'blur(18px) saturate(1.4)',
-            background: 'linear-gradient(135deg, rgba(255,255,255,.55), rgba(250,248,245,.22))', color: INK, border: '1px solid rgba(201,169,110,.5)',
+            background: 'linear-gradient(135deg, rgba(255,255,255,.72), rgba(250,248,245,.4))', color: INK, border: '1px solid rgba(201,169,110,.5)',
           }}
         >
           <span aria-hidden className="pc-book-star">✦</span>
@@ -508,7 +507,7 @@ export function Binding({ children, width, padded }: { children: ReactNode; widt
       <div
         aria-hidden
         style={{
-          position: 'absolute', right: '24%', top: '50%', width: 13, height: 'calc(50% + 46px)', transformOrigin: 'top center', animation: 'pcRibbon 7s ease-in-out infinite',
+          position: 'absolute', right: '24%', top: '50%', width: 13, height: 'calc(50% + 46px)', transformOrigin: 'top center', animation: 'pcRibbon 7s ease-in-out 2',
           clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 9px), 0 100%)',
           background: 'repeating-linear-gradient(0deg, rgba(0,0,0,.07) 0 1px, transparent 1px 3px), linear-gradient(90deg, #8E6A2E, #D9B770 34%, #F4E2AE 50%, #C9A45A 66%, #8E6A2E)',
           filter: 'drop-shadow(0 2px 2px rgba(0,0,0,.25))',
@@ -569,7 +568,7 @@ function seeded(key: string, salt: number) {
 }
 
 const SHEET_BASE: CSSProperties = {
-  position: 'absolute', inset: 0, borderRadius: 3, background: `${PAPER}, linear-gradient(180deg, #FDFAF2, #F5EDDD)`,
+  position: 'absolute', inset: 0, borderRadius: 3, background: 'linear-gradient(180deg, #FDFAF2, #F5EDDD)',
   boxShadow: '0 10px 24px rgba(40,24,10,.16), 0 1px 3px rgba(40,24,10,.12), inset 0 0 0 1px rgba(120,90,50,.08)',
 };
 
@@ -609,7 +608,7 @@ function SheetFace({ studio, sheet, group, interactive }: { studio: Studio; shee
         {/* Which way to slide. */}
         <div aria-hidden style={{ position: 'absolute', left: 30, right: 30, bottom: 30, display: 'flex', justifyContent: 'space-between', alignItems: 'center', ...small, fontSize: 7, letterSpacing: '.2em' }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 12, letterSpacing: 0, animation: 'pcNudgeL 2.4s ease-in-out infinite' }}>←</span>
+            <span style={{ fontSize: 12, letterSpacing: 0, animation: 'pcNudgeL 2.4s ease-in-out 3' }}>←</span>
             {t.slideOpen}
           </span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textAlign: 'right' }}>
@@ -678,14 +677,15 @@ function LooseCutting({ studio, fabric, pin, colour, tiny, bare, big, interactiv
   return (
     <div style={{ position: 'absolute', inset: 0 }}>
       {/* Its shadow on the sheet: a plain box shadow under the body of the cutting, which the
-          pinked edges hide, is far cheaper to paint than a filter on the masked cutting. */}
+          pinked edges hide, is far cheaper to paint than a filter on the clipped cutting. */}
       <div aria-hidden style={{ position: 'absolute', left: '1%', right: '1%', top: '4%', bottom: '3%', boxShadow: '0 5px 10px rgba(40,26,12,.26), 0 1px 2px rgba(40,26,12,.18)' }} />
       <div
         onClick={interactive ? () => studio.openFabric(pin.fabricId, fabric.colours.indexOf(colour)) : undefined}
         className="pc-pinked"
-        style={{ position: 'absolute', inset: 0, cursor: interactive ? 'pointer' : 'inherit', background: fabricTex(fabric, colour, 4) }}
+        // The light falling across the cutting is one more layer of its own background, so each
+        // cutting is a single clipped box.
+        style={{ position: 'absolute', inset: 0, cursor: interactive ? 'pointer' : 'inherit', background: `linear-gradient(155deg, rgba(255,255,255,.2), transparent 38%, transparent 68%, rgba(0,0,0,.16)), ${fabricTex(fabric, colour, 4)}` }}
       />
-      <div aria-hidden className="pc-pinked" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'linear-gradient(155deg, rgba(255,255,255,.2), transparent 38%, transparent 68%, rgba(0,0,0,.16))' }} />
       {/* A dressmaker's pin through the top, pearl head and steel shank. */}
       <span aria-hidden style={{ position: 'absolute', top: tiny ? 6 : 10, left: tiny ? 10 : 16, width: tiny ? 20 : 32, height: 1.3, transformOrigin: '0 50%', transform: 'rotate(-22deg)', background: 'linear-gradient(90deg, #8E9297, #E6E8EA 45%, #9EA3A8)', borderRadius: 1, pointerEvents: 'none' }} />
       <span aria-hidden style={{ position: 'absolute', top: tiny ? 3 : 6, left: tiny ? 7 : 12, width: tiny ? 7 : 10, height: tiny ? 7 : 10, borderRadius: '50%', background: 'radial-gradient(circle at 35% 30%, #FFFFFF, #F1E6D2 45%, #BFA27A)', boxShadow: '0 1px 2px rgba(0,0,0,.35)', pointerEvents: 'none' }} />
@@ -745,8 +745,7 @@ function EmptyBook({ studio }: { studio: Studio }) {
         className="pc-book"
         style={{
           cursor: 'pointer', marginTop: 18, borderRadius: 999, padding: '14px 26px', fontFamily: FONT_BODY, fontSize: 11.5, letterSpacing: '.2em', textTransform: 'uppercase',
-          backdropFilter: 'blur(18px) saturate(1.4)', WebkitBackdropFilter: 'blur(18px) saturate(1.4)',
-          background: 'linear-gradient(135deg, rgba(255,255,255,.55), rgba(250,248,245,.22))', color: INK, border: '1px solid rgba(201,169,110,.5)',
+          background: 'linear-gradient(135deg, rgba(255,255,255,.72), rgba(250,248,245,.4))', color: INK, border: '1px solid rgba(201,169,110,.5)',
         }}
       >
         {t.showroom} →
