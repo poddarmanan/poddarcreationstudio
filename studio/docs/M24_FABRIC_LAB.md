@@ -224,12 +224,10 @@ Every assertion is a claim about behaviour that no type checker can reach:
 
 ## The Swatch Book
 
-The Swatch Book shows one fabric at a time. The fabric's name is the heading, with "Swatch Book"
-above it between hairlines. Beneath it are the fabric's particulars (weight, width, composition),
-and in italic its hand and how many of its shades are in the book. With more than one fabric in
-the book, you can change fabric by swiping or scrolling the heading sideways, or with its arrows.
-The chapters' Roman numerals beneath it, the open one underlined in gold, jump straight to a
-fabric.
+The page opens with "Swatch Book" between hairlines and, when there is more than one fabric, the
+chapters' Roman numerals, with the open one underlined in gold. Tapping a numeral jumps to that
+fabric's title sheet. The large fabric heading, its particulars and its arrows were removed at the
+owner's word, because the title sheet already names the fabric.
 
 ### Browsing: loose sheets
 
@@ -251,8 +249,10 @@ fabric after another, so it stays one sheet tall however many shades it holds:
   last sheet to the next fabric's title (after the last fabric, back to the first). Sliding right
   on a sheet of cuttings goes back a sheet, and on a title skips to the next fabric. Horizontal
   wheel scrolling and the arrow keys do the same.
-- **The heading** above names the fabric under the hand. Its arrows and chapter numerals jump to
-  a fabric's title.
+- **Performance.** While the sheet is being dragged, it follows the finger by setting its
+  transform directly, with no re-render per pointer move. Each sheet is its own compositor layer
+  (`will-change: transform`, `contain: layout paint`), and the sheets under the stack are plain
+  gradients, not filtered copies. On a phone, the slide moves pixels that are already painted.
 - **Cuttings:** a cutting lifts and squares up under the pointer. Tapping it opens that shade in
   the lab, unless the tap was the end of a slide. Its × takes it out of the book.
 
@@ -293,10 +293,11 @@ nothing is swapped mid-flight.
 1. **Compiling your fine choices.** The open book comes up. The buyer's cuttings (up to
    twenty-four are shown, three or four to a row) are strewn across the table below the caption,
    and fly one by one onto the page.
-2. **Binding your book.** The binding's three brass posts are screwed home in turn, and a glint
-   runs down its gold fillet.
-3. **Bound and fastened.** The cover swings shut over the pages, marbled endpaper first. The
-   clasp is then pushed home over the catch.
+2. **Binding your book.** As the last cutting settles, the binding's three brass posts are
+   screwed home in turn, each flaring as it seats, and a glint runs down the gold fillet.
+3. **Bound and fastened.** The front cover has lain open to the left from the start, marbled
+   endpaper up, and now swings shut over the pages. The clasp is then pushed home over the catch.
+   The order form stays beneath the dark room rather than vanishing as the room comes up.
 4. **Handing over.**
    - After an order, the book gives way to the buyer's number, in gold, "on WhatsApp". Below is
      a chat as the book will arrive: "Poddar Creation", with the buyer's number, and a bubble
@@ -322,7 +323,7 @@ The pages are:
 2. **Contents:** each chapter's numeral, fabric, shade count and page, with dot leaders.
 3. **Chapters:** each fabric has a title page, with its numeral in gold, name, particulars,
    hand, a round window onto its first shade, and its shade count. Its plates follow, twelve
-   pinked cuttings to a page, woven in the fabric's own structure: plain weave, silk's diagonal
+   pinked cuttings to a page, each held by oxblood photo-mount corners as on screen, woven in the fabric's own structure: plain weave, silk's diagonal
    lustre, slub's thick picks, wrinkle's crinkle, and the fabric's sheen. Each plate gives its
    number, name and hex code.
 4. **Colophon:** the date it was compiled, who it was prepared for, and a note that colours on
