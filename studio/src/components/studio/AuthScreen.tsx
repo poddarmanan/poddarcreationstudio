@@ -291,7 +291,7 @@ export function AuthScreen({
               if (v.length === 6) verify(v);
             }}
           />
-          {wa.hint && <div style={{ textAlign: 'center', fontSize: 12, color: UMBER, fontStyle: 'italic', fontFamily: FONT_DISPLAY }}>{wa.hint}</div>}
+          {wa.hint && <div style={{ textAlign: 'center', fontSize: 12, color: UMBER, fontFamily: FONT_DISPLAY }}>{wa.hint}</div>}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, letterSpacing: '.12em' }}>
             <button type="button" className="pc-auth-link" onClick={() => setWa((w) => ({ ...w, step: 'number', code: '' }))}>
               {t.changeNumber}
@@ -388,7 +388,7 @@ export function AuthScreen({
               </span>
             ))}
           </h1>
-          <p style={{ margin: '12px 0 0', maxWidth: 330, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 17, lineHeight: 1.45, color: UMBER, animation: 'pcRiseIn 1s 1s cubic-bezier(.2,.8,.2,1) both' }}>{sub}</p>
+          <p style={{ margin: '12px 0 0', maxWidth: 330, fontFamily: FONT_DISPLAY, fontSize: 17, lineHeight: 1.45, color: UMBER, animation: 'pcRiseIn 1s 1s cubic-bezier(.2,.8,.2,1) both' }}>{sub}</p>
 
           {ordering && fan.length > 0 && (
             // What is about to be ordered: the buyer's own cuttings, fanned out.
@@ -429,7 +429,7 @@ export function AuthScreen({
                   {t.continueGoogle}
                 </button>
                 {note && (
-                  <div key={note} style={{ textAlign: 'center', fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 14, color: UMBER, animation: 'pcRiseIn .5s ease both' }}>
+                  <div key={note} style={{ textAlign: 'center', fontFamily: FONT_DISPLAY, fontSize: 14, color: UMBER, animation: 'pcRiseIn .5s ease both' }}>
                     {note}
                   </div>
                 )}
@@ -463,7 +463,7 @@ export function AuthScreen({
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
                 <div key={`${sheet}-${wa.step}`} style={{ animation: 'pcRiseIn .6s .1s cubic-bezier(.2,.8,.2,1) both' }}>
                   <h2 style={{ margin: 0, fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 30, lineHeight: 1.1, color: INK }}>{sheetTitle}</h2>
-                  <p style={{ margin: '6px 0 0', fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 15.5, lineHeight: 1.4, color: UMBER, fontVariantNumeric: 'lining-nums' }}>{sheetSub}</p>
+                  <p style={{ margin: '6px 0 0', fontFamily: FONT_DISPLAY, fontSize: 15.5, lineHeight: 1.4, color: UMBER, fontVariantNumeric: 'lining-nums' }}>{sheetSub}</p>
                 </div>
                 <button aria-label={t.closeWord} className="pc-sheet-close" onClick={() => closeSheet()} disabled={busy}>
                   <span aria-hidden>×</span>

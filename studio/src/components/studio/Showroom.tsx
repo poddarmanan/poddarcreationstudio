@@ -109,7 +109,7 @@ export function Showroom({ studio }: { studio: Studio }) {
           })()}
         </h1>
         <Selvage key={`r${room.k}`} style={{ margin: '16px auto 0', width: 64 }} />
-        <p key={`p${room.k}`} style={{ margin: '12px auto 0', maxWidth: 420, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 'clamp(16px,1.6vw,19px)', color: room.sub, transition: 'color 1s ease', animation: 'rise .95s .1s cubic-bezier(.22,.8,.2,1) both' }}>{t[room.descKey]}</p>
+        <p key={`p${room.k}`} style={{ margin: '12px auto 0', maxWidth: 420, fontFamily: FONT_DISPLAY, fontSize: 'clamp(16px,1.6vw,19px)', color: room.sub, transition: 'color 1s ease', animation: 'rise .95s .1s cubic-bezier(.22,.8,.2,1) both' }}>{t[room.descKey]}</p>
         {/* The rooms: three equal places in a glass pill, centred, with one dark marker that
             slides between them as the walk moves — no chip is repainted, the marker travels. */}
         <div

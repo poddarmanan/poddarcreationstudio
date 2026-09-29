@@ -67,6 +67,7 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
   const chosen = lines.filter((l) => m(l.key) > 0);
   const total = chosen.reduce((s, l) => s + m(l.key), 0);
   const value = chosen.reduce((s, l) => s + m(l.key) * l.x.price, 0);
+  const [today] = useState(() => new Date().toLocaleDateString(studio.lang === 'hi' ? 'hi-IN' : 'en-IN', { day: 'numeric', month: 'short', year: 'numeric' }));
   const whenLabel = when === 'soon' ? t.whenSoon : when === '2w' ? t.when2w : t.whenMonth;
 
   // What was ordered stays on the dispatch page even as the cart empties behind it.
@@ -137,6 +138,25 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
         </button>
       </div>
 
+      {/* Where the buyer is: the cart (or book), this review, then the dispatch. */}
+      <ol className="pc-steps" aria-label={t.stepReview}>
+        {[fromCart ? t.cartWord : t.book, t.stepReview, t.stepDispatch].map((label, i) => (
+          <li key={i} className={i === 1 ? 'is-on' : i === 0 ? 'is-done' : undefined} aria-current={i === 1 ? 'step' : undefined}>
+            {i === 0 ? (
+              <button onClick={onBack}>
+                <span className="pc-steps-num">{roman(i + 1)}</span>
+                {label}
+              </button>
+            ) : (
+              <>
+                <span className="pc-steps-num">{roman(i + 1)}</span>
+                {label}
+              </>
+            )}
+          </li>
+        ))}
+      </ol>
+
       {/* The title plate. */}
       <div aria-hidden style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, marginTop: 14 }}>
         <span style={{ width: 'clamp(26px,8vw,56px)', height: 1, background: 'linear-gradient(90deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'right', animation: 'pcRuleDraw 1s .2s cubic-bezier(.2,.8,.2,1) both' }} />
@@ -154,85 +174,118 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
           </span>
         ))}
       </h1>
-      <p style={{ margin: '12px 0 0', maxWidth: 360, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 16.5, lineHeight: 1.45, color: UMBER, animation: 'pcRiseIn .9s .6s cubic-bezier(.2,.8,.2,1) both' }}>{fromCart ? t.checkoutSub : t.directSub}</p>
+      <p style={{ margin: '12px 0 0', maxWidth: 360, fontFamily: FONT_DISPLAY, fontSize: 16.5, lineHeight: 1.45, color: UMBER, animation: 'pcRiseIn .9s .6s cubic-bezier(.2,.8,.2,1) both' }}>{fromCart ? t.checkoutSub : t.directSub}</p>
       <div aria-hidden style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 16 }}>
         <span style={{ width: 30, height: 1, background: 'linear-gradient(90deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'right', animation: 'pcRuleDraw 1s .8s cubic-bezier(.2,.8,.2,1) both' }} />
         <span style={{ width: 6, height: 6, background: 'rgba(168,134,79,.95)', animation: 'pcDiamondIn .8s .7s cubic-bezier(.2,.8,.2,1) both' }} />
         <span style={{ width: 30, height: 1, background: 'linear-gradient(270deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'left', animation: 'pcRuleDraw 1s .8s cubic-bezier(.2,.8,.2,1) both' }} />
       </div>
 
-      {/* A sheet for each fabric: its price by the metre, and a row for each of its shades. */}
-      <div style={{ width: 'min(100%, 560px)', marginTop: 26, display: 'flex', flexDirection: 'column', gap: 18, textAlign: 'left' }}>
-        {groups.map((g, gi) => {
-          const sum = g.lines.reduce((s, l) => s + m(l.key), 0);
-          return (
-            <section key={g.x.id} className="pc-order-sheet" style={{ animation: `pcFieldIn .9s ${0.8 + gi * 0.12}s cubic-bezier(.2,.8,.2,1) both` }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 8.5, letterSpacing: '.32em', textTransform: 'uppercase', color: UMBER }}>
-                    {t.chapterWord} {roman(gi + 1)}
-                  </div>
-                  <div style={{ marginTop: 4, fontFamily: FONT_DISPLAY, fontSize: 26, lineHeight: 1.1, color: INK }}>{g.x.name}</div>
-                  <div style={{ marginTop: 3, fontSize: 9.5, letterSpacing: '.14em', textTransform: 'uppercase', color: 'rgba(28,25,23,.5)' }}>
-                    {g.x.weight} · {g.x.width}
-                  </div>
-                </div>
-                <div style={{ textAlign: 'right', flex: 'none' }}>
-                  <div style={{ fontFamily: FONT_DISPLAY, fontSize: 26, lineHeight: 1, color: INK, fontVariantNumeric: 'lining-nums' }}>
-                    <span style={{ fontSize: 15, color: UMBER, verticalAlign: '.45em', marginRight: 2 }}>₹</span>
-                    {inr(g.x.price)}
-                  </div>
-                  <div style={{ marginTop: 3, fontSize: 9, letterSpacing: '.2em', textTransform: 'uppercase', color: 'rgba(28,25,23,.5)' }}>{t.perMetre}</div>
-                </div>
-              </div>
-              {/* Set every shade of the fabric at once (the cart's are set in the cart, by slider). */}
-              {!fromCart && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 14 }}>
-                  <span style={{ fontSize: 9, letterSpacing: '.24em', textTransform: 'uppercase', color: 'rgba(28,25,23,.5)', marginRight: 4 }}>{t.setAll}</span>
-                  {PRESETS.map((v) => {
-                    const on = g.lines.every((l) => m(l.key) === v);
-                    return (
-                      <button key={v} className={`pc-order-chip${on ? ' is-on' : ''}`} onClick={() => setMetres((was) => ({ ...was, ...Object.fromEntries(g.lines.map((l) => [l.key, v])) }))}>
-                        {v} m
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-              <div style={{ marginTop: 10 }}>
-                {g.lines.map((l, i) => (
-                  <Row key={l.key} line={l} metres={m(l.key)} t={t} delay={1 + gi * 0.12 + i * 0.05} onChange={(v) => setM(l.key, v)} readOnly={fromCart} onRemove={fromCart ? () => studio.removeFromCart(l.x.id, l.c.order) : undefined} />
-                ))}
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(138,109,69,.25)', fontSize: 10, letterSpacing: '.2em', textTransform: 'uppercase', color: UMBER, fontVariantNumeric: 'lining-nums' }}>
-                <span>
-                  {g.x.name}
-                </span>
-                <span>
-                  {inr(sum)} m · ₹ {inr(sum * g.x.price)}
-                </span>
-              </div>
-            </section>
-          );
-        })}
-
-        {/* When it is needed, and a note for the mill. */}
-        <section className="pc-order-sheet" style={{ animation: `pcFieldIn .9s ${0.9 + groups.length * 0.12}s cubic-bezier(.2,.8,.2,1) both` }}>
-          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 22, color: INK }}>{t.whenNeeded}</div>
-          <div role="radiogroup" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
-            {(['soon', '2w', 'month'] as const).map((w) => (
-              <button key={w} role="radio" aria-checked={when === w} className={`pc-order-chip is-wide${when === w ? ' is-on' : ''}`} onClick={() => setWhen(w)}>
-                {w === 'soon' ? t.whenSoon : w === '2w' ? t.when2w : t.whenMonth}
-              </button>
-            ))}
+      {/* The order slip: the house and the date at its head under a double gold rule; each fabric
+          with its numeral in a gold ring, its price by the metre, its shades and its subtotal on a
+          dotted leader; then the totals, ruled off as in a ledger; and a pinked foot. */}
+      <div className="pc-slip-wrap" style={{ animation: 'pcFieldIn .9s .75s cubic-bezier(.2,.8,.2,1) both' }}>
+        <div className="pc-slip">
+          <div className="pc-slip-head">
+            <div>
+              <span className="pc-slip-small">Poddar Creation · Surat</span>
+              <b>{t.orderSlip}</b>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <span className="pc-slip-small">{today}</span>
+              <span className="pc-slip-small" style={{ marginTop: 4 }}>
+                {groups.length} {groups.length === 1 ? t.fabricWordOne : t.fabricWordMany} · {lines.length} {t.shadesChosen}
+              </span>
+            </div>
           </div>
-          <label className="pc-auth-field" style={{ marginTop: 14 }}>
-            <input className="pc-auth-input" value={note} placeholder=" " onChange={(e) => setNote(e.target.value.slice(0, 500))} />
-            <span className="pc-auth-label">{t.noteForMill}</span>
-            <span aria-hidden className="pc-auth-line" />
-          </label>
-        </section>
+          <div aria-hidden className="pc-slip-rule" />
+          {groups.map((g, gi) => {
+            const sum = g.lines.reduce((s, l) => s + m(l.key), 0);
+            return (
+              <section key={g.x.id} className="pc-slip-fabric">
+                <div className="pc-slip-fhead">
+                  <span aria-hidden className="pc-slip-num">{roman(gi + 1)}</span>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div className="pc-slip-fname">{g.x.name}</div>
+                    <div className="pc-slip-small">
+                      {g.x.weight} · {g.x.width}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right', flex: 'none' }}>
+                    <div className="pc-slip-price">₹ {inr(g.x.price)}</div>
+                    <div className="pc-slip-small">{t.perMetre}</div>
+                  </div>
+                </div>
+                {/* Set every shade of the fabric at once (the cart's are set in the cart, by slider). */}
+                {!fromCart && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 12 }}>
+                    <span className="pc-slip-small" style={{ marginRight: 4 }}>{t.setAll}</span>
+                    {PRESETS.map((v) => {
+                      const on = g.lines.every((l) => m(l.key) === v);
+                      return (
+                        <button key={v} className={`pc-order-chip${on ? ' is-on' : ''}`} onClick={() => setMetres((was) => ({ ...was, ...Object.fromEntries(g.lines.map((l) => [l.key, v])) }))}>
+                          {v} m
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                <div style={{ marginTop: 8 }}>
+                  {g.lines.map((l, i) => (
+                    <Row key={l.key} line={l} metres={m(l.key)} t={t} delay={1 + gi * 0.12 + i * 0.05} onChange={(v) => setM(l.key, v)} readOnly={fromCart} onRemove={fromCart ? () => studio.removeFromCart(l.x.id, l.c.order) : undefined} />
+                  ))}
+                </div>
+                <div className="pc-slip-leader">
+                  <span>{g.x.name}</span>
+                  <i aria-hidden />
+                  <span>
+                    {inr(sum)} m · ₹ {inr(sum * g.x.price)}
+                  </span>
+                </div>
+              </section>
+            );
+          })}
+          {/* The totals, ruled off. */}
+          <div className="pc-slip-totals">
+            <div className="pc-slip-leader">
+              <span>{t.metresWord}</span>
+              <i aria-hidden />
+              <span>{inr(total)} m</span>
+            </div>
+            <div className="pc-slip-leader">
+              <span>{t.shades}</span>
+              <i aria-hidden />
+              <span>{chosen.length}</span>
+            </div>
+            <div className="pc-slip-leader is-grand">
+              <span>{t.estimate}</span>
+              <i aria-hidden />
+              <b key={value}>₹ {inr(value)}</b>
+            </div>
+          </div>
+          <p className="pc-slip-fine">{t.estimateNote}</p>
+        </div>
+        <div aria-hidden className="pc-slip-edge" />
       </div>
+
+      {/* When it is needed, as three tiles, and a note for the mill. */}
+      <section className="pc-order-sheet pc-when" style={{ animation: `pcFieldIn .9s ${0.95 + groups.length * 0.1}s cubic-bezier(.2,.8,.2,1) both` }}>
+        <div className="pc-when-title">{t.whenNeeded}</div>
+        <div role="radiogroup" aria-label={t.whenNeeded} className="pc-when-tiles">
+          {(['soon', '2w', 'month'] as const).map((w) => (
+            <button key={w} role="radio" aria-checked={when === w} className={`pc-add-tile pc-when-tile${when === w ? ' is-on' : ''}`} onClick={() => setWhen(w)}>
+              <span aria-hidden className="pc-add-tick">✓</span>
+              <span className="pc-when-fig">{w === 'soon' ? t.whenSoonShort : w === '2w' ? t.when2wShort : t.whenMonthShort}</span>
+              <span className="pc-add-tile-sub">{w === 'soon' ? t.whenSoon : w === '2w' ? t.when2w : t.whenMonth}</span>
+            </button>
+          ))}
+        </div>
+        <label className="pc-auth-field" style={{ marginTop: 16 }}>
+          <input className="pc-auth-input" value={note} placeholder=" " onChange={(e) => setNote(e.target.value.slice(0, 500))} />
+          <span className="pc-auth-label">{t.noteForMill}</span>
+          <span aria-hidden className="pc-auth-line" />
+        </label>
+      </section>
 
       {/* The dock: the running total, the estimate, and the order. */}
       <div className="pc-order-dock" style={{ animation: 'pcDockIn .9s 1.1s cubic-bezier(.2,.9,.25,1) both' }}>
@@ -252,7 +305,6 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
         </button>
       </div>
       {warn > 0 && !chosen.length && <div style={{ marginTop: 10, fontSize: 12.5, color: '#A5392B' }}>{t.nothingChosen}</div>}
-      <p style={{ margin: '14px 0 0', maxWidth: 360, fontSize: 11, lineHeight: 1.6, color: 'rgba(28,25,23,.45)' }}>{t.estimateNote}</p>
     </Room>
   );
 }
@@ -264,7 +316,7 @@ function Row({ line, metres, t, delay, onChange, onRemove, readOnly }: { line: L
     <div className="pc-order-row" style={{ animation: `pcFieldIn .7s ${delay}s cubic-bezier(.2,.8,.2,1) both` }}>
       <span aria-hidden className="pc-pinked" style={{ width: 38, height: 46, flex: 'none', background: fabricTex(line.x, line.c, 3), transform: `rotate(${((line.c.order * 37) % 9) - 4}deg)`, boxShadow: '0 3px 6px rgba(40,26,12,.22)' }} />
       <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 18, lineHeight: 1.1, color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{line.c.name}</div>
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 18, lineHeight: 1.1, color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{line.c.name}</div>
         <div style={{ marginTop: 2, fontSize: 9, letterSpacing: '.2em', textTransform: 'uppercase', color: off ? '#A5392B' : 'rgba(28,25,23,.45)', fontVariantNumeric: 'lining-nums' }}>
           {off ? t.notSet : onRemove ? `₹ ${inr(metres * line.x.price)}` : `${t.shadeNo} ${String(line.c.order).padStart(2, '0')} · ₹ ${inr(metres * line.x.price)}`}
         </div>
@@ -374,7 +426,7 @@ function Dispatch({
                 aria-hidden={i !== captionAt || undefined}
                 className="pc-foil-deep"
                 style={{
-                  position: 'absolute', left: 0, right: 0, top: 0, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 'clamp(28px,7vw,44px)', lineHeight: 1.15,
+                  position: 'absolute', left: 0, right: 0, top: 0, fontFamily: FONT_DISPLAY, fontSize: 'clamp(28px,7vw,44px)', lineHeight: 1.15,
                   opacity: i === captionAt ? 1 : 0, transform: i === captionAt ? 'none' : i < captionAt ? 'translateY(-8px)' : 'translateY(8px)',
                   transition: i === captionAt ? 'opacity .6s ease .3s, transform .7s cubic-bezier(.22,.8,.2,1) .3s' : 'opacity .3s ease, transform .4s ease',
                 }}
@@ -455,7 +507,7 @@ function Dispatch({
         {done && (
           <div style={{ width: 'min(100%, 420px)', marginTop: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', animation: 'pcRiseIn .9s .2s cubic-bezier(.2,.8,.2,1) both' }}>
             {order.state === 'failed' ? (
-              <p style={{ margin: 0, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 16, lineHeight: 1.45, color: '#A5392B' }}>{t.pkFailed}</p>
+              <p style={{ margin: 0, fontFamily: FONT_DISPLAY, fontSize: 16, lineHeight: 1.45, color: '#A5392B' }}>{t.pkFailed}</p>
             ) : (
               <>
                 <div className="pc-order-summary">
@@ -472,7 +524,7 @@ function Dispatch({
                     <b>₹ {inr(value)}</b>
                   </div>
                 </div>
-                <p style={{ margin: '14px 0 0', maxWidth: 340, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 15.5, lineHeight: 1.45, color: UMBER }}>
+                <p style={{ margin: '14px 0 0', maxWidth: 340, fontFamily: FONT_DISPLAY, fontSize: 15.5, lineHeight: 1.45, color: UMBER }}>
                   {order.state === 'demo' ? t.pkPreview : order.whatsapp ? t.pkConfirmTo.replace('{n}', order.whatsapp) : t.pkConfirm}
                 </p>
               </>
@@ -515,7 +567,7 @@ export function EmptyCart({ studio }: { studio: Studio }) {
         </span>
       </div>
       <h1 style={{ margin: '26px 0 0', fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(38px,10vw,58px)', lineHeight: 1.04, color: INK, animation: 'pcRiseIn .9s .3s cubic-bezier(.2,.8,.2,1) both' }}>{t.cartEmpty}</h1>
-      <p style={{ margin: '12px 0 0', maxWidth: 330, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 17, lineHeight: 1.45, color: UMBER, animation: 'pcRiseIn .9s .5s cubic-bezier(.2,.8,.2,1) both' }}>{t.cartEmptySub}</p>
+      <p style={{ margin: '12px 0 0', maxWidth: 330, fontFamily: FONT_DISPLAY, fontSize: 17, lineHeight: 1.45, color: UMBER, animation: 'pcRiseIn .9s .5s cubic-bezier(.2,.8,.2,1) both' }}>{t.cartEmptySub}</p>
       <button className="pc-auth-btn" style={{ marginTop: 26, width: 'min(100%, 380px)', animation: 'pcFieldIn .8s .7s cubic-bezier(.2,.8,.2,1) both' }} onClick={() => studio.go('showroom')}>
         <span aria-hidden className="pc-auth-star">✦</span>
         {t.showroom}

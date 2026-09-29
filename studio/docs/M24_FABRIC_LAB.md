@@ -515,7 +515,8 @@ metres.
 - **The title plate** adds a notice while any shade is unset: "Select metres for N shades", with
   "Tap a cutting for its metres".
 
-**Tapping a cutting opens the metre picker,** which sets metres with a slider alone.
+**Tapping a cutting opens the metre picker,** a sheet at the foot of the screen, which sets metres
+with a slider alone.
 - **The slider** is a gold rule with an ink thumb. It stops every 25 m up to 1,000 m, every 100 m
   up to 2,000 m, and every 250 m up to 5,000 m. That is fine where most orders fall, and still
   reaches a large order. It is labelled 0 · 250 · 500 · 1k · 2k · 5k at those stops.
@@ -531,7 +532,28 @@ total metres, the shades (or how many are not set) and the value, and an ink "Ch
   and says "Select metres for every shade to check out."
 - **Checkout** is the direct order page (`FabricOrder` with `source="cart"`), titled "Your *Order*",
   with "← Cart" as the way back. There each shade's metres are shown rather than edited, since
-  they are set in the cart. The page adds when it is needed and a note for the mill. Placing the order goes through the same sign-in, dispatch and confetti. Once the
+  they are set in the cart. The page adds when it is needed and a note for the mill.
+
+**The checkout page** (and the direct order page) has three parts:
+- **Steps:** a line of three steps by numeral: I Cart (or Book) · II Review · III Dispatch. The
+  current step's numeral is gold, and the first step is a way back.
+- **The order slip:** letterpress paper with a gold rule at its top. Its head reads "Poddar
+  Creation · Surat" and "Order slip", with the date and the count of fabrics and shades opposite,
+  over a gold double rule. Each fabric then follows:
+  - its numeral in a gold ring, its name, weight and width, and its price per metre;
+  - its shades;
+  - its subtotal on a dotted leader.
+
+  The totals are ruled off as in a ledger: metres and shades on dotted leaders, then the estimate
+  large under a double gold rule. The fine print sits beneath, and the slip ends in a pinked foot,
+  as if torn from a pad.
+- **When it is needed:** three tiles like the chooser's ("Now", "2 weeks", "1 month", each with
+  its full wording beneath). The chosen tile turns to ink edged in gold. The note for the mill
+  follows.
+
+**Italics are kept for accents only.** Only the last word of a page's heading is italic (Swatch
+*Book*, Your *Cart*, Your *Order*), as is the PC monogram on the cover. Body copy, names,
+figures, notes and labels are set upright, in the studio pages and in the PDF. Placing the order goes through the same sign-in, dispatch and confetti. Once the
 order is taken, its lines leave the cart.
 
 An empty cart shows a floating ink bag, "Your cart is empty" and the way to the Showroom.

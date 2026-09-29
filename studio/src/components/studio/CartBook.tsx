@@ -103,7 +103,7 @@ export function CartBook({ studio }: { studio: Studio }) {
             </span>
           ))}
         </h1>
-        <div style={{ marginTop: 10, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 16.5, color: UMBER, fontVariantNumeric: 'lining-nums', animation: 'pcRiseIn .9s .55s cubic-bezier(.2,.8,.2,1) both' }}>
+        <div style={{ marginTop: 10, fontFamily: FONT_DISPLAY, fontSize: 16.5, color: UMBER, fontVariantNumeric: 'lining-nums', animation: 'pcRiseIn .9s .55s cubic-bezier(.2,.8,.2,1) both' }}>
           {cuts.length} {cuts.length === 1 ? t.shade : t.shades} · {groups.length} {groups.length === 1 ? t.fabricWordOne : t.fabricWordMany}
           {total > 0 ? ` — ${inr(total)} m` : ''}
         </div>
@@ -131,7 +131,7 @@ export function CartBook({ studio }: { studio: Studio }) {
 
       <div style={{ marginTop: 26, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, animation: 'rise 1s .5s cubic-bezier(.22,.8,.2,1) both' }}>
         <Fleuron width={26} color="rgba(138,109,69,.6)" />
-        <p style={{ margin: 0, maxWidth: 320, textAlign: 'center', fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 15, lineHeight: 1.45, color: 'rgba(28,25,23,.58)' }}>{t.cartNote}</p>
+        <p style={{ margin: 0, maxWidth: 320, textAlign: 'center', fontFamily: FONT_DISPLAY, fontSize: 15, lineHeight: 1.45, color: 'rgba(28,25,23,.58)' }}>{t.cartNote}</p>
       </div>
 
       {/* The dock: the running total, the estimate, and the way to checkout. */}
@@ -231,7 +231,7 @@ function MetrePicker({
             <span className="pc-add-eyebrow">
               {t.chapterWord} {roman(pick.gi + 1)} · {fabric.name}
             </span>
-            <span className="pc-add-fabric">{cut && !all ? cut.colour.name : t.allShadesN.replace('{n}', String(n))}</span>
+            <span className="pc-add-fabric">{cut && !all ? cut.colour.name : n === 1 ? g.items[0].colour.name : t.allShadesN.replace('{n}', String(n))}</span>
           </span>
           <button aria-label={t.closeWord} className="pc-sheet-close" onClick={onClose}>
             <span aria-hidden>×</span>

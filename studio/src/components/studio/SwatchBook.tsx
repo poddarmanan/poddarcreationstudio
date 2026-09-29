@@ -164,7 +164,7 @@ export function SwatchBook({ studio }: { studio: Studio }) {
             </span>
           ))}
         </h1>
-        <div style={{ marginTop: 10, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 16.5, color: UMBER, fontVariantNumeric: 'lining-nums', animation: 'pcRiseIn .9s .55s cubic-bezier(.2,.8,.2,1) both' }}>
+        <div style={{ marginTop: 10, fontFamily: FONT_DISPLAY, fontSize: 16.5, color: UMBER, fontVariantNumeric: 'lining-nums', animation: 'pcRiseIn .9s .55s cubic-bezier(.2,.8,.2,1) both' }}>
           {studio.pins.length} {studio.pins.length === 1 ? t.shade : t.shades} · {groups.length} {groups.length === 1 ? t.fabricWordOne : t.fabricWordMany} — {t.boundToOrder}
         </div>
         <div aria-hidden style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 16 }}>
@@ -178,7 +178,7 @@ export function SwatchBook({ studio }: { studio: Studio }) {
 
       <div style={{ marginTop: 26, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, animation: 'rise 1s .5s cubic-bezier(.22,.8,.2,1) both' }}>
         <Fleuron width={26} color="rgba(138,109,69,.6)" />
-        <p style={{ margin: 0, maxWidth: 320, textAlign: 'center', fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 15, lineHeight: 1.45, color: 'rgba(28,25,23,.58)' }}>{t.looseNote}</p>
+        <p style={{ margin: 0, maxWidth: 320, textAlign: 'center', fontFamily: FONT_DISPLAY, fontSize: 15, lineHeight: 1.45, color: 'rgba(28,25,23,.58)' }}>{t.looseNote}</p>
       </div>
 
       {/* The book's actions: order it — every shade in it, across all its fabrics — or see it bound first. */}
@@ -620,7 +620,7 @@ export function CoverFace({ t, userName, line, claspAnimation }: { t: Record<str
           </svg>
           <span className="pc-foil" style={{ fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 'clamp(30px,8vw,38px)', letterSpacing: '-.06em', lineHeight: 1, marginLeft: '-.06em' }}>PC</span>
         </div>
-        <div className="pc-foil" style={{ fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 'clamp(28px,7.4vw,38px)', lineHeight: 1.05 }}>{t.book}</div>
+        <div className="pc-foil" style={{ fontFamily: FONT_DISPLAY, fontSize: 'clamp(28px,7.4vw,38px)', lineHeight: 1.05 }}>{t.book}</div>
         <div style={{ margin: '12px 0 10px' }}>
           <Fleuron width={26} />
         </div>
@@ -630,7 +630,7 @@ export function CoverFace({ t, userName, line, claspAnimation }: { t: Record<str
         {userName ? (
           <>
             <div className="pc-foil" style={{ fontSize: 7.5, letterSpacing: '.36em', textTransform: 'uppercase' }}>{t.preparedFor}</div>
-            <div className="pc-foil" style={{ fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 16, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{userName}</div>
+            <div className="pc-foil" style={{ fontFamily: FONT_DISPLAY, fontSize: 16, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{userName}</div>
           </>
         ) : (
           <div className="pc-foil" style={{ fontSize: 7.5, letterSpacing: '.42em', textTransform: 'uppercase' }}>Surat</div>
@@ -741,7 +741,7 @@ function SheetFace({ studio, sheet, group, interactive, cart }: { studio: Studio
           <div style={{ margin: cart ? '8px 0 7px' : '12px 0 10px' }}>
             <Fleuron width={28} color="#B8904A" />
           </div>
-          <div style={{ fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 'clamp(26px,6vw,34px)', lineHeight: 1.1, color: INK }}>{group.x.name}</div>
+          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 'clamp(26px,6vw,34px)', lineHeight: 1.1, color: INK }}>{group.x.name}</div>
           <div style={{ marginTop: 8, fontSize: 9, letterSpacing: '.22em', textTransform: 'uppercase', color: 'rgba(28,25,23,.5)' }}>{group.x.hand}</div>
           {/* A die-cut window onto the chapter's first cutting. */}
           <div
@@ -754,7 +754,7 @@ function SheetFace({ studio, sheet, group, interactive, cart }: { studio: Studio
             <>
               {/* In the cart: the price by the metre, what the fabric comes to, and every shade of
                   it set at once. */}
-              <div style={{ marginTop: 12, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 14, color: UMBER, fontVariantNumeric: 'lining-nums', whiteSpace: 'nowrap' }}>
+              <div style={{ marginTop: 12, fontFamily: FONT_DISPLAY, fontSize: 14, color: UMBER, fontVariantNumeric: 'lining-nums', whiteSpace: 'nowrap' }}>
                 ₹ {inr(group.x.price)} / {t.metre} · {group.items.length} {group.items.length === 1 ? t.shade : t.shades}
               </div>
               {unset ? (
@@ -769,7 +769,7 @@ function SheetFace({ studio, sheet, group, interactive, cart }: { studio: Studio
               </button>
             </>
           ) : (
-            <div style={{ marginTop: 14, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 14, color: UMBER, fontVariantNumeric: 'lining-nums' }}>
+            <div style={{ marginTop: 14, fontFamily: FONT_DISPLAY, fontSize: 14, color: UMBER, fontVariantNumeric: 'lining-nums' }}>
               {group.items.length} {group.items.length === 1 ? t.shade : t.shades} · {pages} {t.sheetWord.toLowerCase()}{pages === 1 ? '' : 's'}
             </div>
           )}
@@ -832,7 +832,7 @@ function SheetFace({ studio, sheet, group, interactive, cart }: { studio: Studio
         <span style={{ textAlign: 'left', whiteSpace: 'nowrap' }}>
           {cart ? `${inr(sheet.items.reduce((sum, c) => sum + (c.metres ?? 0), 0))} m` : `${n} ${n === 1 ? t.shade : t.shades}`}
         </span>
-        <span style={{ fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 12, letterSpacing: 0, textTransform: 'none', color: UMBER }}>— {roman(sheet.page + 1).toLowerCase()} —</span>
+        <span style={{ fontFamily: FONT_DISPLAY, fontSize: 12, letterSpacing: 0, textTransform: 'none', color: UMBER }}>— {roman(sheet.page + 1).toLowerCase()} —</span>
         <span style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
           {t.sheetWord} {sheet.page + 1} / {sheet.pages}
         </span>
@@ -878,7 +878,7 @@ function LooseCutting({
             {t.shadeNo} {String(colour.order).padStart(2, '0')}
           </span>
         )}
-        <span style={{ fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: tiny ? 11 : big ? 17 : bare ? 13.5 : 14.5, color: INK, overflow: 'hidden', textOverflow: 'ellipsis' }}>{colour.name}</span>
+        <span style={{ fontFamily: FONT_DISPLAY, fontSize: tiny ? 11 : big ? 17 : bare ? 13.5 : 14.5, color: INK, overflow: 'hidden', textOverflow: 'ellipsis' }}>{colour.name}</span>
       </div>
       {/* In the cart, its metres on a small ink tab above the label: tapping the cutting sets them. */}
       {metres !== undefined && (
@@ -926,7 +926,7 @@ function EmptyBook({ studio }: { studio: Studio }) {
           <CoverFace t={t} userName={studio.userName} />
         </div>
       </Binding>
-      <p style={{ margin: '52px 0 0', maxWidth: 360, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 17, color: 'rgba(28,25,23,.6)' }}>{t.emptyBoard}</p>
+      <p style={{ margin: '52px 0 0', maxWidth: 360, fontFamily: FONT_DISPLAY, fontSize: 17, color: 'rgba(28,25,23,.6)' }}>{t.emptyBoard}</p>
       <button
         onClick={() => studio.go('showroom')}
         className="pc-book"

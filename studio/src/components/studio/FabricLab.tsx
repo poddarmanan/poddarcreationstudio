@@ -1208,7 +1208,7 @@ function InfoControl({ title, shade, shadeCss, rows, heading, stretch }: {
           style={{
             cursor: 'pointer', width: 30, height: 30, borderRadius: '50%', display: 'grid', placeItems: 'center',
             ...(open ? { background: '#1C1917', color: '#FAF8F5', border: '1px solid #1C1917' } : { ...GLASS, WebkitBackdropFilter: GLASS.backdropFilter, color: '#1C1917' }),
-            fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontWeight: 600, fontSize: 15, lineHeight: 1,
+            fontFamily: FONT_DISPLAY, fontWeight: 600, fontSize: 15, lineHeight: 1,
             transition: 'background .5s ease, color .5s ease, transform .5s cubic-bezier(.2,.8,.2,1)',
           }}
         >
@@ -1239,7 +1239,7 @@ function InfoControl({ title, shade, shadeCss, rows, heading, stretch }: {
               ))}
             </dl>
             {/* Stretch, as its own closing section: the two figures side by side in the display
-                serif, each labelled beneath, and the fabric's note in italic across the card. */}
+                serif, each labelled beneath, and the fabric's note across the card. */}
             <div style={{ marginTop: 4, paddingTop: 10, borderTop: '1px solid rgba(28,25,23,.08)', animation: `pcSlideIn .45s ${rows.length * 40}ms cubic-bezier(.2,.8,.2,1) both` }}>
               <div style={{ fontSize: 9.5, letterSpacing: '.2em', color: '#8A6D45', textTransform: 'uppercase' }}>Stretch</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1px 1fr', alignItems: 'center', marginTop: 8 }}>
@@ -1257,7 +1257,7 @@ function InfoControl({ title, shade, shadeCss, rows, heading, stretch }: {
                   ),
                 )}
               </div>
-              <p style={{ margin: '10px 0 0', textAlign: 'center', fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 14, lineHeight: 1.4, color: 'rgba(28,25,23,.68)', textWrap: 'balance' }}>{stretch.note}</p>
+              <p style={{ margin: '10px 0 0', textAlign: 'center', fontFamily: FONT_DISPLAY, fontSize: 14, lineHeight: 1.4, color: 'rgba(28,25,23,.68)', textWrap: 'balance' }}>{stretch.note}</p>
             </div>
           </div>
         )}

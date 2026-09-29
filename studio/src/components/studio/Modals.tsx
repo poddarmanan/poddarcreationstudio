@@ -21,7 +21,7 @@ export function UnrollTransition({ studio }: { studio: Studio }) {
       />
       <div style={{ position: 'absolute', left: 0, right: 0, top: '45%', textAlign: 'center', color: trans.fg, animation: 'rise .5s .25s both' }}>
         <div style={{ fontFamily: FONT_DISPLAY, fontSize: 'clamp(30px,4vw,52px)', fontWeight: 500 }}>{trans.name}</div>
-        <div style={{ fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 'clamp(15px,1.6vw,20px)', opacity: 0.8, marginTop: 6 }}>{trans.story}</div>
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 'clamp(15px,1.6vw,20px)', opacity: 0.8, marginTop: 6 }}>{trans.story}</div>
       </div>
     </div>
   );

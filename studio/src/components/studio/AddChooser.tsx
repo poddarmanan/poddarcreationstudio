@@ -57,7 +57,7 @@ export function AddChooser({
                   style={{
                     background: `linear-gradient(155deg, rgba(255,255,255,.22), transparent 40%, rgba(0,0,0,.14)), ${fabricTex(fabric, c, 3)}`,
                     zIndex: 10 - Math.round(Math.abs(k - mid)),
-                    ['--fan' as string]: `translate(${(k - mid) * 17}px, ${Math.abs(k - mid) * 3}px) rotate(${(k - mid) * 9}deg)`,
+                    ['--fan' as string]: `translate(${(k - mid) * 14}px, ${Math.abs(k - mid) * 3}px) rotate(${(k - mid) * 9}deg)`,
                     animationDelay: `${0.05 + k * 0.06}s`,
                   }}
                 />
@@ -80,7 +80,7 @@ export function AddChooser({
           {(['cart', 'book'] as const).map((w) => (
             <button key={w} role="radio" aria-checked={where === w} className={`pc-add-tile${where === w ? ' is-on' : ''}`} onClick={() => setWhere(w)}>
               <span aria-hidden className="pc-add-tick">✓</span>
-              <span aria-hidden className="pc-add-icon">{w === 'cart' ? <CartGlyph size={18} /> : <BookGlyph />}</span>
+              <span aria-hidden className="pc-add-icon">{w === 'cart' ? <CartGlyph size={15} /> : <BookGlyph />}</span>
               <span className="pc-add-tile-name">{w === 'cart' ? t.cartWord : t.book}</span>
               <span className="pc-add-tile-sub">{w === 'cart' ? t.tileCart : t.tileBook}</span>
             </button>
@@ -119,7 +119,7 @@ export function AddChooser({
 
 function BookGlyph() {
   return (
-    <svg aria-hidden width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <svg aria-hidden width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z" />
       <path d="M5 17h14" />
     </svg>

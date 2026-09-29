@@ -338,13 +338,13 @@ function cover(input: BookPdfInput, shadesCount: number) {
   ctx.ellipse(cx, 720, 106, 136, 0, 0, Math.PI * 2);
   ctx.stroke();
   text(ctx, 'PC', cx - 4, 762, `italic 500 118px ${fonts.display}`, goldFill(ctx, cx - 90, cx + 90), 'center', -6);
-  text(ctx, t.book, cx, 1010, `italic 500 128px ${fonts.display}`, goldFill(ctx, cx - 360, cx + 360));
+  text(ctx, t.book, cx, 1010, `500 128px ${fonts.display}`, goldFill(ctx, cx - 360, cx + 360));
   fleuron(ctx, cx, 1070, 110, GOLD);
   const count = `${input.chapters.length} ${input.chapters.length === 1 ? t.fabricWordOne : t.fabricWordMany}  ·  ${shadesCount} ${shadesCount === 1 ? t.shade : t.shades}`.toUpperCase();
   text(ctx, count, cx, 1140, `400 26px ${fonts.body}`, goldFill(ctx, cx - 300, cx + 300), 'center', 8);
   if (input.preparedFor) {
     text(ctx, t.preparedFor.toUpperCase(), cx, 1470, `400 22px ${fonts.body}`, goldFill(ctx, cx - 200, cx + 200), 'center', 10);
-    text(ctx, fitText(ctx, input.preparedFor, `italic 500 54px ${fonts.display}`, 760), cx, 1535, `italic 500 54px ${fonts.display}`, goldFill(ctx, cx - 300, cx + 300));
+    text(ctx, fitText(ctx, input.preparedFor, `500 54px ${fonts.display}`, 760), cx, 1535, `500 54px ${fonts.display}`, goldFill(ctx, cx - 300, cx + 300));
   } else {
     text(ctx, 'SURAT', cx, 1520, `400 24px ${fonts.body}`, goldFill(ctx, cx - 100, cx + 100), 'center', 12);
   }
@@ -360,12 +360,12 @@ function contents(input: BookPdfInput, starts: number[]) {
   let y = 420;
   input.chapters.forEach((ch, i) => {
     text(ctx, roman(i + 1), 230, y, `500 44px ${fonts.display}`, UMBER, 'right');
-    text(ctx, fitText(ctx, ch.fabric.name, `italic 500 46px ${fonts.display}`, 560), 270, y, `italic 500 46px ${fonts.display}`, INK, 'left');
+    text(ctx, fitText(ctx, ch.fabric.name, `500 46px ${fonts.display}`, 560), 270, y, `500 46px ${fonts.display}`, INK, 'left');
     text(ctx, `${ch.colours.length} ${ch.colours.length === 1 ? t.shade : t.shades}`, 270, y + 36, `400 22px ${fonts.body}`, 'rgba(28,25,23,.5)', 'left', 3);
     // Dot leaders to the page number.
     ctx.fillStyle = 'rgba(138,109,69,.45)';
-    ctx.font = `italic 500 46px ${fonts.display}`;
-    const end = 270 + ctx.measureText(fitText(ctx, ch.fabric.name, `italic 500 46px ${fonts.display}`, 560)).width + 24;
+    ctx.font = `500 46px ${fonts.display}`;
+    const end = 270 + ctx.measureText(fitText(ctx, ch.fabric.name, `500 46px ${fonts.display}`, 560)).width + 24;
     for (let x = end; x < W - 250; x += 16) ctx.fillRect(x, y - 8, 3, 3);
     text(ctx, String(starts[i]), W - 200, y, `500 40px ${fonts.display}`, INK, 'right');
     y += 110;
@@ -375,7 +375,7 @@ function contents(input: BookPdfInput, starts: number[]) {
 }
 
 function folio(ctx: CanvasRenderingContext2D, input: BookPdfInput, n: number) {
-  text(ctx, `— ${roman(n).toLowerCase()} —`, W / 2, H - 90, `italic 500 30px ${input.fonts.display}`, UMBER);
+  text(ctx, `— ${roman(n).toLowerCase()} —`, W / 2, H - 90, `500 30px ${input.fonts.display}`, UMBER);
 }
 
 function chapterPage(input: BookPdfInput, ch: BookChapter, i: number, page: number) {
@@ -387,9 +387,9 @@ function chapterPage(input: BookPdfInput, ch: BookChapter, i: number, page: numb
   text(ctx, t.chapterWord.toUpperCase(), cx, 470, `500 28px ${fonts.body}`, UMBER, 'center', 18);
   text(ctx, roman(i + 1), cx, 660, `500 190px ${fonts.display}`, goldFill(ctx, cx - 160, cx + 160));
   fleuron(ctx, cx, 730, 110, '#B8904A');
-  text(ctx, fitText(ctx, ch.fabric.name, `italic 500 96px ${fonts.display}`, 900), cx, 860, `italic 500 96px ${fonts.display}`, INK);
+  text(ctx, fitText(ctx, ch.fabric.name, `500 96px ${fonts.display}`, 900), cx, 860, `500 96px ${fonts.display}`, INK);
   text(ctx, `${ch.fabric.weight}  ·  ${ch.fabric.width}  ·  ${ch.fabric.comp}`.toUpperCase(), cx, 930, `400 24px ${fonts.body}`, 'rgba(28,25,23,.55)', 'center', 5);
-  text(ctx, ch.fabric.hand, cx, 985, `italic 500 38px ${fonts.display}`, UMBER);
+  text(ctx, ch.fabric.hand, cx, 985, `500 38px ${fonts.display}`, UMBER);
   // A round window onto the chapter's first shade.
   const first = ch.colours[0];
   ctx.save();
@@ -413,7 +413,7 @@ function chapterPage(input: BookPdfInput, ch: BookChapter, i: number, page: numb
   ctx.beginPath();
   ctx.arc(cx, 1200, 147, 0, Math.PI * 2);
   ctx.stroke();
-  text(ctx, `${ch.colours.length} ${ch.colours.length === 1 ? t.shade : t.shades}`, cx, 1440, `italic 500 40px ${fonts.display}`, UMBER);
+  text(ctx, `${ch.colours.length} ${ch.colours.length === 1 ? t.shade : t.shades}`, cx, 1440, `500 40px ${fonts.display}`, UMBER);
   folio(ctx, input, page);
   return c;
 }
@@ -441,7 +441,7 @@ function plate(input: BookPdfInput, ch: BookChapter, i: number, colours: ColourR
     ctx.font = `500 19px ${fonts.body}`;
     // The number is set with 5px letter spacing, which measureText does not count.
     const numberW = ctx.measureText(`${t.shadeNo} 00`).width + `${t.shadeNo} 00`.length * 5 + 18;
-    text(ctx, fitText(ctx, col.name, `italic 500 38px ${fonts.display}`, w - numberW), cx + 28 + numberW, cy + h + 50, `italic 500 38px ${fonts.display}`, INK, 'left');
+    text(ctx, fitText(ctx, col.name, `500 38px ${fonts.display}`, w - numberW), cx + 28 + numberW, cy + h + 50, `500 38px ${fonts.display}`, INK, 'left');
     const hex = oklchToRgb(col.l, col.c, col.h);
     text(ctx, `#${[hex.r, hex.g, hex.b].map((v) => v.toString(16).padStart(2, '0')).join('').toUpperCase()}`, cx + 28, cy + h + 84, `400 18px ${fonts.body}`, 'rgba(28,25,23,.42)', 'left', 3);
   });
@@ -456,8 +456,8 @@ function colophon(input: BookPdfInput, page: number) {
   const cx = W / 2;
   fleuron(ctx, cx, 760, 90, '#B8904A');
   const date = new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
-  text(ctx, `${t.compiledOn} ${date}`, cx, 850, `italic 500 44px ${fonts.display}`, INK);
-  if (input.preparedFor) text(ctx, `${t.preparedFor} ${input.preparedFor}`, cx, 910, `italic 500 36px ${fonts.display}`, UMBER);
+  text(ctx, `${t.compiledOn} ${date}`, cx, 850, `500 44px ${fonts.display}`, INK);
+  if (input.preparedFor) text(ctx, `${t.preparedFor} ${input.preparedFor}`, cx, 910, `500 36px ${fonts.display}`, UMBER);
   text(ctx, 'PODDAR CREATION  ·  SURAT', cx, 1000, `500 22px ${fonts.body}`, UMBER, 'center', 10);
   ctx.font = `400 24px ${fonts.body}`;
   const words = t.colophon.split(' ');

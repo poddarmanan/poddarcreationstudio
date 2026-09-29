@@ -166,7 +166,7 @@ export function BookCeremony({ studio, mode, whatsapp = '', order = 'sent', onDo
               aria-hidden={i !== captionAt || undefined}
               className="pc-foil-deep"
               style={{
-                position: 'absolute', left: 0, right: 0, top: 0, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 'clamp(26px,6.4vw,40px)', lineHeight: 1.15,
+                position: 'absolute', left: 0, right: 0, top: 0, fontFamily: FONT_DISPLAY, fontSize: 'clamp(26px,6.4vw,40px)', lineHeight: 1.15,
                 opacity: i === captionAt ? 1 : 0, transform: i === captionAt ? 'none' : i < captionAt ? 'translateY(-8px)' : 'translateY(8px)',
                 // The outgoing line leaves before the next arrives, so the two never overlap.
                 transition: i === captionAt ? 'opacity .6s ease .35s, transform .7s cubic-bezier(.22,.8,.2,1) .35s' : 'opacity .3s ease, transform .4s ease',
@@ -236,7 +236,7 @@ export function BookCeremony({ studio, mode, whatsapp = '', order = 'sent', onDo
       {/* A preview, or an order that could not be placed: the bound book, to download or close. */}
       {handedOver && (
         <div style={{ position: 'absolute', left: 16, right: 16, bottom: 'clamp(90px, 12vh, 120px)', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', animation: 'rise .8s .3s cubic-bezier(.22,.8,.2,1) both' }}>
-          {mode === 'order' && order === 'failed' && <p style={{ margin: '0 0 12px', maxWidth: 340, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 15, lineHeight: 1.45, color: '#A5392B' }}>{t.orderFailed}</p>}
+          {mode === 'order' && order === 'failed' && <p style={{ margin: '0 0 12px', maxWidth: 340, fontFamily: FONT_DISPLAY, fontSize: 15, lineHeight: 1.45, color: '#A5392B' }}>{t.orderFailed}</p>}
           <PdfButton t={t} pdf={pdf} error={pdfError} onClick={download} />
           <GhostButton onClick={onDone}>{t.closeWord}</GhostButton>
         </div>
@@ -291,13 +291,13 @@ function Delivery({ t, whatsapp, counts, userName, demo, pdf, pdfError, onDownlo
       <div style={{ textAlign: 'center', animation: 'rise .8s .35s cubic-bezier(.22,.8,.2,1) both' }}>
         <div style={{ fontSize: 9.5, letterSpacing: '.42em', textTransform: 'uppercase', color: '#8A6D45' }}>{t.onItsWay}</div>
         <div className="pc-foil-deep" style={{ marginTop: 10, fontFamily: FONT_DISPLAY, fontSize: 'clamp(26px,6.6vw,38px)', lineHeight: 1.1, fontVariantNumeric: 'lining-nums' }}>{whatsapp}</div>
-        <div style={{ marginTop: 6, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 16, color: '#8A6D45' }}>{t.onWhatsApp}</div>
+        <div style={{ marginTop: 6, fontFamily: FONT_DISPLAY, fontSize: 16, color: '#8A6D45' }}>{t.onWhatsApp}</div>
       </div>
 
       {/* The chat: the book as it arrives in the buyer's WhatsApp. */}
       <div style={{ marginTop: 20, width: 'min(100%, 360px)', borderRadius: 18, overflow: 'hidden', boxShadow: '0 30px 70px rgba(40,26,12,.28), 0 0 0 1px rgba(28,25,23,.06)', animation: 'rise .9s .5s cubic-bezier(.22,.8,.2,1) both' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: '#075E54', color: '#fff' }}>
-          <span aria-hidden style={{ width: 34, height: 34, borderRadius: '50%', display: 'grid', placeItems: 'center', background: 'linear-gradient(135deg, #5E1B21, #2A080D)', color: '#E9CF8F', fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 15, boxShadow: 'inset 0 0 0 1px rgba(205,169,96,.6)' }}>PC</span>
+          <span aria-hidden style={{ width: 34, height: 34, borderRadius: '50%', display: 'grid', placeItems: 'center', background: 'linear-gradient(135deg, #5E1B21, #2A080D)', color: '#E9CF8F', fontFamily: FONT_DISPLAY, fontSize: 15, boxShadow: 'inset 0 0 0 1px rgba(205,169,96,.6)' }}>PC</span>
           <div style={{ minWidth: 0, textAlign: 'left' }}>
             <div style={{ fontSize: 14, fontWeight: 500, letterSpacing: '.01em' }}>Poddar Creation</div>
             <div style={{ fontSize: 11, opacity: 0.75, fontVariantNumeric: 'lining-nums' }}>
@@ -346,7 +346,7 @@ function Delivery({ t, whatsapp, counts, userName, demo, pdf, pdfError, onDownlo
         </div>
       </div>
 
-      <p style={{ margin: '16px 0 12px', maxWidth: 330, textAlign: 'center', fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 15, lineHeight: 1.45, color: 'rgba(28,25,23,.6)', animation: 'rise .8s .7s cubic-bezier(.22,.8,.2,1) both' }}>
+      <p style={{ margin: '16px 0 12px', maxWidth: 330, textAlign: 'center', fontFamily: FONT_DISPLAY, fontSize: 15, lineHeight: 1.45, color: 'rgba(28,25,23,.6)', animation: 'rise .8s .7s cubic-bezier(.22,.8,.2,1) both' }}>
         {demo ? t.demoNote : t.bookDone}
       </p>
       <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', animation: 'rise .8s .85s cubic-bezier(.22,.8,.2,1) both' }}>
