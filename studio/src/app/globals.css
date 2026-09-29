@@ -446,18 +446,19 @@ button, a { transition: transform .6s var(--pc-ease), background-color .55s ease
 @media (prefers-reduced-motion: reduce) { [style*="pcScrewGlow"] { animation: none !important; } }
 
 /* ── The sign-in page ────────────────────────────────────────────────────────────────────────
-   Everything that moves here moves by transform or opacity, so a phone composites it without
+   A page of the studio like any other, in the Swatch Book's reading room. Everything that moves
+   here moves by transform or opacity, so a phone composites it without
    repainting; the few loops are on small layers. */
 .pc-auth-beam {
-  position: fixed; left: 50%; top: -4vh; width: 150vw; max-width: 1100px; height: 82vh; transform: translateX(-50%); pointer-events: none;
-  background: radial-gradient(46% 100% at 50% 0%, rgba(255, 216, 150, .22), rgba(255, 200, 120, .07) 55%, transparent 78%);
+  position: absolute; left: 50%; top: -80px; width: 150vw; max-width: 1100px; height: 78vh; transform: translateX(-50%); pointer-events: none; z-index: 0;
+  background: radial-gradient(46% 100% at 50% 0%, rgba(255, 252, 240, .95), rgba(255, 244, 222, .45) 55%, transparent 80%);
   clip-path: polygon(41% 0, 59% 0, 100% 100%, 0 100%);
   animation: pcLampOn 1.6s ease-out both, pcLampBreathe 6s 1.6s ease-in-out infinite alternate;
 }
 @keyframes pcLampOn { 0% { opacity: 0; } 10% { opacity: .7; } 14% { opacity: .15; } 22% { opacity: .85; } 27% { opacity: .45; } 100% { opacity: 1; } }
 @keyframes pcLampBreathe { from { opacity: 1; } to { opacity: .72; } }
 .pc-auth-mote {
-  position: absolute; border-radius: 50%; background: radial-gradient(circle, #F4D99A 0 30%, rgba(244, 217, 154, 0) 72%);
+  position: absolute; border-radius: 50%; background: radial-gradient(circle, #C29A55 0 32%, rgba(194, 154, 85, 0) 72%);
   animation: pcMote 10s linear infinite; will-change: transform, opacity;
 }
 @keyframes pcMote {
@@ -468,13 +469,13 @@ button, a { transition: transform .6s var(--pc-ease), background-color .55s ease
 }
 .pc-auth-halo {
   position: absolute; inset: -70px; border-radius: 50%; pointer-events: none;
-  background: radial-gradient(circle, rgba(255, 212, 140, .3), rgba(255, 200, 120, .08) 45%, transparent 66%);
+  background: radial-gradient(circle, rgba(255, 250, 236, .95), rgba(255, 236, 200, .45) 42%, transparent 66%);
   animation: pcHalo 4.5s ease-in-out infinite alternate;
 }
 @keyframes pcHalo { from { opacity: .55; transform: scale(.94); } to { opacity: 1; transform: scale(1.05); } }
 .pc-auth-shadow {
   position: absolute; left: 6%; right: 2%; bottom: -30px; height: 20px; border-radius: 50%; pointer-events: none;
-  background: radial-gradient(closest-side, rgba(0, 0, 0, .6), transparent);
+  background: radial-gradient(closest-side, rgba(60, 38, 16, .42), transparent);
   animation: pcShadowBreathe 6s 1.5s ease-in-out infinite;
 }
 @keyframes pcShadowBreathe { 0%, 100% { transform: scale(1); opacity: .9; } 50% { transform: scale(.82); opacity: .55; } }
@@ -502,67 +503,67 @@ button, a { transition: transform .6s var(--pc-ease), background-color .55s ease
 @keyframes pcShake { 0%, 100% { transform: none; } 20% { transform: translateX(-7px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(2px); } }
 @keyframes pcAuthOut { to { opacity: 0; } }
 
-.pc-auth-close {
-  position: fixed; top: max(14px, env(safe-area-inset-top)); right: 14px; z-index: 2; width: 42px; height: 42px; border-radius: 50%;
-  display: grid; place-items: center; cursor: pointer; background: rgba(255, 255, 255, .05); border: 1px solid rgba(205, 169, 96, .4);
-  color: #F3E9D6; font-size: 19px; line-height: 1; animation: pcRiseIn .8s .9s ease both;
+.pc-auth-back {
+  display: inline-flex; align-items: center; gap: 10px; cursor: pointer; background: none; border: none; padding: 6px 2px;
+  font-family: var(--font-body), 'Jost', sans-serif; font-size: 10.5px; letter-spacing: .24em; text-transform: uppercase; color: rgba(28, 25, 23, .6);
 }
-.pc-auth-close span { display: block; transition: transform .5s cubic-bezier(.22, .8, .2, 1); }
-.pc-auth-close:hover span { transform: rotate(90deg); }
+.pc-auth-back-arrow { display: inline-block; font-size: 14px; letter-spacing: 0; color: #8A6D45; transition: transform .5s cubic-bezier(.22, .8, .2, 1); }
+.pc-auth-back:hover .pc-auth-back-arrow { transform: translateX(-5px); }
+@keyframes pcFanIn { from { opacity: 0; transform: translateY(18px) rotate(0deg); } to { opacity: 1; transform: translateY(var(--y)) rotate(var(--r)); } }
 
 /* A field: the name rests in it as a pencilled note and floats up as the field is entered. */
 .pc-auth-field { position: relative; display: block; padding-top: 20px; }
 .pc-auth-input {
-  display: block; width: 100%; padding: 6px 26px 9px 0; border: none; border-bottom: 1px solid rgba(205, 169, 96, .32); border-radius: 0;
-  background: transparent; color: #F3E9D6; font-family: var(--font-display), 'Cormorant Garamond', serif; font-size: 20px; letter-spacing: .01em;
-  outline: none; caret-color: #E9CF8F;
+  display: block; width: 100%; padding: 6px 26px 9px 0; border: none; border-bottom: 1px solid rgba(138, 109, 69, .32); border-radius: 0;
+  background: transparent; color: #1C1917; font-family: var(--font-display), 'Cormorant Garamond', serif; font-size: 20px; letter-spacing: .01em;
+  outline: none; caret-color: #8A6D45;
 }
 .pc-auth-input:focus, .pc-auth-input:focus-visible { outline: none; border-radius: 0; }
-.pc-auth-input:-webkit-autofill { -webkit-text-fill-color: #F3E9D6; transition: background-color 9999s; }
+.pc-auth-input:-webkit-autofill { -webkit-text-fill-color: #1C1917; transition: background-color 9999s; }
 .pc-auth-label {
   position: absolute; left: 0; top: 27px; display: inline-flex; align-items: center; gap: 8px; pointer-events: none; white-space: nowrap;
-  font-family: var(--font-display), 'Cormorant Garamond', serif; font-style: italic; font-size: 19px; color: rgba(243, 233, 214, .42);
+  font-family: var(--font-display), 'Cormorant Garamond', serif; font-style: italic; font-size: 19px; color: rgba(28, 25, 23, .42);
   transform-origin: left top; transition: transform .5s cubic-bezier(.2, .8, .2, 1), color .5s ease;
 }
-.pc-auth-input:focus ~ .pc-auth-label, .pc-auth-input:not(:placeholder-shown) ~ .pc-auth-label { transform: translateY(-25px) scale(.68); color: rgba(226, 192, 124, .95); }
+.pc-auth-input:focus ~ .pc-auth-label, .pc-auth-input:not(:placeholder-shown) ~ .pc-auth-label { transform: translateY(-25px) scale(.68); color: #8A6D45; }
 .pc-auth-line {
   position: absolute; left: 0; right: 0; bottom: 0; height: 1px; pointer-events: none;
-  background: linear-gradient(90deg, rgba(233, 207, 143, .2), #F2DDA2 50%, rgba(233, 207, 143, .2)); box-shadow: 0 0 10px rgba(233, 207, 143, .45);
+  background: linear-gradient(90deg, rgba(184, 144, 74, .2), #B8904A 50%, rgba(184, 144, 74, .2)); height: 1.5px;
   transform: scaleX(0); transition: transform .6s cubic-bezier(.2, .8, .2, 1);
 }
 .pc-auth-input:focus ~ .pc-auth-line { transform: scaleX(1); }
-.pc-auth-ok { position: absolute; right: 2px; bottom: 11px; color: #E9CF8F; font-size: 14px; animation: pcCheckIn .5s cubic-bezier(.2, 1.4, .4, 1) both; }
+.pc-auth-ok { position: absolute; right: 2px; bottom: 11px; color: #A8864F; font-size: 14px; animation: pcCheckIn .5s cubic-bezier(.2, 1.4, .4, 1) both; }
 @keyframes pcCheckIn { from { opacity: 0; transform: scale(.2) rotate(-40deg); } to { opacity: 1; transform: none; } }
 
 /* The gold button: a sheen passes across it now and then; while it works, three dots beat. */
 .pc-auth-btn {
   position: relative; overflow: hidden; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 11px; width: 100%;
   border-radius: 999px; padding: 17px 18px; font-family: var(--font-body), 'Jost', sans-serif; font-size: 11.5px; letter-spacing: .22em; text-transform: uppercase;
-  white-space: nowrap; color: #1C1917; border: 1px solid rgba(255, 240, 200, .6);
-  background: linear-gradient(135deg, #F8EBC4, #D9B670 50%, #EDD497); box-shadow: 0 16px 36px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .6);
+  white-space: nowrap; color: #FAF8F5; border: 1px solid #1C1917;
+  background: #1C1917; box-shadow: 0 18px 40px rgba(28, 25, 23, .24);
   transition: transform .35s cubic-bezier(.22, .8, .2, 1), box-shadow .35s ease;
 }
-.pc-auth-btn:hover { transform: translateY(-2px); box-shadow: 0 22px 44px rgba(0, 0, 0, .5), 0 0 24px rgba(233, 207, 143, .25), inset 0 1px 0 rgba(255, 255, 255, .6); }
+.pc-auth-btn:hover { transform: translateY(-2px); box-shadow: 0 26px 54px rgba(28, 25, 23, .3); }
 .pc-auth-btn:active { transform: scale(.975); transition-duration: .15s; }
 .pc-auth-btn:disabled { cursor: wait; }
 .pc-auth-btn::after {
   content: ''; position: absolute; top: 0; bottom: 0; left: -40%; width: 30%; pointer-events: none;
-  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .65), transparent);
+  background: linear-gradient(100deg, transparent, rgba(255, 236, 196, .28), transparent);
   transform: translateX(0) skewX(-18deg); animation: pcSheen 4.8s 2.4s ease-in-out infinite;
 }
 @keyframes pcSheen { 0% { transform: translateX(0) skewX(-18deg); } 32%, 100% { transform: translateX(560%) skewX(-18deg); } }
-.pc-auth-star { display: inline-block; color: #8A6524; animation: pcTwinkle 3.2s 2s ease-in-out infinite; }
-.pc-auth-dot { width: 6px; height: 6px; border-radius: 50%; background: #5A3F16; animation: pcDotBeat .9s ease-in-out infinite; }
+.pc-auth-star { display: inline-block; color: #D8B670; animation: pcTwinkle 3.2s 2s ease-in-out infinite; }
+.pc-auth-dot { width: 6px; height: 6px; border-radius: 50%; background: #E9CF8F; animation: pcDotBeat .9s ease-in-out infinite; }
 @keyframes pcDotBeat { 0%, 100% { opacity: .25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-4px); } }
 .pc-auth-link {
-  position: relative; font-size: 11px; letter-spacing: .14em; color: rgba(243, 233, 214, .55); text-decoration: none; padding-bottom: 3px;
+  position: relative; font-size: 11px; letter-spacing: .14em; color: rgba(28, 25, 23, .55); text-decoration: none; padding-bottom: 3px;
 }
 .pc-auth-link::after {
-  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: rgba(205, 169, 96, .5);
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: rgba(138, 109, 69, .5);
   transform: scaleX(.35); transition: transform .5s cubic-bezier(.22, .8, .2, 1);
 }
 .pc-auth-link:hover::after { transform: scaleX(1); }
 @media (prefers-reduced-motion: reduce) {
-  .pc-auth-beam, .pc-auth-mote, .pc-auth-halo, .pc-auth-shadow, .pc-auth-float, .pc-auth-glint, .pc-auth-btn::after, .pc-auth-star { animation: none !important; }
+  .pc-auth-beam, .pc-auth-mote, .pc-auth-halo, .pc-auth [style*="pcFanIn"], .pc-auth-shadow, .pc-auth-float, .pc-auth-glint, .pc-auth-btn::after, .pc-auth-star { animation: none !important; }
   .pc-auth-mote { display: none; }
 }

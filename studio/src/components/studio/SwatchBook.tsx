@@ -165,8 +165,8 @@ export function SwatchBook({ studio }: { studio: Studio }) {
   }, [dragging]);
 
   /** The order begins: a burst of the book's own shades and gold foil, then the ceremony, with the order sent alongside it. */
-  const begin = (whatsapp: string | null, demo: boolean) => {
-    const at = orderButton.current?.getBoundingClientRect() ?? new DOMRect(window.innerWidth / 2 - 60, window.innerHeight * 0.72, 120, 44);
+  const begin = (whatsapp: string | null, demo: boolean, from?: DOMRect) => {
+    const at = from ?? orderButton.current?.getBoundingClientRect() ?? new DOMRect(window.innerWidth / 2 - 60, window.innerHeight * 0.72, 120, 44);
     confettiBurst(at, groups.flatMap((g) => g.items.map(({ colour: c }) => rgbToHex(oklchToRgb(c.l, c.c, c.h)))));
     setOrdering({ step: 'ceremony', whatsapp: whatsapp ?? '', order: demo ? 'demo' : 'pending' });
     if (demo) return;
@@ -174,12 +174,32 @@ export function SwatchBook({ studio }: { studio: Studio }) {
   };
   const order = async () => {
     // The static preview has no accounts; there the sign-in page shows the experience without one.
-    if (process.env.NEXT_PUBLIC_BASE_PATH || !studio.signedIn) return setOrdering({ step: 'auth', intent: 'order' });
+    const toAuth = (intent: 'order' | 'whatsapp') => {
+      window.scrollTo(0, 0);
+      setOrdering({ step: 'auth', intent });
+    };
+    if (process.env.NEXT_PUBLIC_BASE_PATH || !studio.signedIn) return toAuth('order');
     const onFile = await studio.accountWhatsapp();
-    if (!onFile) return setOrdering({ step: 'auth', intent: 'whatsapp' });
+    if (!onFile) return toAuth('whatsapp');
     begin(onFile, false);
   };
 
+  // Signing in is a page of the studio: it takes the Swatch Book's place under the same top bar.
+  if (ordering?.step === 'auth')
+    return (
+      <AuthScreen
+        studio={studio}
+        intent={ordering.intent}
+        onClose={() => {
+          setOrdering(null);
+          window.scrollTo(0, 0);
+        }}
+        onDone={(r) => {
+          window.scrollTo(0, 0);
+          begin(r.whatsapp, r.demo, r.from);
+        }}
+      />
+    );
   if (!sheet) return <EmptyBook studio={studio} />;
   const group = groups[sheet.g];
   const under = flying ? flying.target : side > 0 ? backOf(at) : forwardOf(at);
@@ -310,14 +330,13 @@ export function SwatchBook({ studio }: { studio: Studio }) {
         </div>
       </div>
       {preview && <BookCeremony studio={studio} mode="preview" onDone={() => setPreview(false)} />}
-      {ordering?.step === 'auth' && <AuthScreen studio={studio} intent={ordering.intent} onClose={() => setOrdering(null)} onDone={(r) => begin(r.whatsapp, r.demo)} />}
       {ordering?.step === 'ceremony' && <BookCeremony studio={studio} mode="order" whatsapp={ordering.whatsapp} order={ordering.order} onDone={() => setOrdering(null)} />}
     </Room>
   );
 }
 
 /** The reading room the book is read in: warm light pooling on it from above, and a darker surface beneath. */
-function Room({ children, center }: { children: ReactNode; center?: boolean }) {
+export function Room({ children, center }: { children: ReactNode; center?: boolean }) {
   return (
     <div className="pc-view" style={{ position: 'relative', overflow: 'hidden', padding: 'clamp(26px,5vw,52px) clamp(16px,5vw,64px) 90px', animation: 'layCloth .95s cubic-bezier(.22,.8,.2,1) both' }}>
       <div aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0, background: 'radial-gradient(70% 42% at 50% 30%, rgba(255,246,228,.95), transparent 70%), linear-gradient(180deg, #F3ECE1 0%, #EBE1D2 46%, #DCCDB6 72%, #CDBC9F 88%, #E8DFD0 100%)' }} />

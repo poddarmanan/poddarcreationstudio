@@ -1,10 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
 import type { Studio } from './state';
-import { FONT_DISPLAY, FONT_BODY } from './helpers';
-import { Binding, CoverFace, MARBLE } from './SwatchBook';
+import { FONT_DISPLAY, FONT_BODY, fabricTex } from './helpers';
+import { Binding, CoverFace, MARBLE, Room } from './SwatchBook';
 
 /** Why the page was opened: from the menu, to order the swatch book, or for the one detail an order still needs. */
 export type AuthIntent = 'account' | 'order' | 'whatsapp';
@@ -12,8 +11,8 @@ export type AuthIntent = 'account' | 'order' | 'whatsapp';
 /** The static preview has no server, so no accounts: there the page shows the experience without one. */
 const PREVIEW = !!process.env.NEXT_PUBLIC_BASE_PATH;
 
-const GOLD = 'rgba(214,180,120,.9)';
-const CREAM = '#F3E9D6';
+const INK = '#1C1917';
+const UMBER = '#8A6D45';
 
 /** A WhatsApp number with its country code: 8 to 15 digits, spaces and dashes allowed. */
 export function validWhatsapp(v: string) {
@@ -22,9 +21,10 @@ export function validWhatsapp(v: string) {
 }
 
 /**
- * Signing in, or creating an account, as a page of its own: the lamplit room of the binding
- * ceremony, the closed volume under the light, and a form set like a letterpress card — labels in
- * spaced capitals, fields ruled in gold rather than boxed. Creating an account asks once for
+ * Signing in, or creating an account, as a page of the studio like any other — under the same top
+ * bar and above the same tabs, in the Swatch Book's reading room: warm light pooling on cream, the
+ * closed volume floating in it, the buyer's own cuttings fanned beneath, and a form set like a
+ * letterpress card, its fields ruled in gold rather than boxed. Creating an account asks once for
  * everything an order needs (name, company, city and WhatsApp), so ordering never asks again.
  *
  * With `intent="order"` it ends by handing the order on (with the buyer's WhatsApp number); with
@@ -39,7 +39,7 @@ export function AuthScreen({
   studio: Studio;
   intent: AuthIntent;
   onClose: () => void;
-  onDone: (result: { whatsapp: string | null; demo: boolean }) => void;
+  onDone: (result: { whatsapp: string | null; demo: boolean; from?: DOMRect }) => void;
 }) {
   const { t } = studio;
   const [mode, setMode] = useState<'signin' | 'create' | 'whatsapp'>(intent === 'whatsapp' ? 'whatsapp' : 'signin');
@@ -49,7 +49,7 @@ export function AuthScreen({
   // How the page leaves: the book opens and hands on to the ceremony, or the room fades out.
   const [leaving, setLeaving] = useState<null | 'open' | 'close'>(null);
   const timers = useRef<number[]>([]);
-  const roomRef = useRef<HTMLDivElement | null>(null);
+  const bookRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => () => timers.current.forEach((x) => window.clearTimeout(x)), []);
 
   const set = (k: keyof typeof f) => (v: string) => {
@@ -66,12 +66,13 @@ export function AuthScreen({
 
   /** The book opens, its light spills out, and the page hands on. */
   const finish = (result: { whatsapp: string | null; demo: boolean }) => {
-    // The page glides back up to the book first, so the buyer sees it open.
-    const room = roomRef.current;
-    const far = room ? room.scrollTop > 40 : false;
-    if (far) room?.scrollTo({ top: 0, behavior: 'smooth' });
-    timers.current.push(window.setTimeout(() => setLeaving('open'), far ? 420 : 0));
-    timers.current.push(window.setTimeout(() => onDone(result), (far ? 420 : 0) + 1250));
+    // The page glides back up to the book first, so the buyer sees it open; the confetti then
+    // bursts out of it.
+    const far = window.scrollY > 40;
+    if (far) window.scrollTo({ top: 0, behavior: 'smooth' });
+    const wait = far ? 450 : 0;
+    timers.current.push(window.setTimeout(() => setLeaving('open'), wait));
+    timers.current.push(window.setTimeout(() => onDone({ ...result, from: bookRef.current?.getBoundingClientRect() }), wait + 1250));
   };
   const close = () => {
     if (leaving) return;
@@ -148,39 +149,40 @@ export function AuthScreen({
   const cover = mode === 'create' && f.name.trim() ? f.name.trim() : studio.userName;
   const opening = leaving === 'open';
 
-  return createPortal(
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={title}
-      className="pc-auth"
-      ref={roomRef}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 118, overflowY: 'auto', overflowX: 'hidden', color: CREAM, fontFamily: FONT_BODY,
-        background: 'radial-gradient(90% 55% at 50% 18%, #3A2517 0%, #20140B 52%, #0E0804 100%)',
-        animation: leaving === 'close' ? 'pcAuthOut .38s ease forwards' : 'pcFadeIn .6s ease both',
-      }}
-    >
-      {/* The lamp: it flickers on, then glows and breathes; gold dust turns in its light. */}
-      <div aria-hidden className="pc-auth-beam" />
-      <div aria-hidden style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
-        {MOTES.map((m, i) => (
-          <span
-            key={i}
-            className="pc-auth-mote"
-            style={{ left: m.left, top: m.top, width: m.size, height: m.size, ['--dx' as string]: m.dx, ['--op' as string]: m.op, animationDuration: m.dur, animationDelay: m.delay } as CSSProperties}
-          />
-        ))}
-      </div>
+  // The buyer's own cuttings, fanned under the book: what they are about to order.
+  const cuttings = studio.fabrics.flatMap((x) =>
+    studio.pins.filter((p) => p.fabricId === x.id).map((p) => ({ x, c: x.colours.find((cc) => cc.order === p.colourOrder) })),
+  ).filter((k): k is { x: (typeof studio.fabrics)[number]; c: NonNullable<(typeof k)['c']> } => !!k.c);
+  const fan = cuttings.slice(0, 7);
+  const nFabrics = new Set(cuttings.map((k) => k.x.id)).size;
+  const delay = (s0: number) => `${s0}s`;
 
-      <button onClick={close} aria-label={t.closeWord} className="pc-auth-close">
-        <span aria-hidden>×</span>
-      </button>
+  return (
+    <div className="pc-auth" style={{ animation: leaving === 'close' ? 'pcAuthOut .38s ease forwards' : undefined }}>
+      <Room center>
+        {/* The warm light over the reading room: it comes up, then breathes; gold dust turns in it. */}
+        <div aria-hidden className="pc-auth-beam" />
+        <div aria-hidden style={{ position: 'absolute', inset: '-60px -16px 0', pointerEvents: 'none', overflow: 'hidden', zIndex: 0 }}>
+          {MOTES.map((m, i) => (
+            <span
+              key={i}
+              className="pc-auth-mote"
+              style={{ left: m.left, top: m.top, width: m.size, height: m.size, ['--dx' as string]: m.dx, ['--op' as string]: m.op, animationDuration: m.dur, animationDelay: m.delay } as CSSProperties}
+            />
+          ))}
+        </div>
 
-      <div style={{ position: 'relative', width: 'min(100%, 420px)', margin: '0 auto', padding: 'max(5vh, 34px) 24px 40px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-        {/* The volume under the lamp: it arrives out of the dark, floats and turns a little, and
-            light runs across its foil. Signing in opens it, and its light spills out. */}
-        <div aria-hidden style={{ position: 'relative', width: 128, height: 170, perspective: 900 }}>
+        {/* The way back, as every page of the studio has it. */}
+        <div style={{ alignSelf: 'stretch', display: 'flex', justifyContent: 'flex-start', marginTop: -6, animation: 'pcRiseIn .8s .2s ease both' }}>
+          <button onClick={close} className="pc-auth-back">
+            <span aria-hidden className="pc-auth-back-arrow">←</span>
+            {ordering ? t.book : t.closeWord}
+          </button>
+        </div>
+
+        {/* The volume in the light: it arrives, floats and turns a little, and light runs across
+            its foil. Signing in opens it and its light spills out. */}
+        <div ref={bookRef} aria-hidden style={{ position: 'relative', width: 128, height: 170, marginTop: 14, perspective: 900 }}>
           <div className="pc-auth-halo" style={{ opacity: opening ? 1 : undefined, transform: opening ? 'scale(1.6)' : undefined, transition: 'transform 1.1s cubic-bezier(.2,.8,.2,1), opacity .6s ease' }} />
           <div className="pc-auth-shadow" />
           <div style={{ position: 'absolute', inset: 0, transformStyle: 'preserve-3d', animation: 'pcBookArrive 1.5s cubic-bezier(.16,.84,.24,1) both' }}>
@@ -188,7 +190,6 @@ export function AuthScreen({
               {/* Drawn at a cover's full size and scaled down, so its title keeps to one line. */}
               <div style={{ position: 'absolute', left: 0, top: 0, width: 314, transform: 'scale(.4)', transformOrigin: '0 0' }}>
                 <Binding width="314px" padded={false}>
-                  {/* The pages, and the light waiting inside. */}
                   <div style={{ position: 'absolute', top: 7, bottom: 7, left: 28, right: 9, borderRadius: 2, background: 'linear-gradient(90deg, #E9DFC9, #FBF6EA 12%, #F6EEDC)', boxShadow: 'inset 6px 0 14px -8px rgba(0,0,0,.4)' }} />
                   <div style={{ position: 'absolute', top: 7, bottom: 7, left: 28, right: 9, background: 'radial-gradient(60% 50% at 40% 50%, rgba(255,236,190,.95), rgba(255,210,140,.35) 55%, transparent 80%)', opacity: opening ? 1 : 0, transition: 'opacity .9s .25s ease' }} />
                   <div
@@ -209,27 +210,46 @@ export function AuthScreen({
           </div>
         </div>
 
-        <div style={{ opacity: opening ? 0 : 1, transform: opening ? 'translateY(14px)' : 'none', transition: 'opacity .55s ease, transform .7s ease', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <div style={{ marginTop: 34, fontSize: 9.5, letterSpacing: '.46em', textTransform: 'uppercase', color: GOLD, paddingLeft: '.46em', animation: 'pcRiseIn .9s .5s cubic-bezier(.2,.8,.2,1) both' }}>Poddar Creation</div>
-          <h1 key={title} style={{ margin: '12px 0 0', fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontWeight: 500, fontSize: 'clamp(34px,9vw,44px)', lineHeight: 1.08, perspective: 400 }}>
-            {title.split(' ').map((w, i) => (
+        <div style={{ opacity: opening ? 0 : 1, transform: opening ? 'translateY(14px)' : 'none', transition: 'opacity .55s ease, transform .7s ease', width: 'min(100%, 420px)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ marginTop: 40, fontSize: 9.5, letterSpacing: '.46em', textTransform: 'uppercase', color: UMBER, paddingLeft: '.46em', animation: `pcRiseIn .9s ${delay(0.5)} cubic-bezier(.2,.8,.2,1) both` }}>Poddar Creation</div>
+          <h1 key={title} style={{ margin: '12px 0 0', fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(38px,9.5vw,54px)', lineHeight: 1.04, color: INK, perspective: 400 }}>
+            {title.split(' ').map((w, i, all) => (
               <span
                 key={i}
-                className="pc-foil"
-                style={{ display: 'inline-block', marginRight: '.24em', transformOrigin: '50% 100%', animation: `pcWordIn 1s ${0.62 + i * 0.1}s cubic-bezier(.2,.8,.2,1) both, pcFoil 2.6s ${0.9 + i * 0.1}s cubic-bezier(.45,.05,.3,1) both` }}
+                style={{ display: 'inline-block', marginRight: i < all.length - 1 ? '.24em' : 0, fontStyle: i === all.length - 1 ? 'italic' : undefined, transformOrigin: '50% 100%', animation: `pcWordIn 1s ${0.62 + i * 0.1}s cubic-bezier(.2,.8,.2,1) both` }}
               >
                 {w}
               </span>
             ))}
           </h1>
-          <p key={sub} style={{ margin: '12px 0 0', maxWidth: 320, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 16.5, lineHeight: 1.45, color: 'rgba(243,233,214,.68)', animation: 'pcRiseIn 1s 1s cubic-bezier(.2,.8,.2,1) both' }}>
+          <p key={sub} style={{ margin: '12px 0 0', maxWidth: 330, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 17, lineHeight: 1.45, color: UMBER, animation: 'pcRiseIn 1s 1s cubic-bezier(.2,.8,.2,1) both' }}>
             {sub}
           </p>
+
+          {ordering && fan.length > 0 && (
+            // What is about to be ordered: the buyer's own cuttings, fanned out.
+            <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div aria-hidden style={{ display: 'flex', justifyContent: 'center', height: 46 }}>
+                {fan.map(({ x, c }, k) => {
+                  const mid = (fan.length - 1) / 2;
+                  return (
+                    <span key={`${x.id}-${c.order}`} style={{ width: 30, height: 38, marginLeft: k ? -9 : 0, animation: `pcFanIn .8s ${1.05 + k * 0.06}s cubic-bezier(.2,.8,.2,1) both`, ['--r' as string]: `${(k - mid) * 7}deg`, ['--y' as string]: `${Math.abs(k - mid) * 2.5}px` } as CSSProperties}>
+                      <span className="pc-pinked" style={{ display: 'block', width: '100%', height: '100%', background: fabricTex(x, c, 3), boxShadow: '0 3px 6px rgba(40,26,12,.25)' }} />
+                    </span>
+                  );
+                })}
+              </div>
+              <div style={{ marginTop: 8, fontSize: 10, letterSpacing: '.2em', textTransform: 'uppercase', color: 'rgba(28,25,23,.5)', fontVariantNumeric: 'lining-nums', animation: 'pcRiseIn .9s 1.3s ease both' }}>
+                {cuttings.length} {cuttings.length === 1 ? t.shade : t.shades} · {nFabrics} {nFabrics === 1 ? t.fabricWordOne : t.fabricWordMany}
+              </div>
+            </div>
+          )}
+
           {/* A printer's rule that draws itself out from its diamond. */}
           <div aria-hidden style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 22 }}>
-            <span style={{ width: 34, height: 1, background: 'linear-gradient(90deg, transparent, rgba(205,169,96,.8))', transformOrigin: 'right', animation: 'pcRuleDraw 1s 1.15s cubic-bezier(.2,.8,.2,1) both' }} />
-            <span style={{ width: 6, height: 6, background: 'rgba(222,190,120,.95)', animation: 'pcDiamondIn .8s 1.05s cubic-bezier(.2,.8,.2,1) both' }} />
-            <span style={{ width: 34, height: 1, background: 'linear-gradient(270deg, transparent, rgba(205,169,96,.8))', transformOrigin: 'left', animation: 'pcRuleDraw 1s 1.15s cubic-bezier(.2,.8,.2,1) both' }} />
+            <span style={{ width: 34, height: 1, background: 'linear-gradient(90deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'right', animation: 'pcRuleDraw 1s 1.15s cubic-bezier(.2,.8,.2,1) both' }} />
+            <span style={{ width: 6, height: 6, background: 'rgba(168,134,79,.95)', animation: 'pcDiamondIn .8s 1.05s cubic-bezier(.2,.8,.2,1) both' }} />
+            <span style={{ width: 34, height: 1, background: 'linear-gradient(270deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'left', animation: 'pcRuleDraw 1s 1.15s cubic-bezier(.2,.8,.2,1) both' }} />
           </div>
 
           {mode !== 'whatsapp' && (
@@ -246,14 +266,14 @@ export function AuthScreen({
                   }}
                   style={{
                     cursor: 'pointer', background: 'none', border: 'none', padding: '6px 2px 12px', fontFamily: FONT_BODY, fontSize: 11, letterSpacing: '.24em',
-                    textTransform: 'uppercase', whiteSpace: 'nowrap', color: mode === m ? CREAM : 'rgba(243,233,214,.42)', transition: 'color .45s ease',
+                    textTransform: 'uppercase', whiteSpace: 'nowrap', color: mode === m ? INK : 'rgba(28,25,23,.4)', transition: 'color .45s ease',
                   }}
                 >
                   {m === 'signin' ? t.signInTab : t.createTab}
                 </button>
               ))}
               <span aria-hidden style={{ position: 'absolute', left: 0, bottom: 0, width: '50%', height: 1, transform: `translateX(${mode === 'create' ? 100 : 0}%)`, transition: 'transform .6s cubic-bezier(.65,0,.25,1)' }}>
-                <span className="pc-foil-bg" style={{ display: 'block', width: '70%', height: 1, margin: '0 auto', boxShadow: '0 0 8px rgba(233,207,143,.55)' }} />
+                <span className="pc-foil-bg" style={{ display: 'block', width: '70%', height: 1.5, margin: '0 auto' }} />
               </span>
             </div>
           )}
@@ -272,7 +292,7 @@ export function AuthScreen({
               </div>
             ))}
 
-            <div key={error?.n ?? 0} role="alert" aria-live="polite" style={{ minHeight: 18, marginTop: -2, fontSize: 12.5, color: '#E8A48E', textAlign: 'center', animation: error ? 'pcShake .5s cubic-bezier(.36,.07,.19,.97) both' : undefined }}>
+            <div key={error?.n ?? 0} role="alert" aria-live="polite" style={{ minHeight: 18, marginTop: -2, fontSize: 12.5, color: '#A5392B', textAlign: 'center', animation: error ? 'pcShake .5s cubic-bezier(.36,.07,.19,.97) both' : undefined }}>
               {error?.text}
             </div>
 
@@ -300,11 +320,10 @@ export function AuthScreen({
               {t.forgotPw}
             </a>
           )}
-          <p style={{ margin: '22px 0 0', maxWidth: 320, fontSize: 11.5, lineHeight: 1.6, color: 'rgba(243,233,214,.42)', animation: 'pcRiseIn .9s 1.8s ease both' }}>{PREVIEW ? t.authPreview : t.authFine}</p>
+          <p style={{ margin: '22px 0 0', maxWidth: 320, fontSize: 11.5, lineHeight: 1.6, color: 'rgba(28,25,23,.45)', animation: 'pcRiseIn .9s 1.8s ease both' }}>{PREVIEW ? t.authPreview : t.authFine}</p>
         </div>
-      </div>
-    </div>,
-    document.body,
+      </Room>
+    </div>
   );
 }
 

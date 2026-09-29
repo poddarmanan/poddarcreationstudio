@@ -250,8 +250,7 @@ export function AiModal({ studio }: { studio: Studio }) {
   );
 }
 
-/** Signing in or creating an account from the studio's menu: the same page as ordering asks for. */
-export function SignInModal({ studio }: { studio: Studio }) {
-  if (!studio.signInOpen) return null;
+/** Signing in or creating an account from the studio's menu: the same page as ordering asks for, in place of the view. */
+export function SignInPage({ studio }: { studio: Studio }) {
   return <AuthScreen studio={studio} intent="account" onClose={studio.closeSignIn} onDone={studio.closeSignIn} />;
 }

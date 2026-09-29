@@ -221,6 +221,7 @@ export function useStudio(rawFabrics: FabricRow[]): Studio {
 
   const go = useCallback((v: View) => {
     setView(v);
+    setSignInOpen(false);
     setScope(false);
     setScene(null);
     setTests({ stretch: false, shine: false, d3: false });
@@ -484,7 +485,10 @@ export function useStudio(rawFabrics: FabricRow[]): Studio {
     canManage,
     userName: session?.user?.name ?? null,
     signInOpen,
-    openSignIn: () => setSignInOpen(true),
+    openSignIn: () => {
+      setSignInOpen(true);
+      window.scrollTo(0, 0);
+    },
     closeSignIn: () => setSignInOpen(false),
     doSignIn,
     doRegister,

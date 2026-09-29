@@ -292,10 +292,13 @@ has fallen (`src/components/studio/confetti.ts`). The pieces are the book's own 
 tiny pinked scraps, with gold-foil strips and cream paper among them. They tumble, flutter and
 fade. None is drawn under reduced motion.
 
-**The sign-in page** (`AuthScreen.tsx`) is a page of its own, set in the lamplit room of the
-ceremony. It is choreographed:
+**The sign-in page** (`AuthScreen.tsx`) is a page of the studio like any other, not an overlay.
+It sits under the same top bar and above the same tabs, with a "← Swatch Book" link back. While
+ordering it takes the Swatch Book's place; from the studio menu it takes the current view's place,
+and any tab leaves it. It is set in the Swatch Book's cream reading room, and ordering shows the
+buyer's own cuttings fanned under the heading, with their count. It is choreographed:
 
-- **The lamp:** it flickers on, then glows and breathes. Gold dust turns slowly in its beam.
+- **The light:** warm light comes up over the room and breathes. Gold dust turns slowly in it.
 - **The book arriving:** the closed volume glides out of the dark, turning into place in 3D.
 - **The book at rest:** it floats and turns a little, with a halo and a breathing shadow beneath.
   Now and then a glint of light runs across its foil. Its cover takes the buyer's name as they
@@ -311,12 +314,12 @@ ceremony. It is choreographed:
   - A small gold tick settles at the end once the entry is good.
   - Sign in asks for email and password. Create account also asks for full name, company, city
     and WhatsApp number (starting "+91 "; 8 to 15 digits, checked here and by the API).
-- **Button:** gold, with a sheen passing across it now and then. While it works, three dots beat
-  in it.
+- **Button:** the studio's ink pill, with a gold star and a sheen passing across it now and
+  then. While it works, three gold dots beat in it.
 - **Errors:** a mistake shakes the message.
 - **Success:** the page glides back to the book. Its cover swings open, marbled endpaper first,
-  light spills from the pages, the form fades away, and the confetti and binding ceremony take
-  over.
+  light spills from the pages, and the form fades away. The confetti bursts out of the open book,
+  and the binding ceremony takes over.
 - **Closing:** the room fades out.
 
 Everything moves by transform or opacity, and the few loops are on small layers, so a phone
