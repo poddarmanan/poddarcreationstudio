@@ -858,6 +858,53 @@ button.pc-auth-link:disabled { cursor: default; }
 }
 .pc-sticky textarea::placeholder { color: rgba(28, 25, 23, .4); }
 
+/* Tearing the slip off: a tug, a torn top edge and a stub left in the slot, then the slip with its
+   note drops away. */
+.pc-print-paper { position: relative; transform-origin: 50% 0; }
+.pc-print.is-tearing .pc-print-paper { animation: pcTearAway 1.15s cubic-bezier(.55, 0, .75, .35) forwards; pointer-events: none; }
+@keyframes pcTearAway {
+  0% { transform: none; opacity: 1; }
+  12% { transform: translateY(9px) rotate(.8deg); }
+  24% { transform: translateY(3px) rotate(-.5deg); }
+  36% { transform: translateY(14px) rotate(1.4deg); opacity: 1; }
+  100% { transform: translate(-16px, 78vh) rotate(-9deg); opacity: 0; }
+}
+.pc-print.is-tearing .pc-slip { clip-path: polygon(0 7px, 4.17% 0px, 8.33% 7px, 12.50% 0px, 16.67% 7px, 20.83% 0px, 25.00% 7px, 29.17% 0px, 33.33% 7px, 37.50% 0px, 41.67% 7px, 45.83% 0px, 50.00% 7px, 54.17% 0px, 58.33% 7px, 62.50% 0px, 66.67% 7px, 70.83% 0px, 75.00% 7px, 79.17% 0px, 83.33% 7px, 87.50% 0px, 91.67% 7px, 95.83% 0px, 100% 7px, 100% 100%, 0 100%); }
+.pc-print.is-tearing .pc-slip::before { display: none; }
+.pc-printer-stub { position: absolute; left: 22px; right: 22px; top: 100%; height: 9px; background: #FAF3E4; clip-path: polygon(0 0, 100% 0, 100.00% 100%, 95.83% calc(100% - 6px), 91.67% 100%, 87.50% calc(100% - 6px), 83.33% 100%, 79.17% calc(100% - 6px), 75.00% 100%, 70.83% calc(100% - 6px), 66.67% 100%, 62.50% calc(100% - 6px), 58.33% 100%, 54.17% calc(100% - 6px), 50.00% 100%, 45.83% calc(100% - 6px), 41.67% 100%, 37.50% calc(100% - 6px), 33.33% 100%, 29.17% calc(100% - 6px), 25.00% 100%, 20.83% calc(100% - 6px), 16.67% 100%, 12.50% calc(100% - 6px), 8.33% 100%, 4.17% calc(100% - 6px), 0.00% 100%); transform: scaleY(0); transform-origin: top; }
+.pc-print.is-tearing .pc-printer-stub { transform: none; transition: transform .12s .18s ease-out; }
+.pc-print.is-tearing .pc-printer { animation: pcTug .45s ease both; }
+@keyframes pcTug { 25% { transform: translateY(3px); } 50% { transform: translateY(-1px); } 75% { transform: translateY(2px); } }
+
+/* The way on: a strip perforated in gold, torn open behind a pair of scissors drawn along it. */
+.pc-tear {
+  position: relative; flex: none; width: min(200px, 52vw); height: 52px; border-radius: 999px; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none;
+  background: linear-gradient(135deg, #2A231D, #1C1917); border: 1px solid #1C1917; box-shadow: 0 8px 18px rgba(28, 25, 23, .22), inset 0 1px 0 rgba(255, 236, 196, .12);
+}
+.pc-tear-perf { position: absolute; left: 30px; right: 16px; top: 50%; border-top: 1.5px dashed rgba(233, 207, 143, .5); }
+.pc-tear-torn {
+  position: absolute; left: 0; right: 0; top: 50%; height: 8px; margin-top: -4px;
+  background: repeating-linear-gradient(135deg, transparent 0 3px, rgba(233, 207, 143, .9) 3px 4.5px, transparent 4.5px 6px), repeating-linear-gradient(45deg, transparent 0 3px, rgba(233, 207, 143, .9) 3px 4.5px, transparent 4.5px 6px);
+}
+.pc-tear-label {
+  position: absolute; inset: 0; display: grid; place-items: center; padding-left: 40px; pointer-events: none;
+  font-family: var(--font-body), 'Jost', sans-serif; font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: #F3DFA6; white-space: nowrap;
+}
+.pc-tear-text { padding: 3px 9px; border-radius: 4px; background: #231D18; }
+.pc-tear-handle {
+  position: absolute; left: 4px; top: 4px; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; cursor: grab; touch-action: none; padding: 0;
+  color: #1C1917; border: 1px solid rgba(255, 240, 200, .6); background: linear-gradient(135deg, #F6E3A8, #D8B670); box-shadow: 0 3px 8px rgba(0, 0, 0, .35);
+  animation: pcTearHint 2.2s 1.8s ease-in-out 3;
+}
+.pc-tear-handle:active { cursor: grabbing; }
+.pc-tear-handle:focus-visible { outline: 2px solid #F3DFA6; outline-offset: 2px; }
+@keyframes pcTearHint { 0%, 60%, 100% { translate: 0; } 20% { translate: 18px; } 40% { translate: 4px; } }
+.pc-tear.is-done { box-shadow: 0 0 0 3px rgba(216, 182, 112, .35), 0 8px 18px rgba(28, 25, 23, .22); }
+.pc-tear.is-done .pc-tear-handle { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .pc-print.is-tearing .pc-print-paper, .pc-print.is-tearing .pc-printer, .pc-tear-handle { animation: none !important; }
+}
+
 /* Ship to: the route from the mill to the address chosen. */
 .pc-route { margin-top: 12px; }
 .pc-route svg { display: block; width: 100%; height: auto; overflow: visible; }

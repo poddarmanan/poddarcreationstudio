@@ -157,6 +157,28 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
     go('ship');
   };
   const onStep = (i: 0 | 1) => (i === 0 ? onBack() : go('edit'));
+  // Tearing the slip off: the rest prints at once, the printer comes into view, the slip is tugged
+  // and torn along the slot, drops away with its note, and the dispatch opens.
+  const printRef = useRef<HTMLDivElement | null>(null);
+  const [tearing, setTearing] = useState(false);
+  const tear = (): boolean => {
+    if (!chosen.length) {
+      setWarn((n) => n + 1);
+      return false;
+    }
+    const feed = feedRef.current;
+    if (feed) feed.style.clipPath = 'none';
+    setPrinted(true);
+    const quick = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const top = printRef.current ? printRef.current.getBoundingClientRect().top + window.scrollY - 140 : 0;
+    window.scrollTo({ top: Math.max(0, top), behavior: quick ? 'auto' : 'smooth' });
+    window.setTimeout(() => setTearing(true), quick ? 0 : 480);
+    window.setTimeout(() => {
+      setTearing(false);
+      next();
+    }, quick ? 60 : 1650);
+    return true;
+  };
   // Placing the order: paying online first when chosen (verified on the server with the order).
   const placeOrder = async (a: Address, demoPaid?: boolean): Promise<string | null> => {
     const shipTo = addressText(a);
@@ -264,106 +286,108 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
       {/* The order slip: the house and the date at its head under a double gold rule; each fabric
           with its numeral in a gold ring, its price by the metre, its shades and its subtotal on a
           dotted leader; then the totals, ruled off as in a ledger; and a pinked foot. */}
-      <div className="pc-print">
+      <div ref={printRef} className={`pc-print${tearing ? ' is-tearing' : ''}`}>
         {/* The printer's mouth: a slot edged in gold, its light blinking while it prints. */}
         <div aria-hidden className={`pc-printer${printed ? ' is-done' : ''}`}>
           <span className="pc-printer-light" />
           <span className="pc-printer-slot" />
+          {/* What stays in the slot once the slip is torn off. */}
+          <span className="pc-printer-stub" />
         </div>
-        <div ref={feedRef} className="pc-print-feed" style={{ clipPath: 'inset(0 0 100% 0)' }}>
-          <div ref={headRef} aria-hidden className={`pc-print-head${printed ? ' is-done' : ''}`} />
-          <div className="pc-slip-wrap">
-            <div className="pc-slip">
-              <div className="pc-slip-head">
-                <div>
-                  <span className="pc-slip-small">Poddar Creation · Surat</span>
-                  <b>{t.orderSlip}</b>
+        <div className="pc-print-paper">
+          <div ref={feedRef} className="pc-print-feed" style={{ clipPath: 'inset(0 0 100% 0)' }}>
+            <div ref={headRef} aria-hidden className={`pc-print-head${printed ? ' is-done' : ''}`} />
+            <div className="pc-slip-wrap">
+              <div className="pc-slip">
+                <div className="pc-slip-head">
+                  <div>
+                    <span className="pc-slip-small">Poddar Creation · Surat</span>
+                    <b>{t.orderSlip}</b>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <span className="pc-slip-small">{today}</span>
+                    <span className="pc-slip-small" style={{ marginTop: 4 }}>
+                      {groups.length} {groups.length === 1 ? t.fabricWordOne : t.fabricWordMany} · {lines.length} {lines.length === 1 ? t.shade : t.shadesChosen}
+                    </span>
+                  </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <span className="pc-slip-small">{today}</span>
-                  <span className="pc-slip-small" style={{ marginTop: 4 }}>
-                    {groups.length} {groups.length === 1 ? t.fabricWordOne : t.fabricWordMany} · {lines.length} {lines.length === 1 ? t.shade : t.shadesChosen}
-                  </span>
-                </div>
-              </div>
-              <div aria-hidden className="pc-slip-rule" />
-              {groups.map((g, gi) => {
-                const sum = g.lines.reduce((s, l) => s + m(l.key), 0);
-                return (
-                  <section key={g.x.id} className="pc-slip-fabric">
-                    <div className="pc-slip-fhead">
-                      <span aria-hidden className="pc-slip-num">{roman(gi + 1)}</span>
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div className="pc-slip-fname">{g.x.name}</div>
-                        <div className="pc-slip-small">
-                          {g.x.weight} · {g.x.width}
+                <div aria-hidden className="pc-slip-rule" />
+                {groups.map((g, gi) => {
+                  const sum = g.lines.reduce((s, l) => s + m(l.key), 0);
+                  return (
+                    <section key={g.x.id} className="pc-slip-fabric">
+                      <div className="pc-slip-fhead">
+                        <span aria-hidden className="pc-slip-num">{roman(gi + 1)}</span>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div className="pc-slip-fname">{g.x.name}</div>
+                          <div className="pc-slip-small">
+                            {g.x.weight} · {g.x.width}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right', flex: 'none' }}>
+                          <div className="pc-slip-price">₹ {inr(g.x.price)}</div>
+                          <div className="pc-slip-small">{t.perMetre}</div>
                         </div>
                       </div>
-                      <div style={{ textAlign: 'right', flex: 'none' }}>
-                        <div className="pc-slip-price">₹ {inr(g.x.price)}</div>
-                        <div className="pc-slip-small">{t.perMetre}</div>
+                      {/* Set every shade of the fabric at once (the cart's are set in the cart, by slider). */}
+                      {!fromCart && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 12 }}>
+                          <span className="pc-slip-small" style={{ marginRight: 4 }}>{t.setAll}</span>
+                          {PRESETS.map((v) => {
+                            const on = g.lines.every((l) => m(l.key) === v);
+                            return (
+                              <button key={v} className={`pc-order-chip${on ? ' is-on' : ''}`} onClick={() => setMetres((was) => ({ ...was, ...Object.fromEntries(g.lines.map((l) => [l.key, v])) }))}>
+                                {v} m
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                      <div style={{ marginTop: 8 }}>
+                        {g.lines.map((l, i) => (
+                          <Row key={l.key} line={l} metres={m(l.key)} t={t} delay={1 + gi * 0.12 + i * 0.05} onChange={(v) => setM(l.key, v)} readOnly={fromCart} onRemove={fromCart ? () => studio.removeFromCart(l.x.id, l.c.order) : undefined} />
+                        ))}
                       </div>
-                    </div>
-                    {/* Set every shade of the fabric at once (the cart's are set in the cart, by slider). */}
-                    {!fromCart && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 12 }}>
-                        <span className="pc-slip-small" style={{ marginRight: 4 }}>{t.setAll}</span>
-                        {PRESETS.map((v) => {
-                          const on = g.lines.every((l) => m(l.key) === v);
-                          return (
-                            <button key={v} className={`pc-order-chip${on ? ' is-on' : ''}`} onClick={() => setMetres((was) => ({ ...was, ...Object.fromEntries(g.lines.map((l) => [l.key, v])) }))}>
-                              {v} m
-                            </button>
-                          );
-                        })}
+                      <div className="pc-slip-leader">
+                        <span>{g.x.name}</span>
+                        <i aria-hidden />
+                        <span>
+                          {inr(sum)} m · ₹ {inr(sum * g.x.price)}
+                        </span>
                       </div>
-                    )}
-                    <div style={{ marginTop: 8 }}>
-                      {g.lines.map((l, i) => (
-                        <Row key={l.key} line={l} metres={m(l.key)} t={t} delay={1 + gi * 0.12 + i * 0.05} onChange={(v) => setM(l.key, v)} readOnly={fromCart} onRemove={fromCart ? () => studio.removeFromCart(l.x.id, l.c.order) : undefined} />
-                      ))}
-                    </div>
-                    <div className="pc-slip-leader">
-                      <span>{g.x.name}</span>
-                      <i aria-hidden />
-                      <span>
-                        {inr(sum)} m · ₹ {inr(sum * g.x.price)}
-                      </span>
-                    </div>
-                  </section>
-                );
-              })}
-              {/* The totals, ruled off. */}
-              <div className="pc-slip-totals">
-                <div className="pc-slip-leader">
-                  <span>{t.metresWord}</span>
-                  <i aria-hidden />
-                  <span>{inr(total)} m</span>
+                    </section>
+                  );
+                })}
+                {/* The totals, ruled off. */}
+                <div className="pc-slip-totals">
+                  <div className="pc-slip-leader">
+                    <span>{t.metresWord}</span>
+                    <i aria-hidden />
+                    <span>{inr(total)} m</span>
+                  </div>
+                  <div className="pc-slip-leader">
+                    <span>{t.shades}</span>
+                    <i aria-hidden />
+                    <span>{chosen.length}</span>
+                  </div>
+                  <div className="pc-slip-leader is-grand">
+                    <span>{t.estimate}</span>
+                    <i aria-hidden />
+                    <b key={value}>₹ {inr(value)}</b>
+                  </div>
                 </div>
-                <div className="pc-slip-leader">
-                  <span>{t.shades}</span>
-                  <i aria-hidden />
-                  <span>{chosen.length}</span>
-                </div>
-                <div className="pc-slip-leader is-grand">
-                  <span>{t.estimate}</span>
-                  <i aria-hidden />
-                  <b key={value}>₹ {inr(value)}</b>
-                </div>
+                <p className="pc-slip-fine">{t.estimateNote}</p>
               </div>
-              <p className="pc-slip-fine">{t.estimateNote}</p>
+              <div aria-hidden className="pc-slip-edge" />
             </div>
-            <div aria-hidden className="pc-slip-edge" />
           </div>
+          {/* A note for the mill, on a sticky note pressed onto the slip once it has printed. */}
+          <label className={`pc-sticky${printed ? ' is-on' : ''}`}>
+            <span className="pc-sticky-title">{t.noteSticky}</span>
+            <textarea value={note} rows={2} placeholder={t.notePlaceholder} onChange={(e) => setNote(e.target.value.slice(0, 500))} />
+          </label>
         </div>
-        {/* A note for the mill, on a sticky note pressed onto the slip once it has printed. */}
-        <label className={`pc-sticky${printed ? ' is-on' : ''}`}>
-          <span className="pc-sticky-title">{t.noteSticky}</span>
-          <textarea value={note} rows={2} placeholder={t.notePlaceholder} onChange={(e) => setNote(e.target.value.slice(0, 500))} />
-        </label>
       </div>
-
-      {/* A note for the mill; when it is needed, where it goes and how it is paid for follow at dispatch. */}
 
       {/* The dock: the running total, the estimate, and the order. */}
       <div className="pc-order-dock" style={{ animation: 'pcDockIn .9s 1.1s cubic-bezier(.2,.9,.25,1) both' }}>
@@ -377,13 +401,107 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
             <b>₹ {inr(value)}</b>
           </div>
         </div>
-        <button key={warn} className="pc-order-place" onClick={next} style={{ animation: warn ? 'pcShake .5s cubic-bezier(.36,.07,.19,.97) both' : undefined }}>
-          {t.continueWord}
-          <span aria-hidden>→</span>
-        </button>
+        <TearButton key={warn} label={t.tearToContinue} aria={t.tearAria} onTear={tear} shake={warn > 0} />
       </div>
       {warn > 0 && !chosen.length && <div style={{ marginTop: 10, fontSize: 12.5, color: '#A5392B' }}>{t.nothingChosen}</div>}
     </Room>
+  );
+}
+
+/**
+ * The way on from the review: a strip perforated in gold with a pair of scissors at its start.
+ * Drawing the scissors along tears the perforation open behind them; let go short of the end and
+ * they spring back, carry them past it and the slip is torn off (`onTear`). A tap, Enter or Space
+ * runs the scissors along by themselves. `onTear` answering false (nothing to order) sends them back.
+ */
+function TearButton({ label, aria, onTear, shake }: { label: string; aria: string; onTear: () => boolean; shake: boolean }) {
+  const track = useRef<HTMLDivElement | null>(null);
+  const handle = useRef<HTMLButtonElement | null>(null);
+  const torn = useRef<HTMLSpanElement | null>(null);
+  const text = useRef<HTMLSpanElement | null>(null);
+  const drag = useRef<{ x: number; at: number; moved: boolean } | null>(null);
+  const [done, setDone] = useState(false);
+  const HANDLE = 44;
+  const span = () => (track.current ? track.current.clientWidth - HANDLE - 8 : 140);
+  const paint = (x: number, animate: boolean) => {
+    const w = span();
+    const p = Math.max(0, Math.min(1, x / w));
+    const ease = animate ? 'transform .45s cubic-bezier(.22,.8,.2,1)' : 'none';
+    if (handle.current) {
+      handle.current.style.transition = ease;
+      handle.current.style.transform = `translateX(${p * w}px) rotate(${p * 360}deg)`;
+    }
+    if (torn.current) {
+      torn.current.style.transition = animate ? 'clip-path .45s cubic-bezier(.22,.8,.2,1)' : 'none';
+      torn.current.style.clipPath = `inset(0 ${100 - p * 100}% 0 0)`;
+    }
+    if (text.current) {
+      text.current.style.transition = animate ? 'opacity .3s ease' : 'none';
+      text.current.style.opacity = String(1 - p * 1.4);
+    }
+  };
+  const finish = () => {
+    paint(span(), true);
+    if (onTear()) setDone(true);
+    else window.setTimeout(() => paint(0, true), 380);
+  };
+  useEffect(() => {
+    const move = (e: PointerEvent) => {
+      const d = drag.current;
+      if (!d) return;
+      const x = d.at + e.clientX - d.x;
+      if (Math.abs(e.clientX - d.x) > 4) d.moved = true;
+      paint(x, false);
+    };
+    const up = (e: PointerEvent) => {
+      const d = drag.current;
+      if (!d) return;
+      drag.current = null;
+      const x = d.at + e.clientX - d.x;
+      // A tap runs the scissors along; a draw past most of the way tears; short of it, back.
+      if (!d.moved || x > span() * 0.72) finish();
+      else paint(0, true);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+    return () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+    };
+  });
+  return (
+    <div ref={track} className={`pc-tear${done ? ' is-done' : ''}`} style={{ animation: shake ? 'pcShake .5s cubic-bezier(.36,.07,.19,.97) both' : undefined }}>
+      <span aria-hidden className="pc-tear-perf" />
+      <span ref={torn} aria-hidden className="pc-tear-torn" style={{ clipPath: 'inset(0 100% 0 0)' }} />
+      <span ref={text} aria-hidden className="pc-tear-label">
+        <span className="pc-tear-text">{label}</span>
+      </span>
+      <button
+        ref={handle}
+        aria-label={aria}
+        className="pc-tear-handle"
+        disabled={done}
+        onPointerDown={(e) => {
+          if (done) return;
+          e.preventDefault();
+          drag.current = { x: e.clientX, at: 0, moved: false };
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            finish();
+          }
+        }}
+      >
+        <svg aria-hidden width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="6" cy="6" r="3" />
+          <circle cx="6" cy="18" r="3" />
+          <path d="M8.1 8.1 20 20M8.1 15.9 20 4" />
+        </svg>
+      </button>
+    </div>
   );
 }
 
