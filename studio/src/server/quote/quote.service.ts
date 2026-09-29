@@ -20,6 +20,9 @@ export interface CreateQuoteInput {
   shippingMethod?: string | null;
   shipTo?: string | null;
   paymentMethod?: string | null;
+  paymentStatus?: string | null;
+  paymentRef?: string | null;
+  paidAmount?: number | null;
   timeline?: string | null;
   message?: string | null;
   items: { fabricId: string; colourId: string; quantity?: number; unit?: string }[];
@@ -110,6 +113,9 @@ export class QuoteService {
         shippingMethod: input.shippingMethod,
         shipTo: input.shipTo,
         paymentMethod: input.paymentMethod,
+        paymentStatus: input.paymentStatus,
+        paymentRef: input.paymentRef,
+        paidAmount: input.paidAmount,
         timeline: input.timeline,
         message: input.message,
         status: 'SUBMITTED',

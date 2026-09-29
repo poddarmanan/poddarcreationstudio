@@ -24,6 +24,8 @@ const QuoteInput = z.object({
   // A fabric order's delivery address, written out, and the chosen payment method.
   shipTo: z.string().max(1000).nullish(),
   paymentMethod: z.string().max(120).nullish(),
+  // A payment made online with Razorpay, to be verified against the items before it is recorded.
+  razorpay: z.object({ orderId: z.string().min(1).max(100), paymentId: z.string().min(1).max(100), signature: z.string().min(1).max(200) }).nullish(),
   timeline: z.string().max(120).nullish(),
   message: z.string().max(2000).nullish(),
   // A direct fabric order gives the metres for each shade; a swatch book or a quote request does not.
@@ -36,7 +38,14 @@ export async function POST(req: Request) {
     async () => {
       const data = await parseJson(req, QuoteInput);
       const session = await auth();
-      const { quoteService, audit, customerService } = getContainer();
+      const { quoteService, audit, customerService, paymentService } = getContainer();
+      // Paid online: the payment must check out against exactly these items before anything is recorded.
+      const paid = data.razorpay
+        ? await paymentService.confirm(
+            data.items.map((i) => ({ fabricId: i.fabricId, colourId: i.colourId, metres: i.quantity ?? 0 })),
+            data.razorpay
+          )
+        : null;
 
       const account = session?.user?.id ? await customerService.account(session.user.id) : null;
       const contact = account?.contacts.find((c) => c.whatsapp || c.phone);
@@ -60,6 +69,7 @@ export async function POST(req: Request) {
         shippingMethod: data.shippingMethod,
         shipTo: data.shipTo,
         paymentMethod: data.paymentMethod,
+        ...(paid ?? {}),
         timeline: data.timeline,
         message: data.message,
         items: data.items,

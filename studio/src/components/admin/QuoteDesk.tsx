@@ -7,7 +7,7 @@ type QuoteItem = { id: string; fabric: { name: string }; colour: { name: string;
 type QuoteEvent = { id: string; type: string; fromStatus: string | null; toStatus: string | null; note: string | null; createdAt: string };
 type Quote = {
   id: string; name: string; company: string; email: string | null; quantity: string; subject: string;
-  whatsapp?: string | null; moq: string | null; expectedQty: string | null; country: string | null; shippingMethod: string | null; shipTo?: string | null; paymentMethod?: string | null; timeline: string | null; message: string | null;
+  whatsapp?: string | null; moq: string | null; expectedQty: string | null; country: string | null; shippingMethod: string | null; shipTo?: string | null; paymentMethod?: string | null; paymentStatus?: string | null; paymentRef?: string | null; paidAmount?: number | null; timeline: string | null; message: string | null;
   status: string; createdAt: string; assignee: { id: string; name: string } | null; items: QuoteItem[]; events?: QuoteEvent[];
   currency: string; totalValue: number | null; priceNote: string | null; validUntil: string | null;
 };
@@ -200,7 +200,16 @@ export function QuoteDesk({ quotes: initial, staff, me }: { quotes: Quote[]; sta
                       {q.expectedQty && <div><b style={{ fontWeight: 500 }}>Expected:</b> {q.expectedQty}</div>}
                       {q.shippingMethod && <div><b style={{ fontWeight: 500 }}>Shipping:</b> {q.shippingMethod}</div>}
                       {q.shipTo && <div style={{ whiteSpace: 'pre-line' }}><b style={{ fontWeight: 500 }}>Ship to:</b> {q.shipTo}</div>}
-                      {q.paymentMethod && <div><b style={{ fontWeight: 500 }}>Payment:</b> {q.paymentMethod}</div>}
+                      {q.paymentMethod && (
+                        <div>
+                          <b style={{ fontWeight: 500 }}>Payment:</b> {q.paymentMethod}
+                          {q.paymentStatus === 'PAID' && q.paidAmount != null && (
+                            <span style={{ marginLeft: 8, padding: '1px 8px', borderRadius: 999, fontSize: 11, color: '#1F5E3A', background: 'rgba(46,125,80,.12)' }}>
+                              Paid ₹ {(q.paidAmount / 100).toLocaleString('en-IN')} · {q.paymentRef}
+                            </span>
+                          )}
+                        </div>
+                      )}
                       {q.timeline && <div><b style={{ fontWeight: 500 }}>Timeline:</b> {q.timeline}</div>}
                       {q.message && <div style={{ marginTop: 6, fontStyle: 'italic' }}>“{q.message}”</div>}
                     </div>

@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import type { Studio } from './state';
+import type { RazorpayProof, Studio } from './state';
 import type { ColourRow, FabricRow } from '@/lib/types';
 import { FONT_DISPLAY, fabricTex } from './helpers';
 import { Room, roman } from './SwatchBook';
 import { AuthScreen } from './AuthScreen';
 import { CartGlyph } from './CartGlyph';
 import { ShipPay, Steps, addressText, PAYMENT_LABEL, type Payment, type When } from './ShipPay';
+import type { Address } from './state';
 import { confettiBurst } from './confetti';
 import { oklchToRgb, rgbToHex } from '@/lib/colour-science';
 import type { OrderState } from './BookCeremony';
@@ -58,14 +59,63 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
     for (const l of lines) if (next[l.key] !== cartMetres[l.key]) studio.setCartMetres(l.x.id, l.c.order, next[l.key]);
   };
   const [when, setWhen] = useState<When>('soon');
-  const [payment, setPayment] = useState<Payment>('upi');
+  const [payment, setPayment] = useState<Payment>('razorpay');
   const [addressId, setAddressId] = useState<string | null>(null);
   const [note, setNote] = useState('');
   // The review, then signing in if need be, then the dispatch details, then the parcel.
   const [phase, setPhase] = useState<'edit' | 'auth' | 'ship' | 'dispatch'>('edit');
   const [buyer, setBuyer] = useState<{ whatsapp: string | null; demo: boolean }>({ whatsapp: null, demo: false });
-  const [order, setOrder] = useState<{ state: OrderState; ref?: string; whatsapp: string | null }>({ state: 'pending', whatsapp: null });
+  const [order, setOrder] = useState<{ state: OrderState; ref?: string; whatsapp: string | null; paid?: { amount: number; ref: string } }>({ state: 'pending', whatsapp: null });
+  // A payment already made is kept, so a failed order is retried without paying twice.
+  const [proof, setProof] = useState<{ razorpay: RazorpayProof; amount: number; shipTo: string } | null>(null);
   const [warn, setWarn] = useState(0);
+
+  // The order slip prints out of a slot as the page arrives and then as it is scrolled: the paper
+  // is revealed from the top down to a print line that runs ahead of the reader, just above the
+  // dock, and never backs up. Set on the element directly each frame, so scrolling renders nothing.
+  const feedRef = useRef<HTMLDivElement | null>(null);
+  const headRef = useRef<HTMLDivElement | null>(null);
+  const [printed, setPrinted] = useState(false);
+  useEffect(() => {
+    if (phase !== 'edit') return;
+    const feed = feedRef.current;
+    if (!feed) return;
+    const quick = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const started = performance.now();
+    let shown = 0;
+    let raf = 0;
+    let done = false;
+    const frame = (now: number) => {
+      raf = 0;
+      const full = feed.scrollHeight;
+      const ahead = Math.min(full, Math.max(170, window.innerHeight - 230 - feed.getBoundingClientRect().top));
+      // On arrival the first stretch prints over a second or so, before any scrolling.
+      const ramp = Math.min(1, (now - started) / 1300);
+      shown = quick ? full : Math.max(shown, ahead * (1 - Math.pow(1 - ramp, 3)));
+      feed.style.clipPath = shown >= full ? 'none' : `inset(0 0 ${full - shown}px 0)`;
+      if (headRef.current) headRef.current.style.transform = `translateY(${shown}px)`;
+      if (shown >= full && !done) {
+        done = true;
+        setPrinted(true);
+        return stop();
+      }
+      if (ramp < 1) raf = requestAnimationFrame(frame);
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(frame);
+    };
+    const stop = () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+    };
+    raf = requestAnimationFrame(frame);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => {
+      cancelAnimationFrame(raf);
+      stop();
+    };
+  }, [phase]);
 
   const m = (k: string) => metres[k] ?? 0;
   const setM = (k: string, v: number) => setMetres((was) => ({ ...was, [k]: Math.max(0, Math.min(100_000, Math.round(v))) }));
@@ -81,18 +131,19 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
     window.scrollTo(0, 0);
     setPhase(p);
   };
-  const send = (shipTo: string) => {
+  const orderLines = () => chosen.map((l) => ({ fabricId: l.x.id, colourId: l.c.id, metres: m(l.key) }));
+  const send = (shipTo: string, paid?: { razorpay?: RazorpayProof; amount: number; ref: string }) => {
     const { whatsapp, demo } = buyer;
     window.scrollTo(0, 0);
     setSent({ lines: chosen, total, value });
     setPhase('dispatch');
-    setOrder({ state: demo ? 'demo' : 'pending', whatsapp });
+    setOrder({ state: demo || PREVIEW ? 'demo' : 'pending', whatsapp, paid: paid ? { amount: paid.amount, ref: paid.ref } : undefined });
     const placed = () => {
       if (fromCart) for (const l of chosen) studio.removeFromCart(l.x.id, l.c.order);
     };
-    if (demo) return placed();
+    if (demo || PREVIEW) return placed();
     studio
-      .orderFabric({ lines: chosen.map((l) => ({ fabricId: l.x.id, colourId: l.c.id, metres: m(l.key) })), timeline: whenLabel, note, whatsapp: whatsapp ?? undefined, shipTo, payment: PAYMENT_LABEL[payment] })
+      .orderFabric({ lines: orderLines(), timeline: whenLabel, note, whatsapp: whatsapp ?? undefined, shipTo, payment: PAYMENT_LABEL[payment], razorpay: paid?.razorpay })
       .then((r) => {
         if (r.ok) placed();
         setOrder((o) => ({ ...o, state: r.ok ? 'sent' : 'failed', ref: r.ref }));
@@ -106,6 +157,24 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
     go('ship');
   };
   const onStep = (i: 0 | 1) => (i === 0 ? onBack() : go('edit'));
+  // Placing the order: paying online first when chosen (verified on the server with the order).
+  const placeOrder = async (a: Address, demoPaid?: boolean): Promise<string | null> => {
+    const shipTo = addressText(a);
+    if (payment !== 'razorpay') {
+      send(shipTo);
+      return null;
+    }
+    if (demoPaid) {
+      send(shipTo, { amount: value * 100, ref: 'PREVIEW' });
+      return null;
+    }
+    const r = await studio.payRazorpay(orderLines(), { name: studio.userName ?? undefined, contact: buyer.whatsapp ?? undefined });
+    if (!r.ok) return r.reason === 'dismissed' ? t.payDismissed : r.reason === 'failed' ? r.message || t.payFailed : r.message || t.payUnavailable;
+    const razorpay = { orderId: r.orderId, paymentId: r.paymentId, signature: r.signature };
+    setProof({ razorpay, amount: r.amount, shipTo });
+    send(shipTo, { razorpay, amount: r.amount, ref: r.paymentId });
+    return null;
+  };
 
   if (phase === 'auth')
     return (
@@ -134,8 +203,9 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
         setPayment={setPayment}
         addressId={addressId}
         setAddressId={setAddressId}
+        payDemo={buyer.demo || PREVIEW}
         onStep={onStep}
-        onPlace={(a) => send(addressText(a))}
+        onPlace={placeOrder}
       />
     );
   if (phase === 'dispatch')
@@ -147,7 +217,8 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
         value={sent?.value ?? value}
         order={order}
         onDone={onBack}
-        onRetry={() => go('ship')}
+        // Already paid: send the same order again with the same payment, not a new one.
+        onRetry={() => (proof ? send(proof.shipTo, { razorpay: proof.razorpay, amount: proof.amount, ref: proof.razorpay.paymentId }) : go('ship'))}
       />
     );
 
@@ -193,97 +264,106 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
       {/* The order slip: the house and the date at its head under a double gold rule; each fabric
           with its numeral in a gold ring, its price by the metre, its shades and its subtotal on a
           dotted leader; then the totals, ruled off as in a ledger; and a pinked foot. */}
-      <div className="pc-slip-wrap" style={{ animation: 'pcFieldIn .9s .75s cubic-bezier(.2,.8,.2,1) both' }}>
-        <div className="pc-slip">
-          <div className="pc-slip-head">
-            <div>
-              <span className="pc-slip-small">Poddar Creation · Surat</span>
-              <b>{t.orderSlip}</b>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <span className="pc-slip-small">{today}</span>
-              <span className="pc-slip-small" style={{ marginTop: 4 }}>
-                {groups.length} {groups.length === 1 ? t.fabricWordOne : t.fabricWordMany} · {lines.length} {lines.length === 1 ? t.shade : t.shadesChosen}
-              </span>
-            </div>
-          </div>
-          <div aria-hidden className="pc-slip-rule" />
-          {groups.map((g, gi) => {
-            const sum = g.lines.reduce((s, l) => s + m(l.key), 0);
-            return (
-              <section key={g.x.id} className="pc-slip-fabric">
-                <div className="pc-slip-fhead">
-                  <span aria-hidden className="pc-slip-num">{roman(gi + 1)}</span>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div className="pc-slip-fname">{g.x.name}</div>
-                    <div className="pc-slip-small">
-                      {g.x.weight} · {g.x.width}
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'right', flex: 'none' }}>
-                    <div className="pc-slip-price">₹ {inr(g.x.price)}</div>
-                    <div className="pc-slip-small">{t.perMetre}</div>
-                  </div>
+      <div className="pc-print">
+        {/* The printer's mouth: a slot edged in gold, its light blinking while it prints. */}
+        <div aria-hidden className={`pc-printer${printed ? ' is-done' : ''}`}>
+          <span className="pc-printer-light" />
+          <span className="pc-printer-slot" />
+        </div>
+        <div ref={feedRef} className="pc-print-feed" style={{ clipPath: 'inset(0 0 100% 0)' }}>
+          <div ref={headRef} aria-hidden className={`pc-print-head${printed ? ' is-done' : ''}`} />
+          <div className="pc-slip-wrap">
+            <div className="pc-slip">
+              <div className="pc-slip-head">
+                <div>
+                  <span className="pc-slip-small">Poddar Creation · Surat</span>
+                  <b>{t.orderSlip}</b>
                 </div>
-                {/* Set every shade of the fabric at once (the cart's are set in the cart, by slider). */}
-                {!fromCart && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 12 }}>
-                    <span className="pc-slip-small" style={{ marginRight: 4 }}>{t.setAll}</span>
-                    {PRESETS.map((v) => {
-                      const on = g.lines.every((l) => m(l.key) === v);
-                      return (
-                        <button key={v} className={`pc-order-chip${on ? ' is-on' : ''}`} onClick={() => setMetres((was) => ({ ...was, ...Object.fromEntries(g.lines.map((l) => [l.key, v])) }))}>
-                          {v} m
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-                <div style={{ marginTop: 8 }}>
-                  {g.lines.map((l, i) => (
-                    <Row key={l.key} line={l} metres={m(l.key)} t={t} delay={1 + gi * 0.12 + i * 0.05} onChange={(v) => setM(l.key, v)} readOnly={fromCart} onRemove={fromCart ? () => studio.removeFromCart(l.x.id, l.c.order) : undefined} />
-                  ))}
-                </div>
-                <div className="pc-slip-leader">
-                  <span>{g.x.name}</span>
-                  <i aria-hidden />
-                  <span>
-                    {inr(sum)} m · ₹ {inr(sum * g.x.price)}
+                <div style={{ textAlign: 'right' }}>
+                  <span className="pc-slip-small">{today}</span>
+                  <span className="pc-slip-small" style={{ marginTop: 4 }}>
+                    {groups.length} {groups.length === 1 ? t.fabricWordOne : t.fabricWordMany} · {lines.length} {lines.length === 1 ? t.shade : t.shadesChosen}
                   </span>
                 </div>
-              </section>
-            );
-          })}
-          {/* The totals, ruled off. */}
-          <div className="pc-slip-totals">
-            <div className="pc-slip-leader">
-              <span>{t.metresWord}</span>
-              <i aria-hidden />
-              <span>{inr(total)} m</span>
+              </div>
+              <div aria-hidden className="pc-slip-rule" />
+              {groups.map((g, gi) => {
+                const sum = g.lines.reduce((s, l) => s + m(l.key), 0);
+                return (
+                  <section key={g.x.id} className="pc-slip-fabric">
+                    <div className="pc-slip-fhead">
+                      <span aria-hidden className="pc-slip-num">{roman(gi + 1)}</span>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div className="pc-slip-fname">{g.x.name}</div>
+                        <div className="pc-slip-small">
+                          {g.x.weight} · {g.x.width}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right', flex: 'none' }}>
+                        <div className="pc-slip-price">₹ {inr(g.x.price)}</div>
+                        <div className="pc-slip-small">{t.perMetre}</div>
+                      </div>
+                    </div>
+                    {/* Set every shade of the fabric at once (the cart's are set in the cart, by slider). */}
+                    {!fromCart && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 12 }}>
+                        <span className="pc-slip-small" style={{ marginRight: 4 }}>{t.setAll}</span>
+                        {PRESETS.map((v) => {
+                          const on = g.lines.every((l) => m(l.key) === v);
+                          return (
+                            <button key={v} className={`pc-order-chip${on ? ' is-on' : ''}`} onClick={() => setMetres((was) => ({ ...was, ...Object.fromEntries(g.lines.map((l) => [l.key, v])) }))}>
+                              {v} m
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    <div style={{ marginTop: 8 }}>
+                      {g.lines.map((l, i) => (
+                        <Row key={l.key} line={l} metres={m(l.key)} t={t} delay={1 + gi * 0.12 + i * 0.05} onChange={(v) => setM(l.key, v)} readOnly={fromCart} onRemove={fromCart ? () => studio.removeFromCart(l.x.id, l.c.order) : undefined} />
+                      ))}
+                    </div>
+                    <div className="pc-slip-leader">
+                      <span>{g.x.name}</span>
+                      <i aria-hidden />
+                      <span>
+                        {inr(sum)} m · ₹ {inr(sum * g.x.price)}
+                      </span>
+                    </div>
+                  </section>
+                );
+              })}
+              {/* The totals, ruled off. */}
+              <div className="pc-slip-totals">
+                <div className="pc-slip-leader">
+                  <span>{t.metresWord}</span>
+                  <i aria-hidden />
+                  <span>{inr(total)} m</span>
+                </div>
+                <div className="pc-slip-leader">
+                  <span>{t.shades}</span>
+                  <i aria-hidden />
+                  <span>{chosen.length}</span>
+                </div>
+                <div className="pc-slip-leader is-grand">
+                  <span>{t.estimate}</span>
+                  <i aria-hidden />
+                  <b key={value}>₹ {inr(value)}</b>
+                </div>
+              </div>
+              <p className="pc-slip-fine">{t.estimateNote}</p>
             </div>
-            <div className="pc-slip-leader">
-              <span>{t.shades}</span>
-              <i aria-hidden />
-              <span>{chosen.length}</span>
-            </div>
-            <div className="pc-slip-leader is-grand">
-              <span>{t.estimate}</span>
-              <i aria-hidden />
-              <b key={value}>₹ {inr(value)}</b>
-            </div>
+            <div aria-hidden className="pc-slip-edge" />
           </div>
-          <p className="pc-slip-fine">{t.estimateNote}</p>
         </div>
-        <div aria-hidden className="pc-slip-edge" />
+        {/* A note for the mill, on a sticky note pressed onto the slip once it has printed. */}
+        <label className={`pc-sticky${printed ? ' is-on' : ''}`}>
+          <span className="pc-sticky-title">{t.noteSticky}</span>
+          <textarea value={note} rows={2} placeholder={t.notePlaceholder} onChange={(e) => setNote(e.target.value.slice(0, 500))} />
+        </label>
       </div>
 
       {/* A note for the mill; when it is needed, where it goes and how it is paid for follow at dispatch. */}
-      <label className="pc-note" style={{ animation: `pcFieldIn .9s ${0.95 + groups.length * 0.1}s cubic-bezier(.2,.8,.2,1) both` }}>
-        <svg aria-hidden width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17z" />
-        </svg>
-        <input aria-label={t.noteForMill} value={note} placeholder={t.noteForMill} onChange={(e) => setNote(e.target.value.slice(0, 500))} />
-      </label>
 
       {/* The dock: the running total, the estimate, and the order. */}
       <div className="pc-order-dock" style={{ animation: 'pcDockIn .9s 1.1s cubic-bezier(.2,.9,.25,1) both' }}>
@@ -364,7 +444,7 @@ const PARCEL = 216;
 function Dispatch({
   studio, lines, total, value, order, onDone, onRetry,
 }: {
-  studio: Studio; lines: Line[]; total: number; value: number; order: { state: OrderState; ref?: string; whatsapp: string | null }; onDone: () => void; onRetry: () => void;
+  studio: Studio; lines: Line[]; total: number; value: number; order: { state: OrderState; ref?: string; whatsapp: string | null; paid?: { amount: number; ref: string } }; onDone: () => void; onRetry: () => void;
 }) {
   const { t } = studio;
   const shown = lines.slice(0, 8);
@@ -496,6 +576,8 @@ function Dispatch({
                 <span className="pc-tag-hole" />
                 <div style={{ fontSize: 7, letterSpacing: '.3em', textTransform: 'uppercase', color: '#6B4C1E' }}>{t.orderRef}</div>
                 <div style={{ fontFamily: FONT_DISPLAY, fontSize: 15, color: INK, fontVariantNumeric: 'lining-nums', marginTop: 1 }}>{ref || '···'}</div>
+                {/* Paid online: a stamp comes down on the tag. */}
+                {order.paid && stage >= 5 && <span className="pc-paid-stamp">{t.paidWord}</span>}
               </div>
             </div>
           </div>
@@ -522,6 +604,12 @@ function Dispatch({
                     <b>₹ {inr(value)}</b>
                   </div>
                 </div>
+                {order.paid && (
+                  <div className="pc-paid-line">
+                    <span aria-hidden>✓</span>
+                    {t.paidWord} ₹ {inr(order.paid.amount / 100)} · {order.paid.ref === 'PREVIEW' ? t.previewWord : order.paid.ref}
+                  </div>
+                )}
                 <p style={{ margin: '14px 0 0', maxWidth: 340, fontFamily: FONT_DISPLAY, fontSize: 15.5, lineHeight: 1.45, color: UMBER }}>
                   {order.state === 'demo' ? t.pkPreview : order.whatsapp ? t.pkConfirmTo.replace('{n}', order.whatsapp) : t.pkConfirm}
                 </p>

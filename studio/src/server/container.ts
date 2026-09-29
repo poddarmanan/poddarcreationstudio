@@ -1,5 +1,6 @@
 import { OtpService, CloudApiSender } from './whatsapp/otp.service';
 import { prisma } from '@/lib/prisma';
+import { PaymentService, RazorpayApi } from './payment/razorpay.service';
 import { type Telemetry } from './core/telemetry';
 import { createTelemetry } from './core/telemetry-factory';
 import { type Audit } from './core/audit';
@@ -53,6 +54,7 @@ export interface Container {
   emailService: EmailService;
   tokenService: TokenService;
   otpService: OtpService;
+  paymentService: PaymentService;
   dealerService: DealerService;
   customerService: CustomerService;
   collectionService: CollectionService;
@@ -87,6 +89,9 @@ function build(): Container {
   const emailService = new EmailService(new LoggingEmailTransport(createEmailTransport(), prisma));
   const tokenService = new TokenService(prisma);
   const otpService = new OtpService(prisma, new CloudApiSender());
+  const rzpKey = process.env.RAZORPAY_KEY_ID || null;
+  const rzpSecret = process.env.RAZORPAY_KEY_SECRET || null;
+  const paymentService = new PaymentService(prisma, rzpKey && rzpSecret ? new RazorpayApi(rzpKey, rzpSecret) : null, rzpKey, rzpSecret);
   const activityService = new ActivityService(prisma);
   const dealerService = new DealerService(prisma, activityService);
   const customerService = new CustomerService(prisma, emailService, tokenService, telemetry);
@@ -106,7 +111,7 @@ function build(): Container {
   sampleService.attachNotifications(notificationService);
   shareService.attachNotifications(notificationService);
 
-  return { telemetry, audit, rateLimiter, cache, storage, cdn, fabricRepository, fabricService, colourRepository, colourService, searchService, emailService, tokenService, otpService, dealerService, customerService, collectionService, activityService, dashboardService, salesService, shareService, analyticsService, notificationService, healthService, quoteService, sampleService, adminService };
+  return { telemetry, audit, rateLimiter, cache, storage, cdn, fabricRepository, fabricService, colourRepository, colourService, searchService, emailService, tokenService, otpService, paymentService, dealerService, customerService, collectionService, activityService, dashboardService, salesService, shareService, analyticsService, notificationService, healthService, quoteService, sampleService, adminService };
 }
 
 const globalForContainer = globalThis as unknown as { __pcContainer?: Container };

@@ -654,6 +654,12 @@ model Quote {
   shipTo         String?
   /// How the buyer chose to pay (UPI, bank transfer, credit terms); collected after pricing.
   paymentMethod  String?
+  /// "PAID" once an online payment (Razorpay) is verified against the order.
+  paymentStatus  String?
+  /// The gateway's payment id.
+  paymentRef     String?
+  /// What was paid online, in minor units (paise).
+  paidAmount     Int?
   moq            String?
   expectedQty    String?
   country        String?

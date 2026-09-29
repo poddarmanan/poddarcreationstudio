@@ -27,6 +27,35 @@ export interface Address {
 }
 export type AddressInput = Omit<Address, 'id' | 'isDefault'>;
 
+/** What Razorpay Checkout hands back for a completed payment, verified on the server. */
+export interface RazorpayProof {
+  orderId: string;
+  paymentId: string;
+  signature: string;
+}
+export type RazorpayResult = ({ ok: true; amount: number } & RazorpayProof) | { ok: false; reason: 'dismissed' | 'failed' | 'unavailable'; message?: string };
+
+type RazorpayCheckout = new (options: Record<string, unknown>) => { open: () => void; on: (event: string, fn: (e: { error?: { description?: string } }) => void) => void };
+
+/** Loads Razorpay Checkout's script, once. */
+let checkoutScript: Promise<RazorpayCheckout | null> | null = null;
+function loadCheckout(): Promise<RazorpayCheckout | null> {
+  const w = window as unknown as { Razorpay?: RazorpayCheckout };
+  if (w.Razorpay) return Promise.resolve(w.Razorpay);
+  checkoutScript ??= new Promise((resolve) => {
+    const el = document.createElement('script');
+    el.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    el.async = true;
+    el.onload = () => resolve(w.Razorpay ?? null);
+    el.onerror = () => {
+      checkoutScript = null;
+      resolve(null);
+    };
+    document.head.appendChild(el);
+  });
+  return checkoutScript;
+}
+
 export interface CartLine {
   fabricId: string;
   colourOrder: number;
@@ -126,7 +155,11 @@ export interface Studio {
    * Orders the fabric itself, skipping the swatch book: the metres for each shade, when it is
    * needed, and a note. Resolves to whether the server took it, and its reference.
    */
-  orderFabric: (order: { lines: { fabricId: string; colourId: string; metres: number }[]; timeline: string; note: string; whatsapp?: string; shipTo?: string; payment?: string }) => Promise<{ ok: boolean; status: number; ref?: string }>;
+  orderFabric: (order: { lines: { fabricId: string; colourId: string; metres: number }[]; timeline: string; note: string; whatsapp?: string; shipTo?: string; payment?: string; razorpay?: RazorpayProof }) => Promise<{ ok: boolean; status: number; ref?: string }>;
+  /** Razorpay's public key id when online payment is set up on this server, else null. */
+  razorpayReady: () => Promise<string | null>;
+  /** Pays for these lines with Razorpay Checkout; the amount is priced on the server. */
+  payRazorpay: (lines: { fabricId: string; colourId: string; metres: number }[], prefill: { name?: string; contact?: string }) => Promise<RazorpayResult>;
   /** The buyer's saved delivery addresses, default first (kept on this device on the static preview). */
   listAddresses: () => Promise<Address[]>;
   /** Saves a delivery address to the buyer's book; the first becomes the default. */
@@ -466,7 +499,7 @@ export function useStudio(rawFabrics: FabricRow[]): Studio {
   );
 
   const orderFabric = useCallback(
-    async ({ lines, timeline, note, whatsapp, shipTo, payment }: { lines: { fabricId: string; colourId: string; metres: number }[]; timeline: string; note: string; whatsapp?: string; shipTo?: string; payment?: string }) => {
+    async ({ lines, timeline, note, whatsapp, shipTo, payment, razorpay }: { lines: { fabricId: string; colourId: string; metres: number }[]; timeline: string; note: string; whatsapp?: string; shipTo?: string; payment?: string; razorpay?: RazorpayProof }) => {
       const total = lines.reduce((s, l) => s + l.metres, 0);
       const subject = lines
         .map((l) => {
@@ -490,6 +523,7 @@ export function useStudio(rawFabrics: FabricRow[]): Studio {
             ...(whatsapp ? { whatsapp } : {}),
             ...(shipTo ? { shipTo } : {}),
             ...(payment ? { paymentMethod: payment } : {}),
+            ...(razorpay ? { razorpay } : {}),
           }),
         });
         const data = (await res.json().catch(() => ({}))) as { quote?: { id?: string } };
@@ -500,6 +534,47 @@ export function useStudio(rawFabrics: FabricRow[]): Studio {
     },
     [fab]
   );
+
+  const razorpayReady = useCallback(async () => {
+    if (process.env.NEXT_PUBLIC_BASE_PATH) return null;
+    try {
+      const res = await fetch('/api/payments/razorpay');
+      if (!res.ok) return null;
+      return ((await res.json()) as { ready: boolean; keyId: string | null }).keyId;
+    } catch {
+      return null;
+    }
+  }, []);
+  const payRazorpay = useCallback(async (lines: { fabricId: string; colourId: string; metres: number }[], prefill: { name?: string; contact?: string }): Promise<RazorpayResult> => {
+    let order: { orderId: string; amount: number; currency: string; keyId: string };
+    try {
+      const res = await fetch('/api/payments/razorpay', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lines }) });
+      const data = (await res.json().catch(() => ({}))) as typeof order & { error?: { message?: string } };
+      if (!res.ok) return { ok: false, reason: 'unavailable', message: data.error?.message };
+      order = data;
+    } catch {
+      return { ok: false, reason: 'unavailable' };
+    }
+    const Checkout = await loadCheckout();
+    if (!Checkout) return { ok: false, reason: 'unavailable' };
+    return new Promise<RazorpayResult>((resolve) => {
+      const rzp = new Checkout({
+        key: order.keyId,
+        amount: order.amount,
+        currency: order.currency,
+        order_id: order.orderId,
+        name: 'Poddar Creation',
+        description: 'Fabric order',
+        prefill: { name: prefill.name, contact: prefill.contact },
+        theme: { color: '#1C1917' },
+        handler: (r: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) =>
+          resolve({ ok: true, amount: order.amount, orderId: r.razorpay_order_id, paymentId: r.razorpay_payment_id, signature: r.razorpay_signature }),
+        modal: { ondismiss: () => resolve({ ok: false, reason: 'dismissed' }) },
+      });
+      rzp.on('payment.failed', (e) => resolve({ ok: false, reason: 'failed', message: e.error?.description }));
+      rzp.open();
+    });
+  }, []);
 
   // The address book: the account's on the live site, this device's on the static preview.
   const listAddresses = useCallback(async (): Promise<Address[]> => {
@@ -727,6 +802,8 @@ export function useStudio(rawFabrics: FabricRow[]): Studio {
     accountWhatsapp,
     listAddresses,
     addAddress,
+    razorpayReady,
+    payRazorpay,
     saveWhatsapp,
     quoteBusy,
     aiOpen,

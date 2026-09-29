@@ -547,7 +547,14 @@ total metres, the shades (or how many are not set) and the value, and an ink "Ch
   The totals are ruled off as in a ledger: metres and shades on dotted leaders, then the estimate
   large under a double gold rule. The fine print sits beneath, and the slip ends in a pinked foot,
   as if torn from a pad.
-- **A note for the mill:** one slim line with a pen mark, then "Continue →" in the dock.
+- **The slip prints out.** It comes from a printer's mouth: a dark bar with a gold-lipped slot,
+  whose light blinks while it prints and turns green once done. On arrival the first stretch prints
+  over about a second. After that the paper prints as the page is scrolled, revealed top-down to a
+  glowing print line that stays just above the dock and never backs up. It is driven imperatively
+  (a clip on the paper each frame), so scrolling renders nothing.
+- **A note for the mill** is a small butter-yellow sticky note with a strip of tape, ruled lines
+  and a folded corner. It is pressed onto the slip's torn foot when printing finishes. Then
+  "Continue →" in the dock.
 
 **III Dispatch** (`ShipPay.tsx`), titled "Delivery & *Payment*", comes after the review. A buyer
 who is not signed in signs in first, since the address book belongs to the account. It has three
@@ -564,10 +571,47 @@ sections, each headed by its numeral in a gold ring:
   (`localStorage` `pc-addresses`).
 - **When do you need it?** Three tiles like the chooser's ("Now", "2 weeks", "1 month", each with
   its full wording beneath). The chosen tile turns to ink edged in gold.
-- **Payment:** UPI, Bank transfer (NEFT · RTGS · IMPS) and Credit terms (for approved accounts), as
-  rows with an icon disc and a radio ring. Nothing is charged on the site. The note says so: once
-  the team confirms the final price on WhatsApp, it sends the payment details for the chosen
-  method.
+- **Payment,** in two groups, as rows with an icon disc and a radio ring:
+  - **Pay now: "Pay online"** through Razorpay (cards, UPI, netbanking), marked "Secure" and
+    chosen by default. The dock's button turns green, with a lock: "Pay ₹ 39,200". The note says the estimate
+    is paid now and any difference after taxes and freight is settled on confirmation.
+  - **Pay after we confirm:** UPI, Bank transfer (NEFT · RTGS · IMPS) and Credit terms (for
+    approved accounts). Nothing is charged on the site; the team sends payment details once the
+    final price is confirmed on WhatsApp.
+
+**Paying online** (`src/server/payment/razorpay.service.ts`, `/api/payments/razorpay`):
+1. The server prices the lines from the catalogue, never from the browser, and opens a Razorpay
+   order for that amount.
+2. Razorpay Checkout opens in the page.
+3. On success the order is sent with Checkout's order id, payment id and signature. The server
+   checks the signature (HMAC-SHA256 with the key secret), then checks that Razorpay's order is
+   for what these lines cost. Only then does it record the quote as paid (`paymentStatus`,
+   `paymentRef`, `paidAmount`, migration `m48_order_payment`).
+
+If the payment is dismissed or fails, nothing is placed and the page says so. If the order fails
+after a payment, "Try again" resends it with the same payment rather than taking a second one.
+Without `RAZORPAY_KEY_ID`/`RAZORPAY_KEY_SECRET`, "Pay online" reads "Being set up" and UPI is
+chosen instead.
+
+On the static preview, "Pay online" opens a sheet in the studio's own style. It shows the amount,
+a ring that closes around a lock, then a green tick, and says plainly that no payment is taken.
+`scripts/smoke-m48.ts` checks the pricing, the signature and the amount match against a fake
+gateway.
+
+**Motion on the dispatch page, each suited to its section:**
+- **Ship to:** a route from "Surat mill" to the chosen city. The arc draws itself, a small kraft
+  parcel travels along it, and the destination pin pops. It plays again whenever another address
+  is chosen, as that card catches a passing light. Address cards rise in turn.
+- **When:** the weeks ahead as a ruled bar that fills in gold to the span chosen, with its marker
+  gliding there and "Needed by 29 Oct" updating.
+- **Payment:** each icon moves as its method does when chosen:
+  - the card swipes in (online);
+  - a scan line runs down the phone (UPI);
+  - a coin drops into the bank;
+  - the ledger page is written on (credit terms).
+- **Steps:** the rule between completed steps draws in gold.
+- **Paid orders:** a green "PAID" stamp comes down on the parcel's tag, and the summary adds
+  "✓ Paid ₹ … · reference".
 
 The dock gives the metres, where the order ships and the estimate, with "Place order". Without an
 address, it shakes and opens the form.

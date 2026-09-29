@@ -30,10 +30,13 @@ export function proxy(request: NextRequest) {
     // compressed garment models is WebAssembly, and without this a compressed model never loads.
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'wasm-unsafe-eval'${isDev ? " 'unsafe-eval'" : ''}`,
     `style-src 'self' 'unsafe-inline'`,
-    `img-src 'self' blob: data:`,
+    `img-src 'self' blob: data: https://cdn.razorpay.com`,
     `font-src 'self' data:`,
     // blob: because a model's textures are unpacked from the file into blob URLs and fetched back.
-    `connect-src 'self' blob:${isDev ? ' ws: wss:' : ''}`,
+    `connect-src 'self' blob: https://api.razorpay.com https://lumberjack.razorpay.com${isDev ? ' ws: wss:' : ''}`,
+    // Razorpay Checkout runs in its own frame; its script is admitted by 'strict-dynamic', being
+    // added by the studio's own (nonced) code.
+    `frame-src 'self' https://api.razorpay.com https://checkout.razorpay.com`,
     `object-src 'none'`,
     `base-uri 'self'`,
     `form-action 'self'`,
