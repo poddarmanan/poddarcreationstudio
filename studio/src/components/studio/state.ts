@@ -77,12 +77,20 @@ export interface Studio {
   closeScene: () => void;
   quoteOpen: boolean;
   quoteSent: boolean;
-  quoteFromBook: boolean;
   openQuote: () => void;
-  openQuoteBook: () => void;
   closeQuote: () => void;
-  /** Sends the request; resolves to whether the server took it (and its status, 0 if unreachable). */
-  sendQuote: (fields: { name: string; company: string; quantity: string; whatsapp?: string }) => Promise<{ ok: boolean; status: number }>;
+  /** Sends a quote request for the fabric on the stage. */
+  sendQuote: (fields: { name: string; company: string; quantity: string }) => Promise<void>;
+  /**
+   * Orders the swatch book — every shade in it. A signed-in buyer's name, company and WhatsApp
+   * come from their account on the server; `whatsapp` overrides the number. Resolves to whether
+   * the server took the order, and its status (0 if unreachable).
+   */
+  orderBook: (whatsapp?: string) => Promise<{ ok: boolean; status: number }>;
+  /** The signed-in buyer's WhatsApp number on file, or null (and null when signed out). */
+  accountWhatsapp: () => Promise<string | null>;
+  /** Saves a WhatsApp number to the signed-in buyer's profile. */
+  saveWhatsapp: (whatsapp: string) => Promise<boolean>;
   quoteBusy: boolean;
   aiOpen: boolean;
   aiBusy: boolean;
@@ -98,7 +106,7 @@ export interface Studio {
   openSignIn: () => void;
   closeSignIn: () => void;
   doSignIn: (email: string, password: string) => Promise<string | null>;
-  doRegister: (name: string, email: string, password: string, company: string) => Promise<string | null>;
+  doRegister: (fields: { name: string; email: string; password: string; company?: string; whatsapp?: string; city?: string }) => Promise<string | null>;
   doSignOut: () => void;
   fab: (id: string) => FabricRow;
   currentFabric: FabricRow;
@@ -147,7 +155,6 @@ export function useStudio(rawFabrics: FabricRow[]): Studio {
   const [trans, setTrans] = useState<TransState | null>(null);
   const [quoteOpen, setQuoteOpen] = useState(false);
   const [quoteSent, setQuoteSent] = useState(false);
-  const [quoteFromBook, setQuoteFromBook] = useState(false);
   const [quoteBusy, setQuoteBusy] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const [aiBusy, setAiBusy] = useState(false);
@@ -174,21 +181,43 @@ export function useStudio(rawFabrics: FabricRow[]): Studio {
   const isStaff = !!role && ['ADMIN', 'MANAGER', 'SALES'].includes(role);
   const canManage = !!role && ['ADMIN', 'MANAGER'].includes(role);
 
-  // Load the signed-in user's swatch book from the API (server is source of truth).
+  // Load the signed-in user's swatch book from the API (server is source of truth). Shades picked
+  // before signing in are carried into the account first, so signing in never empties the book.
+  const pinsRef = useRef(pins);
+  useEffect(() => {
+    pinsRef.current = pins;
+  });
   useEffect(() => {
     if (!signedIn) return;
     let cancelled = false;
-    fetch('/api/swatchbook')
-      .then((r) => r.json())
-      .then((data: { items: { id: string; fabricId: string; colour: { order: number } }[] }) => {
-        if (cancelled || !data.items) return;
-        setPins(data.items.map((i) => ({ id: i.id, fabricId: i.fabricId, colourOrder: i.colour.order })));
+    const loose = pinsRef.current.filter((p) => !p.id);
+    const items = loose
+      .map((p) => {
+        const c = fabrics.find((x) => x.id === p.fabricId)?.colours.find((cc) => cc.order === p.colourOrder);
+        return c ? { fabricId: p.fabricId, colourId: c.id } : null;
       })
+      .filter((x): x is { fabricId: string; colourId: string } => !!x);
+    const carry = items.length
+      ? fetch('/api/swatchbook', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items }) }).then((r) => r.ok)
+      : Promise.resolve(true);
+    carry
+      .catch(() => false)
+      .then((carried) =>
+        fetch('/api/swatchbook')
+          .then((r) => r.json())
+          .then((data: { items: { id: string; fabricId: string; colour: { order: number } }[] }) => {
+            if (cancelled || !data.items) return;
+            const saved: Pin[] = data.items.map((i) => ({ id: i.id, fabricId: i.fabricId, colourOrder: i.colour.order }));
+            // Should carrying them fail, the loose shades stay in the book on this device all the same.
+            const kept = carried ? [] : loose.filter((p) => !saved.some((q) => q.fabricId === p.fabricId && q.colourOrder === p.colourOrder));
+            setPins([...saved, ...kept]);
+          }),
+      )
       .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [signedIn]);
+  }, [signedIn, fabrics]);
 
   const go = useCallback((v: View) => {
     setView(v);
@@ -287,45 +316,71 @@ export function useStudio(rawFabrics: FabricRow[]): Studio {
   }, []);
 
   const sendQuote = useCallback(
-    async (fields: { name: string; company: string; quantity: string; whatsapp?: string }) => {
+    async (fields: { name: string; company: string; quantity: string }) => {
       setQuoteBusy(true);
       try {
         const f = fab(fid);
         const col = f.colours[Math.min(ci, f.colours.length - 1)];
-        const subject = quoteFromBook
-          ? pins
-              .map((p) => {
-                const x = fab(p.fabricId);
-                const c = x.colours.find((cc) => cc.order === p.colourOrder);
-                return c ? `${c.name} (${x.name})` : '';
-              })
-              .filter(Boolean)
-              .join(', ') || '—'
-          : `${f.name} · ${col.name} · ${f.weight}`;
-        const items = quoteFromBook
-          ? pins
-              .map((p) => {
-                const x = fab(p.fabricId);
-                const c = x.colours.find((cc) => cc.order === p.colourOrder);
-                return c ? { fabricId: x.id, colourId: c.id } : null;
-              })
-              .filter((x): x is { fabricId: string; colourId: string } => !!x)
-          : [{ fabricId: f.id, colourId: col.id }];
-        const res = await fetch('/api/quotes', {
+        await fetch('/api/quotes', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...fields, subject, items }),
+          body: JSON.stringify({ ...fields, subject: `${f.name} · ${col.name} · ${f.weight}`, items: [{ fabricId: f.id, colourId: col.id }] }),
         });
         setQuoteSent(true);
-        return { ok: res.ok, status: res.status };
-      } catch {
-        return { ok: false, status: 0 };
       } finally {
         setQuoteBusy(false);
       }
     },
-    [fab, fid, ci, quoteFromBook, pins]
+    [fab, fid, ci]
   );
+
+  const orderBook = useCallback(
+    async (whatsapp?: string) => {
+      const book = pins
+        .map((p) => {
+          const x = fab(p.fabricId);
+          const c = x.colours.find((cc) => cc.order === p.colourOrder);
+          return c ? { x, c } : null;
+        })
+        .filter((k): k is { x: FabricRow; c: FabricRow['colours'][number] } => !!k);
+      try {
+        const res = await fetch('/api/quotes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            quantity: `${book.length} ${book.length === 1 ? 'shade' : 'shades'} · Swatch Book`,
+            subject: book.map(({ x, c }) => `${c.name} (${x.name})`).join(', ') || '—',
+            items: book.map(({ x, c }) => ({ fabricId: x.id, colourId: c.id })),
+            ...(whatsapp ? { whatsapp } : {}),
+          }),
+        });
+        return { ok: res.ok, status: res.status };
+      } catch {
+        return { ok: false, status: 0 };
+      }
+    },
+    [fab, pins]
+  );
+
+  const accountWhatsapp = useCallback(async () => {
+    try {
+      const res = await fetch('/api/portal/profile');
+      if (!res.ok) return null;
+      const { profile } = (await res.json()) as { profile: { whatsapp?: string | null; contactPhone?: string | null } | null };
+      return profile?.whatsapp || profile?.contactPhone || null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const saveWhatsapp = useCallback(async (whatsapp: string) => {
+    try {
+      const res = await fetch('/api/portal/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ whatsapp, prefWhatsapp: true }) });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }, []);
 
   const runAi = useCallback(() => {
     setAiOpen(true);
@@ -350,17 +405,17 @@ export function useStudio(rawFabrics: FabricRow[]): Studio {
   }, []);
 
   const doRegister = useCallback(
-    async (name: string, email: string, password: string, company: string): Promise<string | null> => {
+    async ({ name, email, password, company, whatsapp, city }: { name: string; email: string; password: string; company?: string; whatsapp?: string; city?: string }): Promise<string | null> => {
       const res = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password, company: company || undefined }),
+        body: JSON.stringify({ name, email, password, company: company || undefined, whatsapp: whatsapp || undefined, city: city || undefined }),
       });
       if (!res.ok) {
         const data = (await res.json().catch(() => null)) as { error?: string } | null;
         return data?.error ?? 'Could not create the account.';
       }
-      return doSignIn(email, password);
+      return doSignIn(email.trim().toLowerCase(), password);
     },
     [doSignIn]
   );
@@ -405,19 +460,15 @@ export function useStudio(rawFabrics: FabricRow[]): Studio {
     closeScene: () => setScene(null),
     quoteOpen,
     quoteSent,
-    quoteFromBook,
     openQuote: () => {
       setQuoteOpen(true);
       setQuoteSent(false);
-      setQuoteFromBook(false);
-    },
-    openQuoteBook: () => {
-      setQuoteOpen(true);
-      setQuoteSent(false);
-      setQuoteFromBook(true);
     },
     closeQuote: () => setQuoteOpen(false),
     sendQuote,
+    orderBook,
+    accountWhatsapp,
+    saveWhatsapp,
     quoteBusy,
     aiOpen,
     aiBusy,

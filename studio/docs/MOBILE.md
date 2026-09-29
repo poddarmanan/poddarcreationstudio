@@ -62,6 +62,22 @@ button carries a `::after` grown to 48px rather than being enlarged to suit a th
 **Any focused text field under 16px makes iOS zoom the page in, and it does not zoom back.** Keep
 phone inputs at 16px.
 
+**Move by transform and opacity, and let pages come to rest.** On a phone, lag is mostly painting,
+not script. Five patterns cost the most:
+- a gradient animated by `background-position`;
+- `border-radius` or `left` animated;
+- `backdrop-filter` over anything that moves or scrolls;
+- `filter: drop-shadow` or `blur` on many small elements;
+- CSS masks on many small elements.
+
+All of these repaint on every frame. The entrance's drifting glow is an oversized layer moved by
+transform, its cloth waves no longer change shape, its dust specks are soft gradients, not blurs,
+and its search field is near-opaque, not frosted. Measured on a phone-sized screen with the idle
+entrance traced for 3 s, rasterizing fell from 5.9 s of work (504 paints) to none. The top bar,
+the tab bar and the gold buttons use no backdrop blur. The buttons' shine plays three times and
+rests, so a page at rest draws nothing. The Swatch Book's notes in `M24_FABRIC_LAB.md` give its
+own figures.
+
 ## Verifying
 
 ```bash

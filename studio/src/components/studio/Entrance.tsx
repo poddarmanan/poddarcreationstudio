@@ -27,18 +27,21 @@ export function Entrance({ studio }: { studio: Studio }) {
 
   return (
     <div className="pc-view" style={{ position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {/* The glow drifts by moving an oversized, already-painted layer — not by moving its
+          gradients, which would repaint the whole screen on every frame. Everything that moves on
+          this page moves by transform or opacity alone, so a phone composites it for nearly free. */}
       <div
         style={{
-          position: 'absolute', inset: 0,
+          position: 'absolute', inset: '-35%', willChange: 'transform',
           background:
-            'radial-gradient(60% 50% at 25% 15%, rgba(214,184,130,.25), transparent 70%),radial-gradient(50% 60% at 82% 25%, rgba(185,150,160,.18), transparent 70%),radial-gradient(80% 60% at 50% 110%, rgba(150,160,185,.15), transparent 70%)',
-          backgroundSize: '170% 170%,170% 170%,170% 170%',
+            'radial-gradient(34% 28% at 38% 33%, rgba(214,184,130,.25), transparent 70%),radial-gradient(28% 34% at 62% 36%, rgba(185,150,160,.18), transparent 70%),radial-gradient(46% 34% at 50% 70%, rgba(150,160,185,.15), transparent 70%)',
           animation: reduceMotion ? 'none' : 'heroDrift 16s ease-in-out infinite alternate',
         }}
       />
       <div
         style={{
           position: 'absolute', left: '-12%', right: '-12%', bottom: '-24%', height: '64%', background: heroCloth,
+          borderRadius: '50% 50% 0 0/90% 88% 0 0', willChange: 'transform',
           animation: reduceMotion ? 'none' : 'clothWave 11s ease-in-out infinite alternate',
           boxShadow: 'inset 0 40px 80px rgba(255,255,255,.25), 0 -30px 90px rgba(138,109,69,.18)',
         }}
@@ -46,6 +49,7 @@ export function Entrance({ studio }: { studio: Studio }) {
       <div
         style={{
           position: 'absolute', left: '-10%', right: '-10%', bottom: '-30%', height: '46%', background: heroCloth2, opacity: 0.55,
+          borderRadius: '50% 50% 0 0/90% 88% 0 0', willChange: 'transform',
           animation: reduceMotion ? 'none' : 'clothWave 15s ease-in-out -4s infinite alternate-reverse',
         }}
       />
@@ -53,8 +57,9 @@ export function Entrance({ studio }: { studio: Studio }) {
         <span
           key={i}
           style={{
-            position: 'absolute', bottom: 0, left: p.left, width: p.size, height: p.size, borderRadius: '50%',
-            background: '#C9A96A', filter: 'blur(1px)',
+            position: 'absolute', bottom: 0, left: p.left, width: p.size * 1.8, height: p.size * 1.8, borderRadius: '50%',
+            // A soft-edged dot drawn by its own gradient, not a blur filter.
+            background: 'radial-gradient(circle, #C9A96A 0 35%, rgba(201,169,106,0) 72%)',
             ['--op' as string]: p.op,
             animation: reduceMotion ? 'none' : `floatUp ${p.dur} linear ${p.delay} infinite`,
           }}
@@ -116,7 +121,7 @@ export function Entrance({ studio }: { studio: Studio }) {
         <div className="pc-hero-search" style={{ position: 'relative', maxWidth: 520, margin: 'clamp(26px,7.2vw,44px) auto 0' }}>
           <div
             style={{
-              display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,.65)', backdropFilter: 'blur(14px)',
+              display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,.86)',
               border: '1px solid rgba(28,25,23,.12)', borderRadius: 999, padding: '6px 8px 6px 20px', boxShadow: '0 12px 40px rgba(28,25,23,.08)',
             }}
           >
@@ -148,7 +153,7 @@ export function Entrance({ studio }: { studio: Studio }) {
           {hasResults && (
             <div
               style={{
-                position: 'absolute', top: 56, left: 0, right: 0, background: 'rgba(255,255,255,.96)', backdropFilter: 'blur(16px)',
+                position: 'absolute', top: 56, left: 0, right: 0, background: 'rgba(255,255,255,.98)',
                 border: '1px solid rgba(28,25,23,.1)', borderRadius: 18, boxShadow: '0 24px 60px rgba(28,25,23,.14)',
                 overflow: 'hidden', textAlign: 'left', zIndex: 20,
               }}

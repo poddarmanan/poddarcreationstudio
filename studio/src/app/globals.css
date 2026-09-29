@@ -187,12 +187,12 @@ button:focus-visible, a:focus-visible, input:focus-visible {
   .pc-bottomnav { display: none; }
 }
 
-@keyframes heroDrift { 0% { background-position: 0% 0%, 100% 100%, 50% 0%; } 100% { background-position: 100% 50%, 0% 40%, 60% 100%; } }
+@keyframes heroDrift { 0% { transform: translate(-7%, -5%) scale(1); } 100% { transform: translate(6%, 4%) scale(1.06); } }
 @keyframes sway { 0%, 100% { transform: rotate(calc(var(--amp) * -1)) skewX(calc(var(--amp) * -.4)); } 50% { transform: rotate(var(--amp)) skewX(calc(var(--amp) * .4)); } }
 @keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
 @keyframes pulse { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
 @keyframes floatUp { 0% { transform: translateY(10vh); opacity: 0; } 12% { opacity: var(--op); } 88% { opacity: var(--op); } 100% { transform: translateY(-105vh); opacity: 0; } }
-@keyframes clothWave { 0% { transform: translateY(5%) rotate(-1.6deg); border-radius: 46% 54% 0 0/95% 82% 0 0; } 100% { transform: translateY(-1%) rotate(1.4deg); border-radius: 56% 44% 0 0/82% 96% 0 0; } }
+@keyframes clothWave { 0% { transform: translateY(5%) rotate(-1.6deg) scaleX(1); } 100% { transform: translateY(-1%) rotate(1.4deg) scaleX(1.04); } }
 @keyframes unfurl { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 @keyframes shineSweep { 0% { transform: translateX(-160%) skewX(-12deg); } 100% { transform: translateX(260%) skewX(-12deg); } }
 @keyframes waterSpread { from { transform: scale(.1); opacity: 0; } to { transform: scale(1); opacity: 1; } }
@@ -444,3 +444,12 @@ button, a { transition: transform .6s var(--pc-ease), background-color .55s ease
 @media (prefers-reduced-motion: reduce) { [style*="pcScrew"], [style*="pcNudgeL"] { animation: none !important; } }
 @keyframes pcScrewGlow { 0% { box-shadow: 0 0 0 0 rgba(255,226,150,0); } 35% { box-shadow: 0 0 0 3px rgba(255,226,150,.55), 0 0 10px 3px rgba(255,210,120,.55); } 100% { box-shadow: 0 1px 1.5px rgba(0,0,0,.6), inset 0 0 0 .5px rgba(60,40,10,.6), 0 0 0 1.5px rgba(0,0,0,.25); } }
 @media (prefers-reduced-motion: reduce) { [style*="pcScrewGlow"] { animation: none !important; } }
+
+/* The sign-in page's fields: no box, a single gold hairline that brightens under the caret. */
+.pc-auth-input {
+  display: block; width: 100%; margin-top: 8px; padding: 6px 0 9px; border: none; border-bottom: 1px solid rgba(205, 169, 96, .38); border-radius: 0;
+  background: transparent; color: #F3E9D6; font-family: var(--font-display), 'Cormorant Garamond', serif; font-size: 20px; letter-spacing: .01em;
+  outline: none; transition: border-color .35s ease, box-shadow .35s ease; caret-color: #E9CF8F;
+}
+.pc-auth-input:focus, .pc-auth-input:focus-visible { outline: none; border-radius: 0; border-bottom-color: #E9CF8F; box-shadow: 0 1px 0 0 #E9CF8F; }
+.pc-auth-input:-webkit-autofill { -webkit-text-fill-color: #F3E9D6; transition: background-color 9999s; }

@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import type { Studio } from './state';
 import { MicroscopeView } from '@/components/three/MicroscopeView';
 import { FONT_DISPLAY, FONT_BODY, fabricTex, colourCss, colourFg } from './helpers';
-import { BookCeremony, type OrderState } from './BookCeremony';
+import { AuthScreen } from './AuthScreen';
 
 export function UnrollTransition({ studio }: { studio: Studio }) {
   const { trans } = studio;
@@ -100,29 +100,11 @@ export function SceneModal({ studio }: { studio: Studio }) {
 }
 
 export function QuoteModal({ studio }: { studio: Studio }) {
-  const { quoteOpen, quoteSent, quoteFromBook, quoteBusy, t, currentFabric: f, currentColour: col, pins } = studio;
+  const { quoteOpen, quoteSent, quoteBusy, t, currentFabric: f, currentColour: col } = studio;
   const [name, setName] = useState('');
   const [company, setCompany] = useState('');
   const [quantity, setQuantity] = useState('');
-  const [whatsapp, setWhatsapp] = useState('+91 ');
-  const [waBad, setWaBad] = useState(false);
-  // A swatch book, once ordered, is compiled and bound before the buyer's eyes and sent to their
-  // WhatsApp. The ceremony starts at once; the order goes in alongside it and the book is only
-  // handed over once the order has settled.
-  const [order, setOrder] = useState<OrderState | null>(null);
   if (!quoteOpen) return null;
-
-
-  const subject = quoteFromBook
-    ? pins
-        .map((p) => {
-          const x = studio.fab(p.fabricId);
-          const c = x.colours.find((cc) => cc.order === p.colourOrder);
-          return c ? `${c.name} (${x.name})` : '';
-        })
-        .filter(Boolean)
-        .join(', ') || '—'
-    : `${f.name} · ${col.name} · ${f.weight}`;
 
   const inputStyle = {
     border: '1px solid rgba(28,25,23,.15)', borderRadius: 6, padding: '12px 14px',
@@ -130,106 +112,57 @@ export function QuoteModal({ studio }: { studio: Studio }) {
   } as const;
 
   return (
-    <>
-      <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(28,25,23,.45)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-        <div style={{ width: 'min(440px,94vw)', background: '#FAF8F5', borderRadius: 8, padding: 32, boxShadow: '0 40px 100px rgba(0,0,0,.35)', animation: 'rise .75s cubic-bezier(.22,.8,.2,1) both' }}>
-          {quoteSent ? (
-            <div style={{ textAlign: 'center', padding: '20px 0' }}>
-              <div style={{ fontFamily: FONT_DISPLAY, fontSize: 30, fontWeight: 500 }}>{t.quoteThanks}</div>
-              <p style={{ fontWeight: 300, color: 'rgba(28,25,23,.6)', fontSize: 14, lineHeight: 1.6 }}>{t.quoteFollow}</p>
-              <button
-                onClick={studio.closeQuote}
-                style={{ cursor: 'pointer', marginTop: 10, background: '#1C1917', color: '#FAF8F5', border: 'none', borderRadius: 999, padding: '11px 28px', fontFamily: FONT_BODY, fontSize: 12, letterSpacing: '.12em' }}
-              >
-                OK
+    <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(28,25,23,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <div style={{ width: 'min(440px,94vw)', background: '#FAF8F5', borderRadius: 8, padding: 32, boxShadow: '0 40px 100px rgba(0,0,0,.35)', animation: 'rise .75s cubic-bezier(.22,.8,.2,1) both' }}>
+        {quoteSent ? (
+          <div style={{ textAlign: 'center', padding: '20px 0' }}>
+            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 30, fontWeight: 500 }}>{t.quoteThanks}</div>
+            <p style={{ fontWeight: 300, color: 'rgba(28,25,23,.6)', fontSize: 14, lineHeight: 1.6 }}>{t.quoteFollow}</p>
+            <button
+              onClick={studio.closeQuote}
+              style={{ cursor: 'pointer', marginTop: 10, background: '#1C1917', color: '#FAF8F5', border: 'none', borderRadius: 999, padding: '11px 28px', fontFamily: FONT_BODY, fontSize: 12, letterSpacing: '.12em' }}
+            >
+              OK
+            </button>
+          </div>
+        ) : (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <div style={{ fontFamily: FONT_DISPLAY, fontSize: 26, fontWeight: 500 }}>{t.quote}</div>
+              <button onClick={studio.closeQuote} style={{ cursor: 'pointer', border: 'none', background: 'none', fontSize: 18, color: 'rgba(28,25,23,.5)' }}>
+                ×
               </button>
             </div>
-          ) : (
-            <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                <div style={{ fontFamily: FONT_DISPLAY, fontSize: 26, fontWeight: 500 }}>{quoteFromBook ? t.orderBook : t.quote}</div>
-                <button onClick={studio.closeQuote} style={{ cursor: 'pointer', border: 'none', background: 'none', fontSize: 18, color: 'rgba(28,25,23,.5)' }}>
-                  ×
-                </button>
-              </div>
-              <div style={{ fontSize: 13, color: 'rgba(28,25,23,.55)', margin: '4px 0 20px' }}>{subject}</div>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (quoteBusy || !name || !company) return;
-                  if (quoteFromBook) {
-                    // A number with its country code: 8 to 15 digits, spaces and dashes allowed.
-                    const digits = whatsapp.replace(/\D/g, '');
-                    if (!/^\+?[\d\s-]+$/.test(whatsapp.trim()) || digits.length < 8 || digits.length > 15) {
-                      setWaBad(true);
-                      return;
-                    }
-                    setOrder('pending');
-                    studio.sendQuote({ name, company, quantity: `${pins.length} ${pins.length === 1 ? t.shade : t.shades} · ${t.book}`, whatsapp: whatsapp.trim() }).then((r) =>
-                      // The static preview has no server to take the order; everywhere else, a refusal is a failure.
-                      setOrder(r.ok ? 'sent' : r.status === 404 && process.env.NEXT_PUBLIC_BASE_PATH ? 'demo' : 'failed'),
-                    );
-                    return;
-                  }
-                  if (!quantity) return;
-                  studio.sendQuote({ name, company, quantity });
+            <div style={{ fontSize: 13, color: 'rgba(28,25,23,.55)', margin: '4px 0 20px' }}>
+              {f.name} · {col.name} · {f.weight}
+            </div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!name || !company || !quantity || quoteBusy) return;
+                studio.sendQuote({ name, company, quantity });
+              }}
+              style={{ display: 'flex', flexDirection: 'column', gap: 10 }}
+            >
+              <input required placeholder={t.fName} value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} />
+              <input required placeholder={t.fCompany} value={company} onChange={(e) => setCompany(e.target.value)} style={inputStyle} />
+              <input required placeholder={t.fQty} value={quantity} onChange={(e) => setQuantity(e.target.value)} style={inputStyle} />
+              <button
+                type="submit"
+                disabled={quoteBusy}
+                className="pc-hv-gold-bg"
+                style={{
+                  cursor: quoteBusy ? 'wait' : 'pointer', background: '#1C1917', color: '#FAF8F5', border: 'none', borderRadius: 999,
+                  padding: 13, fontFamily: FONT_BODY, fontSize: 12.5, letterSpacing: '.14em', textTransform: 'uppercase', marginTop: 6, opacity: quoteBusy ? 0.7 : 1,
                 }}
-                style={{ display: 'flex', flexDirection: 'column', gap: 10 }}
               >
-                <input required placeholder={t.fName} value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} />
-                <input required placeholder={t.fCompany} value={company} onChange={(e) => setCompany(e.target.value)} style={inputStyle} />
-                {quoteFromBook ? (
-                  <>
-                    <input
-                      required
-                      type="tel"
-                      inputMode="tel"
-                      autoComplete="tel"
-                      aria-label={t.waPh}
-                      aria-invalid={waBad || undefined}
-                      placeholder={t.waPh}
-                      value={whatsapp}
-                      onChange={(e) => {
-                        setWhatsapp(e.target.value);
-                        setWaBad(false);
-                      }}
-                      style={{ ...inputStyle, ...(waBad ? { borderColor: '#A33' } : {}), fontVariantNumeric: 'lining-nums' }}
-                    />
-                    {waBad && <div style={{ fontSize: 12, color: '#A33', marginTop: -4 }}>{t.waBad}</div>}
-                  </>
-                ) : (
-                  <input required placeholder={t.fQty} value={quantity} onChange={(e) => setQuantity(e.target.value)} style={inputStyle} />
-                )}
-                <button
-                  type="submit"
-                  disabled={quoteBusy}
-                  className="pc-hv-gold-bg"
-                  style={{
-                    cursor: quoteBusy ? 'wait' : 'pointer', background: '#1C1917', color: '#FAF8F5', border: 'none', borderRadius: 999,
-                    padding: 13, fontFamily: FONT_BODY, fontSize: 12.5, letterSpacing: '.14em', textTransform: 'uppercase', marginTop: 6, opacity: quoteBusy ? 0.7 : 1,
-                  }}
-                >
-                  {quoteBusy ? '…' : t.quoteSend}
-                </button>
-              </form>
-            </>
-          )}
-        </div>
+                {quoteBusy ? '…' : t.quoteSend}
+              </button>
+            </form>
+          </>
+        )}
       </div>
-      {/* The ceremony comes up over the form, which stays beneath it until the room is dark. */}
-      {order && (
-        <BookCeremony
-          studio={studio}
-          mode="order"
-          whatsapp={whatsapp.trim()}
-          order={order}
-          onDone={() => {
-            setOrder(null);
-            studio.closeQuote();
-          }}
-        />
-      )}
-    </>
+    </div>
   );
 }
 
@@ -317,87 +250,8 @@ export function AiModal({ studio }: { studio: Studio }) {
   );
 }
 
+/** Signing in or creating an account from the studio's menu: the same page as ordering asks for. */
 export function SignInModal({ studio }: { studio: Studio }) {
-  const { signInOpen, t } = studio;
-  const [mode, setMode] = useState<'signin' | 'register'>('signin');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [company, setCompany] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  if (!signInOpen) return null;
-
-  const inputStyle = {
-    border: '1px solid rgba(28,25,23,.15)', borderRadius: 6, padding: '12px 14px',
-    fontFamily: FONT_BODY, fontSize: 14, background: '#fff', outlineColor: '#8A6D45',
-  } as const;
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    setError(null);
-    const err =
-      mode === 'signin'
-        ? await studio.doSignIn(email, password)
-        : await studio.doRegister(name, email, password, company);
-    setBusy(false);
-    if (err) setError(err);
-    else studio.closeSignIn();
-  };
-
-  return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(28,25,23,.45)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-      <div style={{ width: 'min(420px,94vw)', background: '#FAF8F5', borderRadius: 8, padding: 32, boxShadow: '0 40px 100px rgba(0,0,0,.35)', animation: 'rise .75s cubic-bezier(.22,.8,.2,1) both' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 26, fontWeight: 500 }}>{mode === 'signin' ? t.signin : 'Create account'}</div>
-          <button onClick={studio.closeSignIn} style={{ cursor: 'pointer', border: 'none', background: 'none', fontSize: 18, color: 'rgba(28,25,23,.5)' }}>
-            ×
-          </button>
-        </div>
-        <div style={{ fontSize: 13, fontWeight: 300, color: 'rgba(28,25,23,.55)', margin: '4px 0 20px' }}>
-          {mode === 'signin' ? 'Approved buyers see wholesale pricing.' : 'New accounts see pricing once approved by our sales team.'}
-        </div>
-        <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {mode === 'register' && (
-            <>
-              <input required placeholder={t.fName} value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} />
-              <input placeholder={t.fCompany} value={company} onChange={(e) => setCompany(e.target.value)} style={inputStyle} />
-            </>
-          )}
-          <input required type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} style={inputStyle} />
-          <input required type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} style={inputStyle} minLength={mode === 'register' ? 8 : undefined} />
-          {error && <div style={{ fontSize: 12.5, color: '#A33' }}>{error}</div>}
-          <button
-            type="submit"
-            disabled={busy}
-            className="pc-hv-gold-bg"
-            style={{
-              cursor: busy ? 'wait' : 'pointer', background: '#1C1917', color: '#FAF8F5', border: 'none', borderRadius: 999,
-              padding: 13, fontFamily: FONT_BODY, fontSize: 12.5, letterSpacing: '.14em', textTransform: 'uppercase', marginTop: 6, opacity: busy ? 0.7 : 1,
-            }}
-          >
-            {busy ? '…' : mode === 'signin' ? t.signin : 'Create account'}
-          </button>
-        </form>
-        <button
-          onClick={() => {
-            setMode((m) => (m === 'signin' ? 'register' : 'signin'));
-            setError(null);
-          }}
-          className="pc-hv-ink"
-          style={{ cursor: 'pointer', marginTop: 14, background: 'none', border: 'none', fontFamily: FONT_BODY, fontSize: 12, color: 'rgba(28,25,23,.55)', letterSpacing: '.06em' }}
-        >
-          {mode === 'signin' ? 'New buyer? Create an account →' : '← Back to sign in'}
-        </button>
-        {mode === 'signin' && (
-          <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(28,25,23,.08)', fontSize: 11.5, fontWeight: 300, color: 'rgba(28,25,23,.5)', lineHeight: 1.7 }}>
-            Demo accounts (password <b style={{ fontWeight: 500 }}>poddar123</b>):
-            <br />
-            buyer@example.com · sales@poddarcreation.studio · admin@poddarcreation.studio
-          </div>
-        )}
-      </div>
-    </div>
-  );
+  if (!studio.signInOpen) return null;
+  return <AuthScreen studio={studio} intent="account" onClose={studio.closeSignIn} onDone={studio.closeSignIn} />;
 }

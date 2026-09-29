@@ -12,6 +12,9 @@ const RegisterInput = z.object({
   email: z.string().email().max(320),
   password: z.string().min(8).max(200),
   company: z.string().max(200).optional(),
+  // Where the buyer's swatch books are sent: a number with its country code.
+  whatsapp: z.string().trim().regex(/^\+?[\d\s-]{8,24}$/).optional(),
+  city: z.string().max(120).optional(),
 });
 
 export async function POST(req: Request) {
@@ -29,7 +32,17 @@ export async function POST(req: Request) {
     });
 
     const info = clientInfo(req);
-    const { audit, telemetry, emailService, tokenService } = getContainer();
+    const { audit, telemetry, emailService, tokenService, dealerService } = getContainer();
+    // What the buyer gave at sign-up goes onto their profile, so ordering never asks again.
+    if (data.whatsapp || data.company || data.city) {
+      await dealerService.upsertProfile(user.id, {
+        company: data.company ?? null,
+        whatsapp: data.whatsapp ?? null,
+        contactPhone: data.whatsapp ?? null,
+        shippingCity: data.city ?? null,
+        prefWhatsapp: !!data.whatsapp,
+      });
+    }
     await audit.record({ actorId: user.id, action: 'user.register', entity: 'User', entityId: user.id, ip: info.ip, userAgent: info.userAgent });
     telemetry.capture({ name: 'user.registered', actorId: user.id });
 

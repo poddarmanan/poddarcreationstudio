@@ -4,12 +4,14 @@ import { auth } from '@/auth';
 import { getContainer } from '@/server/container';
 import { requireStaff } from '@/server/core/rbac';
 import { run, parseJson, clientInfo } from '@/server/core/http';
+import { AppError } from '@/server/core/errors';
 import { RATE_LIMITS } from '@/server/core/rate-limit';
 import type { QuoteStatus } from '@/generated/prisma/enums';
 
 const QuoteInput = z.object({
-  name: z.string().min(1).max(200),
-  company: z.string().min(1).max(200),
+  // A signed-in buyer's name, company and WhatsApp come from their account when left out.
+  name: z.string().min(1).max(200).optional(),
+  company: z.string().min(1).max(200).optional(),
   email: z.string().email().max(320).nullish(),
   // A phone number with its country code: digits, spaces, dashes, an optional leading +.
   whatsapp: z.string().trim().regex(/^\+?[\d\s-]{8,24}$/).nullish(),
@@ -30,14 +32,21 @@ export async function POST(req: Request) {
     async () => {
       const data = await parseJson(req, QuoteInput);
       const session = await auth();
-      const { quoteService, audit } = getContainer();
+      const { quoteService, audit, customerService } = getContainer();
+
+      const account = session?.user?.id ? await customerService.account(session.user.id) : null;
+      const contact = account?.contacts.find((c) => c.whatsapp || c.phone);
+      const name = data.name ?? account?.user.name ?? null;
+      const company = data.company ?? account?.profile?.company ?? account?.user.company ?? name;
+      if (!name || !company) throw AppError.validation('Name and company are required');
+      const whatsapp = data.whatsapp ?? account?.profile?.whatsapp ?? account?.profile?.contactPhone ?? contact?.whatsapp ?? contact?.phone ?? null;
 
       const quote = await quoteService.create({
         userId: session?.user?.id ?? null,
-        name: data.name,
-        company: data.company,
+        name,
+        company,
         email: data.email ?? session?.user?.email ?? null,
-        whatsapp: data.whatsapp ?? null,
+        whatsapp,
         quantity: data.quantity,
         subject: data.subject,
         moq: data.moq,

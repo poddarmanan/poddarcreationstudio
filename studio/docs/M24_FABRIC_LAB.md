@@ -275,24 +275,55 @@ to the Showroom.
 
 ### Ordering
 
-"Order swatch book", in the frosted glass of Add to book, opens the order form. It lists every
-shade in the book, across all its fabrics, and asks for a name, a company and a WhatsApp number
-with its country code (it starts with "+91 "). A swatch book order does not ask for a quantity;
-it is recorded as "N shades · Swatch Book". A number with fewer than 8 or more than 15 digits is
-refused in the form, and the API checks the same.
+"Order swatch book" no longer opens a form. What an order needs is taken from the buyer's
+account.
 
-The number is stored on the quote (`Quote.whatsapp`, migration `m45_quote_whatsapp`). The admin
-quote desk shows it as "Send the book on WhatsApp", linked to `wa.me`, because the platform does
-not send WhatsApp messages itself. The team sends the compiled book from there.
+- **Signed in, with a WhatsApp number on file:** the order starts at once. Confetti bursts from
+  the button, and the binding ceremony plays while the order goes to the server. The server
+  fills in the buyer's name, company and WhatsApp from their account: `DealerProfile.whatsapp`,
+  then `contactPhone`, then a contact person's number.
+- **Signed in, but no number on file** (an account made before sign-up asked for one): the
+  sign-in page asks for that one detail, saves it to the profile, and the order starts.
+- **Not signed in:** the sign-in page opens. Once the buyer signs in or creates an account, the
+  confetti bursts and the ceremony starts.
 
-The ceremony starts as soon as the form is sent, while the order goes to the server. The book is
-not handed over until the order has settled:
+The confetti is drawn on one canvas laid over everything, which removes itself when the last piece
+has fallen (`src/components/studio/confetti.ts`). The pieces are the book's own shades, cut as
+tiny pinked scraps, with gold-foil strips and cream paper among them. They tumble, flutter and
+fade. None is drawn under reduced motion.
 
-- **Saved:** the ceremony ends on the WhatsApp delivery.
-- **Refused or unreachable:** it ends on the bound book, with a note that the order could not be
-  placed, and the PDF.
-- **Static preview:** the Pages site has no server, so there the ceremony ends on the delivery
-  with a note that this preview does not send orders.
+**The sign-in page** (`AuthScreen.tsx`) is a page of its own, in the lamplit room of the ceremony:
+
+- **Top:** the closed volume under the lamp (its cover takes the buyer's name as they type it),
+  "Your book awaits" in gold foil, and how many shades will be bound and sent.
+- **Tabs:** "Sign in" and "Create account", the chosen one underlined in gold.
+- **Fields:** ruled in gold rather than boxed, with labels in spaced capitals.
+  - Sign in: email and password.
+  - Create account: full name, company, city, WhatsApp number (starting "+91 "; 8 to 15 digits,
+    checked here and by the API), email and password.
+- **Button:** a gold "Sign in & order", "Create account & order" or "Save & order".
+- **Below:** a link to reset a password.
+
+It uses no backdrop blur and no looping animation. The studio menu's sign-in uses the same page,
+without the order.
+
+**Registration.** It now records the WhatsApp number, company and city on the buyer's profile
+(`DealerProfile`), so ordering never asks again. `POST /api/register` accepts optional `whatsapp`
+and `city`, and `POST /api/quotes` takes a signed-in buyer's name and company from the account
+when they are left out.
+
+**Shades picked before signing in.** They are carried into the account when the buyer signs in.
+`POST /api/swatchbook` accepts `{ items: [...] }` and adds them all in one request, skipping any
+already there. Before this, signing in replaced the book with the saved one and lost them.
+
+On the static preview, which has no server and so no accounts, the page says so, and continuing
+shows the ordering experience without creating one.
+
+The number is stored on the quote (`Quote.whatsapp`). The admin quote desk shows it as "Send the
+book on WhatsApp", linked to `wa.me`, because the platform does not send WhatsApp messages itself.
+The team sends the compiled book from there. The ceremony hands the book over once the order has
+settled. If the order was saved, it ends on the WhatsApp delivery. If it was refused, it ends on
+the bound book with a note to order again, and the PDF.
 
 ### The binding ceremony
 
@@ -309,7 +340,7 @@ nothing is swapped mid-flight.
    screwed home in turn, each flaring as it seats, and a glint runs down the gold fillet.
 3. **Bound and fastened.** The front cover has lain open to the left from the start, marbled
    endpaper up, and now swings shut over the pages. The clasp is then pushed home over the catch.
-   The order form stays beneath the dark room rather than vanishing as the room comes up.
+   
 4. **Handing over.**
    - After an order, the book gives way to the buyer's number, in gold, "on WhatsApp". Below is
      a chat as the book will arrive: "Poddar Creation", with the buyer's number, and a bubble

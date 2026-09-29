@@ -318,8 +318,8 @@ function Delivery({ t, whatsapp, counts, userName, demo, pdf, pdfError, onDownlo
             {/* The cover, as the file's preview. */}
             <div style={{ height: 150, borderRadius: 7, overflow: 'hidden', display: 'grid', placeItems: 'center', background: 'radial-gradient(80% 80% at 50% 40%, #F6EFE2, #E1D5C0)' }}>
               <div style={{ width: 96, height: 128, position: 'relative' }}>
-                <div style={{ position: 'absolute', left: 0, top: 0, width: 240, transform: 'scale(.4)', transformOrigin: '0 0' }}>
-                  <Binding width="240px" padded={false}>
+                <div style={{ position: 'absolute', left: 0, top: 0, width: 314, transform: 'scale(.306)', transformOrigin: '0 0' }}>
+                  <Binding width="314px" padded={false}>
                     <div style={{ position: 'absolute', top: 0, bottom: 0, left: 26, right: 0 }}>
                       <CoverFace t={t} userName={userName} />
                     </div>

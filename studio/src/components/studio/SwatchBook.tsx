@@ -4,7 +4,10 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 import type { Studio, Pin } from './state';
 import type { FabricRow, ColourRow } from '@/lib/types';
 import { FONT_DISPLAY, FONT_BODY, fabricTex } from './helpers';
-import { BookCeremony } from './BookCeremony';
+import { BookCeremony, type OrderState } from './BookCeremony';
+import { AuthScreen } from './AuthScreen';
+import { confettiBurst } from './confetti';
+import { oklchToRgb, rgbToHex } from '@/lib/colour-science';
 
 export type Cutting = { pin: Pin; colour: ColourRow };
 
@@ -87,6 +90,10 @@ export function SwatchBook({ studio }: { studio: Studio }) {
   const [dragging, setDragging] = useState(false);
   const [flying, setFlying] = useState<{ dir: 1 | -1; target: number } | null>(null);
   const [preview, setPreview] = useState(false);
+  // Ordering: a buyer who is signed in (with a WhatsApp number on file) goes straight to the
+  // binding ceremony; anyone else signs in or creates an account first.
+  const [ordering, setOrdering] = useState<null | { step: 'auth'; intent: 'order' | 'whatsapp' } | { step: 'ceremony'; whatsapp: string; order: OrderState }>(null);
+  const orderButton = useRef<HTMLButtonElement | null>(null);
   const drag = useRef<{ x: number; y: number; moved: boolean; dx: number } | null>(null);
   const dragged = useRef(false);
   const wheel = useRef({ dx: 0, t: 0 });
@@ -156,6 +163,22 @@ export function SwatchBook({ studio }: { studio: Studio }) {
       window.removeEventListener('pointercancel', up);
     };
   }, [dragging]);
+
+  /** The order begins: a burst of the book's own shades and gold foil, then the ceremony, with the order sent alongside it. */
+  const begin = (whatsapp: string | null, demo: boolean) => {
+    const at = orderButton.current?.getBoundingClientRect() ?? new DOMRect(window.innerWidth / 2 - 60, window.innerHeight * 0.72, 120, 44);
+    confettiBurst(at, groups.flatMap((g) => g.items.map(({ colour: c }) => rgbToHex(oklchToRgb(c.l, c.c, c.h)))));
+    setOrdering({ step: 'ceremony', whatsapp: whatsapp ?? '', order: demo ? 'demo' : 'pending' });
+    if (demo) return;
+    studio.orderBook(whatsapp ?? undefined).then((r) => setOrdering((o) => (o?.step === 'ceremony' ? { ...o, order: r.ok ? 'sent' : 'failed' } : o)));
+  };
+  const order = async () => {
+    // The static preview has no accounts; there the sign-in page shows the experience without one.
+    if (process.env.NEXT_PUBLIC_BASE_PATH || !studio.signedIn) return setOrdering({ step: 'auth', intent: 'order' });
+    const onFile = await studio.accountWhatsapp();
+    if (!onFile) return setOrdering({ step: 'auth', intent: 'whatsapp' });
+    begin(onFile, false);
+  };
 
   if (!sheet) return <EmptyBook studio={studio} />;
   const group = groups[sheet.g];
@@ -260,7 +283,8 @@ export function SwatchBook({ studio }: { studio: Studio }) {
       {/* The book's actions: order it — every shade in it, across all its fabrics — or see it bound first. */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 20, animation: 'rise 1s .35s cubic-bezier(.22,.8,.2,1) both' }}>
         <button
-          onClick={studio.openQuoteBook}
+          ref={orderButton}
+          onClick={order}
           className="pc-book"
           style={{
             cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 10, width: 'min(100%, 460px)',
@@ -286,6 +310,8 @@ export function SwatchBook({ studio }: { studio: Studio }) {
         </div>
       </div>
       {preview && <BookCeremony studio={studio} mode="preview" onDone={() => setPreview(false)} />}
+      {ordering?.step === 'auth' && <AuthScreen studio={studio} intent={ordering.intent} onClose={() => setOrdering(null)} onDone={(r) => begin(r.whatsapp, r.demo)} />}
+      {ordering?.step === 'ceremony' && <BookCeremony studio={studio} mode="order" whatsapp={ordering.whatsapp} order={ordering.order} onDone={() => setOrdering(null)} />}
     </Room>
   );
 }
