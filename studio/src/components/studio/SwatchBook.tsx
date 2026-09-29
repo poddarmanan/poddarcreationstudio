@@ -1,9 +1,10 @@
 'use client';
 
-import { useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { Studio, Pin } from './state';
 import type { FabricRow, ColourRow } from '@/lib/types';
 import { FONT_DISPLAY, FONT_BODY, fabricTex } from './helpers';
+import { BookCeremony } from './BookCeremony';
 
 export type Cutting = { pin: Pin; colour: ColourRow };
 
@@ -38,19 +39,27 @@ export const GOLD = '#CDA960';
 export const INK = '#1C1917';
 export const UMBER = '#8A6D45';
 
+/** Cuttings per sheet, and how a sheet's slots are laid out for a number of cuttings: [columns, rows]. */
+const PER_SHEET = 9;
+const sheetGrid = (n: number): [number, number] => (n <= 1 ? [1, 1] : n <= 2 ? [1, 2] : n <= 4 ? [2, 2] : n <= 6 ? [2, 3] : [3, 3]);
+/** The cutting area's height over its width, on a 3 : 4 sheet less its head and foot. */
+const AREA_ASPECT = 1.13;
+
+type Group = { x: FabricRow; items: Cutting[] };
+type Sheet = { key: string; g: number; kind: 'title' } | { key: string; g: number; kind: 'plate'; page: number; pages: number; items: Cutting[] };
+
 /**
- * The Swatch Book: one fabric at a time, each fabric a chapter. Its name is the heading, its
- * particulars beneath; when more than one fabric is in the book, the heading can be swiped (or its
- * arrows or chapter numerals tapped) to change fabric. Below it, the book itself — bound in oxblood
- * morocco with gold tooling and brass corners — holding up to six of that fabric's shades per page
- * as pinked cuttings mounted with photo corners (one fills the page, two and three share it in
- * bands, four is 2 × 2, five is 2 + 2 + 1, six is 2 × 3). More than six fill further pages; sliding
- * the top page to the right tucks it under the stack and brings the next one forward.
+ * The Swatch Book while it is being chosen: a stack of loose sheets, one fabric after another. Each
+ * fabric opens on its title sheet; sliding it left opens that fabric's sheets of cuttings (nine to a
+ * sheet, scattered, pinned and labelled), and sliding right from a title skips to the next fabric.
+ * Sliding on past a fabric's last sheet comes to the next fabric's title; sliding right on a sheet
+ * of cuttings goes back a sheet. The heading above names the fabric under the hand, and its arrows
+ * and chapter numerals jump between fabrics. Ordering binds the sheets into the book.
  */
 export function SwatchBook({ studio }: { studio: Studio }) {
   const { t, fabrics, pins } = studio;
 
-  const groups = fabrics
+  const groups: Group[] = fabrics
     .map((x) => ({
       x,
       items: pins
@@ -60,67 +69,96 @@ export function SwatchBook({ studio }: { studio: Studio }) {
     }))
     .filter((g) => g.items.length);
 
-  const [chosen, setChosen] = useState<string | null>(null);
-  const at = Math.max(0, groups.findIndex((g) => g.x.id === chosen));
-  const group = groups[at];
-  const [dir, setDir] = useState<1 | -1>(1);
+  const sheets: Sheet[] = groups.flatMap((g, gi) => {
+    const pages = Math.ceil(g.items.length / PER_SHEET);
+    return [
+      { key: `${g.x.id}:title`, g: gi, kind: 'title' as const },
+      ...Array.from({ length: pages }, (_, page) => ({ key: `${g.x.id}:${page}`, g: gi, kind: 'plate' as const, page, pages, items: g.items.slice(page * PER_SHEET, (page + 1) * PER_SHEET) })),
+    ];
+  });
 
-  const step = (d: 1 | -1) => {
-    if (groups.length < 2) return;
-    setDir(d);
-    setChosen(groups[(at + d + groups.length) % groups.length].x.id);
-  };
-  const jump = (i: number) => {
-    if (i === at) return;
-    setDir(i > at ? 1 : -1);
-    setChosen(groups[i].x.id);
-  };
-
-  // The heading swipes and scrolls sideways to change fabric, as the lab's number strip does.
-  const swipe = useRef<{ x: number; y: number } | null>(null);
+  const [pos, setPos] = useState<{ key: string | null; index: number }>({ key: null, index: 0 });
+  const found = sheets.findIndex((s) => s.key === pos.key);
+  const at = found >= 0 ? found : Math.min(pos.index, Math.max(0, sheets.length - 1));
+  const sheet = sheets[at];
+  const [headDir, setHeadDir] = useState<1 | -1>(1);
+  const [dx, setDx] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const [flying, setFlying] = useState<{ dir: 1 | -1; target: number } | null>(null);
+  const [preview, setPreview] = useState(false);
+  const drag = useRef<{ x: number; y: number; moved: boolean; dx: number } | null>(null);
+  const dragged = useRef(false);
   const wheel = useRef({ dx: 0, t: 0 });
 
-  if (!group) return <EmptyBook studio={studio} />;
+  const titleOf = (g: number) => sheets.findIndex((s) => s.g === g && s.kind === 'title');
+  const forwardOf = (i: number) => (i + 1) % sheets.length;
+  const backOf = (i: number) => (sheets[i].kind === 'title' ? titleOf((sheets[i].g + 1) % groups.length) : i - 1);
+
+  /** Throws the top sheet off to one side (-1 left, 1 right) and brings `target` up from beneath. */
+  const flyTo = (target: number, dir: 1 | -1) => {
+    if (flying || target === at || target < 0) return;
+    const fromG = sheet.g;
+    const toG = sheets[target].g;
+    if (toG !== fromG) setHeadDir(toG > fromG || (toG === 0 && dir < 0 && fromG === groups.length - 1) ? 1 : -1);
+    setFlying({ dir, target });
+    window.setTimeout(() => {
+      setPos({ key: sheets[target].key, index: target });
+      setFlying(null);
+      setDx(0);
+    }, 460);
+  };
+  const forward = () => flyTo(forwardOf(at), -1);
+  const back = () => flyTo(backOf(at), 1);
+  const toFabric = (g: number) => {
+    const target = titleOf(((g % groups.length) + groups.length) % groups.length);
+    flyTo(target, g > sheet.g ? -1 : 1);
+  };
+  const flyRef = useRef({ forward, back });
+  useEffect(() => {
+    flyRef.current = { forward, back };
+  });
+
+  useEffect(() => {
+    if (!dragging) return;
+    const move = (e: PointerEvent) => {
+      const d = drag.current;
+      if (!d) return;
+      d.dx = e.clientX - d.x;
+      if (Math.abs(d.dx) > 6) d.moved = true;
+      setDx(d.dx);
+    };
+    const up = () => {
+      const d = drag.current;
+      drag.current = null;
+      dragged.current = !!d?.moved;
+      setDragging(false);
+      if (d && d.moved && Math.abs(d.dx) > 70) {
+        if (d.dx < 0) flyRef.current.forward();
+        else flyRef.current.back();
+      } else setDx(0);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+    return () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+    };
+  }, [dragging]);
+
+  if (!sheet) return <EmptyBook studio={studio} />;
+  const group = groups[sheet.g];
+  const under = flying ? flying.target : dx > 0 ? backOf(at) : forwardOf(at);
+  const shown = under >= 0 && under !== at ? [sheets[under], sheet] : [sheet];
 
   return (
     <Room>
-      <div
-        tabIndex={0}
-        role="group"
-        aria-label={`${t.book}: ${group.x.name}${groups.length > 1 ? `, fabric ${at + 1} of ${groups.length}. Swipe sideways for the next.` : ''}`}
-        onKeyDown={(e) => {
-          if (e.key === 'ArrowRight') step(1);
-          if (e.key === 'ArrowLeft') step(-1);
-        }}
-        onPointerDown={(e) => {
-          swipe.current = { x: e.clientX, y: e.clientY };
-        }}
-        onPointerUp={(e) => {
-          const from = swipe.current;
-          swipe.current = null;
-          if (!from) return;
-          const dx = e.clientX - from.x;
-          const dy = e.clientY - from.y;
-          if (Math.abs(dx) > 36 && Math.abs(dx) > Math.abs(dy) * 1.3) step(dx < 0 ? 1 : -1);
-        }}
-        onPointerCancel={() => {
-          swipe.current = null;
-        }}
-        onWheel={(e) => {
-          if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
-          if (e.timeStamp - wheel.current.t > 400) wheel.current.dx = 0;
-          wheel.current = { dx: wheel.current.dx + e.deltaX, t: e.timeStamp };
-          if (Math.abs(wheel.current.dx) > 60) {
-            step(wheel.current.dx > 0 ? 1 : -1);
-            wheel.current.dx = 0;
-          }
-        }}
-        style={{ outline: 'none', textAlign: 'center', touchAction: 'pan-y', userSelect: 'none', WebkitUserSelect: 'none', cursor: groups.length > 1 ? 'grab' : 'default' }}
-      >
+      <div style={{ textAlign: 'center', userSelect: 'none', WebkitUserSelect: 'none' }}>
         <Eyebrow>{t.book}</Eyebrow>
         <div style={{ display: 'grid', gridTemplateColumns: groups.length > 1 ? '40px minmax(0,1fr) 40px' : 'minmax(0,1fr)', alignItems: 'center', gap: 8, marginTop: 12 }}>
-          {groups.length > 1 && <ArrowButton label="Previous fabric" onClick={() => step(-1)} glyph="‹" />}
-          <div key={group.x.id} style={{ minWidth: 0, animation: `${dir > 0 ? 'pcBookInRight' : 'pcBookInLeft'} .8s cubic-bezier(.22,.8,.2,1) both` }}>
+          {groups.length > 1 && <ArrowButton label="Previous fabric" onClick={() => toFabric(sheet.g - 1)} glyph="‹" />}
+          <div key={group.x.id} style={{ minWidth: 0, animation: `${headDir > 0 ? 'pcBookInRight' : 'pcBookInLeft'} .8s cubic-bezier(.22,.8,.2,1) both` }}>
             <h1 style={{ margin: 0, fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(36px,6vw,62px)', lineHeight: 1.02, color: INK, textWrap: 'balance' }}>{group.x.name}</h1>
             <div style={{ marginTop: 10, fontSize: 10.5, letterSpacing: '.16em', textTransform: 'uppercase', color: 'rgba(28,25,23,.55)', lineHeight: 1.7 }}>
               {group.x.weight} · {group.x.width} · {group.x.comp}
@@ -129,39 +167,96 @@ export function SwatchBook({ studio }: { studio: Studio }) {
               {group.x.hand} — {group.items.length} {group.items.length === 1 ? t.shade : t.shades} {t.inBookWord}
             </div>
           </div>
-          {groups.length > 1 && <ArrowButton label="Next fabric" onClick={() => step(1)} glyph="›" />}
+          {groups.length > 1 && <ArrowButton label="Next fabric" onClick={() => toFabric(sheet.g + 1)} glyph="›" />}
         </div>
         {groups.length > 1 && (
           // The chapters, by their numerals: the one open is underlined in gold.
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'baseline', gap: 4, marginTop: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'baseline', flexWrap: 'wrap', gap: 4, marginTop: 12 }}>
             {groups.map((g, i) => (
               <button
                 key={g.x.id}
                 aria-label={`${t.chapterWord} ${roman(i + 1)}: ${g.x.name}`}
-                aria-current={i === at ? 'true' : undefined}
-                onClick={() => jump(i)}
-                onPointerDown={(e) => e.stopPropagation()}
+                aria-current={i === sheet.g ? 'true' : undefined}
+                onClick={() => i !== sheet.g && toFabric(i)}
                 style={{
                   position: 'relative', cursor: 'pointer', background: 'none', border: 'none', padding: '4px 8px 7px', fontFamily: FONT_DISPLAY,
-                  fontSize: i === at ? 17 : 15, color: i === at ? UMBER : 'rgba(138,109,69,.45)', transition: 'color .5s ease, font-size .5s ease',
+                  fontSize: i === sheet.g ? 17 : 15, color: i === sheet.g ? UMBER : 'rgba(138,109,69,.45)', transition: 'color .5s ease, font-size .5s ease',
                 }}
               >
                 {roman(i + 1)}
-                <span aria-hidden className="pc-foil-bg" style={{ position: 'absolute', left: '50%', bottom: 2, height: 1, width: i === at ? 18 : 0, transform: 'translateX(-50%)', transition: 'width .6s cubic-bezier(.22,.8,.2,1)' }} />
+                <span aria-hidden className="pc-foil-bg" style={{ position: 'absolute', left: '50%', bottom: 2, height: 1, width: i === sheet.g ? 18 : 0, transform: 'translateX(-50%)', transition: 'width .6s cubic-bezier(.22,.8,.2,1)' }} />
               </button>
             ))}
           </div>
         )}
       </div>
 
-      <LooseCuttings key={group.x.id} studio={studio} fabric={group.x} items={group.items} dir={dir} />
-      <div style={{ marginTop: 26, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, animation: 'rise 1s .6s cubic-bezier(.22,.8,.2,1) both' }}>
+      {/* The stack of loose sheets. */}
+      <div
+        tabIndex={0}
+        role="group"
+        aria-roledescription="sheets"
+        aria-label={`${group.x.name}: ${sheet.kind === 'title' ? `${t.chapterWord} ${roman(sheet.g + 1)}` : `${t.sheetWord} ${sheet.page + 1} / ${sheet.pages}`}. ${sheet.kind === 'title' ? `${t.slideOpen}, ${t.slideSkip}` : `${t.slideMore}, ${t.slideBack}`}.`}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowRight') forward();
+          if (e.key === 'ArrowLeft') back();
+        }}
+        onPointerDown={(e) => {
+          if (flying || e.button > 0) return;
+          drag.current = { x: e.clientX, y: e.clientY, moved: false, dx: 0 };
+          setDragging(true);
+        }}
+        onClickCapture={(e) => {
+          // A slide is not a tap on a cutting.
+          if (!dragged.current) return;
+          dragged.current = false;
+          e.stopPropagation();
+        }}
+        onWheel={(e) => {
+          if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+          if (e.timeStamp - wheel.current.t > 400) wheel.current.dx = 0;
+          wheel.current = { dx: wheel.current.dx + e.deltaX, t: e.timeStamp };
+          if (Math.abs(wheel.current.dx) > 70) {
+            if (wheel.current.dx > 0) forward();
+            else back();
+            wheel.current.dx = -1e6 * Math.sign(wheel.current.dx);
+          }
+        }}
+        style={{
+          position: 'relative', width: 'min(100%, 440px)', aspectRatio: '3 / 4', margin: 'clamp(24px,4vw,34px) auto 0', outline: 'none',
+          touchAction: 'pan-y', userSelect: 'none', WebkitUserSelect: 'none', cursor: dragging ? 'grabbing' : 'grab', animation: 'rise 1s .1s cubic-bezier(.22,.8,.2,1) both',
+        }}
+      >
+        <div aria-hidden style={{ position: 'absolute', left: '4%', right: '2%', bottom: -14, height: 30, background: 'radial-gradient(closest-side, rgba(46,26,10,.3), transparent)', filter: 'blur(3px)' }} />
+        {/* Sheets further down the stack, showing at the edges. */}
+        <div aria-hidden style={{ ...SHEET_BASE, transform: 'translate(-7px, 7px) rotate(-2.4deg)', filter: 'brightness(.94)' }} />
+        <div aria-hidden style={{ ...SHEET_BASE, transform: 'translate(6px, 4px) rotate(1.7deg)', filter: 'brightness(.97)' }} />
+        {shown.map((s) => {
+          const top = s.key === sheet.key;
+          const transform = top ? (flying ? `translateX(${flying.dir * 125}%) rotate(${flying.dir * 9}deg)` : `translateX(${dx}px) rotate(${dx / 40}deg)`) : 'rotate(-.7deg)';
+          return (
+            <div
+              key={s.key}
+              aria-hidden={!top || undefined}
+              style={{
+                ...SHEET_BASE, zIndex: top ? 3 : 2, transform,
+                boxShadow: top && (dx !== 0 || flying) ? '0 22px 40px rgba(40,24,10,.26), 0 2px 6px rgba(40,24,10,.12)' : SHEET_BASE.boxShadow,
+                transition: dragging && top ? 'none' : flying && top ? 'transform .46s cubic-bezier(.45,0,.7,.35), box-shadow .3s ease' : 'transform .55s cubic-bezier(.22,.8,.2,1), box-shadow .4s ease',
+              }}
+            >
+              <SheetFace studio={studio} sheet={s} group={groups[s.g]} interactive={top && !flying} />
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ marginTop: 26, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, animation: 'rise 1s .5s cubic-bezier(.22,.8,.2,1) both' }}>
         <Fleuron width={26} color="rgba(138,109,69,.6)" />
         <p style={{ margin: 0, maxWidth: 320, textAlign: 'center', fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 15, lineHeight: 1.45, color: 'rgba(28,25,23,.58)' }}>{t.looseNote}</p>
       </div>
 
-      {/* The book's one action: order it — every shade in it, across all its fabrics. */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 22, animation: 'rise 1s .35s cubic-bezier(.22,.8,.2,1) both' }}>
+      {/* The book's actions: order it — every shade in it, across all its fabrics — or see it bound first. */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 20, animation: 'rise 1s .35s cubic-bezier(.22,.8,.2,1) both' }}>
         <button
           onClick={studio.openQuoteBook}
           className="pc-book"
@@ -175,10 +270,21 @@ export function SwatchBook({ studio }: { studio: Studio }) {
           <span aria-hidden className="pc-book-star">✦</span>
           {t.orderBook}
         </button>
-        <div style={{ marginTop: 10, fontSize: 11, letterSpacing: '.06em', color: 'rgba(28,25,23,.5)', fontVariantNumeric: 'lining-nums' }}>
+        <button
+          onClick={() => setPreview(true)}
+          className="pc-hv-ink"
+          style={{ cursor: 'pointer', marginTop: 14, background: 'none', border: 'none', padding: '6px 10px', display: 'inline-flex', alignItems: 'center', gap: 9, fontFamily: FONT_BODY, fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'rgba(28,25,23,.62)' }}
+        >
+          <svg aria-hidden width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={UMBER} strokeWidth="1.4" strokeLinejoin="round">
+            <path d="M3 5.5c3-1.3 6-1.3 9 .5v13c-3-1.8-6-1.8-9-.5v-13ZM21 5.5c-3-1.3-6-1.3-9 .5v13c3-1.8 6-1.8 9-.5v-13Z" />
+          </svg>
+          {t.previewBook}
+        </button>
+        <div style={{ marginTop: 6, fontSize: 11, letterSpacing: '.06em', color: 'rgba(28,25,23,.5)', fontVariantNumeric: 'lining-nums' }}>
           {studio.pins.length} {studio.pins.length === 1 ? t.shade : t.shades} · {groups.length} {groups.length === 1 ? t.fabricWordOne : t.fabricWordMany}
         </div>
       </div>
+      {preview && <BookCeremony studio={studio} mode="preview" onDone={() => setPreview(false)} />}
     </Room>
   );
 }
@@ -298,7 +404,7 @@ export function Fleuron({ width = 30, color = GOLD }: { width?: number; color?: 
 }
 
 /** A brass binding post, its slotted head sunk in the leather. */
-function Screw({ y, x }: { y: number; x: number }) {
+function Screw({ y, x, turn }: { y: number; x: number; turn?: string }) {
   return (
     <span
       style={{
@@ -307,7 +413,9 @@ function Screw({ y, x }: { y: number; x: number }) {
         boxShadow: '0 1px 1.5px rgba(0,0,0,.6), inset 0 0 0 .5px rgba(60,40,10,.6), 0 0 0 1.5px rgba(0,0,0,.25)',
       }}
     >
-      <span style={{ position: 'absolute', left: 2, right: 2, top: '50%', height: 1.2, marginTop: -0.6, background: 'rgba(70,45,12,.8)', transform: 'rotate(-35deg)' }} />
+      <span style={{ position: 'absolute', inset: 0, animation: turn }}>
+        <span style={{ position: 'absolute', left: 2, right: 2, top: '50%', height: 1.2, marginTop: -0.6, background: 'rgba(70,45,12,.8)', transform: 'rotate(-35deg)' }} />
+      </span>
     </span>
   );
 }
@@ -456,12 +564,13 @@ export function GiltBlock() {
  * The binding: a leather strip over the pages' inner margin, screwed through with brass posts, so
  * the pages are held to the book and turn on it.
  */
-export function BindingStrip() {
+export function BindingStrip({ turning }: { turning?: boolean }) {
+  // As the book is bound, each post is screwed home in turn and a glint runs down the fillet.
   return (
     <div aria-hidden style={{ position: 'absolute', left: -10, top: -3, bottom: -3, width: HINGE + 10, zIndex: 25, borderRadius: '0 3px 3px 0', background: LEATHER, overflow: 'hidden', boxShadow: '3px 0 6px rgba(30,10,4,.32), inset -1px 0 0 rgba(255,220,200,.14)' }}>
       <Grain />
-      <div className="pc-foil-bg" style={{ position: 'absolute', right: 4, top: 8, bottom: 8, width: 1, opacity: 0.85 }} />
-      {[12, 50, 88].map((y) => <Screw key={y} y={y} x={HINGE + 10 - 11} />)}
+      <div key={turning ? 'b' : 'a'} className="pc-foil-bg" style={{ position: 'absolute', right: 4, top: 8, bottom: 8, width: 1, opacity: 0.85 }} />
+      {[12, 50, 88].map((y, i) => <Screw key={y} y={y} x={HINGE + 10 - 11} turn={turning ? `pcScrew .75s ${i * 220}ms cubic-bezier(.4,0,.2,1) both` : undefined} />)}
     </div>
   );
 }
@@ -474,75 +583,154 @@ function seeded(key: string, salt: number) {
   return ((h ^ (h >>> 13)) >>> 0) / 4294967296;
 }
 
-/**
- * While browsing, the book is not yet bound: its cuttings lie loose on the table, each dropped at
- * its own slight angle and pinned with its label, and a new fabric's cuttings fall in from the side
- * it was reached from. Ordering binds them into the book.
- */
-function LooseCuttings({ studio, fabric, items, dir }: { studio: Studio; fabric: FabricRow; items: Cutting[]; dir: 1 | -1 }) {
+const SHEET_BASE: CSSProperties = {
+  position: 'absolute', inset: 0, borderRadius: 3, background: `${PAPER}, linear-gradient(180deg, #FDFAF2, #F5EDDD)`,
+  boxShadow: '0 10px 24px rgba(40,24,10,.16), 0 1px 3px rgba(40,24,10,.12), inset 0 0 0 1px rgba(120,90,50,.08)',
+};
+
+/** One loose sheet: a fabric's title, or a sheet of its cuttings. */
+function SheetFace({ studio, sheet, group, interactive }: { studio: Studio; sheet: Sheet; group: Group; interactive: boolean }) {
   const { t } = studio;
-  const n = items.length;
-  const cols = n === 1 ? 1 : n <= 4 ? 2 : 3;
-  return (
-    <div
-      style={{
-        margin: 'clamp(26px,4vw,40px) auto 0', width: n === 1 ? 'min(100%, 330px)' : cols === 2 ? 'min(100%, 440px)' : 'min(100%, 540px)',
-        display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))`, columnGap: cols === 3 ? 'clamp(6px,2vw,18px)' : 'clamp(12px,3vw,24px)', rowGap: 'clamp(4px,1.6vw,14px)',
-        padding: '6px 8px 10px',
-      }}
-    >
-      {items.map(({ pin, colour }, i) => {
-        const key = `${pin.fabricId}-${pin.colourOrder}`;
-        const r = (seeded(key, 3) - 0.5) * 16;
-        const vars = {
-          '--jx': `${((seeded(key, 1) - 0.5) * 12).toFixed(1)}%`,
-          '--jy': `${((seeded(key, 2) - 0.5) * 10).toFixed(1)}%`,
-          '--r': `${r.toFixed(1)}deg`,
-          '--dx': `${dir * 90}px`,
-        } as CSSProperties;
-        const small = cols === 3;
-        return (
-          <div key={key} className="pc-loose" style={{ ...vars, position: 'relative', aspectRatio: n === 1 ? '5 / 4' : '4 / 5', zIndex: 1 + ((i * 7) % n), animation: `pcDrop .95s ${140 + i * 75}ms cubic-bezier(.2,.8,.25,1) backwards` }}>
-            <div style={{ position: 'absolute', inset: 0, filter: 'drop-shadow(0 2px 2px rgba(40,26,12,.28)) drop-shadow(0 10px 14px rgba(40,26,12,.16))' }}>
-              <div
-                onClick={() => studio.openFabric(pin.fabricId, fabric.colours.indexOf(colour))}
-                className="pc-pinked"
-                style={{ position: 'absolute', inset: 0, cursor: 'pointer', background: fabricTex(fabric, colour, 4) }}
-              />
-              <div aria-hidden className="pc-pinked" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'linear-gradient(155deg, rgba(255,255,255,.2), transparent 38%, transparent 68%, rgba(0,0,0,.16))' }} />
-              {/* A dressmaker's pin through the top, pearl head and steel shank. */}
-              <span aria-hidden style={{ position: 'absolute', top: small ? 7 : 10, left: small ? 12 : 16, width: small ? 24 : 32, height: 1.4, transformOrigin: '0 50%', transform: 'rotate(-22deg)', background: 'linear-gradient(90deg, #8E9297, #E6E8EA 45%, #9EA3A8)', borderRadius: 1, pointerEvents: 'none' }} />
-              <span aria-hidden style={{ position: 'absolute', top: small ? 3 : 6, left: small ? 8 : 12, width: small ? 8 : 10, height: small ? 8 : 10, borderRadius: '50%', background: 'radial-gradient(circle at 35% 30%, #FFFFFF, #F1E6D2 45%, #BFA27A)', boxShadow: '0 1px 2px rgba(0,0,0,.35)', pointerEvents: 'none' }} />
-              {/* The label, a small luggage tag with its punched hole. */}
-              <div
-                style={{
-                  position: 'absolute', left: small ? 5 : 9, bottom: small ? 9 : 13, maxWidth: `calc(100% - ${small ? 10 : 18}px)`, pointerEvents: 'none',
-                  padding: small ? '3px 7px 3px 13px' : '5px 10px 5px 17px', background: '#FBF6EA',
-                  clipPath: `polygon(${small ? 7 : 9}px 0, 100% 0, 100% 100%, ${small ? 7 : 9}px 100%, 0 50%)`,
-                  display: 'flex', alignItems: 'baseline', gap: 5, whiteSpace: 'nowrap', overflow: 'hidden',
-                }}
-              >
-                <span aria-hidden style={{ position: 'absolute', left: small ? 5 : 7, top: '50%', width: 4, height: 4, marginTop: -2, borderRadius: '50%', background: 'rgba(60,40,20,.35)' }} />
-                <span style={{ fontSize: small ? 6.5 : 8, letterSpacing: '.18em', textTransform: 'uppercase', color: '#9C7A45', fontVariantNumeric: 'lining-nums' }}>
-                  {t.shadeNo} {String(colour.order).padStart(2, '0')}
-                </span>
-                <span style={{ fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: small ? 12 : n === 1 ? 17 : 14.5, color: INK, overflow: 'hidden', textOverflow: 'ellipsis' }}>{colour.name}</span>
-              </div>
-              <button
-                aria-label={`Remove ${colour.name}`}
-                onClick={() => studio.removePin(pin)}
-                className="pc-hv-scale-06"
-                style={{
-                  position: 'absolute', top: small ? 6 : 9, right: small ? 6 : 9, width: small ? 20 : 24, height: small ? 20 : 24, borderRadius: '50%', display: 'grid', placeItems: 'center', cursor: 'pointer', padding: 0,
-                  background: 'rgba(252,249,241,.94)', border: '1px solid rgba(201,169,110,.6)', fontSize: 13, lineHeight: 1, color: '#6B5433',
-                }}
-              >
-                ×
-              </button>
-            </div>
+  const small = { fontSize: 7.5, letterSpacing: '.3em', textTransform: 'uppercase' as const, color: 'rgba(138,109,69,.85)' };
+  const chapter = roman(sheet.g + 1);
+  if (sheet.kind === 'title') {
+    const pages = Math.ceil(group.items.length / PER_SHEET);
+    return (
+      <div style={{ position: 'absolute', inset: 0 }}>
+        <div style={{ position: 'absolute', inset: 14, border: '1px solid rgba(184,144,74,.7)' }} />
+        <div style={{ position: 'absolute', inset: 18, border: '.5px solid rgba(184,144,74,.45)' }} />
+        <div style={{ position: 'absolute', inset: 21 }}>
+          {(['tl', 'tr', 'bl', 'br'] as const).map((c) => <CornerOrnament key={c} corner={c} inset={0} size={20} />)}
+        </div>
+        <div style={{ position: 'absolute', inset: '30px 30px 56px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+          <div style={{ fontSize: 8.5, letterSpacing: '.48em', textTransform: 'uppercase', color: UMBER, paddingLeft: '.48em' }}>{t.chapterWord}</div>
+          <div className="pc-foil" style={{ fontFamily: FONT_DISPLAY, fontSize: 'clamp(54px,13vw,74px)', fontWeight: 500, lineHeight: 1, marginTop: 6 }}>{chapter}</div>
+          <div style={{ margin: '12px 0 10px' }}>
+            <Fleuron width={28} color="#B8904A" />
           </div>
-        );
-      })}
+          <div style={{ fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 'clamp(26px,6vw,34px)', lineHeight: 1.1, color: INK }}>{group.x.name}</div>
+          <div style={{ marginTop: 8, fontSize: 9, letterSpacing: '.22em', textTransform: 'uppercase', color: 'rgba(28,25,23,.5)' }}>{group.x.hand}</div>
+          {/* A die-cut window onto the chapter's first cutting. */}
+          <div
+            style={{
+              width: 'clamp(58px,16vw,76px)', aspectRatio: '1', borderRadius: '50%', marginTop: 'clamp(14px,4vw,20px)', background: fabricTex(group.x, group.items[0].colour, 3),
+              boxShadow: 'inset 0 3px 9px rgba(0,0,0,.5), inset 0 0 0 1px rgba(0,0,0,.25), 0 0 0 5px #FAF5EA, 0 0 0 6px rgba(184,144,74,.75)',
+            }}
+          />
+          <div style={{ marginTop: 14, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 14, color: UMBER, fontVariantNumeric: 'lining-nums' }}>
+            {group.items.length} {group.items.length === 1 ? t.shade : t.shades} · {pages} {t.sheetWord.toLowerCase()}{pages === 1 ? '' : 's'}
+          </div>
+        </div>
+        {/* Which way to slide. */}
+        <div aria-hidden style={{ position: 'absolute', left: 30, right: 30, bottom: 30, display: 'flex', justifyContent: 'space-between', alignItems: 'center', ...small, fontSize: 7, letterSpacing: '.2em' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 12, letterSpacing: 0, animation: 'pcNudgeL 2.4s ease-in-out infinite' }}>←</span>
+            {t.slideOpen}
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textAlign: 'right' }}>
+            {t.slideSkip}
+            <span style={{ fontSize: 12, letterSpacing: 0 }}>→</span>
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  const n = sheet.items.length;
+  const [cols, rows] = sheetGrid(n);
+  // Which slots of the grid this sheet's cuttings take, in an order seeded by the sheet.
+  const slots = Array.from({ length: cols * rows }, (_, i) => i).sort((a, b) => seeded(`${sheet.key}:${a}`, 9) - seeded(`${sheet.key}:${b}`, 9)).slice(0, n).sort((a, b) => a - b);
+  const cellW = 1 / cols;
+  const cellH = AREA_ASPECT / rows;
+  const cutW = Math.min(cellW * 0.8, cellH * 0.8 * (4 / 5));
+  const tiny = cols === 3 || rows === 3;
+  // With two or more to a row, a label gives the shade's name alone.
+  const bare = cols >= 2;
+  return (
+    <div style={{ position: 'absolute', inset: 0, padding: '14px 16px 11px', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 8, ...small }}>
+        <span style={{ textAlign: 'left', whiteSpace: 'nowrap' }}>
+          {t.chapterWord} {chapter}
+        </span>
+        <span aria-hidden style={{ width: 4, height: 4, transform: 'rotate(45deg)', background: '#B8904A' }} />
+        <span style={{ textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{group.x.name}</span>
+      </div>
+      <div aria-hidden style={{ height: 1, marginTop: 7, background: 'linear-gradient(90deg, rgba(138,109,69,.1), rgba(138,109,69,.45), rgba(138,109,69,.1))' }} />
+      <div style={{ position: 'relative', flex: 1, minHeight: 0, margin: '8px 2px 4px' }}>
+        {sheet.items.map(({ pin, colour }, i) => {
+          const key = `${pin.fabricId}-${pin.colourOrder}`;
+          const slot = slots[i];
+          const cx = ((slot % cols) + 0.5) / cols + (seeded(key, 1) - 0.5) * cellW * 0.16;
+          const cy = (Math.floor(slot / cols) + 0.5) / rows + (seeded(key, 2) - 0.5) * (1 / rows) * 0.12;
+          const r = (seeded(key, 3) - 0.5) * 22;
+          return (
+            <div
+              key={key}
+              className="pc-loose"
+              style={{ ['--jx' as string]: '-50%', ['--jy' as string]: '-50%', ['--r' as string]: `${r.toFixed(1)}deg`, position: 'absolute', left: `${(cx * 100).toFixed(2)}%`, top: `${(cy * 100).toFixed(2)}%`, width: `${(cutW * 100).toFixed(2)}%`, aspectRatio: '4 / 5', zIndex: 1 + ((i * 5) % n) } as CSSProperties}
+            >
+              <LooseCutting studio={studio} fabric={group.x} pin={pin} colour={colour} tiny={tiny} bare={bare} big={n === 1} interactive={interactive} />
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'baseline', gap: 8, ...small, fontVariantNumeric: 'lining-nums' }}>
+        <span style={{ textAlign: 'left', whiteSpace: 'nowrap' }}>
+          {n} {n === 1 ? t.shade : t.shades}
+        </span>
+        <span style={{ fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 12, letterSpacing: 0, textTransform: 'none', color: UMBER }}>— {roman(sheet.page + 1).toLowerCase()} —</span>
+        <span style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+          {t.sheetWord} {sheet.page + 1} / {sheet.pages}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/** A loose cutting: pinked, pinned through the top and labelled with a small tag. */
+function LooseCutting({ studio, fabric, pin, colour, tiny, bare, big, interactive }: { studio: Studio; fabric: FabricRow; pin: Pin; colour: ColourRow; tiny: boolean; bare: boolean; big: boolean; interactive: boolean }) {
+  const { t } = studio;
+  return (
+    <div style={{ position: 'absolute', inset: 0, filter: 'drop-shadow(0 2px 2px rgba(40,26,12,.26)) drop-shadow(0 7px 10px rgba(40,26,12,.14))' }}>
+      <div
+        onClick={interactive ? () => studio.openFabric(pin.fabricId, fabric.colours.indexOf(colour)) : undefined}
+        className="pc-pinked"
+        style={{ position: 'absolute', inset: 0, cursor: interactive ? 'pointer' : 'inherit', background: fabricTex(fabric, colour, 4) }}
+      />
+      <div aria-hidden className="pc-pinked" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'linear-gradient(155deg, rgba(255,255,255,.2), transparent 38%, transparent 68%, rgba(0,0,0,.16))' }} />
+      {/* A dressmaker's pin through the top, pearl head and steel shank. */}
+      <span aria-hidden style={{ position: 'absolute', top: tiny ? 6 : 10, left: tiny ? 10 : 16, width: tiny ? 20 : 32, height: 1.3, transformOrigin: '0 50%', transform: 'rotate(-22deg)', background: 'linear-gradient(90deg, #8E9297, #E6E8EA 45%, #9EA3A8)', borderRadius: 1, pointerEvents: 'none' }} />
+      <span aria-hidden style={{ position: 'absolute', top: tiny ? 3 : 6, left: tiny ? 7 : 12, width: tiny ? 7 : 10, height: tiny ? 7 : 10, borderRadius: '50%', background: 'radial-gradient(circle at 35% 30%, #FFFFFF, #F1E6D2 45%, #BFA27A)', boxShadow: '0 1px 2px rgba(0,0,0,.35)', pointerEvents: 'none' }} />
+      {/* The label, a small luggage tag with its punched hole. */}
+      <div
+        style={{
+          position: 'absolute', left: tiny ? 3 : 9, bottom: tiny ? 7 : 13, maxWidth: `calc(100% - ${tiny ? 6 : 18}px)`, pointerEvents: 'none',
+          padding: tiny ? '2px 6px 2px 11px' : '5px 10px 5px 17px', background: '#FBF6EA',
+          clipPath: `polygon(${tiny ? 6 : 9}px 0, 100% 0, 100% 100%, ${tiny ? 6 : 9}px 100%, 0 50%)`,
+          display: 'flex', alignItems: 'baseline', gap: 4, whiteSpace: 'nowrap', overflow: 'hidden',
+        }}
+      >
+        <span aria-hidden style={{ position: 'absolute', left: tiny ? 4 : 7, top: '50%', width: tiny ? 3 : 4, height: tiny ? 3 : 4, marginTop: tiny ? -1.5 : -2, borderRadius: '50%', background: 'rgba(60,40,20,.35)' }} />
+        {!bare && (
+          <span style={{ fontSize: 8, letterSpacing: '.18em', textTransform: 'uppercase', color: '#9C7A45', fontVariantNumeric: 'lining-nums' }}>
+            {t.shadeNo} {String(colour.order).padStart(2, '0')}
+          </span>
+        )}
+        <span style={{ fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: tiny ? 11 : big ? 17 : bare ? 13.5 : 14.5, color: INK, overflow: 'hidden', textOverflow: 'ellipsis' }}>{colour.name}</span>
+      </div>
+      {interactive && (
+        <button
+          aria-label={`Remove ${colour.name}`}
+          onClick={() => studio.removePin(pin)}
+          className="pc-hv-scale-06"
+          style={{
+            position: 'absolute', top: tiny ? 5 : 9, right: tiny ? 5 : 9, width: tiny ? 18 : 24, height: tiny ? 18 : 24, borderRadius: '50%', display: 'grid', placeItems: 'center', cursor: 'pointer', padding: 0,
+            background: 'rgba(252,249,241,.94)', border: '1px solid rgba(201,169,110,.6)', fontSize: tiny ? 11 : 13, lineHeight: 1, color: '#6B5433',
+          }}
+        >
+          ×
+        </button>
+      )}
     </div>
   );
 }

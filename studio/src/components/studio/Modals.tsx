@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import type { Studio } from './state';
 import { MicroscopeView } from '@/components/three/MicroscopeView';
 import { FONT_DISPLAY, FONT_BODY, fabricTex, colourCss, colourFg } from './helpers';
-import { BookCeremony } from './BookCeremony';
+import { BookCeremony, type OrderState } from './BookCeremony';
 
 export function UnrollTransition({ studio }: { studio: Studio }) {
   const { trans } = studio;
@@ -106,10 +106,25 @@ export function QuoteModal({ studio }: { studio: Studio }) {
   const [quantity, setQuantity] = useState('');
   const [whatsapp, setWhatsapp] = useState('+91 ');
   const [waBad, setWaBad] = useState(false);
+  const [order, setOrder] = useState<OrderState | null>(null);
   if (!quoteOpen) return null;
 
-  // A swatch book, once ordered, is compiled and bound before the buyer's eyes and sent to their WhatsApp.
-  if (quoteSent && quoteFromBook) return <BookCeremony studio={studio} whatsapp={whatsapp.trim()} onDone={studio.closeQuote} />;
+  // A swatch book, once ordered, is compiled and bound before the buyer's eyes and sent to their
+  // WhatsApp. The ceremony starts at once; the order goes in alongside it and the book is only
+  // handed over once the order has settled.
+  if (order)
+    return (
+      <BookCeremony
+        studio={studio}
+        mode="order"
+        whatsapp={whatsapp.trim()}
+        order={order}
+        onDone={() => {
+          setOrder(null);
+          studio.closeQuote();
+        }}
+      />
+    );
 
   const subject = quoteFromBook
     ? pins
@@ -161,7 +176,11 @@ export function QuoteModal({ studio }: { studio: Studio }) {
                     setWaBad(true);
                     return;
                   }
-                  studio.sendQuote({ name, company, quantity: `${pins.length} ${pins.length === 1 ? t.shade : t.shades} · ${t.book}`, whatsapp: whatsapp.trim() });
+                  setOrder('pending');
+                  studio.sendQuote({ name, company, quantity: `${pins.length} ${pins.length === 1 ? t.shade : t.shades} · ${t.book}`, whatsapp: whatsapp.trim() }).then((r) =>
+                    // The static preview has no server to take the order; everywhere else, a refusal is a failure.
+                    setOrder(r.ok ? 'sent' : r.status === 404 && process.env.NEXT_PUBLIC_BASE_PATH ? 'demo' : 'failed'),
+                  );
                   return;
                 }
                 if (!quantity) return;

@@ -231,24 +231,35 @@ the book, you can change fabric by swiping or scrolling the heading sideways, or
 The chapters' Roman numerals beneath it, the open one underlined in gold, jump straight to a
 fabric.
 
-### Browsing: loose cuttings
+### Browsing: loose sheets
 
-While the buyer is still choosing, the book is not bound. Its cuttings lie loose on the reading
-room's table:
+While the buyer is still choosing, the book is not yet bound. It is a stack of loose sheets, one
+fabric after another, so it stays one sheet tall however many shades it holds:
 
-- **Each cutting** is pinked top and bottom and lies at its own slight angle and offset (seeded
-  from the shade, so a cutting always falls the same way).
-- **Pin and label:** a pearl-headed dressmaker's pin holds each cutting, and a small luggage tag
-  gives its number and name ("No. 12 *Falsa*").
-- **Arrival:** a new fabric's cuttings fall onto the table one after another, in from the side
-  the fabric was reached from.
-- **Pointer:** a cutting lifts and squares up under the pointer. Tapping it opens that shade in
-  the lab, and its small × takes it out of the book.
-- **Layout:** one cutting lies alone, two to four share two columns, and more spread over three.
+- **Title sheet:** each fabric opens on a title sheet inside a gold double rule. It shows
+  "Chapter" and the fabric's Roman numeral in foil, its name, its hand, a round window onto its
+  first shade, and its count of shades and sheets. Along its foot it says which way to slide.
+- **Sheets of cuttings:** each holds up to nine of the fabric's shades, scattered. Each cutting
+  takes a slot in a loose grid (seeded, so it always falls the same way), is nudged off-centre,
+  and lies at its own angle up to about 11° either way. It is pinked, pinned with a pearl-headed
+  pin, and labelled on a luggage tag: the name alone when there are two or more cuttings to a
+  row, and with its number when there is one. A running head names the chapter and fabric, and
+  the foot gives the count, an italic folio and "Sheet 1 / 2".
+- **Sliding.** The top sheet follows a finger or the pointer, and the sheet it will reveal lies
+  beneath it. Let go past a threshold and the sheet is thrown off to that side. Sliding left
+  always goes forward: from a title into that fabric's sheets, from sheet to sheet, and past the
+  last sheet to the next fabric's title (after the last fabric, back to the first). Sliding right
+  on a sheet of cuttings goes back a sheet, and on a title skips to the next fabric. Horizontal
+  wheel scrolling and the arrow keys do the same.
+- **The heading** above names the fabric under the hand. Its arrows and chapter numerals jump to
+  a fabric's title.
+- **Cuttings:** a cutting lifts and squares up under the pointer. Tapping it opens that shade in
+  the lab, unless the tap was the end of a slide. Its × takes it out of the book.
 
-A note beneath says the cuttings are loose for now and will be bound into the book when it is
-ordered. An empty Swatch Book shows the closed volume described below, with the way to the
-Showroom.
+Beneath the stack, a note says the sheets are bound into the book when it is ordered. Then come
+"Order swatch book" and "Preview your book", which plays the binding ceremony without ordering and
+ends on the bound book with its PDF. An empty Swatch Book shows the closed volume, with the way
+to the Showroom.
 
 ### Ordering
 
@@ -262,25 +273,60 @@ The number is stored on the quote (`Quote.whatsapp`, migration `m45_quote_whatsa
 quote desk shows it as "Send the book on WhatsApp", linked to `wa.me`, because the platform does
 not send WhatsApp messages itself. The team sends the compiled book from there.
 
+The ceremony starts as soon as the form is sent, while the order goes to the server. The book is
+not handed over until the order has settled:
+
+- **Saved:** the ceremony ends on the WhatsApp delivery.
+- **Refused or unreachable:** it ends on the bound book, with a note that the order could not be
+  placed, and the PDF.
+- **Static preview:** the Pages site has no server, so there the ceremony ends on the delivery
+  with a note that this preview does not send orders.
+
 ### The binding ceremony
 
-Once the order is sent, the page darkens into a lamplit room and the book is made up in front of
-the buyer:
+The page darkens into a lamplit room, and the book is made up in front of the buyer. Only
+transforms and opacity are animated. Each cutting is one element from start to finish: it is laid
+out in its place on the page and measured there. It is then moved out across the room by a
+transform, and flies home by taking the transform away, so it lands exactly where it stays and
+nothing is swapped mid-flight.
 
-1. **Compiling your fine choices.** The buyer's cuttings (up to eighteen are shown) appear
-   scattered round the room, below the caption. Beside them lies the open book, its page empty.
-   The cuttings fly one by one onto the page and settle there as miniatures, three to a row.
-2. **Binding your book.** Leaves are collated over the page, turning on the binding one after
-   another.
+1. **Compiling your fine choices.** The open book comes up. The buyer's cuttings (up to
+   twenty-four are shown, three or four to a row) are strewn across the table below the caption,
+   and fly one by one onto the page.
+2. **Binding your book.** The binding's three brass posts are screwed home in turn, and a glint
+   runs down its gold fillet.
 3. **Bound and fastened.** The cover swings shut over the pages, marbled endpaper first. The
-   clasp is then pushed home over the catch, and the foil title catches the light.
-4. **On its way.** The book gives way to the buyer's number, in gold, "on WhatsApp", and a chat
-   as it will arrive: "Poddar Creation" with the buyer's number. The message is a bubble holding
-   the closed book as the file's preview, "Poddar Swatch Book.pdf", the shade and fabric count,
-   and the time. Its tick doubles once it has been shown for a moment. A line beneath says the
-   team will share the compiled book on this number shortly, and "Done" closes the room.
+   clasp is then pushed home over the catch.
+4. **Handing over.**
+   - After an order, the book gives way to the buyer's number, in gold, "on WhatsApp". Below is
+     a chat as the book will arrive: "Poddar Creation", with the buyer's number, and a bubble
+     holding the closed book as the file's preview. The file row "Poddar-Swatch-Book.pdf"
+     downloads the PDF. The time and ticks follow, then "Download PDF" and "Done".
+   - As a preview, the bound book stays, captioned "Your book is ready", with "Download PDF" and
+     "Close".
 
-With reduced motion, the ceremony goes straight to the last stage.
+Each caption fades out before the next fades in. With reduced motion, the ceremony goes straight
+to the bound book.
+
+### The PDF
+
+"Download PDF" saves `Poddar-Swatch-Book.pdf`, made in the browser (`src/lib/swatch-book-pdf.ts`),
+so it works on the static preview too. It is made while the book is handed over, so saving it is
+a single tap. Every page is painted on a canvas at A4 and 150 dpi, in the studio's own fonts, and
+embedded as a JPEG in a small PDF 1.4 file written there.
+
+The pages are:
+1. **Cover:** the oxblood leather cover, with its spine bands, gold frame and corner ornaments,
+   "PC" cartouche and "Swatch Book" in gold. It gives the fabric and shade counts, and "Prepared
+   for" with the buyer's name, or "Surat".
+2. **Contents:** each chapter's numeral, fabric, shade count and page, with dot leaders.
+3. **Chapters:** each fabric has a title page, with its numeral in gold, name, particulars,
+   hand, a round window onto its first shade, and its shade count. Its plates follow, twelve
+   pinked cuttings to a page, woven in the fabric's own structure: plain weave, silk's diagonal
+   lustre, slub's thick picks, wrinkle's crinkle, and the fabric's sheen. Each plate gives its
+   number, name and hex code.
+4. **Colophon:** the date it was compiled, who it was prepared for, and a note that colours on
+   screen and paper are a guide and the physical cuttings are the reference.
 
 ### The volume
 

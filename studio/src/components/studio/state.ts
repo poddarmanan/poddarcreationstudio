@@ -81,7 +81,8 @@ export interface Studio {
   openQuote: () => void;
   openQuoteBook: () => void;
   closeQuote: () => void;
-  sendQuote: (fields: { name: string; company: string; quantity: string; whatsapp?: string }) => Promise<void>;
+  /** Sends the request; resolves to whether the server took it (and its status, 0 if unreachable). */
+  sendQuote: (fields: { name: string; company: string; quantity: string; whatsapp?: string }) => Promise<{ ok: boolean; status: number }>;
   quoteBusy: boolean;
   aiOpen: boolean;
   aiBusy: boolean;
@@ -310,12 +311,15 @@ export function useStudio(rawFabrics: FabricRow[]): Studio {
               })
               .filter((x): x is { fabricId: string; colourId: string } => !!x)
           : [{ fabricId: f.id, colourId: col.id }];
-        await fetch('/api/quotes', {
+        const res = await fetch('/api/quotes', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...fields, subject, items }),
         });
         setQuoteSent(true);
+        return { ok: res.ok, status: res.status };
+      } catch {
+        return { ok: false, status: 0 };
       } finally {
         setQuoteBusy(false);
       }

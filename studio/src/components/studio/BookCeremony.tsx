@@ -1,120 +1,223 @@
 'use client';
 
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import type { Studio } from './state';
-import type { ColourRow, FabricRow } from '@/lib/types';
+import type { ColourRow } from '@/lib/types';
 import { FONT_DISPLAY, FONT_BODY, fabricTex } from './helpers';
-import { Binding, BindingStrip, CoverFace, Fleuron, GiltBlock, HINGE, MARBLE, paperFace } from './SwatchBook';
+import { Binding, BindingStrip, CoverFace, GiltBlock, HINGE, MARBLE, paperFace } from './SwatchBook';
+import { buildSwatchBookPdf, resolveFont, saveBlob } from '@/lib/swatch-book-pdf';
 
-/** The ceremony's stages: the cuttings scattered, gathering into the book, its leaves collated, the cover shut, and the book sent. */
-type Stage = 0 | 1 | 2 | 3 | 4 | 5;
-
-const MAX_SHOWN = 18;
+/** How an order placed from the ceremony went: still going, saved, refused, or the static preview (which has no server). */
+export type OrderState = 'pending' | 'sent' | 'failed' | 'demo';
 
 /**
- * After a swatch book is ordered: the buyer's loose cuttings are compiled and bound. They appear
- * scattered round the room, fly one by one onto the open book's page, the leaves are collated, the
- * leather cover swings shut and its clasp is pushed home, and the finished book is shown going out
- * on WhatsApp to the number the buyer gave.
+ * The ceremony's stages: the room darkens (0), the open book comes up (1), the cuttings are
+ * strewn round it (2), fly one by one onto its page (3), the binding is screwed home (4), the cover
+ * swings shut and is clasped (5), and the finished book is handed over (6).
  */
-export function BookCeremony({ studio, whatsapp, onDone }: { studio: Studio; whatsapp: string; onDone: () => void }) {
+type Stage = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
+const MAX_SHOWN = 24;
+const FLIGHT = 900;
+const FILE_NAME = 'Poddar-Swatch-Book.pdf';
+
+/**
+ * The swatch book compiled and bound in front of the buyer. After an order, it ends on the book
+ * going out on WhatsApp to the number they gave; as a preview, on the bound book itself. Either way
+ * the book can be downloaded as a PDF.
+ *
+ * Only transforms and opacity move. Each cutting is one element from start to finish: it is laid
+ * out in its place on the page, measured there, set out across the room by a transform, and flies
+ * home by taking that transform away — so it lands exactly where it stays, with nothing swapped.
+ */
+export function BookCeremony({ studio, mode, whatsapp = '', order = 'sent', onDone }: { studio: Studio; mode: 'order' | 'preview'; whatsapp?: string; order?: OrderState; onDone: () => void }) {
   const { t, fabrics, pins } = studio;
-  const cuts = fabrics.flatMap((x) =>
-    pins
-      .filter((p) => p.fabricId === x.id)
-      .map((p) => ({ x, c: x.colours.find((cc) => cc.order === p.colourOrder) }))
-      .filter((k): k is { x: FabricRow; c: ColourRow } => !!k.c),
-  );
+  const chapters = fabrics
+    .map((fabric) => ({
+      fabric,
+      colours: pins
+        .filter((p) => p.fabricId === fabric.id)
+        .map((p) => fabric.colours.find((c) => c.order === p.colourOrder))
+        .filter((c): c is ColourRow => !!c),
+    }))
+    .filter((ch) => ch.colours.length);
+  const cuts = chapters.flatMap((ch) => ch.colours.map((c) => ({ x: ch.fabric, c })));
   const shown = cuts.slice(0, MAX_SHOWN);
   const n = shown.length;
-  const nFabrics = new Set(cuts.map((k) => k.x.id)).size;
-  const counts = `${cuts.length} ${cuts.length === 1 ? t.shade : t.shades} · ${nFabrics} ${nFabrics === 1 ? t.fabricWordOne : t.fabricWordMany}`;
+  const cols = n <= 9 ? 3 : 4;
+  const counts = `${cuts.length} ${cuts.length === 1 ? t.shade : t.shades} · ${chapters.length} ${chapters.length === 1 ? t.fabricWordOne : t.fabricWordMany}`;
+  const STEP = Math.round(Math.min(95, 1300 / Math.max(1, n)));
 
-  // One cutting lands every STEP ms; the rest of the timeline follows from when the last one lands.
-  const STEP = Math.round(Math.min(120, 1500 / Math.max(1, n)));
   const [stage, setStage] = useState<Stage>(0);
-  const [read, setRead] = useState(false);
-  useEffect(() => {
-    const quick = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const gathered = 1400 + n * STEP + 700;
-    const at: [number, Stage][] = quick
-      ? [[50, 5]]
-      : [[60, 1], [1400, 2], [gathered, 3], [gathered + 1200, 4], [gathered + 1200 + 2300, 5]];
-    const timers = at.map(([ms, s]) => window.setTimeout(() => setStage(s), ms));
-    timers.push(window.setTimeout(() => setRead(true), (quick ? 50 : gathered + 3500) + 1600));
-    return () => timers.forEach((x) => window.clearTimeout(x));
-  }, [n, STEP]);
+  const [bound, setBound] = useState(false);
+  const [offsets, setOffsets] = useState<{ x: number; y: number; r: number }[] | null>(null);
+  const tiles = useRef<(HTMLDivElement | null)[]>([]);
+  const captionRef = useRef<HTMLDivElement | null>(null);
+  const [quick] = useState(() => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
-  const caption = stage < 3 ? t.compiling : stage === 3 ? t.bindingWord : t.boundWord;
-  const sending = stage === 5;
+  // The timeline, up to the book being bound; handing it over waits for the order to settle.
+  useEffect(() => {
+    if (quick) {
+      const tm = window.setTimeout(() => {
+        setStage(5);
+        setBound(true);
+      }, 60);
+      return () => window.clearTimeout(tm);
+    }
+    const landed = 2050 + (n - 1) * STEP + FLIGHT;
+    const measure = () => {
+      // Where each cutting is strewn: across the table below the caption, in an even, seeded spread.
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const top = (captionRef.current?.getBoundingClientRect().bottom ?? vh * 0.2) + 40;
+      setOffsets(
+        tiles.current.slice(0, n).map((el, i) => {
+          const r = el?.getBoundingClientRect();
+          if (!r) return { x: 0, y: 0, r: 0 };
+          const u = (i * 0.618034 + 0.13) % 1;
+          const v = (i * 0.754877 + 0.41) % 1;
+          const x = vw * (0.1 + 0.8 * u);
+          const y = top + (vh - top - 70) * v;
+          return { x: x - (r.left + r.width / 2), y: y - (r.top + r.height / 2), r: ((i * 53) % 50) - 25 };
+        }),
+      );
+    };
+    const at: [number, () => void][] = [
+      [300, () => setStage(1)],
+      [1150, measure],
+      [1250, () => setStage(2)],
+      [2050, () => setStage(3)],
+      [landed + 250, () => setStage(4)],
+      [landed + 1450, () => setStage(5)],
+      [landed + 1450 + 2100, () => setBound(true)],
+    ];
+    const timers = at.map(([ms, f]) => window.setTimeout(f, ms));
+    return () => timers.forEach((x) => window.clearTimeout(x));
+  }, [n, STEP, quick]);
+
+  // The book is handed over once it is bound and — for an order — the order has settled.
+  useEffect(() => {
+    if (!bound || (mode === 'order' && order === 'pending')) return;
+    const tm = window.setTimeout(() => setStage(6), quick ? 0 : 200);
+    return () => window.clearTimeout(tm);
+  }, [bound, mode, order, quick]);
+
+  // The PDF is made while the book is handed over, so saving it is one tap.
+  const [pdf, setPdf] = useState<Blob | null>(null);
+  const [pdfError, setPdfError] = useState(false);
+  const book = useRef({ chapters, userName: studio.userName, t });
+  useEffect(() => {
+    if (stage !== 6) return;
+    let live = true;
+    const tm = window.setTimeout(() => {
+      const { chapters: chs, userName, t: s } = book.current;
+      buildSwatchBookPdf({
+        chapters: chs,
+        preparedFor: userName,
+        fonts: { display: resolveFont(FONT_DISPLAY), body: resolveFont(FONT_BODY) },
+        strings: {
+          book: s.book, chapterWord: s.chapterWord, shade: s.shade, shades: s.shades, fabricWordOne: s.fabricWordOne, fabricWordMany: s.fabricWordMany,
+          preparedFor: s.preparedFor, shadeNo: s.shadeNo, contents: s.contents, compiledOn: s.compiledOn, colophon: s.colophon,
+        },
+      })
+        .then((b) => live && setPdf(b))
+        .catch(() => live && setPdfError(true));
+    }, 900);
+    return () => {
+      live = false;
+      window.clearTimeout(tm);
+    };
+  }, [stage]);
+  const download = () => pdf && saveBlob(pdf, FILE_NAME);
+
+  const delivering = stage === 6 && mode === 'order' && (order === 'sent' || order === 'demo');
+  const handedOver = stage === 6 && !delivering;
+  const captions = [t.compiling, t.bindingWord, t.boundWord, t.bookReady];
+  const captionAt = stage <= 3 ? 0 : stage === 4 ? 1 : stage === 5 ? 2 : 3;
 
   return createPortal(
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={t.orderBook}
+      aria-label={t.book}
       style={{
         position: 'fixed', inset: 0, zIndex: 120, overflow: 'hidden', color: '#F3E9D6', fontFamily: FONT_BODY,
-        background: 'radial-gradient(80% 60% at 50% 42%, #3B2618 0%, #22150D 55%, #120B06 100%)', animation: 'pcFadeIn .6s ease both',
-        // The book's width, which the flying cuttings aim by.
-        ['--bw' as string]: 'min(72vw, 300px)',
+        background: 'radial-gradient(80% 60% at 50% 42%, #3B2618 0%, #22150D 55%, #120B06 100%)', animation: 'pcFadeIn .5s ease both',
+        ['--bw' as string]: 'min(70vw, 300px)',
       } as CSSProperties}
     >
       {/* A pool of lamplight on the table. */}
-      <div aria-hidden style={{ position: 'absolute', inset: 0, background: 'radial-gradient(38% 30% at 50% 52%, rgba(255,214,150,.16), transparent 70%)', pointerEvents: 'none' }} />
+      <div aria-hidden style={{ position: 'absolute', inset: 0, background: 'radial-gradient(38% 30% at 50% 54%, rgba(255,214,150,.16), transparent 70%)', pointerEvents: 'none' }} />
 
-      {/* The caption: what is happening now. */}
-      <div style={{ position: 'absolute', top: 'max(6vh, 34px)', left: 16, right: 16, textAlign: 'center', transition: 'opacity .6s ease, transform .6s ease', opacity: sending ? 0 : 1, transform: sending ? 'translateY(-10px)' : 'none' }}>
+      {/* The caption: what is happening now, each line crossfading into the next. */}
+      <div ref={captionRef} style={{ position: 'absolute', top: 'max(6vh, 30px)', left: 16, right: 16, textAlign: 'center', opacity: delivering || stage === 0 ? 0 : 1, transition: 'opacity .6s ease' }}>
         <div style={{ fontSize: 9.5, letterSpacing: '.42em', textTransform: 'uppercase', color: 'rgba(214,180,120,.85)' }}>{t.book}</div>
-        <div key={caption} className="pc-foil" style={{ marginTop: 12, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 'clamp(26px,6.4vw,40px)', lineHeight: 1.1, animation: 'rise .7s cubic-bezier(.22,.8,.2,1) both' }}>
-          {caption}
+        <div style={{ position: 'relative', height: 'clamp(34px,8vw,50px)', marginTop: 10 }}>
+          {captions.map((c, i) => (
+            <div
+              key={i}
+              aria-hidden={i !== captionAt || undefined}
+              className="pc-foil"
+              style={{
+                position: 'absolute', left: 0, right: 0, top: 0, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 'clamp(26px,6.4vw,40px)', lineHeight: 1.15,
+                opacity: i === captionAt ? 1 : 0, transform: i === captionAt ? 'none' : i < captionAt ? 'translateY(-8px)' : 'translateY(8px)',
+                // The outgoing line leaves before the next arrives, so the two never overlap.
+                transition: i === captionAt ? 'opacity .6s ease .35s, transform .7s cubic-bezier(.22,.8,.2,1) .35s' : 'opacity .3s ease, transform .4s ease',
+              }}
+            >
+              {c}
+            </div>
+          ))}
         </div>
-        <div style={{ marginTop: 10, fontSize: 10.5, letterSpacing: '.18em', textTransform: 'uppercase', color: 'rgba(243,233,214,.55)', fontVariantNumeric: 'lining-nums' }}>{counts}</div>
+        <div style={{ marginTop: 8, fontSize: 10.5, letterSpacing: '.18em', textTransform: 'uppercase', color: 'rgba(243,233,214,.55)', fontVariantNumeric: 'lining-nums' }}>{counts}</div>
       </div>
 
-      {/* The book, open on the table, and bound as the ceremony goes on. */}
+      {/* The book, open on the table and bound as the ceremony goes on. */}
       <div
         style={{
-          position: 'absolute', left: '50%', top: '53%', width: 'var(--bw)', transform: sending ? 'translate(-50%,-50%) translateY(-6vh) scale(.42)' : 'translate(-50%,-50%)',
-          opacity: sending ? 0 : 1, transition: 'transform .9s cubic-bezier(.6,.02,.3,1), opacity .7s .25s ease',
+          position: 'absolute', left: '50%', top: handedOver ? '47%' : '54%', width: 'var(--bw)',
+          transform: `translate(-50%,-50%) ${stage === 0 ? 'translateY(24px) scale(.97)' : delivering ? 'scale(.9)' : handedOver ? 'scale(.84)' : ''}`,
+          opacity: stage === 0 || delivering ? 0 : 1,
+          transition: 'transform .9s cubic-bezier(.22,.8,.2,1), opacity .7s ease, top .9s cubic-bezier(.22,.8,.2,1)',
         }}
       >
         <Binding width="100%" padded>
           <div style={{ position: 'relative', width: '100%', height: '100%', perspective: '1400px' }}>
             <GiltBlock />
-            <div style={{ position: 'absolute', inset: 0, borderRadius: 2, background: paperFace('left'), padding: `10px 10px 10px ${HINGE + 9}px`, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gridAutoRows: 'minmax(0, 15%)', gap: 6, alignContent: 'start' }}>
-              {shown.map(({ x, c }, i) => (
-                <div
-                  key={`${x.id}-${c.order}`}
-                  className="pc-pinked"
-                  style={{
-                    background: fabricTex(x, c, 3), boxShadow: 'inset 0 0 0 1px rgba(0,0,0,.06)',
-                    opacity: stage >= 2 ? 1 : 0, transform: stage >= 2 ? 'none' : 'scale(1.3)',
-                    transition: `opacity .35s ease ${i * STEP + 560}ms, transform .45s cubic-bezier(.2,.8,.25,1) ${i * STEP + 540}ms`,
-                  }}
-                />
-              ))}
+            <div style={{ position: 'absolute', inset: 0, borderRadius: 2, background: paperFace('left'), padding: `12px 12px 12px ${HINGE + 11}px`, display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))`, gridAutoRows: `minmax(0, ${cols === 3 ? 15 : 14}%)`, gap: 6, alignContent: 'start' }}>
+              {shown.map(({ x, c }, i) => {
+                const o = offsets?.[i];
+                const away = o && stage <= 2 ? `translate(${o.x.toFixed(1)}px, ${o.y.toFixed(1)}px) rotate(${o.r}deg) scale(${stage === 2 ? 1.55 : 1.3})` : 'none';
+                return (
+                  <div
+                    key={`${x.id}-${c.order}`}
+                    ref={(el) => {
+                      tiles.current[i] = el;
+                    }}
+                    className="pc-pinked"
+                    style={{
+                      position: 'relative', zIndex: 40, background: fabricTex(x, c, 3), willChange: stage >= 2 && stage <= 3 ? 'transform' : undefined,
+                      transform: away,
+                      opacity: quick || stage >= 3 || (stage === 2 && o) ? 1 : 0,
+                      transition:
+                        stage === 3
+                          ? `transform ${FLIGHT}ms cubic-bezier(.62,.04,.28,1) ${i * STEP}ms`
+                          : stage === 2
+                            ? `transform .7s cubic-bezier(.2,.8,.25,1) ${i * 28}ms, opacity .5s ease ${i * 28}ms`
+                            : 'none',
+                    }}
+                  />
+                );
+              })}
             </div>
-            {/* Leaves collated over the page as the book is made up. */}
-            {stage === 3 &&
-              [0, 1, 2].map((k) => (
-                <div
-                  key={k}
-                  aria-hidden
-                  style={{ position: 'absolute', inset: 0, zIndex: 20 + k, transformOrigin: `${HINGE}px 50%`, transformStyle: 'preserve-3d', animation: `pcLeafTurn .75s cubic-bezier(.55,.06,.35,1) ${k * 220}ms both` }}
-                >
-                  <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', borderRadius: 2, background: paperFace('left'), boxShadow: '0 1px 3px rgba(0,0,0,.2)' }} />
-                  <div style={{ position: 'absolute', inset: 0, transform: 'rotateY(180deg)', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', borderRadius: 2, background: paperFace('right'), filter: 'brightness(.95)' }} />
-                </div>
-              ))}
-            <BindingStrip />
+            <BindingStrip turning={stage >= 4} />
           </div>
           {/* The cover swings shut over the pages, and the clasp is pushed home. */}
-          {stage >= 4 && (
-            <div aria-hidden style={{ position: 'absolute', top: 0, bottom: 0, left: 26, right: 0, zIndex: 30, transformOrigin: 'left center', transformStyle: 'preserve-3d', animation: 'pcCoverClose 1.4s cubic-bezier(.6,.02,.3,1) both' }}>
+          {stage >= 5 && (
+            <div aria-hidden style={{ position: 'absolute', top: 0, bottom: 0, left: 26, right: 0, zIndex: 60, transformOrigin: 'left center', transformStyle: 'preserve-3d', animation: 'pcCoverClose 1.4s cubic-bezier(.6,.02,.3,1) both' }}>
               <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}>
-                <CoverFace t={t} userName={studio.userName} line={counts} claspAnimation="pcClaspOn .55s 1.45s cubic-bezier(.3,.7,.3,1) both" />
+                <CoverFace t={t} userName={studio.userName} line={counts} claspAnimation="pcClaspOn .55s 1.4s cubic-bezier(.3,.7,.3,1) both" />
               </div>
               <div style={{ position: 'absolute', inset: 0, transform: 'rotateY(180deg)', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', borderRadius: '10px 0 0 10px', background: `${MARBLE} center / cover`, boxShadow: 'inset 0 0 0 10px #40101A, inset 0 0 0 11px rgba(205,169,96,.7), inset 0 0 30px rgba(0,0,0,.35)' }} />
             </div>
@@ -122,58 +225,76 @@ export function BookCeremony({ studio, whatsapp, onDone }: { studio: Studio; wha
         </Binding>
       </div>
 
-      {/* The loose cuttings: scattered round the room, then flying one by one onto the page. */}
-      {shown.map(({ x, c }, i) => {
-        const a = i * 2.39996; // the golden angle, so they spread evenly
-        const rad = 34 + ((i * 37) % 12);
-        const sx = Math.cos(a) * Math.min(rad, 40);
-        // Kept below the caption at the top of the room.
-        const sy = Math.max(-26, Math.sin(a) * rad * 0.95);
-        const r = ((i * 53) % 44) - 22;
-        const col = i % 3;
-        const row = Math.floor(i / 3);
-        const scattered = `translate(${sx.toFixed(1)}vw, ${sy.toFixed(1)}vh) rotate(${r}deg)`;
-        // Where its miniature sits on the page: the page grid's column and row centres, as fractions of the book's width.
-        const landed = `translate(calc(var(--bw) * ${((col - 1) * 0.235 + 0.059).toFixed(3)}), calc(var(--bw) * ${(row * 0.195 - 0.509).toFixed(3)} + 3vh)) rotate(0deg) scale(.72)`;
-        return (
-          <div
-            key={`${x.id}-${c.order}`}
-            aria-hidden
-            style={{
-              position: 'absolute', left: '50%', top: '50%', width: 70, height: 86, marginLeft: -35, marginTop: -43, zIndex: 50, pointerEvents: 'none',
-              filter: 'drop-shadow(0 6px 10px rgba(0,0,0,.45))',
-              transform: stage >= 2 ? landed : stage === 1 ? scattered : `${scattered} scale(.5)`,
-              opacity: stage >= 2 ? 0 : stage === 1 ? 1 : 0,
-              transition:
-                stage >= 2
-                  ? `transform .62s cubic-bezier(.55,.05,.3,1) ${i * STEP}ms, opacity .18s ease ${i * STEP + 520}ms`
-                  : `transform .8s cubic-bezier(.2,.8,.25,1) ${i * 45}ms, opacity .5s ease ${i * 45}ms`,
-            }}
-          >
-            <div className="pc-pinked" style={{ position: 'absolute', inset: 0, background: fabricTex(x, c, 3) }} />
-          </div>
-        );
-      })}
+      {/* A preview, or an order that could not be placed: the bound book, to download or close. */}
+      {handedOver && (
+        <div style={{ position: 'absolute', left: 16, right: 16, bottom: 'max(5vh, 22px)', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', animation: 'rise .8s .3s cubic-bezier(.22,.8,.2,1) both' }}>
+          {mode === 'order' && order === 'failed' && <p style={{ margin: '0 0 12px', maxWidth: 340, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 15, lineHeight: 1.45, color: 'rgba(243,233,214,.75)' }}>{t.orderFailed}</p>}
+          <PdfButton t={t} pdf={pdf} error={pdfError} onClick={download} />
+          <GhostButton onClick={onDone}>{t.closeWord}</GhostButton>
+        </div>
+      )}
 
       {/* The finished book, going out on WhatsApp to the buyer's number. */}
-      {sending && <Delivery t={t} whatsapp={whatsapp} counts={counts} userName={studio.userName} read={read} onDone={onDone} />}
+      {delivering && <Delivery t={t} whatsapp={whatsapp} counts={counts} userName={studio.userName} demo={order === 'demo'} pdf={pdf} pdfError={pdfError} onDownload={download} onDone={onDone} />}
     </div>,
     document.body,
   );
 }
 
-function Delivery({ t, whatsapp, counts, userName, read, onDone }: { t: Record<string, string>; whatsapp: string; counts: string; userName: string | null; read: boolean; onDone: () => void }) {
-  const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+function PdfButton({ t, pdf, error, onClick }: { t: Record<string, string>; pdf: Blob | null; error: boolean; onClick: () => void }) {
+  if (error) return null;
+  return (
+    <button
+      onClick={onClick}
+      disabled={!pdf}
+      className="pc-book"
+      style={{
+        cursor: pdf ? 'pointer' : 'wait', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 10, width: 'min(100%, 340px)', borderRadius: 999, padding: '14px 18px',
+        fontFamily: FONT_BODY, fontSize: 11.5, letterSpacing: '.2em', textTransform: 'uppercase', whiteSpace: 'nowrap', color: '#1C1917',
+        background: 'linear-gradient(135deg, #F6E7BE, #D8B670 55%, #E9CF8F)', border: '1px solid rgba(255,240,200,.6)', boxShadow: '0 10px 26px rgba(0,0,0,.35)',
+        opacity: pdf ? 1 : 0.7, transition: 'opacity .4s ease',
+      }}
+    >
+      <svg aria-hidden width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 3v12M7 10l5 5 5-5M4 20h16" />
+      </svg>
+      {pdf ? t.downloadPdf : t.preparing}
+    </button>
+  );
+}
+
+function GhostButton({ onClick, children }: { onClick: () => void; children: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className="pc-hv-scale-06"
+      style={{
+        cursor: 'pointer', marginTop: 12, borderRadius: 999, padding: '12px 36px', fontFamily: FONT_BODY, fontSize: 11, letterSpacing: '.22em', textTransform: 'uppercase',
+        background: 'linear-gradient(135deg, rgba(255,255,255,.1), rgba(255,255,255,.03))', color: '#F3E9D6', border: '1px solid rgba(205,169,96,.55)',
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Delivery({ t, whatsapp, counts, userName, demo, pdf, pdfError, onDownload, onDone }: { t: Record<string, string>; whatsapp: string; counts: string; userName: string | null; demo: boolean; pdf: Blob | null; pdfError: boolean; onDownload: () => void; onDone: () => void }) {
+  const [time] = useState(() => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+  const [read, setRead] = useState(false);
+  useEffect(() => {
+    const tm = window.setTimeout(() => setRead(true), 2200);
+    return () => window.clearTimeout(tm);
+  }, []);
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 16px', overflowY: 'auto' }}>
-      <div style={{ textAlign: 'center', animation: 'rise .8s .1s cubic-bezier(.22,.8,.2,1) both' }}>
+      <div style={{ textAlign: 'center', animation: 'rise .8s .35s cubic-bezier(.22,.8,.2,1) both' }}>
         <div style={{ fontSize: 9.5, letterSpacing: '.42em', textTransform: 'uppercase', color: 'rgba(214,180,120,.85)' }}>{t.onItsWay}</div>
         <div className="pc-foil" style={{ marginTop: 10, fontFamily: FONT_DISPLAY, fontSize: 'clamp(26px,6.6vw,38px)', lineHeight: 1.1, fontVariantNumeric: 'lining-nums' }}>{whatsapp}</div>
         <div style={{ marginTop: 6, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 16, color: 'rgba(243,233,214,.7)' }}>{t.onWhatsApp}</div>
       </div>
 
       {/* The chat: the book as it arrives in the buyer's WhatsApp. */}
-      <div style={{ marginTop: 22, width: 'min(100%, 360px)', borderRadius: 18, overflow: 'hidden', boxShadow: '0 30px 70px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.06)', animation: 'rise .9s .25s cubic-bezier(.22,.8,.2,1) both' }}>
+      <div style={{ marginTop: 20, width: 'min(100%, 360px)', borderRadius: 18, overflow: 'hidden', boxShadow: '0 30px 70px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.06)', animation: 'rise .9s .5s cubic-bezier(.22,.8,.2,1) both' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: '#075E54', color: '#fff' }}>
           <span aria-hidden style={{ width: 34, height: 34, borderRadius: '50%', display: 'grid', placeItems: 'center', background: 'linear-gradient(135deg, #5E1B21, #2A080D)', color: '#E9CF8F', fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 15, boxShadow: 'inset 0 0 0 1px rgba(205,169,96,.6)' }}>PC</span>
           <div style={{ minWidth: 0, textAlign: 'left' }}>
@@ -188,7 +309,7 @@ function Delivery({ t, whatsapp, counts, userName, read, onDone }: { t: Record<s
           </svg>
         </div>
         <div style={{ padding: '16px 12px 14px', background: '#ECE5DD', display: 'flex', justifyContent: 'flex-end' }}>
-          <div style={{ position: 'relative', width: 'min(100%, 250px)', padding: 5, borderRadius: '10px 2px 10px 10px', background: '#DCF8C6', boxShadow: '0 1px 1px rgba(0,0,0,.12)', animation: 'pcBubbleIn .7s .7s cubic-bezier(.2,.8,.25,1) both', color: '#1C1917' }}>
+          <div style={{ position: 'relative', width: 'min(100%, 250px)', padding: 5, borderRadius: '10px 2px 10px 10px', background: '#DCF8C6', boxShadow: '0 1px 1px rgba(0,0,0,.12)', animation: 'pcBubbleIn .7s 1s cubic-bezier(.2,.8,.25,1) both', color: '#1C1917' }}>
             {/* The cover, as the file's preview. */}
             <div style={{ height: 150, borderRadius: 7, overflow: 'hidden', display: 'grid', placeItems: 'center', background: 'radial-gradient(80% 80% at 50% 40%, #F6EFE2, #E1D5C0)' }}>
               <div style={{ width: 96, height: 128, position: 'relative' }}>
@@ -201,13 +322,18 @@ function Delivery({ t, whatsapp, counts, userName, read, onDone }: { t: Record<s
                 </div>
               </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9, margin: '6px 2px 0', padding: '8px 8px', borderRadius: 6, background: 'rgba(0,0,0,.05)' }}>
+            <button
+              onClick={onDownload}
+              disabled={!pdf}
+              aria-label={t.downloadPdf}
+              style={{ width: 'calc(100% - 4px)', display: 'flex', alignItems: 'center', gap: 9, margin: '6px 2px 0', padding: '8px 8px', borderRadius: 6, background: 'rgba(0,0,0,.05)', border: 'none', cursor: pdf ? 'pointer' : 'wait', color: 'inherit', textAlign: 'left', fontFamily: 'inherit' }}
+            >
               <span aria-hidden style={{ width: 26, height: 32, borderRadius: 3, background: '#C9402F', color: '#fff', fontSize: 7.5, fontWeight: 600, display: 'grid', placeItems: 'end center', paddingBottom: 4, flex: 'none' }}>PDF</span>
-              <div style={{ minWidth: 0, textAlign: 'left' }}>
-                <div style={{ fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.bookFile}.pdf</div>
-                <div style={{ fontSize: 11, color: 'rgba(0,0,0,.5)', fontVariantNumeric: 'lining-nums' }}>{counts}</div>
-              </div>
-            </div>
+              <span style={{ minWidth: 0 }}>
+                <span style={{ display: 'block', fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{FILE_NAME}</span>
+                <span style={{ display: 'block', fontSize: 11, color: 'rgba(0,0,0,.5)', fontVariantNumeric: 'lining-nums' }}>{counts}</span>
+              </span>
+            </button>
             <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 3, margin: '4px 4px 0', fontSize: 10.5, color: 'rgba(0,0,0,.45)', fontVariantNumeric: 'lining-nums' }}>
               {time}
               <svg aria-label={read ? 'Delivered' : 'Sent'} width="17" height="11" viewBox="0 0 17 11" fill="none" stroke={read ? '#34B7F1' : 'rgba(0,0,0,.4)'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'stroke .5s ease' }}>
@@ -219,21 +345,13 @@ function Delivery({ t, whatsapp, counts, userName, read, onDone }: { t: Record<s
         </div>
       </div>
 
-      <p style={{ margin: '18px 0 10px', maxWidth: 330, textAlign: 'center', fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 15, lineHeight: 1.45, color: 'rgba(243,233,214,.62)', animation: 'rise .8s .5s cubic-bezier(.22,.8,.2,1) both' }}>{t.bookDone}</p>
-      <div style={{ marginTop: 6, animation: 'rise .8s .6s cubic-bezier(.22,.8,.2,1) both' }}>
-        <Fleuron width={26} color="rgba(205,169,96,.7)" />
+      <p style={{ margin: '16px 0 12px', maxWidth: 330, textAlign: 'center', fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 15, lineHeight: 1.45, color: 'rgba(243,233,214,.62)', animation: 'rise .8s .7s cubic-bezier(.22,.8,.2,1) both' }}>
+        {demo ? t.demoNote : t.bookDone}
+      </p>
+      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', animation: 'rise .8s .85s cubic-bezier(.22,.8,.2,1) both' }}>
+        <PdfButton t={t} pdf={pdf} error={pdfError} onClick={onDownload} />
+        <GhostButton onClick={onDone}>{t.done}</GhostButton>
       </div>
-      <button
-        onClick={onDone}
-        className="pc-hv-scale-06"
-        style={{
-          cursor: 'pointer', marginTop: 16, borderRadius: 999, padding: '13px 40px', fontFamily: FONT_BODY, fontSize: 11.5, letterSpacing: '.22em', textTransform: 'uppercase',
-          background: 'linear-gradient(135deg, rgba(255,255,255,.12), rgba(255,255,255,.03))', color: '#F3E9D6', border: '1px solid rgba(205,169,96,.6)',
-          backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', animation: 'rise .8s .7s cubic-bezier(.22,.8,.2,1) both',
-        }}
-      >
-        {t.done}
-      </button>
     </div>
   );
 }
