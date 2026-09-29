@@ -288,49 +288,6 @@ function cutting(ctx: CanvasRenderingContext2D, f: FabricRow, c: ColourRow, x: n
   ctx.restore();
 }
 
-/**
- * Photo-mount corners holding a cutting to the page, as in the book on screen: an oxblood paper
- * triangle over each corner, lit along its fold and casting a small shadow.
- */
-function mountCorners(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
-  const size = 40;
-  const out = 8;
-  const corners: [number, number, number, number][] = [
-    [x - out, y - out, 1, 1],
-    [x + w + out, y - out, -1, 1],
-    [x - out, y + h + out, 1, -1],
-    [x + w + out, y + h + out, -1, -1],
-  ];
-  for (const [cx, cy, sx, sy] of corners) {
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.scale(sx, sy);
-    const tri = new Path2D();
-    tri.moveTo(0, 0);
-    tri.lineTo(size, 0);
-    tri.lineTo(0, size);
-    tri.closePath();
-    ctx.shadowColor = 'rgba(30,10,4,.35)';
-    ctx.shadowBlur = 6;
-    ctx.shadowOffsetX = 2 * sx;
-    ctx.shadowOffsetY = 3 * sy;
-    const g = ctx.createLinearGradient(0, 0, size, size);
-    g.addColorStop(0, '#6E242A');
-    g.addColorStop(1, '#3A0F14');
-    ctx.fillStyle = g;
-    ctx.fill(tri);
-    ctx.shadowColor = 'transparent';
-    // The fold along the long edge catches the light.
-    ctx.strokeStyle = 'rgba(255,214,196,.28)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(size - 1, 1);
-    ctx.lineTo(1, size - 1);
-    ctx.stroke();
-    ctx.restore();
-  }
-}
-
 function cover(input: BookPdfInput, shadesCount: number) {
   const { c, ctx } = canvas();
   const { fonts, strings: t } = input;
@@ -480,7 +437,6 @@ function plate(input: BookPdfInput, ch: BookChapter, i: number, colours: ColourR
     const w = cellW - 56;
     const h = cellH - 110;
     cutting(ctx, ch.fabric, col, cx + 28, cy, w, h, i * 1000 + col.order);
-    mountCorners(ctx, cx + 28, cy, w, h);
     text(ctx, `${t.shadeNo} ${String(col.order).padStart(2, '0')}`.toUpperCase(), cx + 28, cy + h + 48, `500 19px ${fonts.body}`, '#9C7A45', 'left', 5);
     ctx.font = `500 19px ${fonts.body}`;
     // The number is set with 5px letter spacing, which measureText does not count.

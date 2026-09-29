@@ -103,7 +103,7 @@ export function SwatchBook({ studio }: { studio: Studio }) {
       setPos({ key: sheets[target].key, index: target });
       setFlying(null);
       setSide(0);
-    }, 460);
+    }, 420);
   };
   const forward = () => flyTo(forwardOf(at), -1);
   const back = () => flyTo(backOf(at), 1);
@@ -165,9 +165,12 @@ export function SwatchBook({ studio }: { studio: Studio }) {
   return (
     <Room>
       <div style={{ textAlign: 'center', userSelect: 'none', WebkitUserSelect: 'none' }}>
-        <Eyebrow>{t.book}</Eyebrow>
+        <h1 style={{ margin: 0, fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(40px,7vw,64px)', lineHeight: 1.02, color: INK }}>{t.book}</h1>
+        <div style={{ marginTop: 12 }}>
+          <Fleuron width={30} color="rgba(138,109,69,.7)" />
+        </div>
         {groups.length > 1 && (
-          // The chapters, by their numerals: the one open is underlined in gold.
+          // The fabrics in the book, by their numerals: the one open is underlined in gold.
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'baseline', flexWrap: 'wrap', gap: 4, marginTop: 12 }}>
             {groups.map((g, i) => (
               <button
@@ -240,7 +243,7 @@ export function SwatchBook({ studio }: { studio: Studio }) {
                 // Each sheet is its own layer, so sliding it moves pixels already painted.
                 ...SHEET_BASE, zIndex: top ? 3 : 2, transform, willChange: 'transform', contain: 'layout paint',
                 boxShadow: top && (dragging || flying) ? '0 22px 40px rgba(40,24,10,.26), 0 2px 6px rgba(40,24,10,.12)' : SHEET_BASE.boxShadow,
-                transition: dragging && top ? 'none' : flying && top ? 'transform .46s cubic-bezier(.45,0,.7,.35), box-shadow .3s ease' : 'transform .55s cubic-bezier(.22,.8,.2,1), box-shadow .4s ease',
+                transition: dragging && top ? 'none' : flying && top ? 'transform .42s cubic-bezier(.25,.6,.35,1), box-shadow .3s ease' : 'transform .55s cubic-bezier(.22,.8,.2,1), box-shadow .4s ease',
               }}
             >
               <SheetFace studio={studio} sheet={s} group={groups[s.g]} interactive={top && !flying} />
@@ -673,7 +676,10 @@ function SheetFace({ studio, sheet, group, interactive }: { studio: Studio; shee
 function LooseCutting({ studio, fabric, pin, colour, tiny, bare, big, interactive }: { studio: Studio; fabric: FabricRow; pin: Pin; colour: ColourRow; tiny: boolean; bare: boolean; big: boolean; interactive: boolean }) {
   const { t } = studio;
   return (
-    <div style={{ position: 'absolute', inset: 0, filter: 'drop-shadow(0 4px 5px rgba(40,26,12,.24))' }}>
+    <div style={{ position: 'absolute', inset: 0 }}>
+      {/* Its shadow on the sheet: a plain box shadow under the body of the cutting, which the
+          pinked edges hide, is far cheaper to paint than a filter on the masked cutting. */}
+      <div aria-hidden style={{ position: 'absolute', left: '1%', right: '1%', top: '4%', bottom: '3%', boxShadow: '0 5px 10px rgba(40,26,12,.26), 0 1px 2px rgba(40,26,12,.18)' }} />
       <div
         onClick={interactive ? () => studio.openFabric(pin.fabricId, fabric.colours.indexOf(colour)) : undefined}
         className="pc-pinked"
@@ -700,19 +706,22 @@ function LooseCutting({ studio, fabric, pin, colour, tiny, bare, big, interactiv
         )}
         <span style={{ fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: tiny ? 11 : big ? 17 : bare ? 13.5 : 14.5, color: INK, overflow: 'hidden', textOverflow: 'ellipsis' }}>{colour.name}</span>
       </div>
-      {interactive && (
-        <button
-          aria-label={`Remove ${colour.name}`}
-          onClick={() => studio.removePin(pin)}
-          className="pc-hv-scale-06"
-          style={{
-            position: 'absolute', top: tiny ? 5 : 9, right: tiny ? 5 : 9, width: tiny ? 18 : 24, height: tiny ? 18 : 24, borderRadius: '50%', display: 'grid', placeItems: 'center', cursor: 'pointer', padding: 0,
-            background: 'rgba(252,249,241,.94)', border: '1px solid rgba(201,169,110,.6)', fontSize: tiny ? 11 : 13, lineHeight: 1, color: '#6B5433',
-          }}
-        >
-          ×
-        </button>
-      )}
+      {/* Always drawn, so a sheet arriving on top shows the same marks it had beneath; only
+          the top sheet's can be pressed. */}
+      <button
+        aria-label={`Remove ${colour.name}`}
+        aria-hidden={!interactive || undefined}
+        tabIndex={interactive ? 0 : -1}
+        onClick={interactive ? () => studio.removePin(pin) : undefined}
+        className="pc-hv-scale-06"
+        style={{
+          position: 'absolute', top: tiny ? 5 : 9, right: tiny ? 5 : 9, width: tiny ? 18 : 24, height: tiny ? 18 : 24, borderRadius: '50%', display: 'grid', placeItems: 'center', cursor: 'pointer', padding: 0,
+          background: 'rgba(252,249,241,.94)', border: '1px solid rgba(201,169,110,.6)', fontSize: tiny ? 11 : 13, lineHeight: 1, color: '#6B5433',
+          pointerEvents: interactive ? 'auto' : 'none',
+        }}
+      >
+        ×
+      </button>
     </div>
   );
 }

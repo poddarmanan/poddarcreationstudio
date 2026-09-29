@@ -224,10 +224,12 @@ Every assertion is a claim about behaviour that no type checker can reach:
 
 ## The Swatch Book
 
-The page opens with "Swatch Book" between hairlines and, when there is more than one fabric, the
-chapters' Roman numerals, with the open one underlined in gold. Tapping a numeral jumps to that
-fabric's title sheet. The large fabric heading, its particulars and its arrows were removed at the
-owner's word, because the title sheet already names the fabric.
+The page is headed "Swatch Book" in the display face, over a gold rule. When there is more than
+one fabric, the fabrics' Roman numerals follow, in the order they sit in the book, with the open
+one underlined in gold; tapping one jumps to that fabric's title sheet. The large fabric heading,
+its particulars and its arrows were removed at the owner's word, since the title sheet names the
+fabric. Throughout the book, on screen and in the PDF, a fabric is headed "Fabric I", "Fabric II"
+and so on, where it was once "Chapter I".
 
 ### Browsing: loose sheets
 
@@ -235,13 +237,13 @@ While the buyer is still choosing, the book is not yet bound. It is a stack of l
 fabric after another, so it stays one sheet tall however many shades it holds:
 
 - **Title sheet:** each fabric opens on a title sheet inside a gold double rule. It shows
-  "Chapter" and the fabric's Roman numeral in foil, its name, its hand, a round window onto its
+  "Fabric" and its Roman numeral in foil, its name, its hand, a round window onto its
   first shade, and its count of shades and sheets. Along its foot it says which way to slide.
 - **Sheets of cuttings:** each holds up to nine of the fabric's shades, scattered. Each cutting
   takes a slot in a loose grid (seeded, so it always falls the same way), is nudged off-centre,
   and lies at its own angle up to about 11° either way. It is pinked, pinned with a pearl-headed
   pin, and labelled on a luggage tag: the name alone when there are two or more cuttings to a
-  row, and with its number when there is one. A running head names the chapter and fabric, and
+  row, and with its number when there is one. A running head gives "Fabric", its numeral and the name, and
   the foot gives the count, an italic folio and "Sheet 1 / 2".
 - **Sliding.** The top sheet follows a finger or the pointer, and the sheet it will reveal lies
   beneath it. Let go past a threshold and the sheet is thrown off to that side. Sliding left
@@ -252,7 +254,11 @@ fabric after another, so it stays one sheet tall however many shades it holds:
 - **Performance.** While the sheet is being dragged, it follows the finger by setting its
   transform directly, with no re-render per pointer move. Each sheet is its own compositor layer
   (`will-change: transform`, `contain: layout paint`), and the sheets under the stack are plain
-  gradients, not filtered copies. On a phone, the slide moves pixels that are already painted.
+  gradients, not filtered copies. A cutting's shadow is a plain box shadow under its body, which
+  the pinked edges hide, rather than a filter on the masked cutting.
+- **Throw.** A sheet let go past the threshold carries on at speed and eases out, instead of
+  starting from rest. The sheet beneath already shows its cuttings' remove marks, which only the
+  top sheet's respond to, so nothing appears as it arrives.
 - **Cuttings:** a cutting lifts and squares up under the pointer. Tapping it opens that shade in
   the lab, unless the tap was the end of a slide. Its × takes it out of the book.
 
@@ -320,10 +326,10 @@ The pages are:
 1. **Cover:** the oxblood leather cover, with its spine bands, gold frame and corner ornaments,
    "PC" cartouche and "Swatch Book" in gold. It gives the fabric and shade counts, and "Prepared
    for" with the buyer's name, or "Surat".
-2. **Contents:** each chapter's numeral, fabric, shade count and page, with dot leaders.
-3. **Chapters:** each fabric has a title page, with its numeral in gold, name, particulars,
+2. **Contents:** each fabric's numeral, fabric, shade count and page, with dot leaders.
+3. **Fabrics:** each fabric has a title page, with its numeral in gold, name, particulars,
    hand, a round window onto its first shade, and its shade count. Its plates follow, twelve
-   pinked cuttings to a page, each held by oxblood photo-mount corners as on screen, woven in the fabric's own structure: plain weave, silk's diagonal
+   pinked cuttings to a page, woven in the fabric's own structure: plain weave, silk's diagonal
    lustre, slub's thick picks, wrinkle's crinkle, and the fabric's sheen. Each plate gives its
    number, name and hex code.
 4. **Colophon:** the date it was compiled, who it was prepared for, and a note that colours on
