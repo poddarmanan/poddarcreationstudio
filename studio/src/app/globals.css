@@ -876,33 +876,83 @@ button.pc-auth-link:disabled { cursor: default; }
 .pc-print.is-tearing .pc-printer { animation: pcTug .45s ease both; }
 @keyframes pcTug { 25% { transform: translateY(3px); } 50% { transform: translateY(-1px); } 75% { transform: translateY(2px); } }
 
-/* The way on: a strip perforated in gold, torn open behind a pair of scissors drawn along it. */
-.pc-tear {
-  position: relative; flex: none; width: min(200px, 52vw); height: 52px; border-radius: 999px; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none;
-  background: linear-gradient(135deg, #2A231D, #1C1917); border: 1px solid #1C1917; box-shadow: 0 8px 18px rgba(28, 25, 23, .22), inset 0 1px 0 rgba(255, 236, 196, .12);
+/* Pulling the slip off the printer: it hangs from the slot (swinging about its top), a rip runs
+   along the slot as it is pulled, and once printed it sways a little, to say it can be taken. */
+.pc-print-paper { touch-action: pan-y; cursor: grab; }
+.pc-print-paper:active { cursor: grabbing; }
+.pc-print.is-flung .pc-print-paper { animation: none; }
+.pc-print.is-printed:not(.is-tearing) .pc-print-feed { animation: pcSway 1.6s .5s ease-in-out 2; transform-origin: 50% 0; }
+@keyframes pcSway { 25% { transform: rotate(.9deg); } 75% { transform: rotate(-.7deg); } }
+.pc-rip {
+  position: absolute; left: 0; right: 0; top: -3px; z-index: 5; height: 9px; pointer-events: none;
+  background: linear-gradient(135deg, transparent 33%, #2A231D 33% 50%, transparent 50%) 0 0 / 9px 9px, linear-gradient(45deg, transparent 33%, #2A231D 33% 50%, transparent 50%) 0 0 / 9px 9px;
 }
-.pc-tear-perf { position: absolute; left: 30px; right: 16px; top: 50%; border-top: 1.5px dashed rgba(233, 207, 143, .5); }
-.pc-tear-torn {
-  position: absolute; left: 0; right: 0; top: 50%; height: 8px; margin-top: -4px;
-  background: repeating-linear-gradient(135deg, transparent 0 3px, rgba(233, 207, 143, .9) 3px 4.5px, transparent 4.5px 6px), repeating-linear-gradient(45deg, transparent 0 3px, rgba(233, 207, 143, .9) 3px 4.5px, transparent 4.5px 6px);
+/* The dock's way on: what to do, with scissors; a tap tears the slip for you. */
+.pc-tear-hint {
+  flex: none; display: inline-flex; align-items: center; gap: 10px; max-width: 58%; padding: 8px 14px 8px 8px; border-radius: 999px; cursor: pointer; text-align: left;
+  border: 1px dashed rgba(138, 109, 69, .6); background: rgba(255, 253, 247, .7); color: #1C1917;
 }
-.pc-tear-label {
-  position: absolute; inset: 0; display: grid; place-items: center; padding-left: 40px; pointer-events: none;
-  font-family: var(--font-body), 'Jost', sans-serif; font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: #F3DFA6; white-space: nowrap;
-}
-.pc-tear-text { padding: 3px 9px; border-radius: 4px; background: #231D18; }
-.pc-tear-handle {
-  position: absolute; left: 4px; top: 4px; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; cursor: grab; touch-action: none; padding: 0;
-  color: #1C1917; border: 1px solid rgba(255, 240, 200, .6); background: linear-gradient(135deg, #F6E3A8, #D8B670); box-shadow: 0 3px 8px rgba(0, 0, 0, .35);
-  animation: pcTearHint 2.2s 1.8s ease-in-out 3;
-}
-.pc-tear-handle:active { cursor: grabbing; }
-.pc-tear-handle:focus-visible { outline: 2px solid #F3DFA6; outline-offset: 2px; }
-@keyframes pcTearHint { 0%, 60%, 100% { translate: 0; } 20% { translate: 18px; } 40% { translate: 4px; } }
-.pc-tear.is-done { box-shadow: 0 0 0 3px rgba(216, 182, 112, .35), 0 8px 18px rgba(28, 25, 23, .22); }
-.pc-tear.is-done .pc-tear-handle { animation: none; }
+.pc-tear-hint-icon { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; color: #1C1917; background: linear-gradient(135deg, #F6E3A8, #D8B670); animation: pcSnip 1.4s 1.2s ease-in-out 3; }
+@keyframes pcSnip { 20% { transform: rotate(-18deg); } 40% { transform: rotate(8deg); } 60% { transform: rotate(0); } }
+.pc-tear-hint-text { display: flex; flex-direction: column; font-size: 10.5px; line-height: 1.35; color: rgba(28, 25, 23, .6); }
+.pc-tear-hint-text b { font-family: var(--font-display), 'Cormorant Garamond', serif; font-weight: 500; font-size: 17px; color: #1C1917; }
 @media (prefers-reduced-motion: reduce) {
-  .pc-print.is-tearing .pc-print-paper, .pc-print.is-tearing .pc-printer, .pc-tear-handle { animation: none !important; }
+  .pc-print.is-tearing .pc-print-paper, .pc-print.is-tearing .pc-printer, .pc-print-feed, .pc-tear-hint-icon { animation: none !important; }
+}
+
+/* While printing, the printer hums: the finest tremor, gone when it stops. */
+.pc-printer.is-printing .pc-printer-slot { animation: pcHum .11s linear infinite; }
+@keyframes pcHum { 50% { transform: translateY(.6px); } }
+
+/* Paid: the slip drops in, the stamp comes down on it, and the money falls past. */
+.pc-paid { position: relative; width: 100%; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+.pc-paid-eyebrow { font-size: 9.5px; letter-spacing: .42em; padding-left: .42em; text-transform: uppercase; color: #2F7A4F; animation: pcRiseIn .7s .1s ease both; }
+.pc-paid-amount { margin-top: 8px; font-family: var(--font-display), 'Cormorant Garamond', serif; font-weight: 500; font-size: clamp(44px, 12vw, 64px); line-height: 1; color: #1C1917; font-variant-numeric: lining-nums; animation: pcWordIn 1s .2s cubic-bezier(.2, .8, .2, 1) both; }
+.pc-paid-slip {
+  position: relative; width: min(100%, 420px); margin-top: 26px; text-align: left; filter: drop-shadow(0 16px 26px rgba(40, 24, 10, .16));
+  animation: pcSlipDrop .8s .35s cubic-bezier(.2, .9, .3, 1.1) both, pcJolt .35s 1.02s ease both;
+}
+@keyframes pcSlipDrop { from { opacity: 0; transform: translateY(-40px) rotate(-2deg); } to { opacity: 1; transform: none; } }
+@keyframes pcJolt { 30% { transform: translateY(5px) scale(.99); } 60% { transform: translateY(-1px); } }
+.pc-paid-slip .pc-slip { padding-bottom: 18px; }
+.pc-bigstamp {
+  position: absolute; left: 50%; top: 52%; z-index: 3; display: flex; flex-direction: column; align-items: center; padding: 10px 22px 8px; border: 3px solid #2F7A4F; border-radius: 8px;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .6), inset 0 0 0 4px #2F7A4F; color: #2F7A4F; background: rgba(240, 250, 240, .35);
+  transform: translate(-50%, -50%) rotate(-14deg); mix-blend-mode: multiply;
+  animation: pcSlam .5s .7s cubic-bezier(.5, 0, .7, .4) both, pcSlamSettle .35s 1.2s cubic-bezier(.3, 1.6, .5, 1) both;
+}
+@keyframes pcSlam { from { opacity: 0; transform: translate(-50%, -50%) rotate(-24deg) scale(2.8); } to { opacity: 1; transform: translate(-50%, -50%) rotate(-14deg) scale(.92); } }
+@keyframes pcSlamSettle { from { transform: translate(-50%, -50%) rotate(-14deg) scale(.92); } to { transform: translate(-50%, -50%) rotate(-14deg) scale(1); } }
+.pc-bigstamp-word { font-family: var(--font-body), 'Jost', sans-serif; font-weight: 700; font-size: 40px; line-height: 1; letter-spacing: .22em; padding-left: .22em; text-transform: uppercase; }
+.pc-bigstamp-line { margin-top: 5px; font-size: 10px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; font-variant-numeric: lining-nums; white-space: nowrap; }
+.pc-bigstamp-ref { margin-top: 2px; font-size: 8.5px; letter-spacing: .12em; opacity: .8; }
+.pc-bigstamp-ink {
+  position: absolute; left: 50%; top: 52%; z-index: 2; width: 220px; height: 220px; margin: -110px 0 0 -110px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(47, 122, 79, .22), rgba(47, 122, 79, 0) 65%); opacity: 0; animation: pcInk .9s 1.18s ease-out both;
+}
+@keyframes pcInk { from { opacity: .9; transform: scale(.3); } to { opacity: 0; transform: scale(1.5); } }
+.pc-paid-copy { margin: 26px 0 0; max-width: 340px; font-family: var(--font-display), 'Cormorant Garamond', serif; font-size: 17px; line-height: 1.45; color: #8A6D45; animation: pcRiseIn .8s 1.5s ease both; }
+.pc-money { position: fixed; inset: 0; z-index: 80; pointer-events: none; overflow: hidden; }
+.pc-money > span { position: absolute; top: -60px; animation-name: pcMoneyFall; animation-timing-function: cubic-bezier(.35, .1, .6, 1); animation-fill-mode: both; will-change: transform; }
+@keyframes pcMoneyFall {
+  0% { opacity: 0; transform: translate(0, 0) rotate(0deg); }
+  8% { opacity: 1; }
+  50% { transform: translate(var(--sway), 55vh) rotate(calc(var(--spin) * .5)); }
+  90% { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(var(--sway) * -.4), 112vh) rotate(var(--spin)); }
+}
+.pc-money-coin {
+  display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; font-family: var(--font-display), 'Cormorant Garamond', serif; font-weight: 600; font-size: 16px; color: #6B4C18;
+  background: radial-gradient(circle at 35% 30%, #FFF4CF, #E0BE6A 45%, #A77E2E 100%); box-shadow: inset 0 0 0 2px rgba(255, 244, 207, .5), 0 3px 6px rgba(60, 40, 10, .3);
+}
+.pc-money-note {
+  display: grid; place-items: center; width: 58px; height: 28px; border-radius: 3px; border: 1px solid rgba(47, 122, 79, .45);
+  background: repeating-linear-gradient(90deg, rgba(47, 122, 79, .08) 0 3px, transparent 3px 7px), linear-gradient(135deg, #EEF4E2, #D8E6C8); box-shadow: 0 4px 8px rgba(40, 60, 30, .2);
+}
+.pc-money-note b { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; border: 1px solid rgba(47, 122, 79, .5); font-family: var(--font-display), 'Cormorant Garamond', serif; font-size: 12px; color: #2F7A4F; }
+@media (prefers-reduced-motion: reduce) {
+  .pc-printer.is-printing .pc-printer-slot, .pc-paid-slip, .pc-bigstamp, .pc-bigstamp-ink { animation: none !important; }
+  .pc-money { display: none; }
 }
 
 /* Ship to: the route from the mill to the address chosen. */
@@ -971,6 +1021,7 @@ button.pc-auth-link:disabled { cursor: default; }
 
 /* Paid online: a stamp on the parcel's tag, and a line in the summary. */
 .pc-paid-stamp {
+  text-transform: uppercase;
   position: absolute; right: 7px; top: 4px; padding: 1px 5px; border: 1.2px solid #3E8E5C; border-radius: 3px; transform: rotate(-8deg);
   font-family: var(--font-body), 'Jost', sans-serif; font-size: 7px; font-weight: 600; letter-spacing: .24em; color: #3E8E5C; background: rgba(245, 252, 244, .85);
   animation: pcStamp .5s .3s cubic-bezier(.3, 1.6, .5, 1) both;

@@ -548,26 +548,28 @@ total metres, the shades (or how many are not set) and the value, and an ink "Ch
   large under a double gold rule. The fine print sits beneath, and the slip ends in a pinked foot,
   as if torn from a pad.
 - **The slip prints out.** It comes from a printer's mouth: a dark bar with a gold-lipped slot,
-  whose light blinks while it prints and turns green once done. On arrival the first stretch prints
-  over about a second. After that the paper prints as the page is scrolled, revealed top-down to a
-  glowing print line that stays just above the dock and never backs up. It is driven imperatively
-  (a clip on the paper each frame), so scrolling renders nothing.
+  whose light blinks and slot hums (a tremor of the finest kind) while it prints, turning green
+  once done. It prints by itself, line by line, easing in and then running at about 360px a
+  second, revealed top-down to a glowing print line. The page scrolls along to keep that line in
+  view just above the dock. A reader who scrolls, touches or presses a key takes over: printing
+  carries on, but the page stops following. Everything is set on the elements each frame, so
+  printing renders nothing. Once printed, the slip sways twice from the slot, to say it can be
+  taken.
 - **A note for the mill** is a small butter-yellow sticky note with a strip of tape, ruled lines
   and a folded corner. It is pressed onto the slip's torn foot when printing finishes.
-- **Tear to continue.** There is no Continue button. The dock holds a dark strip perforated in
-  gold, with a gold pair of scissors at its start that nudges a few times as a hint. Drawing the
-  scissors along tears the perforation open behind them as the label fades. Let go short of
-  three-quarters and they spring back; carry them past and the slip is torn off. A tap, Enter or
-  Space runs them along by themselves.
+- **Tear it off the printer.** There is no button to go on: the slip is taken off the printer
+  by hand. Take hold of it anywhere and pull it sideways; upward and downward strokes still
+  scroll. It swings from the slot as it is pulled, and a rip opens along the slot in the
+  direction of the pull.
+  - Let go before it has gone about two-fifths of its width and it swings back.
+  - Pull past that and it tears. The top edge goes jagged, a torn stub stays in the slot, and the
+    slip flies off the way it was pulled, turning as it falls. Then the dispatch (or sign-in)
+    opens.
 
-  Tearing plays out in order:
-  1. Whatever has not printed prints at once.
-  2. The page glides the printer into view.
-  3. The printer gives a tug, the slip's top edge goes jagged, and a torn stub stays in the slot.
-  4. The slip and its note drop away with a slight turn, and the dispatch (or sign-in) opens.
-
-  With nothing to order, the strip shakes and the scissors return. Coming back to the review
-  prints the slip afresh.
+  The dock says what to do: "Tear it off · Pull the slip sideways", beside gold scissors that
+  snip a few times. A tap there (or Enter) tears the slip for you: the printer comes into view,
+  tugs, and lets the slip drop. With nothing to order, it shakes instead. Coming back to the
+  review prints the slip afresh.
 
 **III Dispatch** (`ShipPay.tsx`), titled "Delivery & *Payment*", comes after the review. A buyer
 who is not signed in signs in first, since the address book belongs to the account. It has three
@@ -623,8 +625,15 @@ gateway.
   - a coin drops into the bank;
   - the ledger page is written on (credit terms).
 - **Steps:** the rule between completed steps draws in gold.
-- **Paid orders:** a green "PAID" stamp comes down on the parcel's tag, and the summary adds
-  "✓ Paid ₹ … · reference".
+- **Paid orders:** once an online payment is confirmed, "Payment received" comes first
+  (`PaidMoment.tsx`):
+  1. The amount is set large, and the order slip drops in with its shades, metres and date.
+  2. A green rubber stamp slams down on the slip: PAID, with the amount, date and payment
+     reference. It falls from above at a tilt, the slip jolts under it, and the ink spreads.
+  3. Gold ₹ coins and pale green ₹ notes shower past, each on its own path, spin and sway.
+  4. "Thank you. Your order is on its way to the mill." After about four seconds (or a tap) the
+     parcel is wrapped, and a smaller PAID stamp comes down on its tag, with "✓ Paid ₹ …" in the
+     summary.
 
 The dock gives the metres, where the order ships and the estimate, with "Place order". Without an
 address, it shakes and opens the form.

@@ -5,6 +5,7 @@ import type { RazorpayProof, Studio } from './state';
 import type { ColourRow, FabricRow } from '@/lib/types';
 import { FONT_DISPLAY, fabricTex } from './helpers';
 import { Room, roman } from './SwatchBook';
+import { PaidMoment } from './PaidMoment';
 import { AuthScreen } from './AuthScreen';
 import { CartGlyph } from './CartGlyph';
 import { ShipPay, Steps, addressText, PAYMENT_LABEL, type Payment, type When } from './ShipPay';
@@ -63,54 +64,72 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
   const [addressId, setAddressId] = useState<string | null>(null);
   const [note, setNote] = useState('');
   // The review, then signing in if need be, then the dispatch details, then the parcel.
-  const [phase, setPhase] = useState<'edit' | 'auth' | 'ship' | 'dispatch'>('edit');
+  const [phase, setPhase] = useState<'edit' | 'auth' | 'ship' | 'paid' | 'dispatch'>('edit');
   const [buyer, setBuyer] = useState<{ whatsapp: string | null; demo: boolean }>({ whatsapp: null, demo: false });
   const [order, setOrder] = useState<{ state: OrderState; ref?: string; whatsapp: string | null; paid?: { amount: number; ref: string } }>({ state: 'pending', whatsapp: null });
   // A payment already made is kept, so a failed order is retried without paying twice.
   const [proof, setProof] = useState<{ razorpay: RazorpayProof; amount: number; shipTo: string } | null>(null);
   const [warn, setWarn] = useState(0);
 
-  // The order slip prints out of a slot as the page arrives and then as it is scrolled: the paper
-  // is revealed from the top down to a print line that runs ahead of the reader, just above the
-  // dock, and never backs up. Set on the element directly each frame, so scrolling renders nothing.
+  // The order slip prints out of a slot by itself, line by line at a steady pace, while the page
+  // scrolls along to keep the print line in view, just above the dock. A reader who scrolls or
+  // touches the page takes over: printing carries on, but the page no longer follows. Set on the
+  // elements directly each frame, so printing renders nothing.
   const feedRef = useRef<HTMLDivElement | null>(null);
   const headRef = useRef<HTMLDivElement | null>(null);
+  const printDone = useRef(false);
   const [printed, setPrinted] = useState(false);
   useEffect(() => {
     if (phase !== 'edit') return;
     const feed = feedRef.current;
     if (!feed) return;
+    printDone.current = false;
     const quick = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const started = performance.now();
+    const startAt = performance.now() + (quick ? 0 : 750);
     let shown = 0;
+    let last = 0;
     let raf = 0;
-    let done = false;
+    let follow = !quick;
+    const letGo = () => {
+      follow = false;
+    };
     const frame = (now: number) => {
       raf = 0;
       const full = feed.scrollHeight;
-      const ahead = Math.min(full, Math.max(170, window.innerHeight - 230 - feed.getBoundingClientRect().top));
-      // On arrival the first stretch prints over a second or so, before any scrolling.
-      const ramp = Math.min(1, (now - started) / 1300);
-      shown = quick ? full : Math.max(shown, ahead * (1 - Math.pow(1 - ramp, 3)));
+      if (now < startAt) {
+        raf = requestAnimationFrame(frame);
+        return;
+      }
+      const dt = last ? Math.min(64, now - last) : 16;
+      last = now;
+      // Easing in over the first stretch, then about 360px a second.
+      const pace = Math.min(0.36, 0.08 + shown / 900);
+      shown = quick || printDone.current ? full : Math.min(full, shown + dt * pace);
       feed.style.clipPath = shown >= full ? 'none' : `inset(0 0 ${full - shown}px 0)`;
       if (headRef.current) headRef.current.style.transform = `translateY(${shown}px)`;
-      if (shown >= full && !done) {
-        done = true;
-        setPrinted(true);
-        return stop();
+      if (follow) {
+        const line = feed.getBoundingClientRect().top + shown;
+        const want = window.innerHeight - 250;
+        if (line > want) window.scrollBy(0, line - want);
       }
-      if (ramp < 1) raf = requestAnimationFrame(frame);
-    };
-    const onScroll = () => {
-      if (!raf) raf = requestAnimationFrame(frame);
+      if (shown >= full) {
+        stop();
+        setPrinted(true);
+        return;
+      }
+      raf = requestAnimationFrame(frame);
     };
     const stop = () => {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
+      window.removeEventListener('wheel', letGo);
+      window.removeEventListener('touchstart', letGo);
+      window.removeEventListener('keydown', letGo);
+      window.removeEventListener('mousedown', letGo);
     };
+    window.addEventListener('wheel', letGo, { passive: true });
+    window.addEventListener('touchstart', letGo, { passive: true });
+    window.addEventListener('keydown', letGo);
+    window.addEventListener('mousedown', letGo);
     raf = requestAnimationFrame(frame);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
     return () => {
       cancelAnimationFrame(raf);
       stop();
@@ -126,7 +145,7 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
   const whenLabel = when === 'soon' ? t.whenSoon : when === '2w' ? t.when2w : t.whenMonth;
 
   // What was ordered stays on the dispatch page even as the cart empties behind it.
-  const [sent, setSent] = useState<{ lines: Line[]; total: number; value: number } | null>(null);
+  const [sent, setSent] = useState<{ lines: Line[]; total: number; value: number; metres: Record<string, number> } | null>(null);
   const go = (p: typeof phase) => {
     window.scrollTo(0, 0);
     setPhase(p);
@@ -135,8 +154,9 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
   const send = (shipTo: string, paid?: { razorpay?: RazorpayProof; amount: number; ref: string }) => {
     const { whatsapp, demo } = buyer;
     window.scrollTo(0, 0);
-    setSent({ lines: chosen, total, value });
-    setPhase('dispatch');
+    setSent({ lines: chosen, total, value, metres: Object.fromEntries(chosen.map((l) => [l.key, m(l.key)])) });
+    // Paid online: the stamp comes down on the slip first, then the parcel is wrapped.
+    setPhase(paid ? 'paid' : 'dispatch');
     setOrder({ state: demo || PREVIEW ? 'demo' : 'pending', whatsapp, paid: paid ? { amount: paid.amount, ref: paid.ref } : undefined });
     const placed = () => {
       if (fromCart) for (const l of chosen) studio.removeFromCart(l.x.id, l.c.order);
@@ -166,6 +186,8 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
       setWarn((n) => n + 1);
       return false;
     }
+    // Whatever has not printed prints at once.
+    printDone.current = true;
     const feed = feedRef.current;
     if (feed) feed.style.clipPath = 'none';
     setPrinted(true);
@@ -179,6 +201,95 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
     }, quick ? 60 : 1650);
     return true;
   };
+  // Or torn straight off the printer: take hold of the slip anywhere and pull it sideways. It swings
+  // from the slot as it is pulled, a rip opening along the slot; let go early and it swings back,
+  // pull far enough and it tears and flies off the way it was pulled. Upward and downward strokes
+  // still scroll the page.
+  const paperRef = useRef<HTMLDivElement | null>(null);
+  const ripRef = useRef<HTMLSpanElement | null>(null);
+  const [flung, setFlung] = useState(false);
+  const pull = useRef<{ x: number; y: number; dx: number; on: boolean; off: boolean } | null>(null);
+  const [pulling, setPulling] = useState(false);
+  const pose = (dx: number, animate: boolean) => {
+    const paper = paperRef.current;
+    if (!paper) return;
+    const w = paper.clientWidth || 360;
+    const p = Math.min(1, Math.abs(dx) / (w * 0.42));
+    paper.style.transition = animate ? 'transform .55s cubic-bezier(.3,1.5,.5,1)' : 'none';
+    paper.style.transform = dx ? `translateX(${dx * 0.35}px) rotate(${dx / 50}deg)` : '';
+    const rip = ripRef.current;
+    if (rip) {
+      rip.style.transition = animate ? 'clip-path .4s ease' : 'none';
+      rip.style.clipPath = dx >= 0 ? `inset(0 ${100 - p * 100}% 0 0)` : `inset(0 0 0 ${100 - p * 100}%)`;
+    }
+    return p;
+  };
+  const fling = (dir: 1 | -1) => {
+    if (!chosen.length) {
+      setWarn((n) => n + 1);
+      pose(0, true);
+      return;
+    }
+    printDone.current = true;
+    const feed = feedRef.current;
+    if (feed) feed.style.clipPath = 'none';
+    setPrinted(true);
+    setTearing(true);
+    setFlung(true);
+    const paper = paperRef.current;
+    if (paper) {
+      paper.style.transition = 'transform .95s cubic-bezier(.45,.05,.7,.4), opacity .95s ease';
+      paper.style.transform = `translate(${dir * 70}vw, 55vh) rotate(${dir * 28}deg)`;
+      paper.style.opacity = '0';
+    }
+    window.setTimeout(() => {
+      setTearing(false);
+      setFlung(false);
+      if (paper) {
+        paper.style.transition = 'none';
+        paper.style.transform = '';
+        paper.style.opacity = '';
+      }
+      next();
+    }, 1000);
+  };
+  useEffect(() => {
+    if (!pulling) return;
+    const move = (e: PointerEvent) => {
+      const d = pull.current;
+      if (!d || d.off) return;
+      const dx = e.clientX - d.x;
+      const dy = e.clientY - d.y;
+      if (!d.on) {
+        // Decide once: a sideways pull takes the slip; an upward or downward stroke is a scroll.
+        if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) {
+          d.off = true;
+          return;
+        }
+        if (Math.abs(dx) < 10) return;
+        d.on = true;
+      }
+      d.dx = dx;
+      pose(dx, false);
+    };
+    const up = () => {
+      const d = pull.current;
+      pull.current = null;
+      setPulling(false);
+      if (!d || !d.on) return;
+      const w = paperRef.current?.clientWidth || 360;
+      if (Math.abs(d.dx) >= w * 0.42) fling(d.dx > 0 ? 1 : -1);
+      else pose(0, true);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+    return () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+    };
+  });
   // Placing the order: paying online first when chosen (verified on the server with the order).
   const placeOrder = async (a: Address, demoPaid?: boolean): Promise<string | null> => {
     const shipTo = addressText(a);
@@ -230,7 +341,18 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
         onPlace={placeOrder}
       />
     );
-  if (phase === 'dispatch')
+  if (phase === 'paid' && order.paid)
+    return (
+      <PaidMoment
+        studio={studio}
+        lines={(sent?.lines ?? chosen).map((l) => ({ x: l.x, c: l.c, metres: sent?.metres[l.key] ?? m(l.key) }))}
+        total={sent?.total ?? total}
+        amount={order.paid.amount}
+        reference={order.paid.ref === 'PREVIEW' ? t.previewWord : order.paid.ref}
+        onDone={() => go('dispatch')}
+      />
+    );
+  if (phase === 'dispatch' || phase === 'paid')
     return (
       <Dispatch
         studio={studio}
@@ -286,15 +408,26 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
       {/* The order slip: the house and the date at its head under a double gold rule; each fabric
           with its numeral in a gold ring, its price by the metre, its shades and its subtotal on a
           dotted leader; then the totals, ruled off as in a ledger; and a pinked foot. */}
-      <div ref={printRef} className={`pc-print${tearing ? ' is-tearing' : ''}`}>
+      <div ref={printRef} className={`pc-print${tearing ? ' is-tearing' : ''}${flung ? ' is-flung' : ''}${printed ? ' is-printed' : ''}`}>
         {/* The printer's mouth: a slot edged in gold, its light blinking while it prints. */}
-        <div aria-hidden className={`pc-printer${printed ? ' is-done' : ''}`}>
+        <div aria-hidden className={`pc-printer${printed ? ' is-done' : ' is-printing'}`}>
           <span className="pc-printer-light" />
           <span className="pc-printer-slot" />
           {/* What stays in the slot once the slip is torn off. */}
           <span className="pc-printer-stub" />
         </div>
-        <div className="pc-print-paper">
+        <div
+          ref={paperRef}
+          className="pc-print-paper"
+          onPointerDown={(e) => {
+            // The note, the × and the like keep their own taps.
+            if (tearing || e.button > 0 || (e.target as HTMLElement).closest('button, textarea, input, a')) return;
+            pull.current = { x: e.clientX, y: e.clientY, dx: 0, on: false, off: false };
+            setPulling(true);
+          }}
+        >
+          {/* The rip opening along the slot as the slip is pulled. */}
+          <span ref={ripRef} aria-hidden className="pc-rip" style={{ clipPath: 'inset(0 100% 0 0)' }} />
           <div ref={feedRef} className="pc-print-feed" style={{ clipPath: 'inset(0 0 100% 0)' }}>
             <div ref={headRef} aria-hidden className={`pc-print-head${printed ? ' is-done' : ''}`} />
             <div className="pc-slip-wrap">
@@ -401,107 +534,23 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
             <b>₹ {inr(value)}</b>
           </div>
         </div>
-        <TearButton key={warn} label={t.tearToContinue} aria={t.tearAria} onTear={tear} shake={warn > 0} />
+        {/* How to go on: pull the slip off the printer (or tap here, which tears it for you). */}
+        <button key={warn} className="pc-tear-hint" aria-label={t.tearAria} onClick={() => tear()} style={{ animation: warn ? 'pcShake .5s cubic-bezier(.36,.07,.19,.97) both' : undefined }}>
+          <span aria-hidden className="pc-tear-hint-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="6" cy="6" r="3" />
+              <circle cx="6" cy="18" r="3" />
+              <path d="M8.1 8.1 20 20M8.1 15.9 20 4" />
+            </svg>
+          </span>
+          <span className="pc-tear-hint-text">
+            <b>{t.tearOff}</b>
+            {t.tearHint}
+          </span>
+        </button>
       </div>
       {warn > 0 && !chosen.length && <div style={{ marginTop: 10, fontSize: 12.5, color: '#A5392B' }}>{t.nothingChosen}</div>}
     </Room>
-  );
-}
-
-/**
- * The way on from the review: a strip perforated in gold with a pair of scissors at its start.
- * Drawing the scissors along tears the perforation open behind them; let go short of the end and
- * they spring back, carry them past it and the slip is torn off (`onTear`). A tap, Enter or Space
- * runs the scissors along by themselves. `onTear` answering false (nothing to order) sends them back.
- */
-function TearButton({ label, aria, onTear, shake }: { label: string; aria: string; onTear: () => boolean; shake: boolean }) {
-  const track = useRef<HTMLDivElement | null>(null);
-  const handle = useRef<HTMLButtonElement | null>(null);
-  const torn = useRef<HTMLSpanElement | null>(null);
-  const text = useRef<HTMLSpanElement | null>(null);
-  const drag = useRef<{ x: number; at: number; moved: boolean } | null>(null);
-  const [done, setDone] = useState(false);
-  const HANDLE = 44;
-  const span = () => (track.current ? track.current.clientWidth - HANDLE - 8 : 140);
-  const paint = (x: number, animate: boolean) => {
-    const w = span();
-    const p = Math.max(0, Math.min(1, x / w));
-    const ease = animate ? 'transform .45s cubic-bezier(.22,.8,.2,1)' : 'none';
-    if (handle.current) {
-      handle.current.style.transition = ease;
-      handle.current.style.transform = `translateX(${p * w}px) rotate(${p * 360}deg)`;
-    }
-    if (torn.current) {
-      torn.current.style.transition = animate ? 'clip-path .45s cubic-bezier(.22,.8,.2,1)' : 'none';
-      torn.current.style.clipPath = `inset(0 ${100 - p * 100}% 0 0)`;
-    }
-    if (text.current) {
-      text.current.style.transition = animate ? 'opacity .3s ease' : 'none';
-      text.current.style.opacity = String(1 - p * 1.4);
-    }
-  };
-  const finish = () => {
-    paint(span(), true);
-    if (onTear()) setDone(true);
-    else window.setTimeout(() => paint(0, true), 380);
-  };
-  useEffect(() => {
-    const move = (e: PointerEvent) => {
-      const d = drag.current;
-      if (!d) return;
-      const x = d.at + e.clientX - d.x;
-      if (Math.abs(e.clientX - d.x) > 4) d.moved = true;
-      paint(x, false);
-    };
-    const up = (e: PointerEvent) => {
-      const d = drag.current;
-      if (!d) return;
-      drag.current = null;
-      const x = d.at + e.clientX - d.x;
-      // A tap runs the scissors along; a draw past most of the way tears; short of it, back.
-      if (!d.moved || x > span() * 0.72) finish();
-      else paint(0, true);
-    };
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', up);
-    window.addEventListener('pointercancel', up);
-    return () => {
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', up);
-      window.removeEventListener('pointercancel', up);
-    };
-  });
-  return (
-    <div ref={track} className={`pc-tear${done ? ' is-done' : ''}`} style={{ animation: shake ? 'pcShake .5s cubic-bezier(.36,.07,.19,.97) both' : undefined }}>
-      <span aria-hidden className="pc-tear-perf" />
-      <span ref={torn} aria-hidden className="pc-tear-torn" style={{ clipPath: 'inset(0 100% 0 0)' }} />
-      <span ref={text} aria-hidden className="pc-tear-label">
-        <span className="pc-tear-text">{label}</span>
-      </span>
-      <button
-        ref={handle}
-        aria-label={aria}
-        className="pc-tear-handle"
-        disabled={done}
-        onPointerDown={(e) => {
-          if (done) return;
-          e.preventDefault();
-          drag.current = { x: e.clientX, at: 0, moved: false };
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            finish();
-          }
-        }}
-      >
-        <svg aria-hidden width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="6" cy="6" r="3" />
-          <circle cx="6" cy="18" r="3" />
-          <path d="M8.1 8.1 20 20M8.1 15.9 20 4" />
-        </svg>
-      </button>
-    </div>
   );
 }
 
