@@ -81,8 +81,9 @@ export function SwatchBook({ studio }: { studio: Studio }) {
   const found = sheets.findIndex((s) => s.key === pos.key);
   const at = found >= 0 ? found : Math.min(pos.index, Math.max(0, sheets.length - 1));
   const sheet = sheets[at];
-  const [headDir, setHeadDir] = useState<1 | -1>(1);
-  const [dx, setDx] = useState(0);
+  // Which way the top sheet is being slid (-1 left, 1 right): it decides which sheet lies beneath.
+  const [side, setSide] = useState<-1 | 0 | 1>(0);
+  const topRef = useRef<HTMLDivElement | null>(null);
   const [dragging, setDragging] = useState(false);
   const [flying, setFlying] = useState<{ dir: 1 | -1; target: number } | null>(null);
   const [preview, setPreview] = useState(false);
@@ -97,14 +98,11 @@ export function SwatchBook({ studio }: { studio: Studio }) {
   /** Throws the top sheet off to one side (-1 left, 1 right) and brings `target` up from beneath. */
   const flyTo = (target: number, dir: 1 | -1) => {
     if (flying || target === at || target < 0) return;
-    const fromG = sheet.g;
-    const toG = sheets[target].g;
-    if (toG !== fromG) setHeadDir(toG > fromG || (toG === 0 && dir < 0 && fromG === groups.length - 1) ? 1 : -1);
     setFlying({ dir, target });
     window.setTimeout(() => {
       setPos({ key: sheets[target].key, index: target });
       setFlying(null);
-      setDx(0);
+      setSide(0);
     }, 460);
   };
   const forward = () => flyTo(forwardOf(at), -1);
@@ -125,7 +123,11 @@ export function SwatchBook({ studio }: { studio: Studio }) {
       if (!d) return;
       d.dx = e.clientX - d.x;
       if (Math.abs(d.dx) > 6) d.moved = true;
-      setDx(d.dx);
+      // The sheet follows the finger directly, without a render: only a change of side re-renders.
+      const el = topRef.current;
+      if (el) el.style.transform = `translateX(${d.dx}px) rotate(${d.dx / 40}deg)`;
+      const next = d.dx < 0 ? -1 : d.dx > 0 ? 1 : 0;
+      setSide((was) => (was === next ? was : next));
     };
     const up = () => {
       const d = drag.current;
@@ -135,7 +137,15 @@ export function SwatchBook({ studio }: { studio: Studio }) {
       if (d && d.moved && Math.abs(d.dx) > 70) {
         if (d.dx < 0) flyRef.current.forward();
         else flyRef.current.back();
-      } else setDx(0);
+      } else {
+        // Short of the threshold, the sheet falls back into place.
+        const el = topRef.current;
+        if (el) {
+          el.style.transition = 'transform .55s cubic-bezier(.22,.8,.2,1), box-shadow .4s ease';
+          el.style.transform = 'translateX(0px) rotate(0deg)';
+        }
+        setSide(0);
+      }
     };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
@@ -149,26 +159,13 @@ export function SwatchBook({ studio }: { studio: Studio }) {
 
   if (!sheet) return <EmptyBook studio={studio} />;
   const group = groups[sheet.g];
-  const under = flying ? flying.target : dx > 0 ? backOf(at) : forwardOf(at);
+  const under = flying ? flying.target : side > 0 ? backOf(at) : forwardOf(at);
   const shown = under >= 0 && under !== at ? [sheets[under], sheet] : [sheet];
 
   return (
     <Room>
       <div style={{ textAlign: 'center', userSelect: 'none', WebkitUserSelect: 'none' }}>
         <Eyebrow>{t.book}</Eyebrow>
-        <div style={{ display: 'grid', gridTemplateColumns: groups.length > 1 ? '40px minmax(0,1fr) 40px' : 'minmax(0,1fr)', alignItems: 'center', gap: 8, marginTop: 12 }}>
-          {groups.length > 1 && <ArrowButton label="Previous fabric" onClick={() => toFabric(sheet.g - 1)} glyph="‹" />}
-          <div key={group.x.id} style={{ minWidth: 0, animation: `${headDir > 0 ? 'pcBookInRight' : 'pcBookInLeft'} .8s cubic-bezier(.22,.8,.2,1) both` }}>
-            <h1 style={{ margin: 0, fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(36px,6vw,62px)', lineHeight: 1.02, color: INK, textWrap: 'balance' }}>{group.x.name}</h1>
-            <div style={{ marginTop: 10, fontSize: 10.5, letterSpacing: '.16em', textTransform: 'uppercase', color: 'rgba(28,25,23,.55)', lineHeight: 1.7 }}>
-              {group.x.weight} · {group.x.width} · {group.x.comp}
-            </div>
-            <div style={{ marginTop: 2, fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 15, color: UMBER }}>
-              {group.x.hand} — {group.items.length} {group.items.length === 1 ? t.shade : t.shades} {t.inBookWord}
-            </div>
-          </div>
-          {groups.length > 1 && <ArrowButton label="Next fabric" onClick={() => toFabric(sheet.g + 1)} glyph="›" />}
-        </div>
         {groups.length > 1 && (
           // The chapters, by their numerals: the one open is underlined in gold.
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'baseline', flexWrap: 'wrap', gap: 4, marginTop: 12 }}>
@@ -229,18 +226,20 @@ export function SwatchBook({ studio }: { studio: Studio }) {
       >
         <div aria-hidden style={{ position: 'absolute', left: '4%', right: '2%', bottom: -14, height: 30, background: 'radial-gradient(closest-side, rgba(46,26,10,.3), transparent)', filter: 'blur(3px)' }} />
         {/* Sheets further down the stack, showing at the edges. */}
-        <div aria-hidden style={{ ...SHEET_BASE, transform: 'translate(-7px, 7px) rotate(-2.4deg)', filter: 'brightness(.94)' }} />
-        <div aria-hidden style={{ ...SHEET_BASE, transform: 'translate(6px, 4px) rotate(1.7deg)', filter: 'brightness(.97)' }} />
+        <div aria-hidden style={{ ...SHEET_BASE, background: 'linear-gradient(180deg, #EFE9DC, #E6DCC8)', transform: 'translate(-7px, 7px) rotate(-2.4deg)' }} />
+        <div aria-hidden style={{ ...SHEET_BASE, background: 'linear-gradient(180deg, #F5F0E4, #ECE3D1)', transform: 'translate(6px, 4px) rotate(1.7deg)' }} />
         {shown.map((s) => {
           const top = s.key === sheet.key;
-          const transform = top ? (flying ? `translateX(${flying.dir * 125}%) rotate(${flying.dir * 9}deg)` : `translateX(${dx}px) rotate(${dx / 40}deg)`) : 'rotate(-.7deg)';
+          const transform = top ? (flying ? `translateX(${flying.dir * 125}%) rotate(${flying.dir * 9}deg)` : 'translateX(0px) rotate(0deg)') : 'rotate(-.7deg)';
           return (
             <div
               key={s.key}
+              ref={top ? topRef : undefined}
               aria-hidden={!top || undefined}
               style={{
-                ...SHEET_BASE, zIndex: top ? 3 : 2, transform,
-                boxShadow: top && (dx !== 0 || flying) ? '0 22px 40px rgba(40,24,10,.26), 0 2px 6px rgba(40,24,10,.12)' : SHEET_BASE.boxShadow,
+                // Each sheet is its own layer, so sliding it moves pixels already painted.
+                ...SHEET_BASE, zIndex: top ? 3 : 2, transform, willChange: 'transform', contain: 'layout paint',
+                boxShadow: top && (dragging || flying) ? '0 22px 40px rgba(40,24,10,.26), 0 2px 6px rgba(40,24,10,.12)' : SHEET_BASE.boxShadow,
                 transition: dragging && top ? 'none' : flying && top ? 'transform .46s cubic-bezier(.45,0,.7,.35), box-shadow .3s ease' : 'transform .55s cubic-bezier(.22,.8,.2,1), box-shadow .4s ease',
               }}
             >
@@ -307,24 +306,6 @@ export function Eyebrow({ children }: { children: ReactNode }) {
       <span>{children}</span>
       <span aria-hidden style={{ width: 'clamp(22px,6vw,48px)', height: 1, background: `linear-gradient(270deg, transparent, ${UMBER})`, opacity: 0.7 }} />
     </div>
-  );
-}
-
-function ArrowButton({ label, onClick, glyph }: { label: string; onClick: () => void; glyph: string }) {
-  return (
-    <button
-      aria-label={label}
-      onClick={onClick}
-      className="pc-hv-scale-06"
-      style={{
-        cursor: 'pointer', width: 40, height: 40, borderRadius: '50%', display: 'grid', placeItems: 'center',
-        background: 'rgba(250,248,245,.7)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
-        border: '1px solid rgba(201,169,110,.45)', color: UMBER, fontFamily: FONT_DISPLAY, fontSize: 24, lineHeight: 1,
-        boxShadow: '0 8px 20px rgba(28,25,23,.08)',
-      }}
-    >
-      <span style={{ marginTop: -3 }}>{glyph}</span>
-    </button>
   );
 }
 
@@ -404,13 +385,14 @@ export function Fleuron({ width = 30, color = GOLD }: { width?: number; color?: 
 }
 
 /** A brass binding post, its slotted head sunk in the leather. */
-function Screw({ y, x, turn }: { y: number; x: number; turn?: string }) {
+function Screw({ y, x, turn, glow }: { y: number; x: number; turn?: string; glow?: string }) {
   return (
     <span
       style={{
         position: 'absolute', left: x, top: `${y}%`, width: 10, height: 10, transform: 'translate(-50%,-50%)', borderRadius: '50%',
         background: 'radial-gradient(circle at 35% 30%, #FFF4CF, #D9B464 35%, #8A6524 75%, #5E4214)',
         boxShadow: '0 1px 1.5px rgba(0,0,0,.6), inset 0 0 0 .5px rgba(60,40,10,.6), 0 0 0 1.5px rgba(0,0,0,.25)',
+        animation: glow,
       }}
     >
       <span style={{ position: 'absolute', inset: 0, animation: turn }}>
@@ -570,7 +552,7 @@ export function BindingStrip({ turning }: { turning?: boolean }) {
     <div aria-hidden style={{ position: 'absolute', left: -10, top: -3, bottom: -3, width: HINGE + 10, zIndex: 25, borderRadius: '0 3px 3px 0', background: LEATHER, overflow: 'hidden', boxShadow: '3px 0 6px rgba(30,10,4,.32), inset -1px 0 0 rgba(255,220,200,.14)' }}>
       <Grain />
       <div key={turning ? 'b' : 'a'} className="pc-foil-bg" style={{ position: 'absolute', right: 4, top: 8, bottom: 8, width: 1, opacity: 0.85 }} />
-      {[12, 50, 88].map((y, i) => <Screw key={y} y={y} x={HINGE + 10 - 11} turn={turning ? `pcScrew .75s ${i * 220}ms cubic-bezier(.4,0,.2,1) both` : undefined} />)}
+      {[12, 50, 88].map((y, i) => <Screw key={y} y={y} x={HINGE + 10 - 11} turn={turning ? `pcScrew .6s ${i * 180}ms cubic-bezier(.4,0,.2,1) both` : undefined} glow={turning ? `pcScrewGlow .9s ${i * 180}ms ease-out both` : undefined} />)}
     </div>
   );
 }
@@ -691,7 +673,7 @@ function SheetFace({ studio, sheet, group, interactive }: { studio: Studio; shee
 function LooseCutting({ studio, fabric, pin, colour, tiny, bare, big, interactive }: { studio: Studio; fabric: FabricRow; pin: Pin; colour: ColourRow; tiny: boolean; bare: boolean; big: boolean; interactive: boolean }) {
   const { t } = studio;
   return (
-    <div style={{ position: 'absolute', inset: 0, filter: 'drop-shadow(0 2px 2px rgba(40,26,12,.26)) drop-shadow(0 7px 10px rgba(40,26,12,.14))' }}>
+    <div style={{ position: 'absolute', inset: 0, filter: 'drop-shadow(0 4px 5px rgba(40,26,12,.24))' }}>
       <div
         onClick={interactive ? () => studio.openFabric(pin.fabricId, fabric.colours.indexOf(colour)) : undefined}
         className="pc-pinked"

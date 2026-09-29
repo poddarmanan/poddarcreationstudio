@@ -19,7 +19,7 @@ export type OrderState = 'pending' | 'sent' | 'failed' | 'demo';
 type Stage = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 const MAX_SHOWN = 24;
-const FLIGHT = 900;
+const FLIGHT = 850;
 const FILE_NAME = 'Poddar-Swatch-Book.pdf';
 
 /**
@@ -88,9 +88,11 @@ export function BookCeremony({ studio, mode, whatsapp = '', order = 'sent', onDo
       [1150, measure],
       [1250, () => setStage(2)],
       [2050, () => setStage(3)],
-      [landed + 250, () => setStage(4)],
-      [landed + 1450, () => setStage(5)],
-      [landed + 1450 + 2100, () => setBound(true)],
+      // As the last cutting settles the posts are screwed home; then the cover swings shut
+      // (1.2 s) and is clasped (0.55 s), and the bound book is held a moment before it is handed over.
+      [landed - 150, () => setStage(4)],
+      [landed + 550, () => setStage(5)],
+      [landed + 550 + 2250, () => setBound(true)],
     ];
     const timers = at.map(([ms, f]) => window.setTimeout(f, ms));
     return () => timers.forEach((x) => window.clearTimeout(x));
@@ -103,7 +105,8 @@ export function BookCeremony({ studio, mode, whatsapp = '', order = 'sent', onDo
     return () => window.clearTimeout(tm);
   }, [bound, mode, order, quick]);
 
-  // The PDF is made while the book is handed over, so saving it is one tap.
+  // The PDF is made once the book has been handed over and the room is still, so drawing its pages
+  // never competes with the animation; saving it is then one tap.
   const [pdf, setPdf] = useState<Blob | null>(null);
   const [pdfError, setPdfError] = useState(false);
   const book = useRef({ chapters, userName: studio.userName, t });
@@ -123,7 +126,7 @@ export function BookCeremony({ studio, mode, whatsapp = '', order = 'sent', onDo
       })
         .then((b) => live && setPdf(b))
         .catch(() => live && setPdfError(true));
-    }, 900);
+    }, 1800);
     return () => {
       live = false;
       window.clearTimeout(tm);
@@ -176,13 +179,24 @@ export function BookCeremony({ studio, mode, whatsapp = '', order = 'sent', onDo
       {/* The book, open on the table and bound as the ceremony goes on. */}
       <div
         style={{
-          position: 'absolute', left: '50%', top: handedOver ? '47%' : '54%', width: 'var(--bw)',
-          transform: `translate(-50%,-50%) ${stage === 0 ? 'translateY(24px) scale(.97)' : delivering ? 'scale(.9)' : handedOver ? 'scale(.84)' : ''}`,
+          position: 'absolute', left: '50%', top: '54%', width: 'var(--bw)',
+          // Only transform and opacity move: up from the table, and at the end aside for what follows.
+          transform: `translate(-50%,-50%) ${stage === 0 ? 'translateY(24px) scale(.97)' : delivering ? 'scale(.9)' : handedOver ? 'translateY(-7vh) scale(.84)' : ''}`,
           opacity: stage === 0 || delivering ? 0 : 1,
-          transition: 'transform .9s cubic-bezier(.22,.8,.2,1), opacity .7s ease, top .9s cubic-bezier(.22,.8,.2,1)',
+          transition: 'transform .9s cubic-bezier(.22,.8,.2,1), opacity .7s ease',
         }}
       >
         <Binding width="100%" padded>
+          {/* The front cover lies open to the left from the start, beneath the pages and the flying
+              cuttings, and swings shut over them; then the clasp is pushed home. */}
+          {stage >= 1 && (
+            <div aria-hidden style={{ position: 'absolute', top: 0, bottom: 0, left: 26, right: 0, zIndex: stage >= 5 ? 60 : undefined, transformOrigin: 'left center', transformStyle: 'preserve-3d', transform: 'rotateY(-178deg)', animation: stage >= 5 ? 'pcCoverClose 1.2s cubic-bezier(.45,.05,.3,1) both' : 'none' }}>
+              <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}>
+                <CoverFace t={t} userName={studio.userName} line={counts} claspAnimation={stage >= 5 ? 'pcClaspOn .55s 1.2s cubic-bezier(.3,.7,.3,1) both' : 'none'} />
+              </div>
+              <div style={{ position: 'absolute', inset: 0, transform: 'rotateY(180deg)', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', borderRadius: '10px 0 0 10px', background: `${MARBLE} center / cover`, boxShadow: 'inset 0 0 0 10px #40101A, inset 0 0 0 11px rgba(205,169,96,.7), inset 0 0 30px rgba(0,0,0,.35)' }} />
+            </div>
+          )}
           <div style={{ position: 'relative', width: '100%', height: '100%', perspective: '1400px' }}>
             <GiltBlock />
             <div style={{ position: 'absolute', inset: 0, borderRadius: 2, background: paperFace('left'), padding: `12px 12px 12px ${HINGE + 11}px`, display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))`, gridAutoRows: `minmax(0, ${cols === 3 ? 15 : 14}%)`, gap: 6, alignContent: 'start' }}>
@@ -202,7 +216,7 @@ export function BookCeremony({ studio, mode, whatsapp = '', order = 'sent', onDo
                       opacity: quick || stage >= 3 || (stage === 2 && o) ? 1 : 0,
                       transition:
                         stage === 3
-                          ? `transform ${FLIGHT}ms cubic-bezier(.62,.04,.28,1) ${i * STEP}ms`
+                          ? `transform ${FLIGHT}ms cubic-bezier(.42,.06,.24,1) ${i * STEP}ms`
                           : stage === 2
                             ? `transform .7s cubic-bezier(.2,.8,.25,1) ${i * 28}ms, opacity .5s ease ${i * 28}ms`
                             : 'none',
@@ -213,15 +227,6 @@ export function BookCeremony({ studio, mode, whatsapp = '', order = 'sent', onDo
             </div>
             <BindingStrip turning={stage >= 4} />
           </div>
-          {/* The cover swings shut over the pages, and the clasp is pushed home. */}
-          {stage >= 5 && (
-            <div aria-hidden style={{ position: 'absolute', top: 0, bottom: 0, left: 26, right: 0, zIndex: 60, transformOrigin: 'left center', transformStyle: 'preserve-3d', animation: 'pcCoverClose 1.4s cubic-bezier(.6,.02,.3,1) both' }}>
-              <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}>
-                <CoverFace t={t} userName={studio.userName} line={counts} claspAnimation="pcClaspOn .55s 1.4s cubic-bezier(.3,.7,.3,1) both" />
-              </div>
-              <div style={{ position: 'absolute', inset: 0, transform: 'rotateY(180deg)', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', borderRadius: '10px 0 0 10px', background: `${MARBLE} center / cover`, boxShadow: 'inset 0 0 0 10px #40101A, inset 0 0 0 11px rgba(205,169,96,.7), inset 0 0 30px rgba(0,0,0,.35)' }} />
-            </div>
-          )}
         </Binding>
       </div>
 

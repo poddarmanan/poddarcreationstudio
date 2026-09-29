@@ -106,25 +106,12 @@ export function QuoteModal({ studio }: { studio: Studio }) {
   const [quantity, setQuantity] = useState('');
   const [whatsapp, setWhatsapp] = useState('+91 ');
   const [waBad, setWaBad] = useState(false);
-  const [order, setOrder] = useState<OrderState | null>(null);
-  if (!quoteOpen) return null;
-
   // A swatch book, once ordered, is compiled and bound before the buyer's eyes and sent to their
   // WhatsApp. The ceremony starts at once; the order goes in alongside it and the book is only
   // handed over once the order has settled.
-  if (order)
-    return (
-      <BookCeremony
-        studio={studio}
-        mode="order"
-        whatsapp={whatsapp.trim()}
-        order={order}
-        onDone={() => {
-          setOrder(null);
-          studio.closeQuote();
-        }}
-      />
-    );
+  const [order, setOrder] = useState<OrderState | null>(null);
+  if (!quoteOpen) return null;
+
 
   const subject = quoteFromBook
     ? pins
@@ -143,91 +130,106 @@ export function QuoteModal({ studio }: { studio: Studio }) {
   } as const;
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(28,25,23,.45)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-      <div style={{ width: 'min(440px,94vw)', background: '#FAF8F5', borderRadius: 8, padding: 32, boxShadow: '0 40px 100px rgba(0,0,0,.35)', animation: 'rise .75s cubic-bezier(.22,.8,.2,1) both' }}>
-        {quoteSent ? (
-          <div style={{ textAlign: 'center', padding: '20px 0' }}>
-            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 30, fontWeight: 500 }}>{t.quoteThanks}</div>
-            <p style={{ fontWeight: 300, color: 'rgba(28,25,23,.6)', fontSize: 14, lineHeight: 1.6 }}>{t.quoteFollow}</p>
-            <button
-              onClick={studio.closeQuote}
-              style={{ cursor: 'pointer', marginTop: 10, background: '#1C1917', color: '#FAF8F5', border: 'none', borderRadius: 999, padding: '11px 28px', fontFamily: FONT_BODY, fontSize: 12, letterSpacing: '.12em' }}
-            >
-              OK
-            </button>
-          </div>
-        ) : (
-          <>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-              <div style={{ fontFamily: FONT_DISPLAY, fontSize: 26, fontWeight: 500 }}>{quoteFromBook ? t.orderBook : t.quote}</div>
-              <button onClick={studio.closeQuote} style={{ cursor: 'pointer', border: 'none', background: 'none', fontSize: 18, color: 'rgba(28,25,23,.5)' }}>
-                ×
+    <>
+      <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(28,25,23,.45)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <div style={{ width: 'min(440px,94vw)', background: '#FAF8F5', borderRadius: 8, padding: 32, boxShadow: '0 40px 100px rgba(0,0,0,.35)', animation: 'rise .75s cubic-bezier(.22,.8,.2,1) both' }}>
+          {quoteSent ? (
+            <div style={{ textAlign: 'center', padding: '20px 0' }}>
+              <div style={{ fontFamily: FONT_DISPLAY, fontSize: 30, fontWeight: 500 }}>{t.quoteThanks}</div>
+              <p style={{ fontWeight: 300, color: 'rgba(28,25,23,.6)', fontSize: 14, lineHeight: 1.6 }}>{t.quoteFollow}</p>
+              <button
+                onClick={studio.closeQuote}
+                style={{ cursor: 'pointer', marginTop: 10, background: '#1C1917', color: '#FAF8F5', border: 'none', borderRadius: 999, padding: '11px 28px', fontFamily: FONT_BODY, fontSize: 12, letterSpacing: '.12em' }}
+              >
+                OK
               </button>
             </div>
-            <div style={{ fontSize: 13, color: 'rgba(28,25,23,.55)', margin: '4px 0 20px' }}>{subject}</div>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (quoteBusy || !name || !company) return;
-                if (quoteFromBook) {
-                  // A number with its country code: 8 to 15 digits, spaces and dashes allowed.
-                  const digits = whatsapp.replace(/\D/g, '');
-                  if (!/^\+?[\d\s-]+$/.test(whatsapp.trim()) || digits.length < 8 || digits.length > 15) {
-                    setWaBad(true);
+          ) : (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <div style={{ fontFamily: FONT_DISPLAY, fontSize: 26, fontWeight: 500 }}>{quoteFromBook ? t.orderBook : t.quote}</div>
+                <button onClick={studio.closeQuote} style={{ cursor: 'pointer', border: 'none', background: 'none', fontSize: 18, color: 'rgba(28,25,23,.5)' }}>
+                  ×
+                </button>
+              </div>
+              <div style={{ fontSize: 13, color: 'rgba(28,25,23,.55)', margin: '4px 0 20px' }}>{subject}</div>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (quoteBusy || !name || !company) return;
+                  if (quoteFromBook) {
+                    // A number with its country code: 8 to 15 digits, spaces and dashes allowed.
+                    const digits = whatsapp.replace(/\D/g, '');
+                    if (!/^\+?[\d\s-]+$/.test(whatsapp.trim()) || digits.length < 8 || digits.length > 15) {
+                      setWaBad(true);
+                      return;
+                    }
+                    setOrder('pending');
+                    studio.sendQuote({ name, company, quantity: `${pins.length} ${pins.length === 1 ? t.shade : t.shades} · ${t.book}`, whatsapp: whatsapp.trim() }).then((r) =>
+                      // The static preview has no server to take the order; everywhere else, a refusal is a failure.
+                      setOrder(r.ok ? 'sent' : r.status === 404 && process.env.NEXT_PUBLIC_BASE_PATH ? 'demo' : 'failed'),
+                    );
                     return;
                   }
-                  setOrder('pending');
-                  studio.sendQuote({ name, company, quantity: `${pins.length} ${pins.length === 1 ? t.shade : t.shades} · ${t.book}`, whatsapp: whatsapp.trim() }).then((r) =>
-                    // The static preview has no server to take the order; everywhere else, a refusal is a failure.
-                    setOrder(r.ok ? 'sent' : r.status === 404 && process.env.NEXT_PUBLIC_BASE_PATH ? 'demo' : 'failed'),
-                  );
-                  return;
-                }
-                if (!quantity) return;
-                studio.sendQuote({ name, company, quantity });
-              }}
-              style={{ display: 'flex', flexDirection: 'column', gap: 10 }}
-            >
-              <input required placeholder={t.fName} value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} />
-              <input required placeholder={t.fCompany} value={company} onChange={(e) => setCompany(e.target.value)} style={inputStyle} />
-              {quoteFromBook ? (
-                <>
-                  <input
-                    required
-                    type="tel"
-                    inputMode="tel"
-                    autoComplete="tel"
-                    aria-label={t.waPh}
-                    aria-invalid={waBad || undefined}
-                    placeholder={t.waPh}
-                    value={whatsapp}
-                    onChange={(e) => {
-                      setWhatsapp(e.target.value);
-                      setWaBad(false);
-                    }}
-                    style={{ ...inputStyle, ...(waBad ? { borderColor: '#A33' } : {}), fontVariantNumeric: 'lining-nums' }}
-                  />
-                  {waBad && <div style={{ fontSize: 12, color: '#A33', marginTop: -4 }}>{t.waBad}</div>}
-                </>
-              ) : (
-                <input required placeholder={t.fQty} value={quantity} onChange={(e) => setQuantity(e.target.value)} style={inputStyle} />
-              )}
-              <button
-                type="submit"
-                disabled={quoteBusy}
-                className="pc-hv-gold-bg"
-                style={{
-                  cursor: quoteBusy ? 'wait' : 'pointer', background: '#1C1917', color: '#FAF8F5', border: 'none', borderRadius: 999,
-                  padding: 13, fontFamily: FONT_BODY, fontSize: 12.5, letterSpacing: '.14em', textTransform: 'uppercase', marginTop: 6, opacity: quoteBusy ? 0.7 : 1,
+                  if (!quantity) return;
+                  studio.sendQuote({ name, company, quantity });
                 }}
+                style={{ display: 'flex', flexDirection: 'column', gap: 10 }}
               >
-                {quoteBusy ? '…' : t.quoteSend}
-              </button>
-            </form>
-          </>
-        )}
+                <input required placeholder={t.fName} value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} />
+                <input required placeholder={t.fCompany} value={company} onChange={(e) => setCompany(e.target.value)} style={inputStyle} />
+                {quoteFromBook ? (
+                  <>
+                    <input
+                      required
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
+                      aria-label={t.waPh}
+                      aria-invalid={waBad || undefined}
+                      placeholder={t.waPh}
+                      value={whatsapp}
+                      onChange={(e) => {
+                        setWhatsapp(e.target.value);
+                        setWaBad(false);
+                      }}
+                      style={{ ...inputStyle, ...(waBad ? { borderColor: '#A33' } : {}), fontVariantNumeric: 'lining-nums' }}
+                    />
+                    {waBad && <div style={{ fontSize: 12, color: '#A33', marginTop: -4 }}>{t.waBad}</div>}
+                  </>
+                ) : (
+                  <input required placeholder={t.fQty} value={quantity} onChange={(e) => setQuantity(e.target.value)} style={inputStyle} />
+                )}
+                <button
+                  type="submit"
+                  disabled={quoteBusy}
+                  className="pc-hv-gold-bg"
+                  style={{
+                    cursor: quoteBusy ? 'wait' : 'pointer', background: '#1C1917', color: '#FAF8F5', border: 'none', borderRadius: 999,
+                    padding: 13, fontFamily: FONT_BODY, fontSize: 12.5, letterSpacing: '.14em', textTransform: 'uppercase', marginTop: 6, opacity: quoteBusy ? 0.7 : 1,
+                  }}
+                >
+                  {quoteBusy ? '…' : t.quoteSend}
+                </button>
+              </form>
+            </>
+          )}
+        </div>
       </div>
-    </div>
+      {/* The ceremony comes up over the form, which stays beneath it until the room is dark. */}
+      {order && (
+        <BookCeremony
+          studio={studio}
+          mode="order"
+          whatsapp={whatsapp.trim()}
+          order={order}
+          onDone={() => {
+            setOrder(null);
+            studio.closeQuote();
+          }}
+        />
+      )}
+    </>
   );
 }
 
