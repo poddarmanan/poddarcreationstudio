@@ -458,14 +458,19 @@ container and the dock sticks to the window.
 
 ### The cart
 
-The lab's action is now **"Add to…"**. It asks where the shades go, in a sheet that rises over the
-lab (`AddChooser.tsx`), headed by the fabric, its shade count and the shades fanned out:
-
-- **Add to Cart:** the fabric itself, by the metre. An ink card edged in gold, with the price per
-  metre and 50, 100, 250 or 500 m chips (100 m by default). Its gold button reads "Add to Cart" and
-  the line's value, which ticks as the metres change.
-- **Add to Swatch Book:** a cutting of each shade, as before. It hands on to the lab's own "Added
-  to your book".
+The lab's action is now **"Add to…"**. It asks where the shades go, in a compact sheet over the lab
+(`AddChooser.tsx`). The sheet keeps one type scale and one left edge: 9.5px spaced capitals for
+labels, the display face at 20–22px for the fabric and figures, and 26px for the heading. From the
+top:
+- **Header:** the shades as small pinked chips, their count, the fabric's name, and a close mark.
+- **Heading:** "Where shall it go?".
+- **Switch:** Cart or Swatch Book, with an ink thumb edged in gold that slides to the one chosen.
+- **The choice, on ruled lines.** Its height stays the same whichever is chosen.
+  - Cart: the metres as a segmented 50 · 100 · 250 · 500 (100 by default), then the price per
+    metre (and "3 × 250 m" for several shades) with the value, which ticks as it changes. A note
+    gives any metres already in the cart.
+  - Swatch Book: "A cutting of each shade, bound and sent to you", with "✓ In your book" if so.
+- **Button:** the studio's ink pill, "Add to Cart · ₹ 55,500" or "Add to Swatch Book".
 
 Under the button, "✓ In your book" and "✓ In your cart" say where the shade on the stage already
 is.

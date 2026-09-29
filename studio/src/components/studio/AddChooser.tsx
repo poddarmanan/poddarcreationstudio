@@ -1,23 +1,22 @@
 'use client';
 
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Studio } from './state';
 import type { ColourRow, FabricRow } from '@/lib/types';
-import { FONT_DISPLAY, fabricTex } from './helpers';
+import { fabricTex } from './helpers';
 import { CartGlyph } from './CartGlyph';
 
-const INK = '#1C1917';
-const UMBER = '#8A6D45';
 const PRESETS = [50, 100, 250, 500];
 const inr = (n: number) => n.toLocaleString('en-IN');
 
 /**
- * Where the shades go: asked in a sheet that rises over the lab. Two cards, one above the other —
- * the cart, to order the fabric itself by the metre (with the metres chosen right there and the
- * line's value), and the swatch book, for a cutting of each shade. Choosing the cart sends the
- * cuttings flying into the cart in the tab bar (or the header on a desktop), which bumps as they
- * land; choosing the book hands on to the lab's own "Added to your book".
+ * Where the shades go, asked in a compact sheet over the lab. A line names the fabric with its
+ * shades as small pinked chips; a gold slider chooses between the cart (the fabric itself, by the
+ * metre) and the swatch book (a cutting of each shade); a single ruled row gives what that choice
+ * means — for the cart, the metres and the value, both in the display face on one baseline — and
+ * one button acts on it. Choosing the cart sends the cuttings flying into the cart button, which
+ * bumps as they land; choosing the book hands on to the lab's own "Added to your book".
  */
 export function AddChooser({
   studio, fabric, colours, leaving, onBook, onCart, onClose,
@@ -25,98 +24,108 @@ export function AddChooser({
   studio: Studio; fabric: FabricRow; colours: ColourRow[]; leaving: boolean; onBook: () => void; onCart: (metres: number, from: DOMRect | null) => void; onClose: () => void;
 }) {
   const { t } = studio;
+  const [where, setWhere] = useState<'cart' | 'book'>('cart');
   const [metres, setMetres] = useState(100);
-  const cartCard = useRef<HTMLDivElement | null>(null);
+  const sheet = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
-  const inCart = colours.every((c) => studio.cart.some((l) => l.fabricId === fabric.id && l.colourOrder === c.order));
+  const n = colours.length;
+  const inCartM = colours.reduce((s, c) => s + (studio.cart.find((l) => l.fabricId === fabric.id && l.colourOrder === c.order)?.metres ?? 0), 0);
   const inBook = colours.every((c) => studio.pins.some((p) => p.fabricId === fabric.id && p.colourOrder === c.order));
-  const fan = colours.slice(0, 6);
+  const value = metres * n * fabric.price;
+  const chips = colours.slice(0, 5);
 
   return createPortal(
     <div className="pc-sheet-root" role="dialog" aria-modal="true" aria-label={t.addWhere}>
       <div className={`pc-sheet-backdrop${leaving ? ' is-leaving' : ''}`} onClick={onClose} />
-      <div className={`pc-sheet${leaving ? ' is-leaving' : ''}`}>
+      <div ref={sheet} className={`pc-sheet pc-add${leaving ? ' is-leaving' : ''}`}>
         <div aria-hidden className="pc-sheet-grip" />
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-          <div style={{ animation: 'pcRiseIn .6s .1s cubic-bezier(.2,.8,.2,1) both' }}>
-            <div style={{ fontSize: 9, letterSpacing: '.36em', textTransform: 'uppercase', color: UMBER }}>
-              {fabric.name} · {colours.length} {colours.length === 1 ? t.shade : t.shades}
-            </div>
-            <h2 style={{ margin: '6px 0 0', fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 30, lineHeight: 1.1, color: INK }}>{t.addWhere}</h2>
-            <p style={{ margin: '6px 0 0', fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 15.5, lineHeight: 1.4, color: UMBER }}>{t.addWhereSub}</p>
-          </div>
+
+        {/* The fabric, its shades as small chips, and the way out. */}
+        <div className="pc-add-head">
+          <span aria-hidden className="pc-add-chips">
+            {chips.map((c, k) => (
+              <span key={c.order} className="pc-pinked" style={{ background: fabricTex(fabric, c, 3), marginLeft: k ? -8 : 0, zIndex: chips.length - k, animation: `pcFieldIn .5s ${0.1 + k * 0.05}s cubic-bezier(.2,.8,.2,1) both` }} />
+            ))}
+          </span>
+          <span style={{ minWidth: 0, flex: 1 }}>
+            <span className="pc-add-eyebrow">
+              {n} {n === 1 ? t.shade : t.shades}
+            </span>
+            <span className="pc-add-fabric">{fabric.name}</span>
+          </span>
           <button aria-label={t.closeWord} className="pc-sheet-close" onClick={onClose}>
             <span aria-hidden>×</span>
           </button>
         </div>
 
-        {/* The shades in question, fanned. */}
-        <div aria-hidden style={{ display: 'flex', justifyContent: 'center', height: 50, marginTop: 16 }}>
-          {fan.map((c, k) => {
-            const mid = (fan.length - 1) / 2;
-            return (
-              <span key={c.order} style={{ width: 34, height: 44, marginLeft: k ? -10 : 0, animation: `pcFanIn .7s ${0.15 + k * 0.05}s cubic-bezier(.2,.8,.2,1) both`, ['--r' as string]: `${(k - mid) * 8}deg`, ['--y' as string]: `${Math.abs(k - mid) * 3}px` } as CSSProperties}>
-                <span className="pc-pinked" style={{ display: 'block', width: '100%', height: '100%', background: fabricTex(fabric, c, 3), boxShadow: '0 3px 6px rgba(40,26,12,.25)' }} />
-              </span>
-            );
-          })}
+        <h2 className="pc-add-title">{t.addWhere}</h2>
+
+        {/* Cart or swatch book: a gold slider moves to the one chosen. */}
+        <div role="radiogroup" aria-label={t.addWhere} className="pc-add-switch">
+          <span aria-hidden className="pc-add-thumb" style={{ transform: `translateX(${where === 'book' ? 100 : 0}%)` }} />
+          {(['cart', 'book'] as const).map((w) => (
+            <button key={w} role="radio" aria-checked={where === w} className={where === w ? 'is-on' : undefined} onClick={() => setWhere(w)}>
+              {w === 'cart' ? <CartGlyph size={15} /> : <BookGlyph />}
+              {w === 'cart' ? t.cartWord : t.book}
+            </button>
+          ))}
         </div>
 
-        {/* The cart: the fabric itself, by the metre. */}
-        <div ref={cartCard} className="pc-choice is-cart" style={{ marginTop: 18, animation: 'pcFieldIn .6s .2s cubic-bezier(.2,.8,.2,1) both' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span aria-hidden className="pc-choice-icon">
-              <CartGlyph size={22} />
-            </span>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ fontFamily: FONT_DISPLAY, fontSize: 22, lineHeight: 1.1 }}>{t.toCart}</div>
-              <div style={{ marginTop: 2, fontSize: 9.5, letterSpacing: '.14em', textTransform: 'uppercase', color: 'rgba(250,248,245,.6)' }}>{t.toCartSub}</div>
-            </div>
-            <div style={{ textAlign: 'right', flex: 'none', fontFamily: FONT_DISPLAY, fontVariantNumeric: 'lining-nums' }}>
-              <div style={{ fontSize: 20, color: '#E9CF8F' }}>₹ {inr(fabric.price)}</div>
-              <div style={{ fontSize: 9, letterSpacing: '.18em', textTransform: 'uppercase', color: 'rgba(250,248,245,.55)', fontFamily: 'inherit' }}>{t.perMetre}</div>
-            </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 14 }}>
-            {PRESETS.map((v) => (
-              <button key={v} className={`pc-choice-chip${metres === v ? ' is-on' : ''}`} onClick={() => setMetres(v)}>
-                {v} m
-              </button>
-            ))}
-            <span style={{ marginLeft: 'auto', fontSize: 10, letterSpacing: '.12em', color: 'rgba(250,248,245,.6)', fontVariantNumeric: 'lining-nums' }}>
-              {colours.length > 1 ? `${colours.length} × ` : ''}
-              {metres} m
-            </span>
-          </div>
-          <button className="pc-choice-go" onClick={() => onCart(metres, cartCard.current?.getBoundingClientRect() ?? null)}>
-            <span key={metres} style={{ display: 'inline-flex', alignItems: 'center', gap: 10, animation: 'pcTick .35s cubic-bezier(.2,1.4,.4,1)' }}>
-              <span aria-hidden>✦</span>
-              {inCart ? t.inCart : t.toCart} · ₹ {inr(metres * colours.length * fabric.price)}
-            </span>
-          </button>
+        {/* What the choice means, on one ruled line of the same scale. */}
+        <div key={where} className="pc-add-detail">
+          {where === 'cart' ? (
+            <>
+              <div className="pc-add-row">
+                <span className="pc-add-label">{t.metresWord}</span>
+                <span className="pc-add-seg" role="radiogroup" aria-label={t.metresWord}>
+                  {PRESETS.map((v) => (
+                    <button key={v} role="radio" aria-checked={metres === v} className={metres === v ? 'is-on' : undefined} onClick={() => setMetres(v)}>
+                      {v}
+                    </button>
+                  ))}
+                </span>
+              </div>
+              <div className="pc-add-row">
+                <span className="pc-add-label">
+                  ₹ {inr(fabric.price)} / {t.metre}
+                  {n > 1 ? ` · ${n} × ${metres} m` : ''}
+                </span>
+                <span key={value} className="pc-add-value">₹ {inr(value)}</span>
+              </div>
+              {inCartM > 0 && <div className="pc-add-note">✓ {inr(inCartM)} m {t.inCartAlready}</div>}
+            </>
+          ) : (
+            <>
+              <p className="pc-add-copy">{t.toBookSub}.</p>
+              {inBook && <div className="pc-add-note">✓ {t.inBook}</div>}
+            </>
+          )}
         </div>
 
-        {/* Or the swatch book: a cutting of each shade. */}
-        <button className="pc-choice is-book" onClick={onBook} style={{ marginTop: 12, animation: 'pcFieldIn .6s .3s cubic-bezier(.2,.8,.2,1) both' }}>
-          <span aria-hidden className="pc-choice-icon is-light">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z" />
-              <path d="M5 17h14" />
-            </svg>
-          </span>
-          <span style={{ minWidth: 0, flex: 1, textAlign: 'left' }}>
-            <span style={{ display: 'block', fontFamily: FONT_DISPLAY, fontSize: 22, lineHeight: 1.1, color: INK }}>{inBook ? t.inBook : t.toBook}</span>
-            <span style={{ display: 'block', marginTop: 2, fontSize: 9.5, letterSpacing: '.14em', textTransform: 'uppercase', color: 'rgba(28,25,23,.5)' }}>{t.toBookSub}</span>
-          </span>
-          <span aria-hidden className="pc-choice-arrow">→</span>
+        <button
+          className="pc-auth-btn"
+          onClick={() => (where === 'cart' ? onCart(metres, sheet.current?.getBoundingClientRect() ?? null) : onBook())}
+          style={{ marginTop: 18 }}
+        >
+          <span aria-hidden className="pc-auth-star">✦</span>
+          {where === 'cart' ? `${t.toCart} · ₹ ${inr(value)}` : t.toBook}
         </button>
       </div>
     </div>,
     document.body,
+  );
+}
+
+function BookGlyph() {
+  return (
+    <svg aria-hidden width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z" />
+      <path d="M5 17h14" />
+    </svg>
   );
 }
 
