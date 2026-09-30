@@ -229,7 +229,8 @@ button:focus-visible, a:focus-visible, input:focus-visible {
    the cloth and the shades are on the screen together: pick one and see it at once. */
 .pc-lab-stage { min-height: clamp(440px, 62vh, 760px); }
 @media (max-width: 767px) {
-  .pc-lab-stage { min-height: clamp(340px, calc(100svh - var(--pc-topbar) - var(--pc-bottombar) - 330px), 620px); }
+  /* The stage takes the screen down to the shades, which end about 12px above the bottom bar. */
+  .pc-lab-stage { min-height: clamp(300px, calc(100svh - var(--pc-topbar) - var(--pc-bottombar) - 296px), 660px); }
   /* The price follows the shades closely, with no empty band between them. */
   .pc-shades-mobile { padding-bottom: 6px !important; }
   .pc-buyer-col { padding-top: 10px !important; }

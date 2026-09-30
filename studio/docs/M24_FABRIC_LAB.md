@@ -149,10 +149,14 @@ The shade on the stage is kept in view (centred when the Lab opens, and brought 
 was scrolled away).
 
 On a phone the price follows the shades closely: no empty band between them (the shades'
-foot and the column's head are trimmed to 6px and 10px). The stage is sized to leave room for the
-bar and two rows under it
-(`.pc-lab-stage`, at least 340px). On a 390 × 844 phone the stage is 386px and the shades end
-above the bottom bar, so cloth and shades share the screen.
+foot and the column's head are trimmed to 6px and 10px). The stage takes the screen down to the
+shades, and the shades' last row ends about 12px above the bottom bar (`.pc-lab-stage`: the screen
+less the header, the bottom bar and 296px; at least 300px, at most 660px). That is 420px on a
+390 × 844 phone, 491px on 412 × 915 and 316px on 360 × 740, the gap 12px on each.
+
+**The light menu stands above the stage's buttons.** Opened, the list of lights (Daylight, Golden
+Hour, Studio, Boutique, White Cyc) is raised above the pull, shine and wind buttons on the right
+(which used to be drawn over it), and its options are a little more compact.
 
 **Select multiple.** Beside the shade count, a small chip turns the chart into a picker: the
 shade on the stage starts ticked, each tap ticks or unticks a chip (and puts a newly ticked shade

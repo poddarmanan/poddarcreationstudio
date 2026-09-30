@@ -958,7 +958,9 @@ function LightControl({ albedoHex, current, setLight }: { albedoHex: string; cur
   const now = readings.find((r) => r.light === current) ?? readings[0];
   const verdict = shiftVerdict(worst);
   return (
-    <div style={{ position: 'absolute', right: 14, top: 14, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, zIndex: 6, animation: 'pcPop .7s .2s cubic-bezier(.2,.8,.2,1) both' }}>
+    // Open, the menu stands above the stage's other buttons (the pull, the shine and the wind
+    // below it on the right), which would otherwise be drawn over it.
+    <div style={{ position: 'absolute', right: 14, top: 14, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, zIndex: menu.shown ? 9 : 6, animation: 'pcPop .7s .2s cubic-bezier(.2,.8,.2,1) both' }}>
       <button
         aria-label="Light"
         aria-expanded={open}
@@ -990,8 +992,8 @@ function LightControl({ albedoHex, current, setLight }: { albedoHex: string; cur
                 aria-pressed={on}
                 title={`${LIGHTS[key].en} — ${r.shiftFromNeutral.toFixed(1)} from neutral`}
                 style={{
-                  cursor: 'pointer', minWidth: 112, padding: '9px 14px', borderRadius: 999, border: 'none', textAlign: 'left',
-                  background: r.hex, color: inkOn(r.hex), fontFamily: FONT_BODY, fontSize: 11, letterSpacing: '.08em',
+                  cursor: 'pointer', minWidth: 108, padding: '7px 13px', borderRadius: 999, border: 'none', textAlign: 'left',
+                  background: r.hex, color: inkOn(r.hex), fontFamily: FONT_BODY, fontSize: 10.5, letterSpacing: '.08em',
                   boxShadow: on ? '0 0 0 2px #FAF8F5, 0 0 0 3.5px #8A6D45' : 'inset 0 0 0 1px rgba(28,25,23,.1)',
                   animation: menu.leaving ? undefined : `pcPop .7s ${100 + i * 70}ms cubic-bezier(.22,.8,.2,1) both`,
                   transition: 'box-shadow .45s ease, transform .5s cubic-bezier(.2,.8,.2,1)',
