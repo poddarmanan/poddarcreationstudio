@@ -282,7 +282,10 @@ row:
 - swipe it sideways (anywhere but on a slip; the page still scrolls up and down), and the row
   follows the finger and settles on the next closet, giving only a little past either end;
 - use the arrows either side of "Closet 3 of 11", over the quality's name, count of shades and
-  make;
+  make. That line is a pill pinned under the header (`position: sticky`) for as long as the
+  closets are on screen, so the next fabric is a tap away from anywhere down a closet, even its
+  foot. The closets are all one height, so the page stays where it is and the next closet is
+  in the same place;
 - tap a name in the row of names above, which is kept centred on the closet being looked at;
 - tap a neighbouring closet.
 

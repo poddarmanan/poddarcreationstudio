@@ -1645,10 +1645,17 @@ button.pc-auth-link:disabled { cursor: default; }
   font-family: var(--font-body), system-ui, sans-serif; font-size: 12px; cursor: pointer; transition: background .25s ease, color .25s ease, border-color .25s ease;
 }
 .pc-closet-names button.is-on { background: #1C1917; border-color: #1C1917; color: #FAF8F5; }
-.pc-closet-count { display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 648px; margin: 16px auto 4px; }
+/* The closet looked at, and the arrows to the next: pinned under the header for as long as the
+   closets are on screen, so the next fabric is a tap away from anywhere down a closet. */
+.pc-closet-count {
+  position: sticky; top: calc(var(--pc-topbar) + 8px); z-index: 20;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 648px; margin: 16px auto 4px; padding: 6px;
+  border-radius: 999px; background: rgba(255, 253, 248, .94); border: 1px solid rgba(184, 144, 74, .28); box-shadow: 0 10px 24px -12px rgba(40, 24, 8, .35);
+}
 .pc-closet-count span { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; text-align: center; font-size: 9.5px; letter-spacing: .32em; text-transform: uppercase; color: #8A6D45; }
 .pc-closet-count span i { font-style: normal; letter-spacing: .04em; text-transform: none; font-family: var(--font-display), 'Cormorant Garamond', serif; font-size: 17px; color: #1C1917; }
-.pc-closet-count span em { font-style: normal; letter-spacing: .08em; text-transform: none; font-size: 11px; color: rgba(28, 25, 23, .55); }
+.pc-closet-count span em { font-style: normal; letter-spacing: .08em; text-transform: none; font-size: 11px; color: rgba(28, 25, 23, .55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.pc-closet-count span i { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .pc-closet-count button {
   flex: none; width: 36px; height: 36px; border-radius: 50%; border: 1px solid rgba(138, 109, 69, .4); background: #FFFDF7; color: #8A6D45; font-size: 20px; line-height: 1; cursor: pointer;
   transition: opacity .2s ease, transform .2s ease;
