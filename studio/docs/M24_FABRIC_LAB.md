@@ -193,37 +193,28 @@ quarter and lights in warm gold with a breathing glow while its rays wheel slowl
 stretch button's icon goes to ink and its two bars pull apart once and hold there, easing back
 together when the test is switched off — one movement each way, not a loop.
 
-## The Colour Wall, in four iterations
+## The Colour Wall
 
-The Colours page (`ColourWall.tsx`) is offered in four ways of holding the same shades, each with
-depth of its own. A row of numbered tabs at the top of the page (I to IV, each with a line on
-what it is) switches between them. The choice is remembered in the browser
-(`pc-wall-iteration`), and `?wall=1` to `?wall=4` in the address opens a given one, so they can be
-compared and one kept. Every iteration groups the shades into families by their OKLCH hue
-(neutrals, where chroma is under 0.035, then red, orange, yellow, green, teal, blue, violet and
-pink), light to dark within a family. The title and the count stay as they were. The quality
-chips show one quality at a time: there is no "All qualities" chip, and the wall opens on the
-first quality until another is chosen. Choosing a shade marks it for a moment (about 0.4s, none with reduced motion) and then
-opens it in the Lab.
+The Colours page (`ColourWall.tsx`) is a swatch rail. Of four iterations tried (a thread room of
+cones, the swatch rail, a 3D colour atlas and a bolt wall), the owner kept the rail, and the other
+three are gone with their switcher.
 
-- **I. Thread room:** each family is a wooden shelf on a pegboard, with the shades as thread
-  cones standing on it. A cone is shaded as a turned body with a tip, a base and a shadow on the
-  plank, and it lifts off the shelf when hovered or chosen. The shelf scrolls sideways.
-- **II. Swatch rail:** each family is a brass rod with swatch cards hanging from it in
-  perspective, turned so their faces overlap like cards on a mill's rail. Each card has its hook,
-  a printed head with the name, and a pinked piece of the cloth in its shade. Hovering or
-  choosing one swings it square to the buyer, and the cards after it slide along the rod.
-- **III. Colour atlas:** the shades are placed in a 3D colour solid, as in a Munsell atlas. Hue
-  is the angle round a grey axis, chroma the distance from it and lightness the height. Each
-  chip turns to face the buyer as the solid turns. A drag turns the solid, and it spins once when
-  it first appears. Below it, a page headed "Facing you" lays out, as a grid, the shades within
-  24 degrees of the hue that faces the buyer.
-- **IV. Bolt wall:** a dark wooden wall of cubbies, one or more per family, each holding six bolt
-  ends stacked three, two and one. Each end shows the cloth wound round its card core in a spiral,
-  lit from above. A hovered or chosen bolt slides out of its cubby.
+It shows one quality at a time. The quality chips list only individual qualities: there is no
+"All qualities" chip, and the wall opens on the first quality until another is chosen. The line
+under the title names the quality, its count of shades, and "tap a shade to open it".
 
-Only transforms and visibility are animated. With reduced motion, lifts, swings and the atlas's
-spin are off.
+Every shade is a swatch card hanging on a brass rod. The card has a hook, a printed head with the
+shade's name, the quality and its number, and a pinked cutting of the cloth in its shade. The cards
+stand turned in depth, overlapping like cards in a file. Hovering or choosing one swings it square
+to the buyer, and the cards after it slide along the rod. A tap marks the card for a moment (about
+0.4s, none with reduced motion) and then opens the shade in the Lab.
+
+There are no family headings (neutrals, reds and so on). The shades are hung as one run of colour:
+the near-greys first (OKLCH chroma under 0.035), light to dark, then round the colour wheel from
+red, with shades of nearly the same hue light to dark. The run is cut into rails as wide as the
+page, one under another, and carries on along the next rail: on a 390px phone that is six cards
+to a rail, and on a desktop a whole quality usually hangs on one rail. Cards hang in with a small
+swing, rail by rail. With reduced motion they do not.
 
 ## A test that measured nothing
 
