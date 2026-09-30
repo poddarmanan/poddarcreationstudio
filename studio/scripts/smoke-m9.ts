@@ -51,7 +51,7 @@ async function main() {
   // CSV export → import round-trip (mutate one row, re-import, verify, reset).
   const csv = await adminService.exportColoursCsv();
   assert(csv.startsWith('fabricId,fabricName'), 'export header');
-  assert(csv.split('\n').length === 1 + 264, `export rows (got ${csv.split('\n').length - 1})`);
+  assert(csv.split('\n').length === 1 + 824, `export rows (got ${csv.split('\n').length - 1})`);
 
   const line = csv.split('\n').find((l) => l.startsWith('cambric,') && l.includes(',Neel,'))!;
   const mutated = line.replace(',Neel,', ',Midnight,');
@@ -74,7 +74,7 @@ async function main() {
 
   // Analytics + activity shapes.
   const a = await adminService.analytics();
-  assert(a.fabrics === 11 && a.colours === 264 && typeof a.media.total === 'number', 'analytics aggregates');
+  assert(a.fabrics === 11 && a.colours === 824 && typeof a.media.total === 'number', 'analytics aggregates');
   // Seed one entry so the assertion holds on a freshly migrated database too.
   await getContainer().audit.record({ action: 'smoke.m9', entity: 'Media', entityId: m1.id });
   const feed = await adminService.activity(10);

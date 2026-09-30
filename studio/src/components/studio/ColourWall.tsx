@@ -37,13 +37,15 @@ const INSIDE_PAD = 12; // from a wall to the ends of the slips' run
 const SLIP_W = 84; // a slip
 const ROD_H = 176; // one rod and the slips hanging from it
 const INSIDE_TOP = 18;
-const PER_ROD_MAX = 8;
+const PER_ROD_MAX = 16;
 const SPACING = 56; // slips' natural spacing along a rod, at most
 const MIN_GAP = 12; // how close two hooks can be pushed
 
 /** A quality's shades, cut into rods of about equal length for a rod as long as `len`. */
 function hang(shades: Shade[], len: number) {
-  const cap = Math.max(3, Math.min(PER_ROD_MAX, Math.floor((len - SLIP_W) / 36) + 1));
+  // Packed as close as a closet is (22px of each slip showing at the least), since sliding them
+  // apart is how they are looked through; a quality of 96 shades then needs 9 rods on a phone.
+  const cap = Math.max(3, Math.min(PER_ROD_MAX, Math.floor((len - SLIP_W) / 22) + 1));
   const rods = Math.max(1, Math.ceil(shades.length / cap));
   const per = Math.ceil(shades.length / rods);
   const out: Shade[][] = [];

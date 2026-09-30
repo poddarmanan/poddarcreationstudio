@@ -87,11 +87,103 @@ export const FABRIC_DEFS: FabricDef[] = [
   { id: 'lycra', name: 'Cotton Lycra', family: 'lycra', weight: '21 kg', width: '56″+', comp: '95% Cotton · 5% Spandex', nc: 56, hand: 'Stretch · Recovery', sheen: 0.12, flow: 0.45, stretch: 0.9, seed: 1, price: 148, heroIndex: 22 },
 ];
 
+/**
+ * The rest of the mill's range: 72 more named shades, laid round the wheel (the near-greys first,
+ * then earths, oranges and golds, greens, blues, violets, pinks and reds). A quality comes in the
+ * 24 of the base palette and as many of these as its range holds (`nc`), picked evenly round the
+ * wheel so each quality's range covers it; which ones differs from quality to quality.
+ */
+export const MORE_COLOURS: ColourBase[] = [
+  { name: 'Doodhiya', l: 0.99, c: 0.004, h: 200 },
+  { name: 'Kewra', l: 0.92, c: 0.04, h: 120 },
+  { name: 'Chandni', l: 0.9, c: 0.012, h: 250 },
+  { name: 'Seepi', l: 0.87, c: 0.025, h: 60 },
+  { name: 'Chandi', l: 0.8, c: 0.01, h: 250 },
+  { name: 'Pathar', l: 0.67, c: 0.02, h: 70 },
+  { name: 'Raakh', l: 0.56, c: 0.01, h: 90 },
+  { name: 'Dhuaan', l: 0.61, c: 0.016, h: 260 },
+  { name: 'Surmai', l: 0.44, c: 0.018, h: 250 },
+  { name: 'Loha', l: 0.36, c: 0.014, h: 230 },
+  { name: 'Kajal', l: 0.24, c: 0.012, h: 280 },
+  { name: 'Kaala', l: 0.19, c: 0.005, h: 70 },
+  { name: 'Ret', l: 0.83, c: 0.045, h: 82 },
+  { name: 'Chandan', l: 0.71, c: 0.05, h: 68 },
+  { name: 'Oont', l: 0.66, c: 0.08, h: 72 },
+  { name: 'Mitti', l: 0.6, c: 0.065, h: 52 },
+  { name: 'Dalchini', l: 0.52, c: 0.1, h: 46 },
+  { name: 'Akhrot', l: 0.44, c: 0.065, h: 56 },
+  { name: 'Kattha', l: 0.39, c: 0.085, h: 36 },
+  { name: 'Kahwa', l: 0.32, c: 0.045, h: 58 },
+  { name: 'Khaprail', l: 0.58, c: 0.12, h: 40 },
+  { name: 'Aadu', l: 0.85, c: 0.08, h: 52 },
+  { name: 'Moonga', l: 0.68, c: 0.15, h: 34 },
+  { name: 'Tamba', l: 0.6, c: 0.14, h: 48 },
+  { name: 'Zang', l: 0.49, c: 0.13, h: 42 },
+  { name: 'Gerua', l: 0.65, c: 0.15, h: 58 },
+  { name: 'Narangi', l: 0.68, c: 0.19, h: 46 },
+  { name: 'Genda', l: 0.8, c: 0.17, h: 72 },
+  { name: 'Kahruba', l: 0.68, c: 0.15, h: 74 },
+  { name: 'Shehed', l: 0.74, c: 0.13, h: 80 },
+  { name: 'Peetal', l: 0.63, c: 0.11, h: 92 },
+  { name: 'Aam', l: 0.84, c: 0.16, h: 84 },
+  { name: 'Makhan', l: 0.93, c: 0.07, h: 96 },
+  { name: 'Champa', l: 0.88, c: 0.11, h: 92 },
+  { name: 'Sarson', l: 0.72, c: 0.15, h: 100 },
+  { name: 'Keri', l: 0.86, c: 0.13, h: 106 },
+  { name: 'Neembu', l: 0.88, c: 0.15, h: 118 },
+  { name: 'Pista', l: 0.86, c: 0.08, h: 130 },
+  { name: 'Tota', l: 0.7, c: 0.18, h: 140 },
+  { name: 'Paan', l: 0.6, c: 0.14, h: 134 },
+  { name: 'Hara', l: 0.54, c: 0.15, h: 148 },
+  { name: 'Kai', l: 0.46, c: 0.08, h: 120 },
+  { name: 'Saunf', l: 0.76, c: 0.1, h: 152 },
+  { name: 'Zamurrad', l: 0.5, c: 0.12, h: 162 },
+  { name: 'Botal', l: 0.35, c: 0.08, h: 160 },
+  { name: 'Pudina', l: 0.87, c: 0.07, h: 168 },
+  { name: 'Kahi', l: 0.63, c: 0.1, h: 176 },
+  { name: 'Morpankh', l: 0.52, c: 0.1, h: 192 },
+  { name: 'Barf', l: 0.93, c: 0.03, h: 220 },
+  { name: 'Samundar', l: 0.58, c: 0.11, h: 222 },
+  { name: 'Faulad', l: 0.52, c: 0.04, h: 232 },
+  { name: 'Akash', l: 0.84, c: 0.06, h: 244 },
+  { name: 'Nila', l: 0.56, c: 0.14, h: 256 },
+  { name: 'Neelam', l: 0.44, c: 0.16, h: 266 },
+  { name: 'Gehra Neel', l: 0.28, c: 0.08, h: 266 },
+  { name: 'Lajward', l: 0.5, c: 0.15, h: 280 },
+  { name: 'Kasni', l: 0.66, c: 0.1, h: 294 },
+  { name: 'Bakaini', l: 0.8, c: 0.06, h: 304 },
+  { name: 'Jamuni', l: 0.46, c: 0.15, h: 300 },
+  { name: 'Baingani', l: 0.3, c: 0.14, h: 298 },
+  { name: 'Sosani', l: 0.62, c: 0.14, h: 326 },
+  { name: 'Aloo Bukhara', l: 0.4, c: 0.1, h: 340 },
+  { name: 'Pyaazi', l: 0.75, c: 0.07, h: 352 },
+  { name: 'Gulabi', l: 0.7, c: 0.15, h: 356 },
+  { name: 'Kusum', l: 0.63, c: 0.19, h: 4 },
+  { name: 'Gudhal', l: 0.5, c: 0.21, h: 8 },
+  { name: 'Sharmili', l: 0.87, c: 0.05, h: 20 },
+  { name: 'Manik', l: 0.45, c: 0.19, h: 18 },
+  { name: 'Anaar', l: 0.56, c: 0.2, h: 22 },
+  { name: 'Sharabi', l: 0.33, c: 0.12, h: 12 },
+  { name: 'Kachnar', l: 0.72, c: 0.1, h: 330 },
+  { name: 'Kirmizi', l: 0.39, c: 0.15, h: 24 },
+];
+
+/** A quality's shades: the base 24 (in their fixed order, which carts and books refer to), then
+ *  as many more as its range holds, evenly round the wheel from a point its own. */
 export function generateColours(fabric: FabricDef): Colour[] {
-  return COLOUR_NAMES.map((base, j) => {
-    const L = Math.min(0.97, Math.max(0.25, base.l + (((fabric.seed + j) % 3) - 1) * 0.015));
+  const tone = (base: ColourBase, j: number): Colour => {
+    const L = Math.min(0.97, Math.max(0.19, base.l + (((fabric.seed + j) % 3) - 1) * 0.015));
     return { name: base.name, l: L, c: base.c, h: base.h, order: j };
-  });
+  };
+  const out = COLOUR_NAMES.map(tone);
+  const extra = Math.max(0, Math.min(MORE_COLOURS.length, fabric.nc - COLOUR_NAMES.length));
+  let off = 0;
+  for (const ch of fabric.id) off = (off * 31 + ch.charCodeAt(0)) % MORE_COLOURS.length;
+  for (let k = 0; k < extra; k++) {
+    const base = MORE_COLOURS[(Math.floor((k * MORE_COLOURS.length) / extra) + off) % MORE_COLOURS.length];
+    out.push(tone(base, COLOUR_NAMES.length + k));
+  }
+  return out;
 }
 
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));

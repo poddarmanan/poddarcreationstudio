@@ -9,7 +9,7 @@ import { metamerism, shadeUnderLight, shiftVerdict } from '../src/lib/three/meta
  * M26 — the Lighting Studio.
  *
  * The metamerism readout is a number a buyer may act on, so it has to be right across the whole
- * catalogue rather than plausible on one shade. Pure, so it covers all 264 of them.
+ * catalogue rather than plausible on one shade. Pure, so it covers all 824 of them.
  */
 async function main() {
   const rigs = Object.keys(RIG_LIGHT) as (keyof typeof RIG_LIGHT)[];

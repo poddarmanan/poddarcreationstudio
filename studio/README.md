@@ -14,7 +14,7 @@ for the design history).
 - **Fabric Lab** — the hero feature: garment/lighting/wind controls, stretch/shine/water/rotate
   physics tests per fabric family, 100×/200×/500× microscope, 9 generated scenes, spec sheet,
   QR share, quote/WhatsApp/pin actions
-- **Colour Wall** — all 264 shades arranged as a continuous spectrum, filterable per quality
+- **Colour Closet** — a wardrobe to each quality, its full range of shades (824 in all, 56 to 96 a quality) hanging on rods as slips that slide like hangers
 - **Compare** — up to four fabrics side-by-side with live-drape animation
 - **Swatch Book** — pinned shades grouped by quality; quote the whole book, print/PDF, WhatsApp
 - **Admin (Catalogue Studio)** — Linear-style workspace with a real upload pipeline

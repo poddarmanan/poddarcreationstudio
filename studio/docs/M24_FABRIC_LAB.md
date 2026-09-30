@@ -278,9 +278,47 @@ the lining. Each slip has a hook, a printed head with the shade's name, the qual
 a pinked cutting of the cloth in its shade. There are no family headings (neutrals, reds and so
 on). The shades hang as one run of colour: the near-greys first (OKLCH chroma under 0.035), light to
 dark, then round the colour wheel from red, with shades of nearly the same hue light to dark. The
-run is cut into rods of about equal length:
-- six to a rod on a 390px phone (four rods for 24 shades);
-- at most eight to a rod on a wider screen.
+run is cut into rods of about equal length, packed as close as a closet is (at least 22px of each
+slip showing), since sliding the slips apart is how they are looked through:
+- up to eleven to a rod on a 390px phone (Rayon's 96 shades hang on nine rods);
+- up to sixteen to a rod on a wider screen (six rods for 96).
+
+**Every quality has its own number of shades.** Each quality comes in its full range, as its
+`nc` states, instead of the same 24:
+
+| Quality | Shades |
+|---|---|
+| PC / PC | 64 |
+| Cambric Cotton | 72 |
+| Jaam Cotton | 80 |
+| Jaam Cotton Supreme | 80 |
+| Cotton Lycra | 56 |
+| Rayon | 96 |
+| Rayon Heavy | 96 |
+| Rayon Slub | 64 |
+| Rayon Wrinkle | 56 |
+| Roman Silk | 72 |
+| Gajji Silk | 88 |
+
+That is 824 in all, the "over eight hundred shades" of the Entrance. Every quality keeps the 24
+base shades in their fixed order (0–23), so carts, swatch books and links that name a shade by its
+number still find it. `generateColours` then adds as many of 72 further named shades
+(`MORE_COLOURS` in `fabric-generator.ts`) as the range holds. They run round the wheel:
+- near-greys (Doodhiya, Chandni, Surmai, Kajal…);
+- earths (Chandan, Mitti, Akhrot, Kattha…);
+- oranges and golds (Moonga, Narangi, Genda, Shehed…);
+- greens (Neembu, Pista, Tota, Zamurrad…);
+- blues (Barf, Samundar, Neelam, Lajward…);
+- violets, pinks and reds (Kasni, Sosani, Gulabi, Gudhal, Manik, Sharabi…).
+
+They are picked evenly round the wheel from a point set by the quality's id, so each range covers
+the wheel and ranges differ from quality to quality. No two of the 96 named shades sit closer than
+about 2.5 ΔE in OKLab. The count shows wherever a quality's shades are counted: the closet, the
+Lab ("96 shades"), the Showroom's rolls.
+
+A deployment's database takes the new ranges with `npm run db:seed`. The seed upserts by quality
+and number, so existing shades keep their ids, and it rebuilds the colour relationships (824
+colours, about 9,100 relationships).
 
 **The slips slide like hangers.** A slip can be dragged along its rod. It pushes the slips it meets
 (two hooks never closer than 12px, and none past the rod's ends) and glides a little when let go.
