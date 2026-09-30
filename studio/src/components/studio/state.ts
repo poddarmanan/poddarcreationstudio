@@ -8,7 +8,7 @@ import { fabricTex, heroColour } from './helpers';
 import { useSearch, type Search } from './search';
 import { FABRIC_STORIES } from '@/lib/fabric-generator';
 
-export type View = 'home' | 'showroom' | 'fabric' | 'colours' | 'book' | 'cart' | 'admin';
+export type View = 'home' | 'showroom' | 'fabric' | 'colours' | 'book' | 'cart' | 'admin' | 'track';
 
 /** A line in the cart: a shade, and how many metres of it. */
 /** A delivery address from the buyer's address book. */
@@ -60,6 +60,23 @@ export interface CartLine {
   fabricId: string;
   colourOrder: number;
   metres: number;
+}
+
+/**
+ * An order as this device remembers it once placed: its reference, when, what (fabric, shade and
+ * metres), where it goes and whether it was paid. The Track page shows these (on the preview they
+ * are the only orders there are); a signed-in buyer's orders come from the account as well.
+ */
+export interface PlacedOrder {
+  ref: string;
+  placedAt: string;
+  lines: { fabricId: string; colourOrder: number; metres: number }[];
+  total: number;
+  value: number;
+  city?: string;
+  timeline?: string;
+  paid?: number;
+  demo?: boolean;
 }
 
 export interface Pin {
@@ -116,6 +133,9 @@ export interface Studio {
   pinShade: (fabricId: string, colourOrder: number) => void;
   /** The cart: fabric to be ordered by the metre. Kept on this device. */
   cart: CartLine[];
+  /** Orders placed from this device, newest first. */
+  placedOrders: PlacedOrder[];
+  rememberOrder: (o: PlacedOrder) => void;
   /** Adds shades to the cart (a shade already there gains the metres), and bumps the cart. */
   addToCart: (fabricId: string, colourOrders: number[], metres: number) => void;
   setCartMetres: (fabricId: string, colourOrder: number, metres: number) => void;
@@ -262,6 +282,26 @@ export function useStudio(rawFabrics: FabricRow[]): Studio {
       localStorage.setItem('pc-cart', JSON.stringify(cart));
     } catch {}
   }, [cart]);
+  // Orders placed from this device, kept as the cart is.
+  const [placedOrders, setPlacedOrders] = useState<PlacedOrder[]>([]);
+  useEffect(() => {
+    const tm = setTimeout(() => {
+      try {
+        const saved = JSON.parse(localStorage.getItem('pc-orders') || '[]') as PlacedOrder[];
+        if (Array.isArray(saved)) setPlacedOrders(saved.filter((o) => o && typeof o.ref === 'string'));
+      } catch {}
+    }, 0);
+    return () => clearTimeout(tm);
+  }, []);
+  const rememberOrder = useCallback((o: PlacedOrder) => {
+    setPlacedOrders((was) => {
+      const next = [o, ...was.filter((w) => w.ref !== o.ref)].slice(0, 50);
+      try {
+        localStorage.setItem('pc-orders', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }, []);
   const [q, setQ] = useState('');
   const [wallFab, setWallFab] = useState<string | null>(null);
   const [scope, setScope] = useState(false);
@@ -771,6 +811,8 @@ export function useStudio(rawFabrics: FabricRow[]): Studio {
     pins,
     pinShade,
     cart,
+    placedOrders,
+    rememberOrder,
     addToCart,
     setCartMetres,
     removeFromCart,

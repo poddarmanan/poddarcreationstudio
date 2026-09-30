@@ -2106,3 +2106,64 @@ button.pc-auth-link:disabled { cursor: default; }
 /* The dock's action wears the house's ink button: a gold hairline within its edge. */
 .pc-order-place { box-shadow: inset 0 0 0 1px rgba(216, 182, 112, .35), 0 12px 26px -12px rgba(28, 25, 23, .5); }
 .pc-order-place.is-waiting { opacity: .82; }
+
+/* ── Track your order: a find field, then a card to each order with its stops on a gold line ── */
+.pc-track-find {
+  display: flex; align-items: center; gap: 10px; width: min(100%, 520px); margin: 22px auto 0; padding: 12px 18px; border-radius: 999px;
+  background: rgba(255, 253, 248, .85); border: 1px solid rgba(184, 144, 74, .35); color: #8A6D45; box-shadow: 0 10px 26px -18px rgba(40, 24, 8, .4);
+}
+.pc-track-find input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; font-family: var(--font-body), 'Jost', sans-serif; font-size: 14px; letter-spacing: .06em; color: #1C1917; }
+.pc-track-list { display: flex; flex-direction: column; gap: 14px; width: min(100%, 620px); margin: 22px auto 0; }
+.pc-track-loading { height: 90px; border-radius: 20px; background: linear-gradient(90deg, rgba(255, 253, 248, .6), rgba(240, 230, 210, .6), rgba(255, 253, 248, .6)); background-size: 200% 100%; animation: pcShimmerBg 1.4s linear infinite; }
+@keyframes pcShimmerBg { to { background-position: -200% 0; } }
+.pc-track-miss, .pc-track-note { text-align: center; font-size: 13px; color: rgba(28, 25, 23, .6); }
+.pc-track-note { margin: 18px auto 0; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 8px; }
+.pc-track-card {
+  border-radius: 20px; background: linear-gradient(180deg, #FFFEFA, #FAF4E8); border: 1px solid rgba(184, 144, 74, .3);
+  box-shadow: 0 16px 34px -22px rgba(40, 24, 8, .45), inset 0 1px 0 #FFFFFF; overflow: hidden; animation: pcRiseIn .55s ease both;
+}
+.pc-track-card.is-cancelled { opacity: .72; }
+.pc-track-head { display: grid; grid-template-columns: 1fr auto; grid-template-areas: 'ref pill' 'chips caret'; gap: 8px 12px; width: 100%; padding: 16px 18px 14px; border: none; background: none; cursor: pointer; text-align: left; color: #1C1917; }
+.pc-track-ref { grid-area: ref; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.pc-track-ref b { font-family: var(--font-display), 'Cormorant Garamond', serif; font-weight: 500; font-size: 22px; letter-spacing: .04em; line-height: 1; font-variant-numeric: lining-nums; }
+.pc-track-ref i { font-style: normal; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: rgba(28, 25, 23, .5); }
+.pc-track-pill { grid-area: pill; align-self: start; padding: 5px 11px; border-radius: 999px; font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; white-space: nowrap; color: #5E4626; background: linear-gradient(135deg, rgba(246, 227, 168, .7), rgba(216, 182, 112, .45)); border: 1px solid rgba(184, 144, 74, .4); }
+.pc-track-pill.is-off { color: rgba(28, 25, 23, .6); background: rgba(28, 25, 23, .06); border-color: rgba(28, 25, 23, .12); }
+.pc-track-chips { grid-area: chips; display: flex; }
+.pc-track-chips i { width: 18px; height: 18px; border-radius: 50%; margin-right: -5px; box-shadow: 0 0 0 2px #FFFDF7, 0 1px 3px rgba(0, 0, 0, .2); }
+.pc-track-caret { grid-area: caret; justify-self: end; align-self: center; color: #8A6D45; transition: transform .3s ease; }
+.pc-track-card.is-open .pc-track-caret { transform: rotate(180deg); }
+.pc-track-body { padding: 4px 18px 18px; border-top: 1px solid rgba(184, 144, 74, .2); animation: pcRiseIn .4s ease both; }
+/* Five stops on a gold line, drawn out to the stop reached. */
+.pc-track-line { position: relative; display: grid; grid-template-columns: repeat(5, 1fr); margin: 18px 0 0; padding: 0; list-style: none; }
+.pc-track-line::before, .pc-track-line::after { content: ''; position: absolute; left: 10%; top: 10px; height: 2px; border-radius: 1px; }
+.pc-track-line::before { right: 10%; background: rgba(138, 109, 69, .18); }
+.pc-track-line::after { width: calc(var(--p, 0%) * .8); background: linear-gradient(90deg, #B8904A, #E9CF8F); transform-origin: left; animation: pcRuleDraw 1.1s .25s cubic-bezier(.2, .8, .2, 1) both; }
+.pc-track-line li { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 7px; text-align: center; }
+.pc-track-dot { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 10px; color: #FFFDF7; background: #FFFDF7; box-shadow: inset 0 0 0 1.5px rgba(138, 109, 69, .3); }
+.pc-track-line li.is-done .pc-track-dot { background: linear-gradient(135deg, #D8B670, #A57C35); box-shadow: none; }
+.pc-track-line li.is-here .pc-track-dot { background: #1C1917; box-shadow: 0 0 0 4px rgba(216, 182, 112, .35); animation: pcTrackPulse 2.4s ease-in-out 3; }
+@keyframes pcTrackPulse { 50% { box-shadow: 0 0 0 7px rgba(216, 182, 112, .12); } }
+.pc-track-stop { font-size: 9px; letter-spacing: .08em; line-height: 1.3; text-transform: uppercase; color: rgba(28, 25, 23, .42); }
+.pc-track-line li.is-done .pc-track-stop { color: #8A6D45; }
+.pc-track-line li.is-here .pc-track-stop { color: #1C1917; font-weight: 500; }
+.pc-track-now { margin: 16px 0 0; font-family: var(--font-display), 'Cormorant Garamond', serif; font-size: 16px; line-height: 1.45; color: #5E4626; }
+.pc-track-lines { margin: 14px 0 0; padding: 0; list-style: none; border-top: 1px dashed rgba(138, 109, 69, .3); }
+.pc-track-lines li { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px dashed rgba(138, 109, 69, .22); }
+.pc-track-lines li > i { flex: none; width: 26px; height: 26px; border-radius: 6px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .1); }
+.pc-track-lines li > span { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.pc-track-lines b { font-family: var(--font-display), 'Cormorant Garamond', serif; font-weight: 500; font-size: 17px; line-height: 1.1; }
+.pc-track-lines em { font-style: normal; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: rgba(28, 25, 23, .5); }
+.pc-track-lines strong { font-family: var(--font-display), 'Cormorant Garamond', serif; font-weight: 500; font-size: 17px; font-variant-numeric: lining-nums; }
+.pc-track-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin: 14px 0 0; }
+.pc-track-facts div { padding: 10px 12px; border-radius: 12px; background: rgba(255, 253, 248, .75); border: 1px solid rgba(184, 144, 74, .2); }
+.pc-track-facts dt { font-size: 9px; letter-spacing: .2em; text-transform: uppercase; color: #8A6D45; }
+.pc-track-facts dd { margin: 3px 0 0; font-family: var(--font-display), 'Cormorant Garamond', serif; font-size: 18px; color: #1C1917; font-variant-numeric: lining-nums; }
+.pc-track-call { display: inline-flex; align-items: center; gap: 8px; margin-top: 16px; padding-bottom: 3px; text-decoration: none; font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: #8A6D45; border-bottom: 1px solid rgba(138, 109, 69, .4); }
+.pc-track-call span { letter-spacing: .08em; color: rgba(28, 25, 23, .5); }
+.pc-track-empty { text-align: center; padding: 28px 10px; }
+.pc-track-empty-art { width: 84px; height: 84px; margin: 0 auto; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 35% 30%, #3A332C, #1C1917); box-shadow: 0 0 0 1px rgba(216, 182, 112, .5), 0 18px 34px -12px rgba(28, 25, 23, .5); }
+.pc-track-empty-art span { width: 34px; height: 34px; border: 1.6px solid #E9CF8F; border-radius: 4px; transform: rotate(45deg) skew(8deg, 8deg); }
+.pc-track-empty-title { margin-top: 18px; font-family: var(--font-display), 'Cormorant Garamond', serif; font-size: 26px; color: #1C1917; }
+.pc-track-empty p { max-width: 340px; margin: 8px auto 0; font-size: 13.5px; line-height: 1.6; color: rgba(28, 25, 23, .6); }
+@media (prefers-reduced-motion: reduce) { .pc-track-card, .pc-track-body, .pc-track-line::after, .pc-track-line li.is-here .pc-track-dot { animation: none; } }

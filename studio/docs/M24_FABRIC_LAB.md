@@ -1188,3 +1188,63 @@ gold hairline inside its edge.
 **The empty cart** is headed the same way: "Your Cart", the ornament, "Your cart is empty" over how
 to fill it, and the ink bag. It leads to the Showroom with the ink button "Enter the Showroom", and
 to the Colour Closet with a quiet link.
+
+## Track your order
+
+The account menu (the user icon) opens with "Track your order" (a small parcel mark), above sign
+in and the language. It opens the Track page (`OrderTrack.tsx`, the studio's `track` view).
+
+**The head** is set as the other pages' heads are:
+- "Track your *Order*" filling its line, "Order" in gold foil;
+- a small ornament;
+- "Every order, and where it stands." / "We confirm each step on WhatsApp too."
+
+Under it, a field finds an order by its reference. It accepts "PC-4F2K9A", "4f2k9a" or part of
+one.
+
+**Each order is a card**, newest first; the newest is open and a tap opens or closes any. Closed,
+a card shows:
+- its reference in the display serif, over its date, its metres (or "Swatch Book") and "preview"
+  for preview orders;
+- a pill with where it stands;
+- a stack of its shades as dots.
+
+Open, it shows:
+- **five stops on a gold line**: Received, Price confirmed, In the dye house, Dispatched and
+  Delivered. The line is drawn to the stop reached, the stops passed are ticked in gold, and the
+  one it is at is ink with a soft gold pulse;
+- a line in the display serif saying what is happening now;
+- every shade in it, with its swatch, name, fabric and metres;
+- tiles for the metres, the value (paid online, quoted, or the estimate), where it is going and
+  when it is needed;
+- "Ask about this order", which calls the house with the reference beside it.
+
+A closed or expired order is shown faded, with a line to call.
+
+**Where an order stands** comes from the house's status for it:
+| Status | Stop |
+|---|---|
+| submitted, under review, priced | Received ("Being reviewed" while under review) |
+| sent | Price confirmed |
+| accepted | In the dye house |
+
+An order paid online is at least at "Price confirmed". Dispatched and Delivered have no status to
+come from yet. They stay ahead until the order tracking in the admin records them, so nothing is
+shown as happening that has not.
+
+**Which orders.** A signed-in buyer's orders come from their account (`/api/portal/quotes`),
+together with any placed from this device that the account does not show. Otherwise, and on the
+static preview, the page shows the orders placed from this device.
+
+Every order placed is remembered on the device (`pc-orders`, through `rememberOrder`) with:
+- its reference and when it was placed;
+- its shades and metres;
+- its metres and value;
+- the city, the timing and any online payment.
+
+On the preview an order now gets a reference of its own (PC- and six characters) instead of
+"PC-PREVIEW". That reference is printed on the parcel's label and tag and is found on the Track
+page. With no orders there is a dark medallion, "No orders yet", the ink button "Enter the
+Showroom" and, off the preview and signed out, "Sign in to see your orders".
+
+The ⓘ has a tour for the page: the head, finding an order, a card, the stops and the call.

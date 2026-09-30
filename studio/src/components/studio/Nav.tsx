@@ -122,6 +122,23 @@ function UserMenu({ studio, signLabel }: { studio: Studio; signLabel: string }) 
             {signedIn && (
               <div style={{ padding: '8px 12px 6px', fontSize: 10.5, letterSpacing: '.14em', textTransform: 'uppercase', color: '#8A6D45' }}>{signLabel}</div>
             )}
+            {/* Where an order stands. */}
+            <button
+              role="menuitem"
+              className="pc-hv-ink"
+              onClick={() => {
+                setOpen(false);
+                studio.go('track');
+              }}
+              style={{ ...item, display: 'flex', alignItems: 'center', gap: 10 }}
+            >
+              <svg aria-hidden width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8A6D45" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 7l9-4 9 4v10l-9 4-9-4z" />
+                <path d="M3 7l9 4 9-4M12 11v10" />
+              </svg>
+              {studio.t.trackMenu ?? 'Track your order'}
+            </button>
+            <div style={{ height: 1, background: 'rgba(28,25,23,.08)', margin: '4px 8px' }} />
             <button
               role="menuitem"
               className="pc-hv-ink"

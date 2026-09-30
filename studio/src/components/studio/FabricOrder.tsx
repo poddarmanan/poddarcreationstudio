@@ -18,6 +18,8 @@ import type { OrderState } from './BookCeremony';
 const INK = '#1C1917';
 const UMBER = '#8A6D45';
 const PREVIEW = !!process.env.NEXT_PUBLIC_BASE_PATH;
+/** A reference for an order placed on the preview: PC- and six letters or digits, as a real one. */
+const previewRef = () => `PC-${Math.random().toString(36).slice(2, 8).toUpperCase().padEnd(6, '0')}`;
 const STEP = 25;
 const PRESETS = [50, 100, 250, 500];
 const inr = (n: number) => n.toLocaleString('en-IN');
@@ -73,6 +75,7 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
   const [proof, setProof] = useState<{ razorpay: RazorpayProof; amount: number; shipTo: string } | null>(null);
   // Where the parcel is addressed, for its shipping label.
   const [dest, setDest] = useState<{ name: string; city: string } | null>(null);
+  const shipCity = useRef('');
   const [warn, setWarn] = useState(0);
 
   // The order slip prints as a bill machine does: the paper is fed out of the slot a line at a time,
@@ -239,14 +242,36 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
     // Paid online: the stamp comes down on the slip first, then the parcel is wrapped.
     setPhase(paid ? 'paid' : 'dispatch');
     setOrder({ state: demo || PREVIEW ? 'demo' : 'pending', whatsapp, paid: paid ? { amount: paid.amount, ref: paid.ref } : undefined });
+    // Remembered on this device, so it can be tracked: the reference, what, where, and payment.
+    const remember = (ref: string, isDemo: boolean) =>
+      studio.rememberOrder({
+        ref,
+        placedAt: new Date().toISOString(),
+        lines: chosen.map((l) => ({ fabricId: l.x.id, colourOrder: l.c.order, metres: m(l.key) })),
+        total,
+        value,
+        city: shipCity.current || undefined,
+        timeline: whenLabel,
+        paid: paid ? paid.amount : undefined,
+        demo: isDemo,
+      });
     const placed = () => {
       if (fromCart) for (const l of chosen) studio.removeFromCart(l.x.id, l.c.order);
     };
-    if (demo || PREVIEW) return placed();
+    if (demo || PREVIEW) {
+      // A preview order gets a reference of its own, shown on the label and kept for tracking.
+      const ref = previewRef();
+      setOrder((o) => ({ ...o, ref }));
+      remember(ref, true);
+      return placed();
+    }
     studio
       .orderFabric({ lines: orderLines(), timeline: whenLabel, note, whatsapp: whatsapp ?? undefined, shipTo, payment: PAYMENT_LABEL[payment], razorpay: paid?.razorpay })
       .then((r) => {
-        if (r.ok) placed();
+        if (r.ok) {
+          placed();
+          if (r.ref) remember(r.ref, false);
+        }
         setOrder((o) => ({ ...o, state: r.ok ? 'sent' : 'failed', ref: r.ref }));
       });
   };
@@ -334,6 +359,7 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
   const placeOrder = async (a: Address, demoPaid?: boolean): Promise<string | null> => {
     const shipTo = addressText(a);
     setDest({ name: a.contactName || a.label, city: a.city });
+    shipCity.current = a.city;
     if (payment !== 'razorpay') {
       send(shipTo);
       return null;

@@ -29,6 +29,7 @@ export function ViewCurtain({ studio }: { studio: Studio }) {
     book: t.book,
     cart: t.cartWord,
     admin: t.adminTitle,
+    track: t.trackTitle ?? 'Track your Order',
   };
   return (
     <div

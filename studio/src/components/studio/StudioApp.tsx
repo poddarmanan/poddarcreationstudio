@@ -14,6 +14,7 @@ import { UnrollTransition, ScopeModal, SceneModal, QuoteModal, AiModal, SignInPa
 import { ViewCurtain } from './ViewCurtain';
 import { CartBook } from './CartBook';
 import { Guide } from './Guide';
+import { OrderTrack } from './OrderTrack';
 
 export function StudioApp({ fabrics }: { fabrics: FabricRow[] }) {
   const studio = useStudio(fabrics);
@@ -34,6 +35,7 @@ export function StudioApp({ fabrics }: { fabrics: FabricRow[] }) {
       {!studio.signInOpen && studio.view === 'book' && <SwatchBook studio={studio} />}
       {!studio.signInOpen && studio.view === 'cart' && <CartBook studio={studio} />}
       {!studio.signInOpen && studio.view === 'admin' && <Admin studio={studio} />}
+      {!studio.signInOpen && studio.view === 'track' && <OrderTrack studio={studio} />}
       <BottomNav studio={studio} />
       {/* Help on every page: a small ⓘ under the account button, and the page's tour. */}
       <Guide studio={studio} />

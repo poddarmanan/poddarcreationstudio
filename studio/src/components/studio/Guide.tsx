@@ -90,6 +90,17 @@ const TOURS: Tour[] = [
     ],
   },
   {
+    key: 'track',
+    view: ['track'],
+    steps: [
+      { at: '.pc-fill-title', title: 'Your orders', text: 'Every order you have placed, newest first, and where each one stands.' },
+      { at: '.pc-track-find', title: 'Find an order', text: 'Type its reference (PC- and six letters, on your label and WhatsApp) to find it.' },
+      { at: '.pc-track-card', title: 'An order', text: 'Tap an order to open it or close it: its reference, when you placed it and the shades in it.' },
+      { at: '.pc-track-line', title: 'Where it stands', text: 'Received, price confirmed, in the dye house, dispatched, delivered: the gold line runs to where it is now.' },
+      { at: '.pc-track-call', title: 'Ask about it', text: 'Call us about this order; keep its reference handy.' },
+    ],
+  },
+  {
     key: 'home',
     view: ['home'],
     steps: [
