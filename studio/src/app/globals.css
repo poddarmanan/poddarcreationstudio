@@ -225,6 +225,12 @@ button:focus-visible, a:focus-visible, input:focus-visible {
   }
 }
 
+/* The Lab's stage. On a phone it leaves room under it for the shades (their bar and two rows), so
+   the cloth and the shades are on the screen together: pick one and see it at once. */
+.pc-lab-stage { min-height: clamp(440px, 62vh, 760px); }
+@media (max-width: 767px) {
+  .pc-lab-stage { min-height: clamp(340px, calc(100svh - var(--pc-topbar) - var(--pc-bottombar) - 330px), 620px); }
+}
 /* The Fabric Lab's shade chart lives under the stage on a phone and in the right column on a
    desktop: one chart, two homes, the other hidden. */
 .pc-shades-desktop { display: none; }
@@ -1715,7 +1721,7 @@ button.pc-auth-link:disabled { cursor: default; }
 .pc-closet.is-open .pc-closet-lamp { opacity: 1; }
 
 /* A rod across the closet, in its sockets, and the run of slips hanging from it. */
-.pc-crod { position: absolute; left: 0; right: 0; height: 176px; perspective: 700px; }
+.pc-crod { position: absolute; left: 0; right: 0; height: var(--rod, 156px); perspective: 700px; }
 .pc-crod-bar {
   position: absolute; left: 0; right: 0; top: 4px; height: 7px; border-radius: 4px;
   background: linear-gradient(180deg, var(--m1), var(--m2) 45%, var(--m3)); box-shadow: 0 5px 7px rgba(0, 0, 0, .5);
@@ -1723,13 +1729,18 @@ button.pc-auth-link:disabled { cursor: default; }
 .pc-crod-bar::before, .pc-crod-bar::after { content: ''; position: absolute; top: -4px; width: 8px; height: 15px; border-radius: 2px; background: linear-gradient(180deg, var(--m1), var(--m3)); }
 .pc-crod-bar::before { left: 0; }
 .pc-crod-bar::after { right: 0; }
-.pc-crod-run { position: absolute; left: 12px; top: 16px; height: 150px; }
+.pc-crod-run { position: absolute; left: 12px; top: 16px; height: calc(var(--sh, 124px) + 10px); touch-action: pan-y; }
 .pc-cslip {
-  position: absolute; left: 0; top: 0; width: 84px; height: 140px; padding: 0; border: none; cursor: grab; text-align: left; touch-action: pan-y;
+  position: absolute; left: 0; top: 0; width: var(--sw, 84px); height: var(--sh, 124px); padding: 0; border: none; cursor: pointer; text-align: left; touch-action: pan-y;
   display: flex; flex-direction: column; background: #FFFDF7; border-radius: 3px; transform-origin: 50% -8px; will-change: transform;
   box-shadow: -5px 8px 14px rgba(0, 0, 0, .45), inset 0 0 0 1px rgba(138, 109, 69, .2);
 }
-.pc-cslip:active { cursor: grabbing; }
+.pc-cslip.is-parted { box-shadow: -8px 12px 20px rgba(0, 0, 0, .5), inset 0 0 0 1px rgba(138, 109, 69, .25); }
+/* A phone's closet: smaller slips, the lettering to match. */
+.pc-closets.is-compact .pc-card-head { padding: 6px 6px 4px; }
+.pc-closets.is-compact .pc-card-head b { font-size: 11px; }
+.pc-closets.is-compact .pc-card-head i { font-size: 5.5px; letter-spacing: .1em; }
+.pc-closets.is-compact .pc-card-cloth { margin: 4px; }
 .pc-cslip:focus-visible { outline: 2px solid #D8B670; outline-offset: 2px; }
 .pc-cslip.is-picked { z-index: 999 !important; box-shadow: 0 22px 34px rgba(0, 0, 0, .55), inset 0 0 0 1px rgba(138, 109, 69, .2); }
 .pc-card-hook { position: absolute; left: 50%; top: -12px; width: 12px; height: 14px; margin-left: -6px; border: 2px solid #9C7630; border-bottom: none; border-radius: 8px 8px 0 0; }
@@ -1839,3 +1850,35 @@ button.pc-auth-link:disabled { cursor: default; }
   .pc-closet-lamp, .pc-closet, .pc-closet-names button, .pc-door, .pc-closet-room { transition: none; }
   .pc-closet-room { animation: none; }
 }
+
+/* ── The Lab's shades, beside the cloth: a bar of the whole range over a few rows of swatches that
+   scroll sideways (two rows on a phone, four in the desktop column). ─────────────────────────── */
+.pc-shadestrip { --rows: 2; --chip: 58px; }
+.pc-shades-desktop .pc-shadestrip { --rows: 4; --chip: 60px; }
+.pc-shadebar { position: relative; height: 14px; margin: 2px 0 10px; cursor: pointer; touch-action: none; }
+.pc-shadebar-run { position: absolute; left: 0; right: 0; top: 4px; height: 6px; display: flex; border-radius: 3px; overflow: hidden; box-shadow: inset 0 0 0 1px rgba(28, 25, 23, .08); }
+.pc-shadebar-run i { flex: 1; }
+.pc-shadebar-window { position: absolute; top: 1px; height: 12px; border-radius: 4px; border: 1.5px solid #1C1917; box-shadow: 0 0 0 1px rgba(250, 248, 245, .8); pointer-events: none; }
+.pc-shadebar-mark { position: absolute; top: -3px; width: 0; height: 0; margin-left: -4px; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid #8A6D45; pointer-events: none; transition: left .35s cubic-bezier(.22, .8, .2, 1); }
+.pc-shadestrip-run {
+  display: grid; grid-auto-flow: column; grid-template-rows: repeat(var(--rows), var(--chip)); grid-auto-columns: var(--chip); gap: 6px;
+  overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scrollbar-width: none; padding: 2px 1px 4px;
+  margin: 0 calc(-1 * clamp(16px, 2.5vw, 28px)); padding-inline: clamp(16px, 2.5vw, 28px); scroll-padding-inline: clamp(16px, 2.5vw, 28px);
+}
+.pc-shades-desktop .pc-shadestrip-run { margin: 0; padding-inline: 1px; scroll-padding-inline: 0; }
+.pc-shadestrip-run::-webkit-scrollbar { display: none; }
+.pc-shadechip {
+  position: relative; cursor: pointer; border: none; border-radius: 3px 3px 0 0; padding: 0 2px 7px; scroll-snap-align: start;
+  display: flex; align-items: flex-end; justify-content: center; box-shadow: inset 0 0 0 1px rgba(28, 25, 23, .1);
+  animation: tileIn .6s cubic-bezier(.22, .8, .2, 1) both; transition: transform .35s cubic-bezier(.22, .8, .2, 1), box-shadow .35s ease;
+}
+.pc-shadechip > span:last-child { font-size: 8.5px; letter-spacing: .03em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+@media (hover: hover) { .pc-shadechip:hover { transform: translateY(-2px); } }
+.pc-shadechip.is-on { box-shadow: inset 0 0 0 3px #1C1917; }
+.pc-shadechip.is-picked { box-shadow: inset 0 0 0 3px #8A6D45; }
+.pc-shadechip-tick {
+  position: absolute; top: 4px; right: 4px; width: 15px; height: 15px; border-radius: 50%; display: grid; place-items: center;
+  background: rgba(250, 248, 245, .75); border: 1px solid rgba(28, 25, 23, .25); color: #FAF8F5; font-size: 9px; line-height: 1;
+}
+.pc-shadechip.is-picked .pc-shadechip-tick { background: #8A6D45; border: none; }
+@media (prefers-reduced-motion: reduce) { .pc-shadechip { animation: none; } .pc-shadebar-mark { transition: none; } }

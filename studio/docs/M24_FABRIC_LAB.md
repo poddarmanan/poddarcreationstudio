@@ -129,6 +129,28 @@ read as choppy). Openings are slower and softer on one curve (`--pc-ease`, 0.7�
 and links ease their colour, border and lift, and the page's sections rise into place as they
 scroll into view (`Reveal`). Reduced motion turns the reveals off.
 
+**The shades sit beside the cloth** (`ShadeStrip.tsx`), so a buyer picks a shade and sees it on
+the cloth without scrolling the page away from the stage and back. A quality's range (up to 96)
+used to be a grid of swatches running fifteen rows down the page.
+
+The shades now run in one line of colour: the neutrals first, then round the wheel. The ordering
+is the same `spectrum` as the Colour Closet's, in `helpers.ts`. They are laid out in rows that
+scroll sideways:
+- on a phone, two rows under the stage;
+- on a desktop, four rows in the right-hand column.
+
+Over the swatches is a thin bar of the whole range. On the bar:
+- a dark window shows the stretch in view;
+- a gold notch marks the shade on the stage;
+- a touch sends the swatches there, and a drag scrubs through them.
+
+The shade on the stage is kept in view (centred when the Lab opens, and brought back gently if it
+was scrolled away).
+
+On a phone the stage is sized to leave room for the bar and two rows under it
+(`.pc-lab-stage`, at least 340px). On a 390 × 844 phone the stage is 386px and the shades end
+above the bottom bar, so cloth and shades share the screen.
+
 **Select multiple.** Beside the shade count, a small chip turns the chart into a picker: the
 shade on the stage starts ticked, each tap ticks or unticks a chip (and puts a newly ticked shade
 on the stage), and the count shows beside the heading. While shades are ticked, Add to book adds
@@ -278,10 +300,16 @@ the lining. Each slip has a hook, a printed head with the shade's name, the qual
 a pinked cutting of the cloth in its shade. There are no family headings (neutrals, reds and so
 on). The shades hang as one run of colour: the near-greys first (OKLCH chroma under 0.035), light to
 dark, then round the colour wheel from red, with shades of nearly the same hue light to dark. The
-run is cut into rods of about equal length, packed as close as a closet is (at least 22px of each
-slip showing), since sliding the slips apart is how they are looked through:
-- up to eleven to a rod on a 390px phone (Rayon's 96 shades hang on nine rods);
-- up to sixteen to a rod on a wider screen (six rods for 96).
+run is cut into four rods of about equal length, whatever the range: 56 shades hang fourteen to a
+rod, 96 twenty-four to a rod.
+
+**Every closet stands the same height, and fits on a screen.** A closet used to grow with its
+range (a 96-shade closet was about 1,600px on a phone), and closets were set on the floor. A
+shorter closet beside a taller one then stood low in the row, with an empty gap over it. Now every
+closet holds four rods, so all stand the same height and there is no gap. On a phone the slips are
+smaller (64 × 104px, rods 134px apart) so the whole closet, about 650px, is on the screen at once.
+On a wider screen they are 84 × 124px, rods 156px apart. The sizes are set as variables on the row
+(`--sw`, `--sh`, `--rod`).
 
 **Every quality has its own number of shades.** Each quality comes in its full range, as its
 `nc` states, instead of the same 24:
@@ -320,15 +348,30 @@ A deployment's database takes the new ranges with `npm run db:seed`. The seed up
 and number, so existing shades keep their ids, and it rebuilds the colour relationships (824
 colours, about 9,100 relationships).
 
-**The slips slide like hangers.** A slip can be dragged along its rod. It pushes the slips it meets
-(two hooks never closer than 12px, and none past the rod's ends) and glides a little when let go.
-Arrow keys slide a focused slip. A slip is turned in depth by how much of it the next one covers,
-so one given room turns to face you. Each swings from its hook as it moves, against the way it is
-moved, and settles. When a closet opens, the draught from its doors sets the slips swinging, rod by
+**A rod is parted like hangers.** The slips hang packed, a few pixels of each showing, so a
+closet holds its whole range. You look through them by parting the rod:
+- Draw a finger along it (or move the pointer over it on a desktop). The slip there gets its full
+  width and turns to face you. The two either side part by about half and a quarter of a slip, and
+  the rest close up to make room.
+- The rod is read in even zones, one to a slip, so the parting follows the finger steadily and
+  never jumps back under it.
+- The parted slip stays parted when the finger lifts.
+
+A tap:
+- on a packed slip parts the rod there;
+- on the parted slip takes it out.
+
+With a mouse, the pointer has parted the rod already, so one click takes out the slip beside it.
+Arrow keys move the parting along the rod, and Enter takes the slip out.
+
+A slip is turned in depth by how much of it the next one covers, so a parted one faces you. Each
+swings from its hook as it moves, against the way it is moved, and settles. A sideways drag along a
+rod parts it rather than swiping to the next closet. The row is swiped from anywhere else: the
+crown, the plinth, between rods, or the "Closet 3 of 11" line above. When a closet opens, the draught from its doors sets the slips swinging, rod by
 rod. The motion is computed and set on the slips a frame at a time, and only while something
 moves.
 
-**A tap takes a slip out.** It lifts forward and grows a little (about 14%) and faces you. Then the
+**Taking a slip out:** it lifts forward and grows a little (about 12%) and faces you. Then the
 page is covered by the Showroom's full-page unroll, the same as opening a fabric from the Fabric
 Hall, but in the tapped shade: the cloth unfurls down the screen with the shade's name and the
 quality under it. The Lab opens on that shade. `studio.unroll(fabric, shadeIndex)` takes the shade.

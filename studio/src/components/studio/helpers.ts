@@ -38,3 +38,21 @@ export function chipStyle(on: boolean) {
     ? { background: '#1C1917', color: '#FAF8F5', borderColor: '#1C1917' }
     : { background: 'transparent', color: '#1C1917', borderColor: 'rgba(28,25,23,.2)' };
 }
+
+/** Below this OKLCH chroma a shade reads as a grey, and is hung with the neutrals. */
+const NEUTRAL_C = 0.035;
+/** Where the colour wheel is cut to lay it out in a line: between the pinks and the reds. */
+const HUE_START = 350;
+/**
+ * Shades in one run of colour, as a mill hangs its cards: the neutrals first, light to dark, then
+ * round the colour wheel from red, each hue light to dark where two sit close. A sort comparator.
+ */
+export function spectrum(a: ColourRow, b: ColourRow) {
+  const an = a.c < NEUTRAL_C;
+  const bn = b.c < NEUTRAL_C;
+  if (an !== bn) return an ? -1 : 1;
+  if (an) return b.l - a.l;
+  const ha = (a.h - HUE_START + 720) % 360;
+  const hb = (b.h - HUE_START + 720) % 360;
+  return Math.abs(ha - hb) < 6 ? b.l - a.l : ha - hb;
+}

@@ -4,29 +4,10 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperti
 import type { Studio } from './state';
 import type { ColourRow, FabricRow } from '@/lib/types';
 import { Selvage } from './brand';
-import { FONT_DISPLAY, fabricTex } from './helpers';
+import { FONT_DISPLAY, fabricTex, spectrum } from './helpers';
 
 /** A shade in a closet, with where it comes from. */
 type Shade = { key: string; c: ColourRow; x: FabricRow; j: number };
-
-/** Below this OKLCH chroma a shade reads as a grey, and is hung with the neutrals. */
-const NEUTRAL_C = 0.035;
-/** Where the colour wheel is cut to lay it out in a line: between the pinks and the reds. */
-const HUE_START = 350;
-
-/**
- * One run of colour, as a mill hangs its cards: the neutrals first, light to dark, then round the
- * colour wheel from red, each hue light to dark where two sit close.
- */
-function spectrum(a: ColourRow, b: ColourRow) {
-  const an = a.c < NEUTRAL_C;
-  const bn = b.c < NEUTRAL_C;
-  if (an !== bn) return an ? -1 : 1;
-  if (an) return b.l - a.l;
-  const ha = (a.h - HUE_START + 720) % 360;
-  const hb = (b.h - HUE_START + 720) % 360;
-  return Math.abs(ha - hb) < 6 ? b.l - a.l : ha - hb;
-}
 
 // The closet's measures, in px.
 const SLIDE_MAX = 680; // a closet's slot in the row, at most
@@ -34,20 +15,15 @@ const SLIDE_PAD = 16; // the gap either side of a closet, where its doors swing
 const CROWN_H = 24; // room above a closet for its crown, kept inside its box so nothing clips it
 const STILE = 12; // the closet's side walls
 const INSIDE_PAD = 12; // from a wall to the ends of the slips' run
-const SLIP_W = 84; // a slip
-const ROD_H = 176; // one rod and the slips hanging from it
-const INSIDE_TOP = 18;
-const PER_ROD_MAX = 16;
-const SPACING = 56; // slips' natural spacing along a rod, at most
-const MIN_GAP = 12; // how close two hooks can be pushed
+const ROWS = 4; // every closet holds its range on four rods, so all stand the same height
+const INSIDE_TOP = 16;
+const SPACING = 56; // a loose rod's slips hang no further apart than this
+/** A slip's size and the rod's pitch: smaller in a phone's closet, so a closet fits on a screen. */
+const sizes = (slideW: number) => (slideW < 520 ? { w: 64, h: 104, rod: 134 } : { w: 84, h: 124, rod: 156 });
 
-/** A quality's shades, cut into rods of about equal length for a rod as long as `len`. */
-function hang(shades: Shade[], len: number) {
-  // Packed as close as a closet is (22px of each slip showing at the least), since sliding them
-  // apart is how they are looked through; a quality of 96 shades then needs 9 rods on a phone.
-  const cap = Math.max(3, Math.min(PER_ROD_MAX, Math.floor((len - SLIP_W) / 22) + 1));
-  const rods = Math.max(1, Math.ceil(shades.length / cap));
-  const per = Math.ceil(shades.length / rods);
+/** A quality's shades, cut into the closet's rods, of about equal length. */
+function hang(shades: Shade[]) {
+  const per = Math.max(1, Math.ceil(shades.length / ROWS));
   const out: Shade[][] = [];
   for (let i = 0; i < shades.length; i += per) out.push(shades.slice(i, i + per));
   return out;
@@ -172,6 +148,8 @@ export function ColourWall({ studio }: { studio: Studio }) {
   // The row of closets is as wide as the screen; a closet takes at most SLIDE_MAX of it, so on a
   // wide screen its neighbours stand either side.
   const view = useRef<HTMLDivElement | null>(null);
+  // Where a swipe along the row may start: the closets and the line naming the one looked at.
+  const zone = useRef<HTMLDivElement | null>(null);
   const track = useRef<HTMLDivElement | null>(null);
   const [vw, setVw] = useState(0);
   useLayoutEffect(() => {
@@ -184,6 +162,7 @@ export function ColourWall({ studio }: { studio: Studio }) {
   }, []);
   const slideW = Math.min(vw, SLIDE_MAX);
   const len = slideW - 2 * SLIDE_PAD - 2 * STILE - 2 * INSIDE_PAD;
+  const size = sizes(slideW);
   const base = (vw - slideW) / 2 - idx * slideW;
 
   // The row sits on the closet being looked at, gliding there when it changes.
@@ -204,16 +183,17 @@ export function ColourWall({ studio }: { studio: Studio }) {
     goToRef.current = goTo;
   });
 
-  // Swiping the row: a sideways drag anywhere but on a slip. The page still scrolls up and down.
+  // Swiping the row: a sideways drag anywhere but along a rod of slips (which parts it). The page still scrolls up and down.
   const swipe = useRef<{ id: number; x: number; y: number; dx: number; on: boolean } | null>(null);
   const swipedAt = useRef(0);
   useEffect(() => {
-    const el = view.current;
+    const el = zone.current;
+    const vw0 = view.current;
     const tr = track.current;
-    if (!el || !tr) return;
+    if (!el || !vw0 || !tr) return;
     const down = (e: PointerEvent) => {
       if (e.pointerType === 'mouse' && e.button !== 0) return;
-      if ((e.target as HTMLElement).closest('.pc-cslip')) return;
+      if ((e.target as HTMLElement).closest('.pc-crod-run')) return;
       swipe.current = { id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, on: false };
     };
     const move = (e: PointerEvent) => {
@@ -241,7 +221,7 @@ export function ColourWall({ studio }: { studio: Studio }) {
       if (!s.on) return;
       swipedAt.current = e.timeStamp;
       tr.style.transition = 'transform .5s cubic-bezier(.22,.8,.2,1)';
-      const w = Math.min(el.clientWidth, SLIDE_MAX);
+      const w = Math.min(vw0.clientWidth, SLIDE_MAX);
       const step = Math.abs(s.dx) > Math.min(70, w * 0.18) ? (s.dx < 0 ? 1 : -1) : 0;
       if (step) goToRef.current(idxRef.current + step);
       tr.style.transform = `translate3d(${baseRef.current - step * w}px,0,0)`;
@@ -333,6 +313,7 @@ export function ColourWall({ studio }: { studio: Studio }) {
         ))}
       </div>
 
+      <div ref={zone}>
       <div className="pc-closet-count">
         <button aria-label="‹" disabled={idx === 0} onClick={() => goTo(idx - 1)}>
           ‹
@@ -349,11 +330,11 @@ export function ColourWall({ studio }: { studio: Studio }) {
         </button>
       </div>
 
-      <div ref={view} className="pc-closets">
+      <div ref={view} className={`pc-closets${size.w < 80 ? ' is-compact' : ''}`} style={{ ['--sw' as string]: `${size.w}px`, ['--sh' as string]: `${size.h}px`, ['--rod' as string]: `${size.rod}px` } as CSSProperties}>
         <div ref={track} className="pc-closets-track">
           {vw > 0 &&
             fabrics.map((f, k) => {
-              const rods = hang(runs[k], len);
+              const rods = hang(runs[k]);
               const look = lookOf(f.id, k);
               const isOpen = opened.has(f.id);
               const here = k === idx;
@@ -370,12 +351,12 @@ export function ColourWall({ studio }: { studio: Studio }) {
                       <b>{f.name}</b>
                     </span>
                   </div>
-                  <div className="pc-closet-body" style={{ height: INSIDE_TOP + rods.length * ROD_H + 8 }}>
+                  <div className="pc-closet-body" style={{ height: INSIDE_TOP + ROWS * size.rod + 6 }}>
                     <div className="pc-closet-inside">
                       <span aria-hidden className="pc-closet-lamp" />
                       {isOpen &&
                         rods.map((rod, r) => (
-                          <Rod key={`${len}-${r}`} shades={rod} len={len} top={INSIDE_TOP + r * ROD_H} delay={r * 0.12} onPick={pick} />
+                          <Rod key={`${len}-${r}`} shades={rod} len={len} slipW={size.w} top={INSIDE_TOP + r * size.rod} delay={r * 0.12} onPick={pick} />
                         ))}
                     </div>
                     {(['left', 'right'] as const).map((side) => (
@@ -397,19 +378,20 @@ export function ColourWall({ studio }: { studio: Studio }) {
             })}
         </div>
       </div>
+      </div>
       {fab && opened.has(fab.id) && <p className="pc-closet-hint">{t.slideHint}</p>}
     </div>
   );
 }
 
 /**
- * One brass rod of slips. Each slip hangs from its hook at `x` along the rod and can be slid like a
- * hanger: dragged along, it pushes the slips it meets, and it glides a little when let go. A slip is
- * turned in depth by how much of it the next one covers, so one given room turns to face you, and
- * each swings from its hook as it moves. Everything is moved a frame at a time, and only while
- * something is moving.
+ * One rod of slips, packed close as in a closet. A finger drawn along the rod (or the pointer
+ * moved over it) parts the slips around it, as a hand parts hangers: the one there is given its
+ * full width and turns to face you, its neighbours part a little, and the rest close up. A tap on
+ * a packed slip parts the rod there; a tap on the parted slip takes it out. Each slip swings from
+ * its hook as it moves. Everything is moved a frame at a time, and only while something moves.
  */
-function Rod({ shades, len, top, delay, onPick }: { shades: Shade[]; len: number; top: number; delay: number; onPick: (s: Shade) => boolean }) {
+function Rod({ shades, len, slipW, top, delay, onPick }: { shades: Shade[]; len: number; slipW: number; top: number; delay: number; onPick: (s: Shade) => boolean }) {
   const box = useRef<HTMLDivElement | null>(null);
   const pickRef = useRef(onPick);
   useEffect(() => {
@@ -422,51 +404,68 @@ function Rod({ shades, len, top, delay, onPick }: { shades: Shade[]; len: number
     const els = Array.from(root.querySelectorAll<HTMLElement>('.pc-cslip'));
     const n = els.length;
     const quiet = reduced();
-    const room = len - SLIP_W;
-    const gap0 = n > 1 ? Math.min(room / (n - 1), SPACING) : 0;
-    // Where each hangs (x), how fast it is sliding (v), its swing (a) and the swing's speed (w),
-    // and how far it has been lifted when taken (s).
-    const st = els.map((_, i) => ({ x: i * gap0, px: i * gap0, v: 0, a: 0, w: 0, s: 0 }));
+    const W = slipW;
+    const room = Math.max(0, len - W);
+    const MIN = 3; // a packed slip's edge, at the least
+
+    // Where each slip hangs for a rod parted at `f` (none: evenly, or bunched left on a loose rod).
+    const layout = (f: number) => {
+      if (n < 2) return [0];
+      const g = new Array<number>(n - 1).fill(0);
+      if (f < 0) {
+        g.fill(Math.min(room / (n - 1), SPACING));
+      } else {
+        const want = new Map<number, number>();
+        if (f < n - 1) want.set(f, W + 6);
+        for (const [d, k] of [[1, 0.5], [2, 0.28]] as const) {
+          if (f - d >= 0) want.set(f - d, W * k);
+          if (f + d < n - 1) want.set(f + d, W * k * 0.8);
+        }
+        let special = 0;
+        want.forEach((v) => (special += v));
+        const others = n - 1 - want.size;
+        let each = others ? (room - special) / others : 0;
+        let scale = 1;
+        if (others && each < MIN) {
+          scale = Math.max(0, (room - others * MIN) / special);
+          each = MIN;
+        } else if (!others && special > room) scale = room / special;
+        for (let i = 0; i < n - 1; i++) g[i] = want.has(i) ? want.get(i)! * scale : Math.min(each, SPACING * 1.4);
+      }
+      const x = [0];
+      for (let i = 0; i < n - 1; i++) x.push(x[i] + g[i]);
+      return x;
+    };
+
+    let focus = -1;
+    let target = layout(focus);
+    const st = els.map((_, i) => ({ x: target[i], px: target[i], a: 0, w: 0, s: 0 }));
     let picked = -1;
     let raf = 0;
 
-    const place = (i: number, to: number) => {
-      st[i].x = Math.max(i * MIN_GAP, Math.min(room - (n - 1 - i) * MIN_GAP, to));
-      for (let k = i + 1; k < n; k++) st[k].x = Math.max(st[k].x, st[k - 1].x + MIN_GAP);
-      for (let k = i - 1; k >= 0; k--) st[k].x = Math.min(st[k].x, st[k + 1].x - MIN_GAP);
-    };
     const paint = () => {
       for (let i = 0; i < n; i++) {
         const h = st[i];
-        const gap = i < n - 1 ? st[i + 1].x - h.x : SLIP_W;
-        const turn = 34 * Math.max(0, Math.min(1, (SLIP_W - gap) / (SLIP_W - MIN_GAP))) * (1 - h.s);
-        els[i].style.transform = `translate3d(${h.x.toFixed(2)}px,${(h.s * 10).toFixed(2)}px,0) rotateZ(${h.a.toFixed(2)}deg) rotateY(${turn.toFixed(2)}deg) scale(${(1 + h.s * 0.14).toFixed(3)})`;
+        const gap = i < n - 1 ? st[i + 1].x - h.x : W;
+        const turn = 36 * Math.max(0, Math.min(1, (W - gap) / (W - MIN))) * (1 - h.s);
+        els[i].style.transform = `translate3d(${h.x.toFixed(2)}px,${(h.s * 8).toFixed(2)}px,0) rotateZ(${h.a.toFixed(2)}deg) rotateY(${turn.toFixed(2)}deg) scale(${(1 + h.s * 0.12).toFixed(3)})`;
       }
     };
-    let drag: { i: number; id: number; sx: number; sy: number; x0: number; on: boolean; last: number; vx: number } | null = null;
-    let moved = false;
     const frame = () => {
       raf = 0;
-      let busy = !!drag?.on;
+      let busy = false;
       for (let i = 0; i < n; i++) {
         const h = st[i];
-        if (!(drag?.on && drag.i === i) && Math.abs(h.v) > 0.05) {
-          place(i, h.x + h.v);
-          h.v *= 0.9;
-          busy = true;
-        } else if (!(drag?.on && drag.i === i)) h.v = 0;
-      }
-      for (let i = 0; i < n; i++) {
-        const h = st[i];
+        h.x += (target[i] - h.x) * (quiet ? 1 : 0.2);
         const vel = h.x - h.px;
         h.px = h.x;
         // A hanger swings against the way it is moved, and settles back.
-        const want = quiet ? 0 : Math.max(-14, Math.min(14, -vel * 1.5));
+        const want = quiet ? 0 : Math.max(-12, Math.min(12, -vel * 1.3));
         h.w = (h.w + (want - h.a) * 0.07) * 0.88;
         h.a += h.w;
         const lift = i === picked ? 1 : 0;
         h.s += (lift - h.s) * (quiet ? 1 : 0.2);
-        if (Math.abs(vel) > 0.02 || Math.abs(h.w) > 0.02 || Math.abs(h.a) > 0.05 || Math.abs(lift - h.s) > 0.002) busy = true;
+        if (Math.abs(target[i] - h.x) > 0.05 || Math.abs(h.w) > 0.02 || Math.abs(h.a) > 0.05 || Math.abs(lift - h.s) > 0.002) busy = true;
       }
       paint();
       if (busy) raf = requestAnimationFrame(frame);
@@ -474,37 +473,46 @@ function Rod({ shades, len, top, delay, onPick }: { shades: Shade[]; len: number
     const kick = () => {
       if (!raf) raf = requestAnimationFrame(frame);
     };
+    const part = (f: number) => {
+      const next = Math.max(-1, Math.min(n - 1, f));
+      if (next === focus) return;
+      focus = next;
+      target = layout(focus);
+      els.forEach((el, i) => el.classList.toggle('is-parted', i === focus));
+      kick();
+    };
+    // The rod is read in even zones, one to a slip, so parting it never moves what is under the finger.
+    const zone = (clientX: number) => Math.floor(((clientX - root.getBoundingClientRect().left) / len) * n);
 
     const at = (e: Event) => els.indexOf((e.target as HTMLElement).closest('.pc-cslip') as HTMLElement);
+    let drag: { id: number; sx: number; sy: number; on: boolean } | null = null;
+    let moved = false;
     const down = (e: PointerEvent) => {
       if (e.pointerType === 'mouse' && e.button !== 0) return;
-      const i = at(e);
-      if (i < 0) return;
       moved = false;
-      drag = { i, id: e.pointerId, sx: e.clientX, sy: e.clientY, x0: st[i].x, on: false, last: e.clientX, vx: 0 };
+      drag = { id: e.pointerId, sx: e.clientX, sy: e.clientY, on: false };
     };
     const move = (e: PointerEvent) => {
       const d = drag;
-      if (!d || d.id !== e.pointerId) return;
-      const dx = e.clientX - d.sx;
-      if (!d.on) {
-        if (Math.abs(dx) > 6 && Math.abs(dx) > Math.abs(e.clientY - d.sy)) {
-          d.on = moved = true;
-          els[d.i].setPointerCapture(e.pointerId);
-        } else if (Math.abs(e.clientY - d.sy) > 10) drag = null;
+      if (!d) {
+        // A mouse over the rod parts it as it passes.
+        if (e.pointerType === 'mouse') part(zone(e.clientX));
         return;
       }
-      d.vx = d.vx * 0.6 + (e.clientX - d.last) * 0.4;
-      d.last = e.clientX;
-      place(d.i, d.x0 + dx);
-      kick();
+      if (d.id !== e.pointerId) return;
+      if (!d.on) {
+        const dx = e.clientX - d.sx;
+        const dy = e.clientY - d.sy;
+        if (Math.abs(dx) > 6 && Math.abs(dx) > Math.abs(dy)) {
+          d.on = moved = true;
+          root.setPointerCapture(e.pointerId);
+        } else if (Math.abs(dy) > 10) drag = null;
+        if (!d.on) return;
+      }
+      part(zone(e.clientX));
     };
     const up = (e: PointerEvent) => {
-      const d = drag;
-      if (!d || d.id !== e.pointerId) return;
-      drag = null;
-      if (d.on && !quiet) st[d.i].v = Math.max(-24, Math.min(24, d.vx));
-      kick();
+      if (drag && drag.id === e.pointerId) drag = null;
     };
     const click = (e: MouseEvent) => {
       const i = at(e);
@@ -513,18 +521,24 @@ function Rod({ shades, len, top, delay, onPick }: { shades: Shade[]; len: number
         moved = false;
         return;
       }
-      if (pickRef.current(shades[i])) {
-        picked = i;
-        els[i].classList.add('is-picked');
+      // A mouse has parted the rod at the slip it is over; a finger parts it with the first tap.
+      if (i !== focus && !(e.detail > 0 && focus >= 0 && Math.abs(i - focus) <= 1 && matchMedia('(hover: hover)').matches)) return part(i);
+      const take = focus >= 0 ? focus : i;
+      if (pickRef.current(shades[take])) {
+        picked = take;
+        els[take].classList.add('is-picked');
         kick();
       }
     };
-    const key = (e: KeyboardEvent) => {
+    const onFocus = (e: FocusEvent) => {
       const i = at(e);
-      if (i < 0 || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
+      if (i >= 0) part(i);
+    };
+    const key = (e: KeyboardEvent) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
       e.preventDefault();
-      st[i].v = e.key === 'ArrowLeft' ? -6 : 6;
-      kick();
+      const next = Math.max(0, Math.min(n - 1, (focus < 0 ? 0 : focus) + (e.key === 'ArrowLeft' ? -1 : 1)));
+      els[next].focus();
     };
 
     // Hung in: the doors' draught sets them swinging, rod by rod.
@@ -532,7 +546,7 @@ function Rod({ shades, len, top, delay, onPick }: { shades: Shade[]; len: number
     const tm = window.setTimeout(() => {
       if (quiet) return;
       st.forEach((h, i) => {
-        h.a = -7 + (i % 3) * 1.5;
+        h.a = -6 + (i % 3) * 1.5;
         h.w = 0;
       });
       kick();
@@ -543,6 +557,7 @@ function Rod({ shades, len, top, delay, onPick }: { shades: Shade[]; len: number
     root.addEventListener('pointerup', up);
     root.addEventListener('pointercancel', up);
     root.addEventListener('click', click);
+    root.addEventListener('focusin', onFocus);
     root.addEventListener('keydown', key);
     return () => {
       window.clearTimeout(tm);
@@ -552,9 +567,10 @@ function Rod({ shades, len, top, delay, onPick }: { shades: Shade[]; len: number
       root.removeEventListener('pointerup', up);
       root.removeEventListener('pointercancel', up);
       root.removeEventListener('click', click);
+      root.removeEventListener('focusin', onFocus);
       root.removeEventListener('keydown', key);
     };
-  }, [shades, len, delay]);
+  }, [shades, len, slipW, delay]);
 
   return (
     <div className="pc-crod" style={{ top }}>
@@ -566,7 +582,7 @@ function Rod({ shades, len, top, delay, onPick }: { shades: Shade[]; len: number
             <span className="pc-card-head">
               <b>{s.c.name}</b>
               <i>
-                {s.x.name} · {String(s.c.order).padStart(2, '0')}
+                {s.x.name} · {String(s.c.order + 1).padStart(2, '0')}
               </i>
             </span>
             <span aria-hidden className="pc-card-cloth" style={{ background: `linear-gradient(90deg, rgba(0,0,0,.1), transparent 30%, rgba(255,255,255,.08) 55%, rgba(0,0,0,.14)), ${fabricTex(s.x, s.c, 3)}` }} />

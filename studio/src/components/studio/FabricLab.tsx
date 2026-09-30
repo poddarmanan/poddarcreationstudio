@@ -9,9 +9,10 @@ import { FabricViewer } from '@/components/three/FabricViewer';
 import { ExportView } from '@/components/three/ExportView';
 import { oklchToHex } from '@/lib/three/colour';
 import { metamerism, shiftVerdict } from '@/lib/three/metamerism';
-import { FONT_DISPLAY, FONT_BODY, fabricTex, fabricWeave, colourCss, colourFg, colourShade, fabricNo } from './helpers';
+import { FONT_DISPLAY, FONT_BODY, fabricTex, fabricWeave, colourCss, colourShade, fabricNo } from './helpers';
 import { useDragScroll } from './interactions';
 import { AddChooser, AddedToast, flyInto } from './AddChooser';
+import { ShadeStrip } from './ShadeStrip';
 import {
   GARMENTS, LIGHTS, PHYSICS_NOTES, STRETCH_TEST_NOTES,
   type GarmentKey, type LightKey,
@@ -269,39 +270,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
                   {picking ? t.done : t.selectMulti}
                 </button>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(52px,1fr))', gap: 6 }}>
-                {f.colours.map((c, j) => (
-                  <button
-                    key={j}
-                    onClick={() => pickShade(j)}
-                    title={c.name}
-                    aria-pressed={picking ? picked.includes(j) : undefined}
-                    className="pc-pink pc-hv-scale-15"
-                    style={{
-                      cursor: 'pointer', position: 'relative', aspectRatio: '1', border: 'none', borderRadius: '3px 3px 0 0', background: colourCss(c),
-                      boxShadow: picking && picked.includes(j)
-                        ? 'inset 0 0 0 3px #8A6D45'
-                        : j === studio.ci ? 'inset 0 0 0 3px #1C1917' : 'inset 0 0 0 1px rgba(28,25,23,.1)',
-                      padding: '0 2px 7px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-                      animation: `tileIn .7s ${j * 26}ms cubic-bezier(.22,.8,.2,1) both`, transition: 'transform .5s cubic-bezier(.22,.8,.2,1), box-shadow .45s ease',
-                    }}
-                  >
-                    {picking && (
-                      <span
-                        aria-hidden
-                        style={{
-                          position: 'absolute', top: 4, right: 4, width: 15, height: 15, borderRadius: '50%', display: 'grid', placeItems: 'center',
-                          background: picked.includes(j) ? '#8A6D45' : 'rgba(250,248,245,.75)', border: picked.includes(j) ? 'none' : '1px solid rgba(28,25,23,.25)',
-                          color: '#FAF8F5', fontSize: 9, lineHeight: 1, transition: 'background .3s ease',
-                        }}
-                      >
-                        {picked.includes(j) ? '✓' : ''}
-                      </span>
-                    )}
-                    <span style={{ fontSize: 8.5, letterSpacing: '.03em', color: colourFg(c), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
-                  </button>
-                ))}
-              </div>
+              <ShadeStrip colours={f.colours} current={studio.ci} picking={picking} picked={picked} onPick={pickShade} />
             </div>
             </div>
   );
@@ -413,7 +382,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,340px),1fr))', gap: 0, borderTop: '1px solid rgba(28,25,23,.08)', borderBottom: '1px solid rgba(28,25,23,.08)' }}>
         {/* Stage column: preview + lighting/wind rails */}
         <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, borderRight: '1px solid rgba(28,25,23,.06)' }}>
-          <div style={{ position: 'relative', flex: 1, minHeight: 'clamp(440px, 62vh, 760px)', background: light.bg, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 1.2s ease' }}>
+          <div className="pc-lab-stage" style={{ position: 'relative', flex: 1, background: light.bg, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 1.2s ease' }}>
             <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(50% 40% at 50% 15%, ${light.glow}, transparent 70%)`, transition: 'background 1.2s ease' }} />
             <div style={{ position: 'absolute', left: '15%', right: '15%', bottom: '7%', height: 26, borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(28,25,23,.3), transparent 70%)' }} />
             {/* The shine is the raking light the stage walks across the cloth (ShineSweep); the
