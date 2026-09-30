@@ -3,8 +3,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react';
 import type { Studio } from './state';
 import type { ColourRow, FabricRow } from '@/lib/types';
-import { Selvage } from './brand';
-import { FONT_DISPLAY, fabricTex, spectrum } from './helpers';
+import { fabricTex, spectrum } from './helpers';
 
 /** A shade in a closet, with where it comes from. */
 type Shade = { key: string; c: ColourRow; x: FabricRow; j: number };
@@ -122,7 +121,7 @@ function DoorFace({ look, side }: { look: Look; side: 'left' | 'right' }) {
 
 /**
  * The Colour Closet: every quality is a walnut wardrobe of its own, in a row to swipe through (or
- * step through with the arrows and the names above). A closet's doors are shut until they are
+ * step through with the arrows, or pick from the list, in the bar pinned above). A closet's doors are shut until they are
  * tapped, when they unlatch and swing wide and a lamp comes on inside; the one arrived at opens by
  * itself. Inside, each shade is a swatch slip hanging from a brass rod, turned in depth and
  * overlapping like cards in a file. A slip can be slid along its rod like a hanger, pushing its
@@ -284,13 +283,24 @@ export function ColourWall({ studio }: { studio: Studio }) {
     return () => window.clearTimeout(tm);
   }, []);
 
-  // The names above: the one looked at kept in view.
-  const names = useRef<HTMLDivElement | null>(null);
+  // The list of closets, opened from the name in the bar; shut by a tap outside it or Escape.
+  const [listOpen, setListOpen] = useState(false);
+  const bar = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
-    const row = names.current;
-    const on = row?.children[idx] as HTMLElement | undefined;
-    if (row && on) row.scrollTo({ left: on.offsetLeft - (row.clientWidth - on.offsetWidth) / 2, behavior: reduced() ? 'instant' : 'smooth' });
-  }, [idx]);
+    if (!listOpen) return;
+    const away = (e: PointerEvent) => {
+      if (!bar.current?.contains(e.target as Node)) setListOpen(false);
+    };
+    const key = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setListOpen(false);
+    };
+    document.addEventListener('pointerdown', away);
+    document.addEventListener('keydown', key);
+    return () => {
+      document.removeEventListener('pointerdown', away);
+      document.removeEventListener('keydown', key);
+    };
+  }, [listOpen]);
 
   // The room: the page's wall washed in the colour of the closet looked at, blending as the row
   // moves. It is one fixed layer behind the page, made here and taken away with the page.
@@ -333,36 +343,74 @@ export function ColourWall({ studio }: { studio: Studio }) {
   };
 
   return (
-    <div className="pc-closetpage" style={{ padding: 'clamp(30px,5vw,56px) clamp(16px,5vw,64px) 80px', animation: 'layCloth .95s cubic-bezier(.22,.8,.2,1) both' }}>
-      <div style={{ fontSize: 10, letterSpacing: '.5em', color: '#8A6D45', marginBottom: 8 }}>PODDAR CREATION</div>
-      <h1 style={{ margin: 0, fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(34px,4.5vw,58px)' }}>{t.colourWall}</h1>
-      <Selvage style={{ marginTop: 12 }} />
-      <p style={{ margin: '8px 0 14px', fontSize: 14, fontWeight: 300, color: 'rgba(28,25,23,.55)' }}>{t.wallSub}</p>
-
-      {/* The closets by name, to step straight to one. */}
-      <div ref={names} className="pc-closet-names">
-        {fabrics.map((f, k) => (
-          <button key={f.id} aria-pressed={k === idx} className={k === idx ? 'is-on' : undefined} onClick={() => goTo(k)}>
-            {f.name}
-          </button>
-        ))}
-      </div>
+    <div className="pc-closetpage" style={{ padding: 'clamp(18px,3.5vw,40px) clamp(16px,5vw,64px) 80px', animation: 'layCloth .95s cubic-bezier(.22,.8,.2,1) both' }}>
+      {/* The page's name, and nothing more: the closets say the rest. */}
+      <header className="pc-closet-head">
+        <h1>
+          {t.closetTitleA ?? 'The Colour'} <em>{t.closetTitleB ?? 'Closet'}</em>
+        </h1>
+        <div aria-hidden className="pc-closet-orn">
+          <i />
+          <b />
+          <i />
+        </div>
+      </header>
 
       <div ref={zone}>
-      <div className="pc-closet-count">
-        <button aria-label="‹" disabled={idx === 0} onClick={() => goTo(idx - 1)}>
-          ‹
+      {/* The one bar for moving between closets, pinned under the header: back, the closet looked
+          at (its number over the count, its name, its shades; a tap lists them all), forward. */}
+      <div ref={bar} className="pc-closet-count">
+        <button className="pc-closet-step" aria-label="‹" disabled={idx === 0} onClick={() => goTo(idx - 1)}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M15 5l-7 7 7 7" />
+          </svg>
         </button>
-        <span>
-          {(t.closetOf ?? '{n} / {total}').replace('{n}', String(idx + 1)).replace('{total}', String(fabrics.length))}
-          <i>
-            {fab?.name} · {fab?.colours.length} {t.shades}
-          </i>
-          {fab && <em>{lookOf(fab.id, idx)[studio.lang === 'hi' ? 'hi' : 'en']}</em>}
-        </span>
-        <button aria-label="›" disabled={idx === fabrics.length - 1} onClick={() => goTo(idx + 1)}>
-          ›
+        <button className="pc-closet-pick" aria-haspopup="listbox" aria-expanded={listOpen} onClick={() => setListOpen((o) => !o)}>
+          <span className="pc-closet-no">
+            <b>{String(idx + 1).padStart(2, '0')}</b>
+            <i>/{fabrics.length}</i>
+          </span>
+          <span className="pc-closet-nm">{fab?.name}</span>
+          <span className="pc-closet-sh">
+            {fab?.colours.length} {t.shades}
+          </span>
+          <svg className="pc-closet-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M6 9l6 6 6-6" />
+          </svg>
         </button>
+        <button className="pc-closet-step" aria-label="›" disabled={idx === fabrics.length - 1} onClick={() => goTo(idx + 1)}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+        {listOpen && (
+          <div className="pc-closet-list" role="listbox" aria-label={t.colourWall}>
+            {fabrics.map((f, k) => {
+              const look = lookOf(f.id, k);
+              return (
+                <button
+                  key={f.id}
+                  role="option"
+                  aria-selected={k === idx}
+                  className={k === idx ? 'is-on' : undefined}
+                  style={{ ...lookVars(look), animationDelay: `${k * 18}ms` }}
+                  onClick={() => {
+                    setListOpen(false);
+                    goTo(k);
+                  }}
+                >
+                  <span aria-hidden className="pc-closet-list-wood" />
+                  <b>{String(k + 1).padStart(2, '0')}</b>
+                  <span className="pc-closet-list-nm">
+                    {f.name}
+                    <i>{look[studio.lang === 'hi' ? 'hi' : 'en']}</i>
+                  </span>
+                  <em>{f.colours.length}</em>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div ref={view} className={`pc-closets${size.w < 80 ? ' is-compact' : ''}`} style={{ ['--sw' as string]: `${size.w}px`, ['--sh' as string]: `${size.h}px`, ['--rod' as string]: `${size.rod}px` } as CSSProperties}>
@@ -415,6 +463,8 @@ export function ColourWall({ studio }: { studio: Studio }) {
         </div>
       </div>
       </div>
+      {/* What the closet is made of, and once it is open, how to look through it. */}
+      {fab && <p key={fab.id} className="pc-closet-make">{lookOf(fab.id, idx)[studio.lang === 'hi' ? 'hi' : 'en']}</p>}
       {fab && openId === fab.id && <p className="pc-closet-hint">{t.slideHint}</p>}
     </div>
   );

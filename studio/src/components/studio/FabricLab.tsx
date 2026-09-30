@@ -100,6 +100,8 @@ export function FabricLab({ studio }: { studio: Studio }) {
     added('book', from, `${names(chosenColours)} · ${f.name}`);
   };
   const inCart = targetColours.length > 0 && targetColours.every((c) => studio.cart.some((l) => l.fabricId === f.id && l.colourOrder === c.order));
+  // In the book or the cart already: the button wears the house's "added" beige, with a tick.
+  const alreadyIn = pinned || inCart;
   // The chooser and the note are fixed to the viewport, so they are portalled to the body: the lab's root animates a
   // transform while it lays in, and a transformed ancestor turns a fixed child page-positioned.
   const [mounted, setMounted] = useState(false);
@@ -535,30 +537,23 @@ export function FabricLab({ studio }: { studio: Studio }) {
             <button
               onClick={openChooser}
               aria-haspopup="dialog"
-              className={`pc-book${pinned ? ' is-done' : ''}`}
+              className={`pc-book${alreadyIn ? ' is-done' : ''}`}
               style={{
                 cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 10, borderRadius: 999, whiteSpace: 'nowrap',
                 padding: '16px 14px', fontFamily: FONT_BODY, fontSize: 'clamp(11px, 3vw, 12.5px)', letterSpacing: '.2em', textTransform: 'uppercase',
                 // Frosted glass: a translucent fill that blurs what is behind it, ink lettering and a
                 // fine gold edge; translucent gold once the shade is in the book.
                 backdropFilter: 'blur(18px) saturate(1.4)', WebkitBackdropFilter: 'blur(18px) saturate(1.4)',
-                ...(pinned
+                ...(alreadyIn
                   ? { background: 'linear-gradient(135deg, rgba(201,169,110,.34), rgba(138,109,69,.22))', color: '#5E4626', border: '1px solid rgba(138,109,69,.45)' }
                   : { background: 'linear-gradient(135deg, rgba(255,255,255,.55), rgba(250,248,245,.22))', color: '#1C1917', border: '1px solid rgba(201,169,110,.5)' }),
                 flex: '1 1 150px',
               }}
             >
-              <span key={pinned ? 'done' : 'add'} aria-hidden className={pinned ? 'pc-book-tick' : 'pc-book-star'}>{pinned ? '✓' : '✦'}</span>
+              <span key={alreadyIn ? 'done' : 'add'} aria-hidden className={alreadyIn ? 'pc-book-tick' : 'pc-book-star'}>{alreadyIn ? '✓' : '✦'}</span>
               {t.addTo}
               {targets.length > 1 && <CountBadge n={targets.length} light />}
             </button>
-            {(pinned || inCart) && (
-              // Where the shade on the stage already is.
-              <div style={{ flexBasis: '100%', display: 'flex', justifyContent: 'center', gap: 16, fontSize: 9.5, letterSpacing: '.2em', textTransform: 'uppercase', color: '#8A6D45', animation: 'pcRiseIn .5s ease both' }}>
-                {pinned && <span>✓ {t.inBook}</span>}
-                {inCart && <span>✓ {t.inCart}</span>}
-              </div>
-            )}
           </div>
         </div>
       </div>

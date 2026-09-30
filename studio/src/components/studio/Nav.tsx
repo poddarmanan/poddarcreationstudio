@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { usePresence } from './motion';
 import type { Studio, View } from './state';
-import { WeaveMark } from './brand';
 import { FONT_DISPLAY, FONT_BODY } from './helpers';
 
 export function Nav({ studio }: { studio: Studio }) {
@@ -31,7 +30,6 @@ export function Nav({ studio }: { studio: Studio }) {
       }}
     >
       <div onClick={() => go('home')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 9, flex: 'none' }}>
-        <WeaveMark />
         <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
           <span style={{ fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: 600, letterSpacing: '.14em' }}>PODDAR</span>
           <span style={{ fontSize: 9, letterSpacing: '.42em', color: '#8A6D45', marginTop: 2 }}>STUDIO</span>

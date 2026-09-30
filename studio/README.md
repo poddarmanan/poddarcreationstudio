@@ -18,7 +18,7 @@ for the design history).
 - **Compare** — up to four fabrics side-by-side with live-drape animation
 - **Swatch Book** — pinned shades grouped by quality; quote the whole book, print/PDF, WhatsApp
 - **Admin (Catalogue Studio)** — Linear-style workspace with a real upload pipeline
-- Signature brand elements throughout: weave mark, selvage-stitch dividers, pinked swatch edges,
+- Signature brand elements throughout: gold hairline rules and ornaments, pinked swatch edges,
   cloth-lay screen transitions, thread loader, EN/हिंदी toggle
 
 **Customer platform (Phase 3):**

@@ -285,13 +285,29 @@ row:
 - swipe the closet itself sideways, anywhere off its rods, or flick along a rod (the page still
   scrolls up and down). The row follows the finger and settles on the next closet, giving only a
   little past either end;
-- use the arrows either side of "Closet 3 of 11", over the quality's name, count of shades and
-  make. That line is a pill pinned under the header (`position: sticky`) for as long as the
-  closets are on screen, so the next fabric is a tap away from anywhere down a closet, even its
-  foot. The closets are all one height, so the page stays where it is and the next closet is
-  in the same place;
-- tap a name in the row of names above, which is kept centred on the closet being looked at;
+- use the arrows at either end of the bar (see below);
+- tap the name in the bar, which drops a list of all eleven closets, and choose one. Each row has
+  a swatch of the closet's wood, its number, its name with its make beneath, and its count of
+  shades. A tap outside or Escape shuts the list;
 - tap a neighbouring closet.
+
+**The head of the page is pared down.** It is only the page's name, "The Colour *Closet*"
+("Closet" in gold italic), over a small gold ornament. The eyebrow ("Poddar Creation"), the line
+of instructions, the row of quality chips and the separate "Closet 3 of 11" block are gone. The
+chips and the block repeated the closet's name, and the doors' own "Open the closet" tag says
+what to do.
+
+What is left is one bar, an ivory pill edged in gold with a hairline of light along its top:
+- back, at the left;
+- the closet looked at: its number over the count in gold ("04/11"), a hairline, then its name
+  in the display serif and its count of shades (the count is hidden under 420px), with a caret
+  that opens the list;
+- forward, at the right.
+
+The bar is pinned under the header (`position: sticky`) for as long as the closets are on screen,
+so the next fabric is a tap away from anywhere down a closet, even its foot. The closets are all
+one height, so the page stays where it is and the next closet is in the same place. What a closet
+is made of ("Rosewood · carved jaali") is a quiet line of small capitals under it.
 
 There is no "All qualities": one quality at a time.
 
@@ -712,8 +728,17 @@ The lab's action is now **"Add to…"**. It asks where the shades go, in a compa
 with none set. The buyer chooses them in the cart, and the note that follows says so ("… · choose
 metres in cart").
 
-Under the button, "✓ In your book" and "✓ In your cart" say where the shade on the stage already
-is.
+When the shade on the stage is already in the book or the cart, the button itself says so: it
+wears the house's "added" beige with a tick in place of the star. There are no separate "✓ In
+your book" or "✓ In your cart" lines under it any more.
+
+The same holds in the sheet. When the place chosen already holds the shade, its button turns to
+the same beige with a tick:
+- "✓ In your book" for the Swatch Book;
+- "✓ 50 m already in your cart" for the Cart.
+
+A tap on that button takes the buyer to the book or the cart instead of adding it again. The "✓"
+note lines under the choice are gone.
 
 Adding to either place plays the same arrival (`flyInto` in `AddChooser.tsx`). Small pinked
 cuttings of the shades arc up into that tab, turning and shrinking as they go: the Cart, or the
@@ -986,3 +1011,21 @@ The bound book, as it appears in the ceremony and on the empty page:
   brass catch on the back board.
 - **Pages:** cotton-rag paper, gilt on the fore-edge and foot. They are held by a leather binding
   strip down their inner margin, with three brass posts.
+
+## The Entrance, set as a title page
+
+The Entrance (`Entrance.tsx`) is composed as a title page, sized in clamps so a phone shows it
+whole:
+1. a small gold ornament;
+2. "Wholesale dyed fabrics" on one line (it used to wrap, leaving "Surat" alone on a second line);
+3. "Poddar *Creation*", "Creation" in gold italic, tighter and a little smaller than before;
+4. "Est. Surat" between hairlines;
+5. the promise at 14px, its last sentence, "A showroom that never closes.", on a line of its own;
+6. a slimmer ink button edged in gold, "Enter the Showroom" with a gold arrow;
+7. "Open the Colour Closet" as the second way in.
+
+The cloth arcs at the foot sit lower, clear of the links.
+
+**The weave mark is gone from the site.** The interlaced-thread glyph (three bars crossed by two)
+stood beside "Poddar Studio" in the header and above the Entrance's title. The owner asked for
+it removed everywhere, and `WeaveMark` is deleted.

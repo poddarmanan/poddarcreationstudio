@@ -2,8 +2,7 @@
 
 import { useMemo } from 'react';
 import type { Studio } from './state';
-import { WeaveMark, Selvage } from './brand';
-import { FONT_DISPLAY, FONT_BODY, fabricTex, heroColour } from './helpers';
+import { FONT_BODY, fabricTex, heroColour } from './helpers';
 
 export function Entrance({ studio }: { studio: Studio }) {
   const { t, fabrics, q, setQ, reduceMotion } = studio;
@@ -24,6 +23,7 @@ export function Entrance({ studio }: { studio: Studio }) {
   );
 
   const { results, asst, hasResults } = studio.search;
+  const promise = t.heroSub.split(/(?<=[.।])\s+/);
 
   return (
     <div className="pc-view" style={{ position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -40,7 +40,7 @@ export function Entrance({ studio }: { studio: Studio }) {
       />
       <div
         style={{
-          position: 'absolute', left: '-12%', right: '-12%', bottom: '-24%', height: '64%', background: heroCloth,
+          position: 'absolute', left: '-12%', right: '-12%', bottom: '-30%', height: '52%', background: heroCloth,
           borderRadius: '50% 50% 0 0/90% 88% 0 0', willChange: 'transform',
           animation: reduceMotion ? 'none' : 'clothWave 11s ease-in-out infinite alternate',
           boxShadow: 'inset 0 40px 80px rgba(255,255,255,.25), 0 -30px 90px rgba(138,109,69,.18)',
@@ -48,7 +48,7 @@ export function Entrance({ studio }: { studio: Studio }) {
       />
       <div
         style={{
-          position: 'absolute', left: '-10%', right: '-10%', bottom: '-30%', height: '46%', background: heroCloth2, opacity: 0.55,
+          position: 'absolute', left: '-10%', right: '-10%', bottom: '-34%', height: '40%', background: heroCloth2, opacity: 0.55,
           borderRadius: '50% 50% 0 0/90% 88% 0 0', willChange: 'transform',
           animation: reduceMotion ? 'none' : 'clothWave 15s ease-in-out -4s infinite alternate-reverse',
         }}
@@ -71,52 +71,38 @@ export function Entrance({ studio }: { studio: Studio }) {
           without scrolling. Every value reaches its original number at about 615px wide, so
           nothing above a large phone moves. */}
       <div style={{ position: 'relative', width: '100%', maxWidth: 640, textAlign: 'center', padding: 'clamp(16px,4vw,56px) 20px', animation: 'rise 1.2s cubic-bezier(.2,.8,.2,1) both' }}>
-        <div style={{ marginBottom: 'clamp(10px,2.6vw,16px)' }}>
-          <WeaveMark size={22} />
+        {/* The house, set as a title page: an ornament, what the house is, its name, where it was
+            founded between hairlines, its promise, and the way in. */}
+        <div aria-hidden className="pc-hero-orn">
+          <i />
+          <b />
+          <i />
         </div>
-        {/* Tracking this wide is 350px of text on a 360px screen — it was the one thing making
-            the hero block wider than the phone, which shoved the search bar to the very edges.
-            Back to .55em at 550px and up. */}
-        <div style={{ fontSize: 11, letterSpacing: 'clamp(.18em,1.1vw,.55em)', color: '#8A6D45', marginBottom: 'clamp(10px,2.3vw,14px)' }}>{t.est}</div>
-        <Selvage style={{ margin: '0 auto clamp(18px,4.3vw,26px)' }} />
-        <h1 style={{ margin: 0, fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(52px,8.5vw,120px)', lineHeight: 1 }}>
-          Poddar
-          <br />
-          <em style={{ fontWeight: 400 }}>Creation</em>
+        <div className="pc-hero-eyebrow">{t.estWhat ?? t.est}</div>
+        <h1 className="pc-hero-title">
+          Poddar <em>Creation</em>
         </h1>
-        <p style={{ maxWidth: 400, margin: 'clamp(18px,4.3vw,26px) auto 0', fontSize: 15, fontWeight: 300, lineHeight: 1.8, letterSpacing: '.02em', color: 'rgba(28,25,23,.6)', textWrap: 'balance' }}>
-          {t.heroSub}
-        </p>
-        <div style={{ marginTop: 'clamp(26px,6.5vw,40px)' }}>
-          <button
-            onClick={() => studio.go('showroom')}
-            className="pc-hv-gold-fill pc-cta"
-            style={{
-              cursor: 'pointer', background: '#1C1917', color: '#FAF8F5', border: '1px solid #1C1917', borderRadius: 999,
-              padding: '17px 44px', fontFamily: FONT_BODY, fontSize: 13, letterSpacing: '.22em', textTransform: 'uppercase',
-              boxShadow: '0 20px 50px rgba(28,25,23,.22)', animation: 'rise 1.1s .45s cubic-bezier(.22,.8,.2,1) both',
-            }}
-          >
-            {t.enter}
-          </button>
+        <div className="pc-hero-est">
+          <i aria-hidden />
+          <span>{t.estWhere ?? ''}</span>
+          <i aria-hidden />
         </div>
-        <div style={{ display: 'flex', gap: 26, justifyContent: 'center', marginTop: 'clamp(18px,4.3vw,26px)', fontSize: 12, letterSpacing: '.2em' }}>
-          {[
-            { label: t.explore, go: () => studio.go('colours') },
-          ].map((b) => (
-            <button
-              key={b.label}
-              onClick={b.go}
-              className="pc-hv-ink-border pc-link-cta"
-              style={{
-                cursor: 'pointer', background: 'none', border: 'none', color: 'rgba(28,25,23,.55)', fontFamily: FONT_BODY,
-                fontSize: 12, letterSpacing: '.2em', textTransform: 'uppercase', borderBottom: '1px solid rgba(28,25,23,.2)', padding: '0 0 3px',
-                animation: 'rise 1.1s .7s cubic-bezier(.22,.8,.2,1) both',
-              }}
-            >
-              {b.label}
-            </button>
-          ))}
+        {/* The promise, its last sentence on a line of its own. */}
+        <p className="pc-hero-promise">
+          {promise.slice(0, -1).join(' ')}
+          {promise.length > 1 && <br />}
+          {promise[promise.length - 1]}
+        </p>
+        <div className="pc-hero-ways">
+          <button onClick={() => studio.go('showroom')} className="pc-hero-enter pc-cta">
+            <span>{t.enter}</span>
+            <svg aria-hidden width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </button>
+          <button onClick={() => studio.go('colours')} className="pc-hero-link pc-link-cta">
+            {t.explore}
+          </button>
         </div>
         <div className="pc-hero-search" style={{ position: 'relative', maxWidth: 520, margin: 'clamp(26px,7.2vw,44px) auto 0' }}>
           <div

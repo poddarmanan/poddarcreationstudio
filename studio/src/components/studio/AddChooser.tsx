@@ -34,6 +34,7 @@ export function AddChooser({
   const inCartM = colours.reduce((s, c) => s + (studio.cart.find((l) => l.fabricId === fabric.id && l.colourOrder === c.order)?.metres ?? 0), 0);
   const inBook = colours.every((c) => studio.pins.some((p) => p.fabricId === fabric.id && p.colourOrder === c.order));
   const chips = colours.slice(0, 5);
+  const already = where === 'cart' ? inCartM > 0 : inBook;
 
   return createPortal(
     <div className="pc-sheet-root" role="dialog" aria-modal="true" aria-label={t.addWhere}>
@@ -98,19 +99,33 @@ export function AddChooser({
               <span>{t.chooseInCartLong}</span>
             </>
           ) : (
-            <span>{inBook ? `✓ ${t.inBook}` : t.bookLine}</span>
+            <span>{t.bookLine}</span>
           )}
         </div>
-        {where === 'cart' && inCartM > 0 && <div className="pc-add-note">✓ {inr(inCartM)} m {t.inCartAlready}</div>}
-
-        <button
-          className="pc-auth-btn"
-          onClick={() => (where === 'cart' ? onCart : onBook)(sheet.current?.getBoundingClientRect() ?? null)}
-          style={{ marginTop: 16 }}
-        >
-          <span aria-hidden className="pc-auth-star">✦</span>
-          {where === 'cart' ? t.toCart : t.toBook}
-        </button>
+        {/* The action; when the shade is there already, the button says so, in the house's
+            "added" beige with a tick, and takes the buyer to it instead. */}
+        {already ? (
+          <button
+            className="pc-auth-btn is-done"
+            onClick={() => {
+              onClose();
+              studio.go(where === 'cart' ? 'cart' : 'book');
+            }}
+            style={{ marginTop: 16 }}
+          >
+            <span aria-hidden className="pc-auth-tick">✓</span>
+            {where === 'cart' ? `${inr(inCartM)} m ${t.inCartAlready}` : t.inBook}
+          </button>
+        ) : (
+          <button
+            className="pc-auth-btn"
+            onClick={() => (where === 'cart' ? onCart : onBook)(sheet.current?.getBoundingClientRect() ?? null)}
+            style={{ marginTop: 16 }}
+          >
+            <span aria-hidden className="pc-auth-star">✦</span>
+            {where === 'cart' ? t.toCart : t.toBook}
+          </button>
+        )}
       </div>
     </div>,
     document.body,

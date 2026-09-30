@@ -1641,31 +1641,66 @@ button.pc-auth-link:disabled { cursor: default; }
 }
 @keyframes pcRoomIn { from { opacity: 0; } to { opacity: 1; } }
 
-.pc-closet-names { display: flex; gap: 6px; margin: 0 calc(-1 * clamp(16px, 5vw, 64px)); padding: 2px clamp(16px, 5vw, 64px) 4px; overflow-x: auto; scrollbar-width: none; }
-.pc-closet-names::-webkit-scrollbar { display: none; }
-.pc-closet-names button {
-  flex: none; padding: 7px 14px; border-radius: 999px; border: 1px solid rgba(28, 25, 23, .14); background: rgba(255, 253, 248, .55); color: rgba(28, 25, 23, .7);
-  font-family: var(--font-body), system-ui, sans-serif; font-size: 12px; cursor: pointer; transition: background .25s ease, color .25s ease, border-color .25s ease;
-}
-.pc-closet-names button.is-on { background: #1C1917; border-color: #1C1917; color: #FAF8F5; }
-/* The closet looked at, and the arrows to the next: pinned under the header for as long as the
-   closets are on screen, so the next fabric is a tap away from anywhere down a closet. */
+/* The page's name: the display serif, "Closet" in gold, over a small ornament; nothing else. */
+.pc-closet-head { text-align: center; }
+.pc-closet-head h1 { margin: 0; font-family: var(--font-display), 'Cormorant Garamond', serif; font-weight: 500; font-size: clamp(30px, 4vw, 48px); line-height: 1.05; letter-spacing: .005em; color: #1C1917; animation: pcRiseIn .7s ease both; }
+.pc-closet-head h1 em { font-style: italic; color: #8A6D45; }
+.pc-closet-orn { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 10px 0 0; }
+.pc-closet-orn i { width: 30px; height: 1px; background: linear-gradient(90deg, transparent, rgba(138, 109, 69, .7)); transform-origin: right; animation: pcRuleDraw .9s .3s cubic-bezier(.2, .8, .2, 1) both; }
+.pc-closet-orn i:last-child { background: linear-gradient(270deg, transparent, rgba(138, 109, 69, .7)); transform-origin: left; }
+.pc-closet-orn b { width: 5px; height: 5px; transform: rotate(45deg); background: #B8904A; }
+
+/* The one bar between closets, pinned under the header while the closets are on screen: ivory,
+   edged in gold, a hairline of light along its top. */
 .pc-closet-count {
   position: sticky; top: calc(var(--pc-topbar) + 8px); z-index: 20;
-  display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 648px; margin: 16px auto 4px; padding: 6px;
-  border-radius: 999px; background: rgba(255, 253, 248, .94); border: 1px solid rgba(184, 144, 74, .28); box-shadow: 0 10px 24px -12px rgba(40, 24, 8, .35);
+  display: flex; align-items: center; gap: 4px; max-width: 520px; margin: 18px auto 2px; padding: 5px;
+  border-radius: 999px; background: linear-gradient(180deg, rgba(255, 254, 250, .97), rgba(250, 245, 234, .96));
+  border: 1px solid rgba(184, 144, 74, .32); box-shadow: 0 14px 30px -16px rgba(40, 24, 8, .4), inset 0 1px 0 rgba(255, 255, 255, .9);
 }
-.pc-closet-count span { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; text-align: center; font-size: 9.5px; letter-spacing: .32em; text-transform: uppercase; color: #8A6D45; }
-.pc-closet-count span i { font-style: normal; letter-spacing: .04em; text-transform: none; font-family: var(--font-display), 'Cormorant Garamond', serif; font-size: 17px; color: #1C1917; }
-.pc-closet-count span em { font-style: normal; letter-spacing: .08em; text-transform: none; font-size: 11px; color: rgba(28, 25, 23, .55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-.pc-closet-count span i { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-.pc-closet-count button {
-  flex: none; width: 36px; height: 36px; border-radius: 50%; border: 1px solid rgba(138, 109, 69, .4); background: #FFFDF7; color: #8A6D45; font-size: 20px; line-height: 1; cursor: pointer;
-  transition: opacity .2s ease, transform .2s ease;
+.pc-closet-step {
+  flex: none; display: grid; place-items: center; width: 38px; height: 38px; padding: 0; border-radius: 50%; border: none; cursor: pointer;
+  background: transparent; color: #8A6D45; transition: background .25s ease, opacity .25s ease, transform .2s ease;
 }
-.pc-closet-count button:disabled { opacity: .3; cursor: default; }
-.pc-closet-count button:not(:disabled):active { transform: scale(.92); }
-.pc-closet-hint { margin: 14px 0 0; text-align: center; font-size: 9.5px; letter-spacing: .28em; text-transform: uppercase; color: rgba(138, 109, 69, .85); animation: pcRiseIn .6s 1.2s ease both; }
+.pc-closet-step:not(:disabled):hover { background: rgba(216, 182, 112, .16); }
+.pc-closet-step:not(:disabled):active { transform: scale(.9); }
+.pc-closet-step:disabled { opacity: .25; cursor: default; }
+.pc-closet-pick {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; height: 38px; padding: 0 10px; border: none; border-radius: 999px; cursor: pointer;
+  background: transparent; color: #1C1917; text-align: left; transition: background .25s ease;
+}
+.pc-closet-pick:hover, .pc-closet-pick[aria-expanded='true'] { background: rgba(216, 182, 112, .12); }
+.pc-closet-no { flex: none; display: flex; align-items: baseline; gap: 1px; padding-right: 10px; border-right: 1px solid rgba(184, 144, 74, .35); }
+.pc-closet-no b { font-family: var(--font-display), 'Cormorant Garamond', serif; font-weight: 500; font-size: 20px; line-height: 1; color: #8A6D45; font-variant-numeric: lining-nums; }
+.pc-closet-no i { font-style: normal; font-size: 9px; letter-spacing: .08em; color: rgba(138, 109, 69, .7); }
+.pc-closet-nm { flex: 1; min-width: 0; font-family: var(--font-display), 'Cormorant Garamond', serif; font-size: 17px; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pc-closet-sh { flex: none; font-size: 8.5px; letter-spacing: .2em; text-transform: uppercase; color: rgba(28, 25, 23, .45); }
+.pc-closet-caret { flex: none; color: #8A6D45; transition: transform .3s ease; }
+.pc-closet-pick[aria-expanded='true'] .pc-closet-caret { transform: rotate(180deg); }
+@media (max-width: 420px) { .pc-closet-sh { display: none; } }
+
+/* The list of closets, dropping from the bar: each with its wood, its number, name, make and count. */
+.pc-closet-list {
+  position: absolute; left: 0; right: 0; top: calc(100% + 8px); max-height: min(62vh, 520px); overflow-y: auto; overscroll-behavior: contain; padding: 6px;
+  border-radius: 18px; background: #FFFDF8; border: 1px solid rgba(184, 144, 74, .3); box-shadow: 0 24px 50px -20px rgba(40, 24, 8, .45);
+  transform-origin: 50% 0; animation: pcListIn .28s cubic-bezier(.2, .8, .2, 1) both;
+}
+@keyframes pcListIn { from { opacity: 0; transform: translateY(-6px) scale(.98); } to { opacity: 1; transform: none; } }
+.pc-closet-list button {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 9px 10px; border: none; border-radius: 12px; cursor: pointer; background: transparent; text-align: left; color: #1C1917;
+  animation: pcRiseIn .35s ease both; transition: background .2s ease;
+}
+.pc-closet-list button:hover { background: rgba(216, 182, 112, .1); }
+.pc-closet-list button.is-on { background: rgba(216, 182, 112, .16); }
+.pc-closet-list-wood { flex: none; width: 22px; height: 30px; border-radius: 3px 3px 2px 2px; background: linear-gradient(180deg, var(--w1), var(--w3)); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .15), inset 0 -3px 0 rgba(0, 0, 0, .15); position: relative; }
+.pc-closet-list-wood::after { content: ''; position: absolute; left: 50%; top: 4px; bottom: 5px; width: 1px; background: rgba(0, 0, 0, .25); }
+.pc-closet-list button > b { flex: none; width: 20px; font-family: var(--font-display), 'Cormorant Garamond', serif; font-weight: 500; font-size: 15px; color: #8A6D45; }
+.pc-closet-list-nm { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; font-family: var(--font-display), 'Cormorant Garamond', serif; font-size: 16px; line-height: 1.15; }
+.pc-closet-list-nm i { font-family: var(--font-body), system-ui, sans-serif; font-style: normal; font-size: 10px; letter-spacing: .04em; color: rgba(28, 25, 23, .5); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pc-closet-list button > em { flex: none; font-style: normal; font-size: 10px; letter-spacing: .14em; color: rgba(28, 25, 23, .45); }
+/* What the closet is made of, under it. */
+.pc-closet-make { margin: 4px 0 0; text-align: center; font-size: 9.5px; letter-spacing: .3em; text-transform: uppercase; color: rgba(138, 109, 69, .9); animation: pcRiseIn .5s ease both; }
+.pc-closet-hint { margin: 6px 0 0; text-align: center; font-size: 9.5px; letter-spacing: .28em; text-transform: uppercase; color: rgba(138, 109, 69, .85); animation: pcRiseIn .6s 1.2s ease both; }
 
 /* The row: closets side by side on a floor, a light from above on the one looked at, its neighbours
    turned towards it. */
@@ -1864,7 +1899,8 @@ button.pc-auth-link:disabled { cursor: default; }
   .pc-closet.is-open .pc-door.is-left { animation: none; transform: rotateY(-106deg); }
   .pc-closet.is-open .pc-door.is-right { animation: none; transform: rotateY(106deg); }
   .pc-closet.is-closing .pc-door { animation: none; }
-  .pc-closet-lamp, .pc-closet, .pc-closet-names button, .pc-door, .pc-closet-room { transition: none; }
+  .pc-closet-lamp, .pc-closet, .pc-door, .pc-closet-room { transition: none; }
+  .pc-closet-list, .pc-closet-list button { animation: none; }
   .pc-closet-room { animation: none; }
 }
 
@@ -1899,3 +1935,36 @@ button.pc-auth-link:disabled { cursor: default; }
 }
 .pc-shadechip.is-picked .pc-shadechip-tick { background: #8A6D45; border: none; }
 @media (prefers-reduced-motion: reduce) { .pc-shadechip { animation: none; } .pc-shadebar-mark { transition: none; } }
+
+/* An action already done: the house's "added" beige, a tick in place of the star; it takes the
+   buyer to where the shade already is. */
+.pc-auth-btn.is-done { color: #5E4626; border-color: rgba(138, 109, 69, .45); background: linear-gradient(135deg, rgba(201, 169, 110, .34), rgba(138, 109, 69, .22)); box-shadow: 0 14px 30px -16px rgba(94, 70, 38, .35); }
+.pc-auth-tick { font-size: 13px; color: #8A6D45; animation: pcRiseIn .4s ease both; }
+
+/* ── The Entrance, set as a title page: an ornament, what the house is, its name, where it was
+   founded between hairlines, its promise, and the way in. Sizes in clamps so a phone shows it
+   whole without scrolling. ────────────────────────────────────────────────────────────────── */
+.pc-hero-orn { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: clamp(14px, 3.4vw, 22px); animation: pcRiseIn .8s .1s ease both; }
+.pc-hero-orn i { width: 34px; height: 1px; background: linear-gradient(90deg, transparent, rgba(138, 109, 69, .75)); transform-origin: right; animation: pcRuleDraw 1s .35s cubic-bezier(.2, .8, .2, 1) both; }
+.pc-hero-orn i:last-child { background: linear-gradient(270deg, transparent, rgba(138, 109, 69, .75)); transform-origin: left; }
+.pc-hero-orn b { width: 5px; height: 5px; transform: rotate(45deg); background: #B8904A; }
+.pc-hero-eyebrow { font-size: 10px; letter-spacing: .42em; padding-left: .42em; text-transform: uppercase; color: #8A6D45; white-space: nowrap; }
+.pc-hero-title { margin: clamp(12px, 3vw, 18px) 0 0; font-family: var(--font-display), 'Cormorant Garamond', serif; font-weight: 500; font-size: clamp(46px, 8.2vw, 112px); line-height: .98; letter-spacing: -.005em; color: #1C1917; }
+.pc-hero-title em { display: block; font-weight: 400; font-style: italic; color: #8A6D45; }
+.pc-hero-est { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: clamp(14px, 3.4vw, 22px); font-size: 9.5px; letter-spacing: .38em; padding-left: .38em; text-transform: uppercase; color: rgba(28, 25, 23, .55); }
+.pc-hero-est i { width: 28px; height: 1px; background: rgba(138, 109, 69, .45); }
+.pc-hero-promise { max-width: 360px; margin: clamp(16px, 3.8vw, 24px) auto 0; font-size: 14px; font-weight: 300; line-height: 1.75; letter-spacing: .02em; color: rgba(28, 25, 23, .62); text-wrap: balance; }
+.pc-hero-ways { display: flex; flex-direction: column; align-items: center; gap: clamp(14px, 3.4vw, 20px); margin-top: clamp(24px, 6vw, 36px); }
+.pc-hero-enter {
+  display: inline-flex; align-items: center; gap: 12px; cursor: pointer; padding: 15px 30px 15px 34px; border-radius: 999px;
+  border: 1px solid #1C1917; background: linear-gradient(180deg, #2A2521, #1C1917); color: #FAF8F5;
+  font-family: var(--font-body), 'Jost', sans-serif; font-size: 11.5px; letter-spacing: .28em; text-transform: uppercase;
+  box-shadow: inset 0 0 0 1px rgba(216, 182, 112, .35), 0 18px 40px -14px rgba(28, 25, 23, .45); animation: rise 1.1s .45s cubic-bezier(.22, .8, .2, 1) both;
+}
+.pc-hero-enter svg { color: #D8B670; transition: transform .4s var(--pc-ease, ease); }
+.pc-hero-enter:hover svg { transform: translateX(3px); }
+.pc-hero-link {
+  cursor: pointer; background: none; border: none; padding: 0 0 4px; color: rgba(28, 25, 23, .6); border-bottom: 1px solid rgba(138, 109, 69, .35);
+  font-family: var(--font-body), 'Jost', sans-serif; font-size: 10.5px; letter-spacing: .24em; text-transform: uppercase; animation: rise 1.1s .7s cubic-bezier(.22, .8, .2, 1) both;
+}
+@media (max-width: 380px) { .pc-hero-eyebrow { letter-spacing: .3em; } }
