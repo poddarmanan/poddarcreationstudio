@@ -1643,9 +1643,11 @@ button.pc-auth-link:disabled { cursor: default; }
 
 /* The page's name: the display serif, "Closet" in gold, over a small ornament; nothing else. */
 .pc-closet-head { text-align: center; }
-.pc-closet-head h1 { margin: 0; font-family: var(--font-display), 'Cormorant Garamond', serif; font-weight: 500; font-size: clamp(30px, 4vw, 48px); line-height: 1.05; letter-spacing: .005em; color: #1C1917; animation: pcRiseIn .7s ease both; }
-.pc-closet-head h1 em { font-style: italic; color: #8A6D45; }
-.pc-closet-orn { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 10px 0 0; }
+.pc-closet-fill { margin: 0; width: 100%; font-family: var(--font-display), 'Cormorant Garamond', serif; font-weight: 500; line-height: .95; letter-spacing: -.01em; color: #1C1917; white-space: nowrap; animation: pcRiseIn .7s ease both; }
+.pc-closet-fill span { display: inline-block; font-size: clamp(40px, 11vw, 150px); }
+.pc-closet-fill em { font-style: italic; font-weight: 400; color: #8A6D45; }
+.pc-closet-sub { display: flex; flex-direction: column; align-items: center; max-width: 480px; margin: 12px auto 0; font-size: 13.5px; font-weight: 300; line-height: 1.65; letter-spacing: .02em; color: rgba(28, 25, 23, .6); text-wrap: balance; animation: pcRiseIn .7s .15s ease both; }
+.pc-closet-orn { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 14px 0 0; }
 .pc-closet-orn i { width: 30px; height: 1px; background: linear-gradient(90deg, transparent, rgba(138, 109, 69, .7)); transform-origin: right; animation: pcRuleDraw .9s .3s cubic-bezier(.2, .8, .2, 1) both; }
 .pc-closet-orn i:last-child { background: linear-gradient(270deg, transparent, rgba(138, 109, 69, .7)); transform-origin: left; }
 .pc-closet-orn b { width: 5px; height: 5px; transform: rotate(45deg); background: #B8904A; }

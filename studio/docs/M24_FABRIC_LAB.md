@@ -291,8 +291,14 @@ row:
   shades. A tap outside or Escape shuts the list;
 - tap a neighbouring closet.
 
-**The head of the page is pared down.** It is only the page's name, "The Colour *Closet*"
-("Closet" in gold italic), over a small gold ornament. The eyebrow ("Poddar Creation"), the line
+**The head of the page is pared down.** It holds only:
+- the page's name, "The Colour *Closet*" ("Closet" in gold italic), set on one line to fill the
+  width of the page. `FillLine` measures it at a reference size and sizes it to the line (about
+  50px on a 390px phone, capped at 160px on a desktop), and measures again on resize and once the
+  fonts load;
+- a small gold ornament;
+- a subtext, one sentence to a line: "Every quality in a closet of its own." / "824 shades, hung
+  and ready to be parted." The count is summed from the catalogue. The eyebrow ("Poddar Creation"), the line
 of instructions, the row of quality chips and the separate "Closet 3 of 11" block are gone. The
 chips and the block repeated the closet's name, and the doors' own "Open the closet" tag says
 what to do.

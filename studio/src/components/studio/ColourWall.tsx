@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import type { Studio } from './state';
 import type { ColourRow, FabricRow } from '@/lib/types';
 import { fabricTex, spectrum } from './helpers';
@@ -344,16 +344,25 @@ export function ColourWall({ studio }: { studio: Studio }) {
 
   return (
     <div className="pc-closetpage" style={{ padding: 'clamp(18px,3.5vw,40px) clamp(16px,5vw,64px) 80px', animation: 'layCloth .95s cubic-bezier(.22,.8,.2,1) both' }}>
-      {/* The page's name, and nothing more: the closets say the rest. */}
+      {/* The page's name, set to fill the width of the page on one line, a small ornament, and a
+          line on what the closets hold. */}
       <header className="pc-closet-head">
-        <h1>
+        <FillLine>
           {t.closetTitleA ?? 'The Colour'} <em>{t.closetTitleB ?? 'Closet'}</em>
-        </h1>
+        </FillLine>
         <div aria-hidden className="pc-closet-orn">
           <i />
           <b />
           <i />
         </div>
+        <p className="pc-closet-sub">
+          {(t.closetSub ?? '{n} shades')
+            .replace('{n}', String(fabrics.reduce((n, f) => n + f.colours.length, 0)))
+            .split(/(?<=[.।])\s+/)
+            .map((line, i) => (
+              <span key={i}>{line}</span>
+            ))}
+        </p>
       </header>
 
       <div ref={zone}>
@@ -702,5 +711,34 @@ function Rod({
         ))}
       </div>
     </div>
+  );
+}
+
+/**
+ * A headline set to fill its line: measured at a reference size, then sized so its one line runs
+ * the width of the page (never above 160px), and measured again whenever the page is resized.
+ */
+function FillLine({ children }: { children: ReactNode }) {
+  const box = useRef<HTMLHeadingElement | null>(null);
+  const line = useRef<HTMLSpanElement | null>(null);
+  useLayoutEffect(() => {
+    const h = box.current;
+    const l = line.current;
+    if (!h || !l) return;
+    const fit = () => {
+      l.style.fontSize = '100px';
+      const w = l.getBoundingClientRect().width;
+      if (w > 0) l.style.fontSize = `${Math.min(160, (100 * h.clientWidth) / w) - 0.5}px`;
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(h);
+    document.fonts?.ready.then(fit).catch(() => {});
+    return () => ro.disconnect();
+  }, []);
+  return (
+    <h1 ref={box} className="pc-closet-fill">
+      <span ref={line}>{children}</span>
+    </h1>
   );
 }
