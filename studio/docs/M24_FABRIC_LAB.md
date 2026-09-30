@@ -822,18 +822,25 @@ with a slider alone.
 
 **The dock** follows the page on a slip of the studio's cream paper, edged in gold. It shows the
 total metres, the shades (or how many are not set) and the value, and an ink "Checkout" button.
-- **Checking out is measured on the Checkout button itself** (`MeasureMoment` in
-  `CartBook.tsx`, about 2.5 seconds):
-  1. The button presses in and becomes a brass tailor's tape case with a running count in place of
-     its label, and the cuttings on the open sheet fly into the case.
-  2. The case spins as the gold tape runs out of it and leftwards along the top of the dock,
-     ticked every centimetre and numbered every ten, under a small "Measuring your order" label.
-     Meanwhile the button counts the metres and the value up to the order's own.
-  3. Scissors snip the tape's far end and the length drops away. The case shows a tick, and the
-     review opens beneath with its printer starting.
+- **Checking out is a moment of its own** (`MeasureMoment` in `CartBook.tsx`, about three
+  seconds). The first version played on the Checkout button, with a small tape running along the
+  dock over the sheets. It read as cramped and was hard to follow, so now:
+  1. The button gives a little and an ivory veil rises over the whole page. "Measuring your
+     order" is set in gold small caps at its centre.
+  2. A brass tape case comes in at the right of the stage, and the cuttings on the sheet in view
+     fly into it.
+  3. The case's disc spins as the gold tape pays out of it across the screen, its hooked end
+     first, ticked every 10px and numbered every 50. Above it, the order's metres count up large
+     in the display face ("150 *m*") with the value under it in gold. The tape and the figures run
+     on one eased clock of 1.35s.
+  4. Gold scissors glide along the tape to the case's mouth and snip it. The loose length drops
+     away, turning.
+  5. The case turns to a gold tick with a ring of light spreading from it, and "Cut to your order"
+     appears in italic.
+  6. The review is laid in beneath, and the veil lifts away upwards like a curtain.
 
-  The moment is kept mounted across that switch, so it plays once. With reduced motion, Checkout
-  goes straight to the review.
+  Everything moves by transform and opacity. The moment is kept mounted across the switch, so it
+  plays once. With reduced motion, Checkout goes straight to the review.
 - **While any shade is unset,** "Checkout" is dimmed. Pressing it shakes the button and the notice,
   and says "Select metres for every shade to check out."
 - **Checkout** is the direct order page (`FabricOrder` with `source="cart"`), titled "Your *Order*",

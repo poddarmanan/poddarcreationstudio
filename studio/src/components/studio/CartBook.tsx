@@ -336,14 +336,15 @@ function MetrePicker({
 }
 
 /**
- * Checking out, measured, on the Checkout button itself: the button turns into a brass tape case
- * (drawn over it, the same size), the cuttings on the sheet in view fly into it, and the gold tape
- * runs out of it along the foot of the screen, ticked and numbered, while the button counts the
- * metres and the value up. Scissors snip the tape's end, the length drops away, the case shows a
- * tick, and the review opens beneath.
+ * Checking out, as a moment of its own. An ivory veil rises over the page, and the cuttings on the
+ * sheet in view fly into a brass tape case at its centre. The case spins as the gold tape pays out
+ * across the screen, its figures running past, while the order's metres and value count up above
+ * it in the display face. Gold scissors glide along the tape and snip it; the loose end drops, the
+ * case turns to a gold tick with a ring of light, and the review is laid in beneath as the veil
+ * lifts away like a curtain. About three seconds, all of it by transform and opacity.
  */
 function MeasureMoment({
-  studio, total, value, anchor, flights, onCut, onGone,
+  studio, total, value, flights, onCut, onGone,
 }: {
   studio: Studio; total: number; value: number; anchor: DOMRect; flights: { rect: DOMRect; bg: string }[]; onCut: () => void; onGone: () => void;
 }) {
@@ -351,23 +352,25 @@ function MeasureMoment({
   const caseRef = useRef<HTMLSpanElement | null>(null);
   const metresRef = useRef<HTMLSpanElement | null>(null);
   const valueRef = useRef<HTMLSpanElement | null>(null);
-  const [stage, setStage] = useState<'in' | 'cut' | 'out'>('in');
+  const tapeRef = useRef<HTMLDivElement | null>(null);
+  const [stage, setStage] = useState<'in' | 'run' | 'snip' | 'done' | 'out'>('in');
   const hooks = useRef({ onCut, onGone });
   useEffect(() => {
     hooks.current = { onCut, onGone };
   });
 
   useEffect(() => {
-    // The cuttings fly into the case on the button.
-    const to = caseRef.current?.getBoundingClientRect();
     const made: HTMLElement[] = [];
-    if (to) {
-      flights.forEach((f, i) => {
+    // The cuttings fly into the case, once the veil is up and the case has come in.
+    const fly = window.setTimeout(() => {
+      const to = caseRef.current?.getBoundingClientRect();
+      if (!to) return;
+      flights.slice(0, 7).forEach((f, i) => {
         const el = document.createElement('span');
         el.className = 'pc-pinked';
         Object.assign(el.style, {
           position: 'fixed', left: `${f.rect.left}px`, top: `${f.rect.top}px`, width: `${f.rect.width}px`, height: `${f.rect.height}px`,
-          background: f.bg, zIndex: '160', pointerEvents: 'none', boxShadow: '0 8px 16px rgba(40,26,12,.3)', willChange: 'transform, opacity',
+          background: f.bg, zIndex: '161', pointerEvents: 'none', boxShadow: '0 10px 22px rgba(40,26,12,.28)', willChange: 'transform, opacity',
         });
         document.body.appendChild(el);
         made.push(el);
@@ -376,18 +379,20 @@ function MeasureMoment({
         el.animate(
           [
             { transform: 'none', opacity: 1 },
-            { transform: `translate(${dx * 0.35}px, ${dy * 0.35 - 70}px) rotate(${(i % 2 ? 1 : -1) * 40}deg) scale(.7)`, opacity: 1, offset: 0.45 },
-            { transform: `translate(${dx}px, ${dy}px) rotate(${(i % 2 ? 1 : -1) * 220}deg) scale(.08)`, opacity: 0.3 },
+            { transform: `translate(${dx * 0.4}px, ${dy * 0.4 - 60}px) rotate(${(i % 2 ? 1 : -1) * 28}deg) scale(.72)`, opacity: 1, offset: 0.5 },
+            { transform: `translate(${dx}px, ${dy}px) rotate(${(i % 2 ? 1 : -1) * 160}deg) scale(.06)`, opacity: 0 },
           ],
-          { duration: 700, delay: 60 + i * 55, easing: 'cubic-bezier(.45,.05,.4,1)', fill: 'both' },
+          { duration: 760, delay: i * 60, easing: 'cubic-bezier(.45,.05,.35,1)', fill: 'both' },
         ).onfinish = () => el.remove();
       });
-    }
-    // The metres and the value count up as the tape runs out.
-    const started = performance.now() + 650;
+    }, 260);
+    // The tape pays out and the figures count, together, on one eased clock.
+    const RUN_AT = 700;
+    const RUN_MS = 1350;
+    const started = performance.now() + RUN_AT;
     let raf = 0;
     const tick = (now: number) => {
-      const k = Math.max(0, Math.min(1, (now - started) / 1100));
+      const k = Math.max(0, Math.min(1, (now - started) / RUN_MS));
       const e = 1 - Math.pow(1 - k, 3);
       if (metresRef.current) metresRef.current.textContent = Math.round(total * e).toLocaleString('en-IN');
       if (valueRef.current) valueRef.current.textContent = Math.round(value * e).toLocaleString('en-IN');
@@ -395,53 +400,63 @@ function MeasureMoment({
     };
     raf = requestAnimationFrame(tick);
     const timers = [
-      window.setTimeout(() => setStage('cut'), 1900),
-      window.setTimeout(() => hooks.current.onCut(), 2350),
-      window.setTimeout(() => setStage('out'), 2400),
-      window.setTimeout(() => hooks.current.onGone(), 2800),
+      window.setTimeout(() => setStage('run'), RUN_AT),
+      window.setTimeout(() => setStage('snip'), RUN_AT + RUN_MS + 80),
+      window.setTimeout(() => setStage('done'), RUN_AT + RUN_MS + 420),
+      window.setTimeout(() => hooks.current.onCut(), RUN_AT + RUN_MS + 900),
+      window.setTimeout(() => setStage('out'), RUN_AT + RUN_MS + 950),
+      window.setTimeout(() => hooks.current.onGone(), RUN_AT + RUN_MS + 1650),
     ];
     return () => {
+      window.clearTimeout(fly);
       cancelAnimationFrame(raf);
       timers.forEach((x) => window.clearTimeout(x));
       made.forEach((el) => el.remove());
     };
   }, [flights, total, value]);
 
-  // The tape runs out of the case and leftwards along the top of the dock.
-  const tapeRight = typeof window === 'undefined' ? 0 : window.innerWidth - anchor.left - 30;
-  const marks = Array.from({ length: 30 }, (_, i) => (i + 1) * 10);
+  // Graduations every 10 px along the tape from its hooked end, numbered every 50.
+  const marks = Array.from({ length: 28 }, (_, i) => (i + 1) * 5);
   return createPortal(
-    <div className={`pc-measure is-${stage}`} role="status" aria-live="polite" aria-label={t.measuring}>
-      <div className="pc-measure-tape" aria-hidden style={{ top: anchor.top - 44, right: tapeRight }}>
-        <div className="pc-measure-cutoff">
-          {marks.map((n) => (
-            <i key={n} style={{ right: `${n * 5}px` }}>
-              {n}
-            </i>
-          ))}
+    <div className={`pc-cko is-${stage}`} role="status" aria-live="polite" aria-label={t.measuring}>
+      <div aria-hidden className="pc-cko-veil" />
+      <div className="pc-cko-stage">
+        <div className="pc-cko-eyebrow">{t.measuring}</div>
+        <div className="pc-cko-figure">
+          <span ref={metresRef}>0</span>
+          <em>m</em>
         </div>
-        <span className="pc-measure-label">{t.measuring}</span>
-      </div>
-      <span className="pc-measure-scissors" aria-hidden style={{ top: anchor.top - 46 }}>
-        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="6" cy="6" r="3" />
-          <circle cx="6" cy="18" r="3" />
-          <path d="M8.1 8.1 20 20M8.1 15.9 20 4" />
-        </svg>
-      </span>
-      {/* The button, turned into the tape case. */}
-      <div className="pc-measure-button" style={{ left: anchor.left, top: anchor.top, width: anchor.width, height: anchor.height }}>
-        <span ref={caseRef} aria-hidden className="pc-measure-case">
-          {stage === 'in' ? <span /> : <b>✓</b>}
-        </span>
-        <span className="pc-measure-count">
-          <span className="pc-measure-metres">
-            <span ref={metresRef}>0</span> m
+        <div className="pc-cko-value">
+          ₹ <span ref={valueRef}>0</span>
+        </div>
+
+        {/* The tape, paying out of the case to the left, and the scissors that cut it. */}
+        <div className="pc-cko-rig" aria-hidden>
+          <div ref={tapeRef} className="pc-cko-tape">
+            <div className="pc-cko-tape-marks">
+              {marks.map((n) => (
+                <i key={n} style={{ left: `${n * 10}px` }}>
+                  {n % 5 === 0 ? n : ''}
+                </i>
+              ))}
+              <span className="pc-cko-tape-hook" />
+            </div>
+          </div>
+          <span className="pc-cko-scissors">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="6" cy="6" r="3" />
+              <circle cx="6" cy="18" r="3" />
+              <path className="pc-cko-blade-a" d="M8.1 8.1 20 20" />
+              <path className="pc-cko-blade-b" d="M8.1 15.9 20 4" />
+            </svg>
           </span>
-          <span className="pc-measure-value">
-            ₹ <span ref={valueRef}>0</span>
+          <span ref={caseRef} className="pc-cko-case">
+            <span className="pc-cko-case-disc" />
+            <b className="pc-cko-case-tick">✓</b>
           </span>
-        </span>
+          <span className="pc-cko-ring" />
+        </div>
+        <div className="pc-cko-foot">{t.measureFoot ?? 'Cut to your order'}</div>
       </div>
     </div>,
     document.body,
