@@ -325,14 +325,9 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
     });
     return true;
   };
-  // The perforation along the slot: torn by hand from its loose corner (or run by itself from the
-  // dock's hint, once the page has glided up to the printer), it tears the slip off.
+  // The perforation along the slot: torn by hand from its loose corner (or a tap on the corner,
+  // Enter or Space, which tears it along by itself), it tears the slip off.
   const tearRun = useRef<(() => void) | null>(null);
-  const tearFromDock = () => {
-    printFollow.current = false;
-    const top = printRef.current ? printRef.current.getBoundingClientRect().top + window.scrollY - 140 : 0;
-    glideTo(Math.max(0, top), () => tearRun.current?.());
-  };
   // Placing the order: paying online first when chosen (verified on the server with the order).
   const placeOrder = async (a: Address, demoPaid?: boolean): Promise<string | null> => {
     const shipTo = addressText(a);
@@ -577,31 +572,19 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
         </div>
       </div>
 
-      {/* The dock: the running total, the estimate, and the order. */}
+      {/* The dock: the running total and the estimate. The way on is the slip itself, torn off by
+          hand along the dots; there is no button for it. */}
       <div className="pc-order-dock" style={{ animation: 'pcDockIn .9s 1.1s cubic-bezier(.2,.9,.25,1) both' }}>
-        <div style={{ minWidth: 0 }}>
+        <div style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
           <div key={total} className="pc-dock-total">
             {inr(total)} <span>m</span>
           </div>
-          <div className="pc-dock-meta">
+          <div className="pc-dock-meta" style={{ textAlign: 'right' }}>
             {chosen.length} {chosen.length === 1 ? t.shade : t.shadesChosen}
             <br />
             <b>₹ {inr(value)}</b>
           </div>
         </div>
-        {/* How to go on: pull the slip off the printer (or tap here, which tears it for you). */}
-        <button key={warn} className="pc-tear-hint" aria-label={t.tearAria} onClick={tearFromDock} style={{ animation: warn ? 'pcShake .5s cubic-bezier(.36,.07,.19,.97) both' : undefined }}>
-          <span aria-hidden className="pc-tear-hint-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M2 9l2.5-2.5L7 9l2.5-2.5L12 9l2.5-2.5L17 9l2.5-2.5L22 9" strokeDasharray="0.1 2.6" />
-              <path d="M2 15l2.5-2.5L7 15l2.5-2.5L12 15l2.5-2.5L17 15l2.5-2.5L22 15" strokeDasharray="0.1 2.6" />
-            </svg>
-          </span>
-          <span className="pc-tear-hint-text">
-            <b>{t.tearOff}</b>
-            {t.tearHint}
-          </span>
-        </button>
       </div>
       {warn > 0 && !chosen.length && <div style={{ marginTop: 10, fontSize: 12.5, color: '#A5392B' }}>{t.nothingChosen}</div>}
     </Room>

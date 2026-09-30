@@ -2051,3 +2051,55 @@ button.pc-auth-link:disabled { cursor: default; }
 .pc-price-call { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 2px 0; text-decoration: none; font-family: var(--font-body), 'Jost', sans-serif; font-size: 10px; letter-spacing: .03em; line-height: 1.3; color: rgba(28, 25, 23, .5); white-space: nowrap; }
 .pc-price-call-go { display: inline-flex; align-items: center; gap: 5px; color: #8A6D45; border-bottom: 1px solid rgba(138, 109, 69, .4); transition: color .25s ease, border-color .25s ease; }
 .pc-price-call:hover .pc-price-call-go { color: #5E4626; border-color: #8A6D45; }
+
+/* ── Help on every page: a very small ⓘ, fixed under the account button, and the page's tour ── */
+.pc-guide-btn {
+  position: fixed; left: auto; top: 0; z-index: 48; width: 24px; height: 24px; padding: 0; border-radius: 50%; cursor: pointer;
+  display: grid; place-items: center; background: rgba(255, 253, 248, .92); border: 1px solid rgba(184, 144, 74, .55); color: #8A6D45;
+  box-shadow: 0 6px 14px -6px rgba(40, 24, 8, .35); transition: transform .25s ease, background .25s ease, color .25s ease;
+  animation: pcRiseIn .6s .6s ease both;
+}
+.pc-guide-btn i { font-family: var(--font-display), 'Cormorant Garamond', serif; font-style: italic; font-weight: 600; font-size: 14px; line-height: 1; transform: translateY(-.5px); }
+.pc-guide-btn:hover { background: #1C1917; color: #F6E3A8; border-color: #1C1917; }
+.pc-guide-btn:active { transform: scale(.9); }
+.pc-guide { position: fixed; inset: 0; z-index: 400; }
+.pc-guide-veil { position: absolute; inset: 0; }
+/* The ring round what the stop is about: the page dimmed all round it by its own shadow. */
+.pc-guide-ring {
+  position: absolute; left: 0; top: 0; border-radius: 16px; pointer-events: none; opacity: 0;
+  box-shadow: 0 0 0 1.5px #D8B670, 0 0 0 6px rgba(216, 182, 112, .18), 0 0 0 9999px rgba(18, 14, 10, .58);
+  transition: width .35s cubic-bezier(.22, .8, .2, 1), height .35s cubic-bezier(.22, .8, .2, 1), opacity .3s ease;
+}
+.pc-guide-card {
+  position: absolute; left: 0; top: 0; width: min(320px, calc(100vw - 24px)); padding: 16px 18px 14px; border-radius: 18px;
+  background: linear-gradient(180deg, #FFFEFA, #FAF4E8); border: 1px solid rgba(184, 144, 74, .35); box-shadow: 0 24px 50px -18px rgba(20, 12, 4, .55);
+  animation: pcGuideIn .35s cubic-bezier(.22, .8, .2, 1) both;
+}
+@keyframes pcGuideIn { from { opacity: 0; } to { opacity: 1; } }
+.pc-guide-card::before { content: ''; position: absolute; left: calc(var(--arrow, 50%) - 6px); width: 12px; height: 12px; background: #FFFEFA; border: 1px solid rgba(184, 144, 74, .35); transform: rotate(45deg); }
+.pc-guide-card[data-side='below']::before { top: -7px; border-right: none; border-bottom: none; }
+.pc-guide-card[data-side='above']::before { bottom: -7px; border-left: none; border-top: none; background: #FAF4E8; }
+.pc-guide-card[data-side='none']::before { display: none; }
+.pc-guide-count { font-family: var(--font-display), 'Cormorant Garamond', serif; font-size: 15px; color: #8A6D45; font-variant-numeric: lining-nums; }
+.pc-guide-count span { font-size: 11px; color: rgba(138, 109, 69, .6); }
+.pc-guide-close { position: absolute; right: 10px; top: 10px; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; border: none; background: transparent; color: rgba(28, 25, 23, .5); cursor: pointer; }
+.pc-guide-close:hover { background: rgba(216, 182, 112, .15); color: #1C1917; }
+.pc-guide-title { margin-top: 4px; font-family: var(--font-display), 'Cormorant Garamond', serif; font-size: 21px; line-height: 1.15; color: #1C1917; }
+.pc-guide-text { margin: 6px 0 0; font-size: 13px; line-height: 1.55; color: rgba(28, 25, 23, .68); }
+.pc-guide-dots { display: flex; gap: 5px; margin-top: 12px; }
+.pc-guide-dots i { width: 5px; height: 5px; border-radius: 50%; background: rgba(138, 109, 69, .25); transition: width .3s ease, background .3s ease; }
+.pc-guide-dots i.is-done { background: rgba(138, 109, 69, .55); }
+.pc-guide-dots i.is-on { width: 16px; border-radius: 3px; background: #8A6D45; }
+.pc-guide-ways { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
+.pc-guide-back { padding: 8px 4px; border: none; background: none; cursor: pointer; font-family: var(--font-body), 'Jost', sans-serif; font-size: 10.5px; letter-spacing: .22em; text-transform: uppercase; color: rgba(28, 25, 23, .55); }
+.pc-guide-back:hover { color: #1C1917; }
+.pc-guide-next {
+  display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: 999px; border: 1px solid #1C1917; cursor: pointer;
+  background: linear-gradient(180deg, #2A2521, #1C1917); color: #FAF8F5; box-shadow: inset 0 0 0 1px rgba(216, 182, 112, .35);
+  font-family: var(--font-body), 'Jost', sans-serif; font-size: 10.5px; letter-spacing: .22em; text-transform: uppercase;
+}
+.pc-guide-next svg { color: #D8B670; }
+@media (prefers-reduced-motion: reduce) { .pc-guide-ring { transition: none; } .pc-guide-card, .pc-guide-btn { animation: none; } }
+/* On a phone the closets' pinned bar leaves room at the top right for the ⓘ under the account
+   button. */
+@media (max-width: 767px) { .pc-closet-count { top: calc(var(--pc-topbar) + 40px); } }

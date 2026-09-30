@@ -913,8 +913,9 @@ total metres, the shades (or how many are not set) and the value, and an ink "Ch
     With reduced motion, the next page opens at once.
   - A tap on the corner, Enter or Space tears it along by itself.
 
-  The dock says "Tear it off · Along the dots". A tap there glides the page up to the printer and
-  tears the slip. Coming back to the review prints the slip afresh.
+  There is no button for it: the buyer tears the slip off by hand. The dock only shows the metres
+  on the left and the shades and estimate on the right; the "Tear it off · Along the dots" button
+  it used to carry is gone. Coming back to the review prints the slip afresh.
 
 **III Dispatch** (`ShipPay.tsx`), titled "Delivery & *Payment*", comes after the review. A buyer
 who is not signed in signs in first, since the address book belongs to the account. It has three
@@ -1105,3 +1106,34 @@ Only the slider's labels follow the nearest room, and the studio is told of it 3
 changes. The starting opacities are written once, from the room the page opened in, so that a
 re-render never writes over what the walk has set. Sampled 48 times along the walk, the largest
 change between two samples is about 0.15.
+
+## Help on every page
+
+A very small ⓘ (24px, ivory edged in gold) is fixed just under the account button on every page
+(`Guide.tsx`), and stays put as the page scrolls. A tap starts a short tour of the page in view:
+- each stop dims the page, leaves what it is about lit inside a gold ring, and explains it in a
+  small card;
+- the card shows its number ("02 / 05"), a title, a line of help, progress dots, and Back (Skip on
+  the first) and Next (Done on the last);
+- the page scrolls to each stop, and the ring and card follow what they point at a frame at a time;
+- the card sits below what it is about, or above it when there is no room, with a small pointer;
+- Escape, the ×, or a tap on the dimmed page ends the tour, and the arrow keys and Enter step
+  through it;
+- leaving the page ends its tour.
+
+Each page has its own tour, and a stop whose target is not on screen is passed over. Every tour
+ends by pointing at the ⓘ itself:
+- the Entrance: the house, the Fabric Hall, the Colour Closet, search, the navigation;
+- the Fabric Hall: the rooms, walking the rolls, opening a fabric;
+- the Colour Closet: the bar, the doors, parting the rails, the closets' makes;
+- the Lab: the plate, the stage and its buttons, the light, the shades, Add to, the price call;
+- the Swatch Book: the book, the sheets, ordering, the preview, skipping the book;
+- the cart: the sheets, metres for all, the price call, checkout;
+- the order review: the steps, the slip, tearing it off by hand, the note for the mill, the total;
+- dispatch: the steps, the address, the timing, payment, placing the order.
+
+The review and dispatch pages sit inside the cart and the Swatch Book, so their tours are chosen by
+what is on screen.
+
+On a phone the closets' pinned bar sits 40px lower, leaving room for the ⓘ under the account
+button.

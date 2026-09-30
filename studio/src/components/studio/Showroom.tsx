@@ -236,6 +236,7 @@ export function Showroom({ studio }: { studio: Studio }) {
             travels between them in step with the walk. */}
         <div
           role="group"
+          data-guide="rooms"
           aria-label={t.showroom}
           style={{
             position: 'relative', display: 'grid', gridTemplateColumns: `repeat(${rooms.length}, minmax(0, 1fr))`, width: 'min(100%, 420px)', margin: '20px auto 0',
