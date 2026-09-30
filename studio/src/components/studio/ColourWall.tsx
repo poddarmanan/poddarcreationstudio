@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react';
 import type { Studio } from './state';
 import type { ColourRow, FabricRow } from '@/lib/types';
 import { Selvage } from './brand';
@@ -31,6 +31,7 @@ function spectrum(a: ColourRow, b: ColourRow) {
 // The closet's measures, in px.
 const SLIDE_MAX = 680; // a closet's slot in the row, at most
 const SLIDE_PAD = 16; // the gap either side of a closet, where its doors swing
+const CROWN_H = 24; // room above a closet for its crown, kept inside its box so nothing clips it
 const STILE = 12; // the closet's side walls
 const INSIDE_PAD = 12; // from a wall to the ends of the slips' run
 const SLIP_W = 84; // a slip
@@ -51,6 +52,93 @@ function hang(shades: Shade[], len: number) {
 }
 
 const reduced = () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/**
+ * Each quality's closet is made differently: its wood or lacquer, its doors, its pulls, its crown,
+ * the lining inside, and the room it stands in (the page's wall, washed in a colour suited to the
+ * cloth, and a glow behind the closet). Qualities the table does not know take one in turn.
+ */
+type Door = 'panel' | 'arch' | 'fluted' | 'louvre' | 'cane' | 'jaali' | 'lacquer';
+type Pull = 'knob' | 'bar' | 'ring' | 'tassel';
+type Crown = 'flat' | 'arch' | 'pediment' | 'scallop';
+type Look = { en: string; hi: string; door: Door; pull: Pull; crown: Crown; wood: [string, string, string]; metal: 'brass' | 'silver'; inside: string; room: [string, string, string]; tassel?: string };
+const LOOKS: Record<string, Look> = {
+  pcpc: { en: 'Whitewashed ash · fluted doors', hi: 'सफ़ेद ऐश · नालीदार दरवाज़े', door: 'fluted', pull: 'bar', crown: 'flat', wood: ['#EDE6DA', '#DED4C4', '#CBBFAC'], metal: 'brass', inside: '#4A4036', room: ['#F2F4F3', '#DEE5E8', '#C3D3DA'] },
+  cambric: { en: 'Sage lacquer · shaker panels', hi: 'सेज लैकर · पैनल दरवाज़े', door: 'panel', pull: 'knob', crown: 'pediment', wood: ['#AEBBA3', '#9AA98F', '#86967B'], metal: 'brass', inside: '#2F3A2C', room: ['#F3F5ED', '#E1E9D7', '#C6D5B4'] },
+  jaam11: { en: 'Teak · woven cane', hi: 'सागौन · बुनी बेंत', door: 'cane', pull: 'ring', crown: 'flat', wood: ['#9C6B3F', '#875A30', '#704A25'], metal: 'brass', inside: '#2E2014', room: ['#F7F0E4', '#EBDCC5', '#D9BD94'] },
+  jaam125: { en: 'Rosewood · carved jaali', hi: 'शीशम · नक्काशीदार जाली', door: 'jaali', pull: 'ring', crown: 'arch', wood: ['#6E3427', '#5A281D', '#461D15'], metal: 'brass', inside: '#2A1410', room: ['#F8EDE7', '#EED4C8', '#DDAC97'] },
+  lycra: { en: 'Light oak · louvred doors', hi: 'हल्का ओक · झिलमिली दरवाज़े', door: 'louvre', pull: 'bar', crown: 'flat', wood: ['#D6B98F', '#C4A378', '#AD8B61'], metal: 'silver', inside: '#3A2C1D', room: ['#EFF6F3', '#D9EBE4', '#B5D8CA'] },
+  rayon14: { en: 'Powder-blue lacquer · arched panels', hi: 'हल्का नीला लैकर · मेहराबी पैनल', door: 'arch', pull: 'knob', crown: 'scallop', wood: ['#A7BDD0', '#91A9BE', '#7B93A9'], metal: 'silver', inside: '#1F2A36', room: ['#F1F3F9', '#DDE2F0', '#BCC6E3'] },
+  rayon17: { en: 'Walnut · raised panels', hi: 'अखरोट · उभरे पैनल', door: 'panel', pull: 'knob', crown: 'pediment', wood: ['#6F4A2B', '#5E3D22', '#4F331C'], metal: 'brass', inside: '#2A1B10', room: ['#F5F0EA', '#E6DBCE', '#CDB8A1'] },
+  slub: { en: 'Honey mango wood · cane', hi: 'शहद रंग आम की लकड़ी · बेंत', door: 'cane', pull: 'tassel', crown: 'scallop', wood: ['#C38D4C', '#AE7A3D', '#956530'], metal: 'brass', inside: '#33220F', room: ['#FBF4E3', '#F2E0BA', '#E4C283'], tassel: '#B5452F' },
+  wrinkle: { en: 'Charcoal oak · fluted doors', hi: 'चारकोल ओक · नालीदार दरवाज़े', door: 'fluted', pull: 'bar', crown: 'flat', wood: ['#4C4946', '#3C3936', '#2C2A28'], metal: 'silver', inside: '#1A1918', room: ['#F3F2F4', '#E2DFE6', '#C6BFCF'] },
+  roman: { en: 'Black lacquer & gold · velvet lined', hi: 'काला लैकर और सोना · मखमली अस्तर', door: 'lacquer', pull: 'tassel', crown: 'arch', wood: ['#2B2727', '#1F1C1C', '#141212'], metal: 'brass', inside: '#3E0F18', room: ['#F8EFEA', '#ECD9D0', '#D6B0A1'], tassel: '#9E1B2F' },
+  gajji: { en: 'Crimson lacquer · jaali', hi: 'लाल लैकर · जाली', door: 'jaali', pull: 'ring', crown: 'arch', wood: ['#932537', '#7C1C2C', '#631522'], metal: 'brass', inside: '#2B0A10', room: ['#FAEEF0', '#F1D4DA', '#E1A8B5'] },
+};
+const LOOK_ORDER = Object.values(LOOKS);
+const lookOf = (id: string, k: number) => LOOKS[id] ?? LOOK_ORDER[k % LOOK_ORDER.length];
+const METAL = { brass: ['#F6E3A8', '#D2AC5C', '#8D6B28'], silver: ['#F7F7F4', '#C4C4BE', '#7A7972'] } as const;
+/** A closet's look as the variables its CSS reads. */
+const lookVars = (l: Look) =>
+  ({
+    ['--w1' as string]: l.wood[0],
+    ['--w2' as string]: l.wood[1],
+    ['--w3' as string]: l.wood[2],
+    ['--in' as string]: l.inside,
+    ['--m1' as string]: METAL[l.metal][0],
+    ['--m2' as string]: METAL[l.metal][1],
+    ['--m3' as string]: METAL[l.metal][2],
+    ['--tassel' as string]: l.tassel ?? '#8A1F2B',
+  }) as CSSProperties;
+
+/** A door's face, by the closet's make. */
+function DoorFace({ look, side }: { look: Look; side: 'left' | 'right' }) {
+  const { door, pull } = look;
+  return (
+    <span className={`pc-door-face is-${door}`}>
+      {door === 'panel' && (
+        <>
+          <span className="pc-door-panel is-top" />
+          <span className="pc-door-panel is-bottom" />
+        </>
+      )}
+      {door === 'arch' && (
+        <>
+          <span className="pc-door-panel is-archtop" />
+          <span className="pc-door-panel is-bottom" />
+        </>
+      )}
+      {door === 'fluted' && <span className="pc-door-flutes" />}
+      {door === 'louvre' && (
+        <>
+          <span className="pc-door-louvres is-top" />
+          <span className="pc-door-louvres is-bottom" />
+        </>
+      )}
+      {door === 'cane' && (
+        <>
+          <span className="pc-door-cane is-top" />
+          <span className="pc-door-cane is-bottom" />
+        </>
+      )}
+      {door === 'jaali' && (
+        <>
+          <span className="pc-door-jaali" />
+          <span className="pc-door-panel is-foot" />
+        </>
+      )}
+      {door === 'lacquer' && (
+        <span className="pc-door-lacquer">
+          <span className="pc-door-lacquer-motif" />
+        </span>
+      )}
+      <span className={`pc-pull is-${pull} is-${side}`}>
+        {pull === 'ring' && <span className="pc-pull-ring" />}
+        {pull === 'tassel' && <span className="pc-pull-tassel" />}
+      </span>
+    </span>
+  );
+}
 
 /**
  * The Colour Closet: every quality is a walnut wardrobe of its own, in a row to swipe through (or
@@ -187,6 +275,29 @@ export function ColourWall({ studio }: { studio: Studio }) {
     if (row && on) row.scrollTo({ left: on.offsetLeft - (row.clientWidth - on.offsetWidth) / 2, behavior: reduced() ? 'instant' : 'smooth' });
   }, [idx]);
 
+  // The room: the page's wall washed in the colour of the closet looked at, blending as the row
+  // moves. It is one fixed layer behind the page, made here and taken away with the page.
+  const room = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = document.createElement('div');
+    el.className = 'pc-closet-room';
+    el.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(el);
+    room.current = el;
+    return () => {
+      el.remove();
+      room.current = null;
+    };
+  }, []);
+  useEffect(() => {
+    const el = room.current;
+    if (!el || !fab) return;
+    const [a, b, c] = lookOf(fab.id, idx).room;
+    el.style.setProperty('--cb1', a);
+    el.style.setProperty('--cb2', b);
+    el.style.setProperty('--cb3', c);
+  }, [fab, idx]);
+
   // Taking a slip out: it lifts, then the page unrolls in its shade.
   const picking = useRef(false);
   const timer = useRef(0);
@@ -229,6 +340,7 @@ export function ColourWall({ studio }: { studio: Studio }) {
           <i>
             {fab?.name} · {fab?.colours.length} {t.shades}
           </i>
+          {fab && <em>{lookOf(fab.id, idx)[studio.lang === 'hi' ? 'hi' : 'en']}</em>}
         </span>
         <button aria-label="›" disabled={idx === fabrics.length - 1} onClick={() => goTo(idx + 1)}>
           ›
@@ -240,16 +352,17 @@ export function ColourWall({ studio }: { studio: Studio }) {
           {vw > 0 &&
             fabrics.map((f, k) => {
               const rods = hang(runs[k], len);
+              const look = lookOf(f.id, k);
               const isOpen = opened.has(f.id);
               const here = k === idx;
               return (
                 <div
                   key={f.id}
-                  className={`pc-closet${isOpen ? ' is-open' : ''}${here ? ' is-here' : ''}`}
-                  style={{ width: slideW, padding: `0 ${SLIDE_PAD}px` }}
+                  className={`pc-closet${isOpen ? ' is-open' : ''}${here ? ' is-here' : ''}${k < idx ? ' is-before' : k > idx ? ' is-after' : ''}`}
+                  style={{ width: slideW, padding: `${CROWN_H}px ${SLIDE_PAD}px 18px`, ...lookVars(look) }}
                   onClick={(e) => tapCloset(e, k, f.id)}
                 >
-                  <div className="pc-closet-top">
+                  <div className={`pc-closet-top is-${look.crown}`}>
                     <span className="pc-closet-plaque">
                       <i>No. {String(k + 1).padStart(2, '0')}</i>
                       <b>{f.name}</b>
@@ -265,11 +378,7 @@ export function ColourWall({ studio }: { studio: Studio }) {
                     </div>
                     {(['left', 'right'] as const).map((side) => (
                       <button key={side} aria-label={`${t.closetOpen ?? 'Open'} · ${f.name}`} tabIndex={isOpen ? -1 : 0} aria-hidden={isOpen} className={`pc-door is-${side}`}>
-                        <span className="pc-door-face">
-                          <span className="pc-door-panel is-top" />
-                          <span className="pc-door-panel is-bottom" />
-                          <span className="pc-door-knob" />
-                        </span>
+                        <DoorFace look={look} side={side} />
                         <span className="pc-door-face is-back">
                           {side === 'left' ? <span className="pc-door-mirror" /> : <span className="pc-door-panel is-inner" />}
                         </span>

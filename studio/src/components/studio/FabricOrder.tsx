@@ -254,10 +254,13 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
     go('ship');
   };
   const onStep = (i: 0 | 1) => (i === 0 ? onBack() : go('edit'));
-  // Tearing the slip off: the rest prints at once, the printer comes into view, the slip is tugged
-  // and torn along the slot, drops away with its note, and the dispatch opens.
+  // Tearing the slip off: the rest prints at once and the slip comes free of the slot with a tug,
+  // a few fibres shed from the tear. It swings, is lifted as if in hand while the page glides up to
+  // the steps, and then flies, turning and shrinking, into "Dispatch", which catches it with a pop
+  // and a gold ring, and the dispatch opens.
   const printRef = useRef<HTMLDivElement | null>(null);
   const [tearing, setTearing] = useState(false);
+  const [flying, setFlying] = useState(false);
   const tear = (scroll = true): boolean => {
     if (!chosen.length) {
       setWarn((n) => n + 1);
@@ -266,19 +269,47 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
     // Whatever has not printed prints at once.
     printDone.current = true;
     const feed = feedRef.current;
-    if (feed) feed.style.clipPath = 'none';
+    if (feed) {
+      feed.style.clipPath = 'none';
+      feed.style.transform = 'none';
+    }
     setPrinted(true);
     const quick = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (quick) {
+      window.setTimeout(() => next(), 60);
+      return true;
+    }
     if (scroll) {
       const top = printRef.current ? printRef.current.getBoundingClientRect().top + window.scrollY - 140 : 0;
-      window.scrollTo({ top: Math.max(0, top), behavior: quick ? 'auto' : 'smooth' });
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
     }
-    const lead = scroll && !quick ? 480 : 0;
-    window.setTimeout(() => setTearing(true), lead);
+    const lead = scroll ? 480 : 0;
+    window.setTimeout(() => {
+      // Where the slip will fly: from its top edge to the "Dispatch" numeral. Both move with the
+      // page, so the way between them holds however the page scrolls meanwhile.
+      const paper = printRef.current?.querySelector<HTMLElement>('.pc-print-paper');
+      const dot = document.querySelector<HTMLElement>('.pc-steps li:last-child .pc-steps-num');
+      if (paper && dot && printRef.current) {
+        const a = paper.getBoundingClientRect();
+        const b = dot.getBoundingClientRect();
+        printRef.current.style.setProperty('--fx', `${(b.left + b.width / 2 - (a.left + a.width / 2)).toFixed(1)}px`);
+        printRef.current.style.setProperty('--fy', `${(b.top + b.height / 2 - a.top - a.height * 0.03).toFixed(1)}px`);
+      }
+      setTearing(true);
+    }, lead);
+    // Lifted: the page glides up to the steps.
+    window.setTimeout(() => {
+      printFollow.current = false;
+      glideTo(0);
+    }, lead + 420);
+    window.setTimeout(() => setFlying(true), lead + 1050);
+    // Caught.
+    window.setTimeout(() => document.querySelector('.pc-steps li:last-child')?.classList.add('is-catch'), lead + 1700);
     window.setTimeout(() => {
       setTearing(false);
+      setFlying(false);
       next();
-    }, quick ? 60 : lead + 1170);
+    }, lead + 2250);
     return true;
   };
   // The perforation along the slot: torn by hand from its loose corner (or run by itself from the
@@ -409,7 +440,7 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
       {/* The order slip: the house and the date at its head under a double gold rule; each fabric
           with its numeral in a gold ring, its price by the metre, its shades and its subtotal on a
           dotted leader; then the totals, ruled off as in a ledger; and a pinked foot. */}
-      <div ref={printRef} className={`pc-print${tearing ? ' is-tearing' : ''}${printed ? ' is-printed' : ''}`}>
+      <div ref={printRef} className={`pc-print${tearing ? ' is-tearing' : ''}${flying ? ' is-flying' : ''}${printed ? ' is-printed' : ''}`}>
         {/* The printer: a smoked window on its roll of paper, which turns while it prints; its
             light; and its mouth, a slot with a serrated tear bar and the head glowing behind it. */}
         <div ref={printerRef} aria-hidden className={`pc-printer${printed ? ' is-done' : ''}`}>
@@ -423,6 +454,12 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
           <span className="pc-printer-teeth" />
           {/* What stays in the slot once the slip is torn off. */}
           <span className="pc-printer-stub" />
+          {/* Fibres shed from the tear. */}
+          <span className="pc-tear-dust">
+            {Array.from({ length: 9 }, (_, i) => (
+              <i key={i} style={{ left: `${8 + i * 10.5}%`, ['--dx' as string]: `${((i * 37) % 23) - 11}px`, animationDelay: `${(i % 4) * 0.03}s` } as CSSProperties} />
+            ))}
+          </span>
         </div>
         <div className="pc-print-paper">
           <div ref={feedRef} className="pc-print-feed" style={{ clipPath: 'inset(100% 0 0 0)' }}>

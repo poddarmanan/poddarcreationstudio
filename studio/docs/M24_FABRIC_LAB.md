@@ -201,31 +201,80 @@ Closet" in the header and "Closet" under a wardrobe icon in the phone's bottom b
 rail, a 3D colour atlas and a bolt wall), the owner kept the swatch rail, and it now hangs inside
 the closets.
 
-**Every quality is a closet of its own,** a walnut wardrobe:
-- a cornice carrying a brass plate with the closet's number and the quality's name;
-- walnut stiles either side;
-- two doors, each with raised panels and a brass knob;
-- a plinth on feet.
+**Every quality is a closet of its own, and each is made differently.** A table of looks (`LOOKS`,
+by fabric id) gives each closet its own:
+- wood or lacquer;
+- door face;
+- pulls;
+- crown;
+- metal (brass or brushed silver) for its plate, pulls and rods;
+- lining inside.
 
-The closets stand in a row as wide as the screen. On a phone one fills it. On a wider screen a
-closet takes up to 680px, and its neighbours stand either side, smaller and faded. To move along
-the row:
+Qualities not in the table take a look in turn. The line under the closet's name says what it is,
+for example "Teak · woven cane".
+
+| Quality | Made of | Doors | Pulls | Crown |
+|---|---|---|---|---|
+| PC / PC | whitewashed ash | fluted reeds | brass bars | flat |
+| Cambric Cotton | sage lacquer | shaker panels | brass knobs | pediment |
+| Jaam Cotton | teak | woven cane | brass rings | flat |
+| Jaam Cotton Supreme | rosewood | carved jaali under an arch | brass rings | arched |
+| Cotton Lycra | light oak | louvres | silver bars | flat |
+| Rayon | powder-blue lacquer | arch-topped panels | silver knobs | scalloped valance |
+| Rayon Heavy | walnut | raised panels | brass knobs | pediment |
+| Rayon Slub | honey mango wood | woven cane | knobs with a rust tassel | scalloped valance |
+| Rayon Wrinkle | charcoal oak | fluted reeds | silver bars | flat |
+| Roman Silk | black lacquer lined in gold, with a gold medallion (velvet crimson inside) | lacquer | knobs with a crimson tassel | arched |
+| Gajji Silk | crimson lacquer | carved jaali | brass rings | arched |
+
+Every closet has a brass or silver plate on its crown with its number and the quality's name,
+side stiles in its wood, and a plinth on feet. A closet's make is set as CSS variables on it
+(`--w1..3` its wood, `--in` its lining, `--m1..3` its metal, `--tassel`), and every part reads them.
+The crown and the floor shadow sit inside the closet's own box (padding above and below), since
+Chrome clips anything overflowing a closet in the 3D row.
+
+**The room changes with the closet.** Behind the whole page is one fixed layer, the room. The
+page's wall is washed top to bottom in a colour suited to the cloth, with a glow of a deeper tone
+behind the closet:
+- cool daylight for PC / PC;
+- sage for Cambric;
+- sand for Jaam;
+- terracotta blush for Jaam Supreme;
+- mint for Lycra;
+- periwinkle for Rayon;
+- taupe for Rayon Heavy;
+- honey for Slub;
+- lilac-grey for Wrinkle;
+- rose-champagne for Roman Silk;
+- pink for Gajji.
+
+The colours are registered custom properties (`@property`), so the wall blends from one to the
+next over a second as the row moves. The layer is made when the page opens and removed with it.
+
+**The row** stands on a floor, with a soft light falling from above on the closet looked at and
+each closet's shadow on the floor. Its neighbours are turned towards it like cards in a
+cover-flow: set back (`translateZ(-90px)`), turned 24 degrees and faded. Setting them back keeps
+an open door of the middle closet in front of them. On a phone one closet fills the screen; on a
+wider screen (a closet takes up to 680px) its neighbours stand either side. To move along the
+row:
 - swipe it sideways (anywhere but on a slip; the page still scrolls up and down), and the row
   follows the finger and settles on the next closet, giving only a little past either end;
-- use the arrows either side of "Closet 3 of 11", over the quality's name and count of shades;
+- use the arrows either side of "Closet 3 of 11", over the quality's name, count of shades and
+  make;
 - tap a name in the row of names above, which is kept centred on the closet being looked at;
 - tap a neighbouring closet.
 
 There is no "All qualities": one quality at a time.
 
-**The doors.** A closet's doors are shut until they are tapped, and a gold tag on the shut doors
-of the closet being looked at says "Open the closet". Tapped, the doors unlatch (a small give),
-then swing wide in perspective, the right a beat after the left. The inside of the left door
-has a mirror. A warm lamp comes on inside. The closet arrived at opens by itself about a second
-after the page's curtain, which is the page's opening animation. Opened closets stay open.
+**The doors.** A closet's doors are shut until they are tapped, and a tag in the closet's metal on
+the shut doors of the closet looked at says "Open the closet". Where the pointer can hover, the
+doors ease open a crack under it. Tapped, the doors unlatch (a small give), then swing wide in
+perspective, the right a beat after the left. The inside of the left door has a mirror. A warm
+lamp comes on inside. The closet arrived at opens by itself about a second after the page's
+curtain, which is the page's opening animation. Opened closets stay open.
 
-**Inside,** the shades hang as swatch slips on brass rods set in sockets across a dark walnut
-back. Each slip has a hook, a printed head with the shade's name, the quality and its number, and
+**Inside,** the shades hang as swatch slips on rods (in the closet's metal) set in sockets across
+the lining. Each slip has a hook, a printed head with the shade's name, the quality and its number, and
 a pinked cutting of the cloth in its shade. There are no family headings (neutrals, reds and so
 on). The shades hang as one run of colour: the near-greys first (OKLCH chroma under 0.035), light to
 dark, then round the colour wheel from red, with shades of nearly the same hue light to dark. The
@@ -681,8 +730,19 @@ total metres, the shades (or how many are not set) and the value, and an ink "Ch
     shaded edge. Like paper, it does not mend: let go and it stays torn as far as it went, to be
     carried on later.
   - At the end, the slip comes away. The upper row of dots stays behind on the stub in the slot;
-    the slip, keeping the lower row, is tugged and drops away with its note. Then the dispatch
-    (or sign-in) opens.
+    the slip keeps the lower row. What follows takes a little over two seconds:
+    1. The printer gives a tug, and a few paper fibres shed from the tear and fall from the slot.
+    2. The slip drops free and swings back and forth, then is lifted slightly towards the buyer,
+       as if taken in hand.
+    3. The page glides up to the steps at the top (Cart · Review · Dispatch).
+    4. The slip flies, with its note, turning and shrinking along an arc, into the "Dispatch"
+       numeral. It passes over the printer, not behind it. The flight's path is measured from
+       the slip's top to the numeral when the tear begins; both move with the page, so the
+       glide does not throw it off.
+    5. "Dispatch" catches it: its numeral pops, fills gold and throws a gold ring.
+    6. The dispatch (or sign-in) opens.
+
+    With reduced motion, the next page opens at once.
   - A tap on the corner, Enter or Space tears it along by itself.
 
   The dock says "Tear it off · Along the dots". A tap there glides the page up to the printer and
