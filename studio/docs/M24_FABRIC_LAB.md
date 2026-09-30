@@ -193,6 +193,37 @@ quarter and lights in warm gold with a breathing glow while its rays wheel slowl
 stretch button's icon goes to ink and its two bars pull apart once and hold there, easing back
 together when the test is switched off — one movement each way, not a loop.
 
+## The Colour Wall, in four iterations
+
+The Colours page (`ColourWall.tsx`) is offered in four ways of holding the same shades, each with
+depth of its own. A row of numbered tabs at the top of the page (I to IV, each with a line on
+what it is) switches between them. The choice is remembered in the browser
+(`pc-wall-iteration`), and `?wall=1` to `?wall=4` in the address opens a given one, so they can be
+compared and one kept. Every iteration groups the shades into families by their OKLCH hue
+(neutrals, where chroma is under 0.035, then red, orange, yellow, green, teal, blue, violet and
+pink), light to dark within a family. The title, the count and the quality filter stay as they
+were. Choosing a shade marks it for a moment (about 0.4s, none with reduced motion) and then
+opens it in the Lab.
+
+- **I. Thread room:** each family is a wooden shelf on a pegboard, with the shades as thread
+  cones standing on it. A cone is shaded as a turned body with a tip, a base and a shadow on the
+  plank, and it lifts off the shelf when hovered or chosen. The shelf scrolls sideways.
+- **II. Swatch rail:** each family is a brass rod with swatch cards hanging from it in
+  perspective, turned so their faces overlap like cards on a mill's rail. Each card has its hook,
+  a printed head with the name, and a pinked piece of the cloth in its shade. Hovering or
+  choosing one swings it square to the buyer, and the cards after it slide along the rod.
+- **III. Colour atlas:** the shades are placed in a 3D colour solid, as in a Munsell atlas. Hue
+  is the angle round a grey axis, chroma the distance from it and lightness the height. Each
+  chip turns to face the buyer as the solid turns. A drag turns the solid, and it spins once when
+  it first appears. Below it, a page headed "Facing you" lays out, as a grid, the shades within
+  24 degrees of the hue that faces the buyer.
+- **IV. Bolt wall:** a dark wooden wall of cubbies, one or more per family, each holding six bolt
+  ends stacked three, two and one. Each end shows the cloth wound round its card core in a spiral,
+  lit from above. A hovered or chosen bolt slides out of its cubby.
+
+Only transforms and visibility are animated. With reduced motion, lifts, swings and the atlas's
+spin are off.
+
 ## A test that measured nothing
 
 The first version of `smoke-m24.mjs` sampled the bytes of Playwright's screenshot directly and
@@ -455,10 +486,12 @@ open. It takes about seven seconds:
    - a cream paper band printed "PC" wraps it, over the top and down the front, as bundles leave
      the mill.
 
-   Each bundle It turns as it falls, speeds up, and
-   lands with a bounce. The bolts stack staggered, each a little smaller and turned, so every
-   fabric shows. They rest on an insert, as a packer fills a box, so the stack always tops out
-   just under the rim where it can be seen.
+   Each bundle turns as it falls, speeds up, and lands with a bounce. The bundles are not
+   stacked: they are laid side by side in one layer, as a packer lays out an order, in cells of
+   up to four across and as many rows deep as needed, each a little different in size and
+   turned a degree or two. Every colour shows from above. A bundle in a narrow cell lies across,
+   its paper band running the other way and its folded edge to the side. The layer rests on an
+   insert so it sits just under the rim, where it can be seen.
 2. **Boxed in kraft:** a crinkled sheet of tissue floats down over them. The side flaps fold in,
    then the long flaps close over them, and the carton gives a small thud.
 3. **Taped and tied:** ink tape printed with the house's name in gold runs across the seam and

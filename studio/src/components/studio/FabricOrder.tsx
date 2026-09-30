@@ -798,11 +798,15 @@ function Parcel({
 }) {
   const { t } = studio;
   const n = Math.max(1, lines.length);
-  const th = Math.min(20, 66 / n); // each folded bundle's thickness
-  // The box is filled as a packer fills it: the fabrics sit on an insert, so the stack always tops
-  // out just under the rim, where it can be seen, however many there are.
+  // The bundles are laid side by side, as a packer lays them: one layer of cells, up to four across
+  // and two deep, so every colour shows from above. They sit on an insert just under the rim.
+  const cols = Math.min(n, 4);
+  const rows = Math.ceil(n / cols);
+  const cellW = (BW - 20) / cols;
+  const cellD = (BD - 18) / rows;
+  const th = 24; // each folded bundle's thickness
   const stackTop = -BH / 2 + 16;
-  const base = stackTop + n * th;
+  const base = stackTop + th;
   const done = stage === 6;
   const closed = stage >= 2;
   const flaps = [0, 1, 2, 3].map((k) => {
@@ -827,10 +831,16 @@ function Parcel({
     );
   });
   const bolts = lines.map((l, i) => {
-    // Staggered, as bolts are when stacked by hand: each a little smaller and turned, so every fabric shows.
-    const w = BW - 24 - i * Math.min(16, 60 / n);
-    const d = BD - 22 - i * Math.min(12, 44 / n);
-    const y = base - (i + 1) * th;
+    // Its cell, filled a little loosely, as bundles are by hand: a shade smaller, nudged and turned.
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    const w = cellW - 5 - ((i * 3) % 4);
+    const d = cellD - 5 - ((i * 5) % 4);
+    const cx = -BW / 2 + 10 + cellW * (col + 0.5) + (((i * 7) % 5) - 2) * 0.6;
+    const cz = -BD / 2 + 9 + cellD * (row + 0.5);
+    const y = base - th;
+    // The paper band runs across the bundle's short way.
+    const across = w < d;
     const tex = fabricTex(l.x, l.c, 3);
     const folds = Math.max(2, Math.round(th / 7)); // the rolls showing on the folded edge
     return (
@@ -838,15 +848,15 @@ function Parcel({
         key={l.key}
         className="pc-bolt"
         style={{
-          ['--y' as string]: `${y}px`, ['--dx' as string]: `${i % 2 ? 6 : -5}px`, ['--ry' as string]: `${i === 0 ? 0 : i % 2 ? 5 : -4}deg`,
+          ['--y' as string]: `${y}px`, ['--dx' as string]: `${cx}px`, ['--dz' as string]: `${cz}px`, ['--ry' as string]: `${((i * 5) % 5) - 2}deg`,
           ['--ry0' as string]: `${i % 2 ? 24 : -20}deg`, ['--rz0' as string]: `${i % 2 ? -8 : 7}deg`,
           animation: quick ? 'none' : `pcBoltDrop .78s ${i * 210}ms both`,
-          transform: quick ? `translate3d(var(--dx), var(--y), 0) rotateY(var(--ry))` : undefined,
+          transform: quick ? `translate3d(var(--dx), var(--y), var(--dz)) rotateY(var(--ry))` : undefined,
         } as CSSProperties}
       >
         {/* The top of the bundle: soft cloth, lit from above, with a few loose wrinkles, and its paper band. */}
         <div className="pc-bundle-top" style={face(w, d, 'rotateX(90deg)', { background: `${BUNDLE_LIGHT}, ${tex}` })}>
-          <span className="pc-bundle-band" style={{ left: `${24 + (i % 3) * 8}%` }}>
+          <span className={`pc-bundle-band${across ? ' is-across' : ''}`} style={across ? { top: `${30 + (i % 3) * 8}%` } : { left: `${24 + (i % 3) * 8}%` }}>
             <b>PC</b>
           </span>
         </div>
@@ -858,7 +868,7 @@ function Parcel({
             backgroundSize: `100% ${th / folds}px, 100% 100%, auto`,
           })}
         >
-          <span className="pc-bundle-band is-edge" style={{ left: `${24 + (i % 3) * 8}%` }} />
+          {!across && <span className="pc-bundle-band is-edge" style={{ left: `${24 + (i % 3) * 8}%` }} />}
         </div>
         {/* The side: the cut edges of the layers, softer and darker. */}
         <div
@@ -867,7 +877,9 @@ function Parcel({
             backgroundImage: `${BUNDLE_LAYERS}, linear-gradient(180deg, rgba(0,0,0,.12), rgba(0,0,0,.34)), ${tex}`,
             backgroundSize: `100% ${th / (folds * 2)}px, 100% 100%, auto`,
           })}
-        />
+        >
+          {across && <span className="pc-bundle-band is-edge" style={{ left: `${30 + (i % 3) * 8}%` }} />}
+        </div>
       </div>
     );
   });
