@@ -201,8 +201,9 @@ what it is) switches between them. The choice is remembered in the browser
 (`pc-wall-iteration`), and `?wall=1` to `?wall=4` in the address opens a given one, so they can be
 compared and one kept. Every iteration groups the shades into families by their OKLCH hue
 (neutrals, where chroma is under 0.035, then red, orange, yellow, green, teal, blue, violet and
-pink), light to dark within a family. The title, the count and the quality filter stay as they
-were. Choosing a shade marks it for a moment (about 0.4s, none with reduced motion) and then
+pink), light to dark within a family. The title and the count stay as they were. The quality
+chips show one quality at a time: there is no "All qualities" chip, and the wall opens on the
+first quality until another is chosen. Choosing a shade marks it for a moment (about 0.4s, none with reduced motion) and then
 opens it in the Lab.
 
 - **I. Thread room:** each family is a wooden shelf on a pegboard, with the shades as thread

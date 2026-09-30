@@ -41,12 +41,14 @@ type Iteration = (typeof ITERATIONS)[number]['k'];
 
 /**
  * The Colour Wall, in four iterations to choose between: the thread room, the swatch rail, the
- * colour atlas and the bolt wall. Each shows every shade (or one quality's) and opens its fabric
+ * colour atlas and the bolt wall. Each shows one quality's shades at a time and opens its fabric
  * on a tap, after a small lift, as if taken off the wall. The iteration chosen is remembered on
  * this device, and `?wall=1…4` picks one outright.
  */
 export function ColourWall({ studio }: { studio: Studio }) {
-  const { t, fabrics, wallFab, lang } = studio;
+  const { t, fabrics, wallFab } = studio;
+  // Always one quality at a time: the one chosen, or the first.
+  const fab = fabrics.find((x) => x.id === wallFab) ?? fabrics[0];
   const [it, setIt] = useState<Iteration>('thread');
   useEffect(() => {
     const tm = window.setTimeout(() => {
@@ -68,11 +70,9 @@ export function ColourWall({ studio }: { studio: Studio }) {
   };
 
   const shades = useMemo(() => {
-    const all: Shade[] = fabrics
-      .filter((x) => !wallFab || x.id === wallFab)
-      .flatMap((x) => x.colours.map((c, j) => ({ key: `${x.id}-${j}`, c, x, j, css: colourCss(c), fg: colourFg(c), fam: familyOf(c) })));
-    return all;
-  }, [fabrics, wallFab]);
+    if (!fab) return [];
+    return fab.colours.map((c, j): Shade => ({ key: `${fab.id}-${j}`, c, x: fab, j, css: colourCss(c), fg: colourFg(c), fam: familyOf(c) }));
+  }, [fab]);
   // Grouped by family, each light to dark.
   const byFamily = useMemo(
     () =>
@@ -99,7 +99,7 @@ export function ColourWall({ studio }: { studio: Studio }) {
       <h1 style={{ margin: 0, fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(34px,4.5vw,58px)' }}>{t.colourWall}</h1>
       <Selvage style={{ marginTop: 12 }} />
       <p style={{ margin: '8px 0 18px', fontSize: 14, fontWeight: 300, color: 'rgba(28,25,23,.55)' }}>
-        {shades.length} {t.shades} · {t.wallSub}
+        {fab?.name} · {shades.length} {t.shades} · {t.wallSub}
       </p>
 
       {/* The iterations, to compare and choose between. */}
@@ -115,22 +115,23 @@ export function ColourWall({ studio }: { studio: Studio }) {
       <p key={it} className="pc-iter-sub">{t[`iter_${it}_sub`]}</p>
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '14px 0 26px' }}>
-        {[{ id: null as string | null, label: lang === 'hi' ? 'सभी' : 'All qualities' }, ...fabrics.map((x) => ({ id: x.id as string | null, label: x.name }))].map((chip) => {
-          const on = wallFab === chip.id;
+        {fabrics.map((chip) => {
+          const on = fab?.id === chip.id;
           const cs = chipStyle(on);
           return (
             <button
-              key={chip.id ?? 'all'}
+              key={chip.id}
+              aria-pressed={on}
               onClick={() => studio.setWallFab(chip.id)}
               style={{ cursor: 'pointer', background: cs.background, color: cs.color, border: `1px solid ${cs.borderColor}`, borderRadius: 999, padding: '8px 16px', fontFamily: FONT_BODY, fontSize: 12 }}
             >
-              {chip.label}
+              {chip.name}
             </button>
           );
         })}
       </div>
 
-      <div key={it + (wallFab ?? '')}>
+      <div key={it + (fab?.id ?? '')}>
         {it === 'thread' && <ThreadRoom {...view} />}
         {it === 'rail' && <SwatchRail {...view} />}
         {it === 'atlas' && <ColourAtlas {...view} />}
