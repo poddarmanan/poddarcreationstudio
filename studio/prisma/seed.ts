@@ -58,27 +58,48 @@ async function main() {
     console.log(`  ${fabric.name} — ${colours.length} shades`);
   }
 
-  console.log('Seeding demo accounts…');
-  const passwordHash = await bcrypt.hash('poddar123', 10);
+  // Accounts. The demo accounts (one shared, published password) are for a local database only:
+  // on any other database they would be a way into the live site for anyone who has read this
+  // file. There, the one account made is the owner's admin, from SEED_ADMIN_EMAIL and
+  // SEED_ADMIN_PASSWORD, and the seed refuses to run without them.
   // Seeded accounts are created by us, not self-registered, so they count as verified. Left
   // unverified they trip the M20 security check ("privileged account never verified its
   // email"), which would make a freshly seeded deployment report itself unhealthy on day one.
   const emailVerifiedAt = new Date();
-  await prisma.user.upsert({
-    where: { email: 'admin@poddarcreation.studio' },
-    create: { name: 'Studio Admin', email: 'admin@poddarcreation.studio', passwordHash, role: 'ADMIN', approved: true, emailVerifiedAt },
-    update: { emailVerifiedAt },
-  });
-  await prisma.user.upsert({
-    where: { email: 'sales@poddarcreation.studio' },
-    create: { name: 'Sales Desk', email: 'sales@poddarcreation.studio', passwordHash, role: 'SALES', approved: true, emailVerifiedAt },
-    update: { emailVerifiedAt },
-  });
-  await prisma.user.upsert({
-    where: { email: 'buyer@example.com' },
-    create: { name: 'Approved Buyer', email: 'buyer@example.com', passwordHash, role: 'BUYER', approved: true, company: 'Anand Garments, Mumbai', emailVerifiedAt },
-    update: {},
-  });
+  const local = /@(localhost|127\.0\.0\.1)[:/]/.test(process.env.DATABASE_URL ?? '');
+  const demo = process.env.SEED_DEMO_ACCOUNTS === '1' || (process.env.NODE_ENV !== 'production' && local);
+  if (demo) {
+    console.log('Seeding demo accounts (local database)…');
+    const passwordHash = await bcrypt.hash('poddar123', 10);
+    await prisma.user.upsert({
+      where: { email: 'admin@poddarcreation.studio' },
+      create: { name: 'Studio Admin', email: 'admin@poddarcreation.studio', passwordHash, role: 'ADMIN', approved: true, emailVerifiedAt },
+      update: { emailVerifiedAt },
+    });
+    await prisma.user.upsert({
+      where: { email: 'sales@poddarcreation.studio' },
+      create: { name: 'Sales Desk', email: 'sales@poddarcreation.studio', passwordHash, role: 'SALES', approved: true, emailVerifiedAt },
+      update: { emailVerifiedAt },
+    });
+    await prisma.user.upsert({
+      where: { email: 'buyer@example.com' },
+      create: { name: 'Approved Buyer', email: 'buyer@example.com', passwordHash, role: 'BUYER', approved: true, company: 'Anand Garments, Mumbai', emailVerifiedAt },
+      update: {},
+    });
+  } else {
+    const email = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase();
+    const password = process.env.SEED_ADMIN_PASSWORD ?? '';
+    if (!email || password.length < 12) {
+      throw new Error('Not a local database: set SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD (12+ characters) for the owner\'s admin account. No demo accounts are made here.');
+    }
+    console.log(`Seeding the admin account ${email}…`);
+    // Made once; run again, the seed leaves an existing account (and its password) as it is.
+    await prisma.user.upsert({
+      where: { email },
+      create: { name: process.env.SEED_ADMIN_NAME?.trim() || 'Studio Admin', email, passwordHash: await bcrypt.hash(password, 10), role: 'ADMIN', approved: true, emailVerifiedAt },
+      update: {},
+    });
+  }
 
   console.log('Computing colour intelligence (metrics + relationships)…');
   const colourService = new ColourService(new PrismaColourRepository(prisma));

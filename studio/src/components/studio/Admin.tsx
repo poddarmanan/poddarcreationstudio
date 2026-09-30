@@ -115,8 +115,13 @@ export function Admin({ studio }: { studio: Studio }) {
         <Selvage style={{ margin: '14px auto 0' }} />
         <p style={{ fontWeight: 300, color: 'rgba(28,25,23,.6)', maxWidth: 420, margin: '18px auto 0', lineHeight: 1.7 }}>
           The admin workspace needs an Admin or Manager account.
-          <br />
-          Demo: <b style={{ fontWeight: 500 }}>admin@poddarcreation.studio</b> · <b style={{ fontWeight: 500 }}>poddar123</b>
+          {/* The demo account exists only on a local database; the live site never shows it. */}
+          {process.env.NODE_ENV !== 'production' && (
+            <>
+              <br />
+              Demo: <b style={{ fontWeight: 500 }}>admin@poddarcreation.studio</b> · <b style={{ fontWeight: 500 }}>poddar123</b>
+            </>
+          )}
         </p>
         <button
           onClick={studio.openSignIn}

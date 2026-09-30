@@ -1,5 +1,45 @@
 # Deployment
 
+## Launch checklist (the shortest path: Vercel + Neon + Resend)
+
+1. **Database.** Create a Postgres database on [Neon](https://neon.tech). Copy its **pooled**
+   connection string; it ends in `?sslmode=require`.
+2. **Email.** On [Resend](https://resend.com), add and verify your domain, then create an API
+   key. Sign-up verification, password resets and order emails are sent from `EMAIL_FROM`, for
+   example `Poddar Creation <orders@yourdomain.com>`. Production refuses to start without it.
+3. **Hosting.** On [Vercel](https://vercel.com), import this GitHub repository and set **Root
+   directory `studio`**. Set the variables in the table below. Do **not** set
+   `NEXT_PUBLIC_BASE_PATH`: that makes the GitHub Pages preview, which has no accounts. Choose
+   the branch to deploy from (Settings → Git → Production Branch). Vercel's Hobby plan is for
+   non-commercial use; a business site belongs on Pro.
+4. **Domain.** Add your domain in Vercel → Domains, and set `APP_URL` and `NEXTAUTH_URL` to it,
+   as `https://…`.
+5. **Tables and catalogue.** From a machine with the repository, run once against the live
+   database:
+
+   ```bash
+   cd studio
+   DATABASE_URL='<the Neon URL>' npx prisma migrate deploy
+   DATABASE_URL='<the Neon URL>' SEED_ADMIN_EMAIL='you@yourdomain.com' SEED_ADMIN_PASSWORD='<12+ characters>' npx prisma db seed
+   ```
+
+   The seed loads the fabrics and all their shades, and makes one admin account: yours. The demo
+   accounts, with their published password, are made only on a local database.
+6. **Deploy**, then check it: `npx tsx scripts/preflight.ts https://yourdomain.com`.
+
+Sign-in is then saved properly: a secure session cookie keeps a buyer signed in on their device
+for 30 days, and signing out ends it. Email and password work from day one. The rest switch on as
+their keys are added; until then each says it is being set up:
+
+- **Google:** `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`.
+- **WhatsApp codes:** `WHATSAPP_*`. Meta must approve the business number and the template,
+  which can take days.
+- **Online payment:** `RAZORPAY_*`.
+- **Image uploads:** `STORAGE_DRIVER=r2` with the `R2_*` keys.
+
+---
+
+
 Three supported targets. All three run the same artefact and the same checks; they differ only
 in who runs the migration and where uploads land.
 
@@ -36,7 +76,7 @@ Environment variables — set every one of these before the first deploy:
 | `DATABASE_URL` | Pooled connection string. Serverless functions open a connection per invocation; an unpooled URL will exhaust Postgres under any real traffic. |
 | `AUTH_SECRET` | `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` |
 | `APP_URL`, `NEXTAUTH_URL` | Your https origin. Not optional: cookies and every email link derive from it. |
-| `STORAGE_DRIVER=s3` + `S3_*` | **Required on Vercel.** The filesystem is ephemeral — `local` means uploads vanish on the next deploy. |
+| `STORAGE_DRIVER=r2` + `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` | **Required on Vercel** (Cloudflare R2). The filesystem is ephemeral — `local` means uploads vanish on the next deploy. |
 | `RESEND_API_KEY`, `EMAIL_FROM` | Without a key the dev transport writes `.eml` files to a disk that does not persist. |
 | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID` | Sign-in with WhatsApp (M46). Send codes through the WhatsApp Business Cloud API. You need a Meta Business account, a WhatsApp sender number, and an approved **authentication** template whose body takes the code and whose copy-code button takes it again. Name the template in `WHATSAPP_OTP_TEMPLATE` (default `login_code`) and its language in `WHATSAPP_OTP_LANG` (default `en`). Without these, production refuses to start a WhatsApp sign-in and the page says it is being set up. `WHATSAPP_DEV_CODES=1` returns the code to the page instead; use it only on a test deployment. |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | Online payment for fabric orders (M48), from the Razorpay Dashboard → Account & Settings → API Keys. Use the `rzp_test_…` pair to try it, then the live pair. The key id is given to the browser for Checkout; the secret stays on the server, which prices every order from the catalogue, opens the Razorpay order, and verifies Checkout's signature and amount before the order is recorded as paid. Without the pair, "Pay online" shows as being set up and buyers choose UPI, bank transfer or credit terms. The site's CSP admits Razorpay's Checkout frame and API (`src/proxy.ts`). |
