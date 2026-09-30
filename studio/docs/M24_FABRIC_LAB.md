@@ -595,9 +595,9 @@ The page is choreographed:
   The buttons then rise in turn.
 - **Fields:** each field's name floats up as the field is entered. A gold line draws out from the
   centre, and a gold tick settles once the entry is good. A mistake shakes the message.
-- **Success:** the sheet goes down and the page glides back to the book. Its cover swings open and
-  light spills from the pages. The confetti bursts out of the open book, and the ceremony takes
-  over.
+- **Success:** the sheet goes down and the details are seen going into the house, sealed (see
+  "Signed in: the details, sealed" below). When ordering, the confetti then bursts from where
+  the book stands, and the ceremony takes over.
 
 Everything moves by transform or opacity, so a phone composites the page without repainting it.
 Under reduced motion the loops stop and the dust is not drawn.
