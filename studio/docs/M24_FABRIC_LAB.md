@@ -445,8 +445,17 @@ The order's reference is PC- and the last six characters of its id.
 `FabricOrder.tsx`). It is a kraft carton in real CSS 3D, seen from a little above, with walls in
 kraft, its inside in shade, "Poddar Creation · Surat" printed on its front, and four flaps standing
 open. It takes about seven seconds:
-1. **Folding your fabrics:** each fabric, folded into a flat bolt in its own cloth (with the
-   layered edge of the folds showing), drops in from above. It turns as it falls, speeds up, and
+1. **Folding your fabrics:** each fabric, as a folded bundle of its own cloth, drops in from
+   above. A bundle is drawn as cloth, not a slab:
+   - its top is soft and puffed, with rounded corners, edges shaded where the cloth turns under,
+     light falling across it and a couple of loose wrinkles;
+   - its folded front edge shows a rounded roll for each fold, dark where the cloth turns under
+     and lit on its crown;
+   - its cut side shows the layers;
+   - a cream paper band printed "PC" wraps it, over the top and down the front, as bundles leave
+     the mill.
+
+   Each bundle It turns as it falls, speeds up, and
    lands with a bounce. The bolts stack staggered, each a little smaller and turned, so every
    fabric shows. They rest on an insert, as a packer fills a box, so the stack always tops out
    just under the rim where it can be seen.

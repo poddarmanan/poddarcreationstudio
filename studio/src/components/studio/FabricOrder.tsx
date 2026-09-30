@@ -755,6 +755,19 @@ type Stage = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 const BW = 210;
 const BH = 118;
 const BD = 132;
+/** A bundle's top: light falling across soft cloth, darker at its rounded edges, with a few loose wrinkles. */
+const BUNDLE_LIGHT = [
+  'radial-gradient(120% 90% at 35% 25%, rgba(255,255,255,.28), rgba(255,255,255,0) 55%)',
+  'linear-gradient(90deg, rgba(0,0,0,.2), rgba(0,0,0,0) 9%, rgba(0,0,0,0) 91%, rgba(0,0,0,.22))',
+  'linear-gradient(180deg, rgba(0,0,0,.16), rgba(0,0,0,0) 12%, rgba(0,0,0,0) 86%, rgba(0,0,0,.2))',
+  'linear-gradient(104deg, rgba(0,0,0,0) 40%, rgba(0,0,0,.07) 43%, rgba(255,255,255,.1) 45%, rgba(0,0,0,0) 48%)',
+  'linear-gradient(76deg, rgba(0,0,0,0) 64%, rgba(0,0,0,.06) 67%, rgba(255,255,255,.09) 69%, rgba(0,0,0,0) 72%)',
+].join(', ');
+/** The folded edge, one rounded roll of cloth per fold: dark where it turns under, lit on its crown. */
+const BUNDLE_ROLL = 'linear-gradient(180deg, rgba(0,0,0,.42) 0%, rgba(0,0,0,.08) 22%, rgba(255,255,255,.2) 42%, rgba(255,255,255,.06) 62%, rgba(0,0,0,.3) 88%, rgba(0,0,0,.5) 100%)';
+/** The cut side: the edges of the layers, each a soft band. */
+const BUNDLE_LAYERS = 'linear-gradient(180deg, rgba(0,0,0,.3) 0%, rgba(255,255,255,.08) 45%, rgba(0,0,0,.22) 100%)';
+
 /** Where the twine runs, across the carton's width. */
 const TX = -62;
 
@@ -785,7 +798,7 @@ function Parcel({
 }) {
   const { t } = studio;
   const n = Math.max(1, lines.length);
-  const th = Math.min(13, 62 / n); // each folded bolt's thickness
+  const th = Math.min(20, 66 / n); // each folded bundle's thickness
   // The box is filled as a packer fills it: the fabrics sit on an insert, so the stack always tops
   // out just under the rim, where it can be seen, however many there are.
   const stackTop = -BH / 2 + 16;
@@ -819,6 +832,7 @@ function Parcel({
     const d = BD - 22 - i * Math.min(12, 44 / n);
     const y = base - (i + 1) * th;
     const tex = fabricTex(l.x, l.c, 3);
+    const folds = Math.max(2, Math.round(th / 7)); // the rolls showing on the folded edge
     return (
       <div
         key={l.key}
@@ -830,9 +844,30 @@ function Parcel({
           transform: quick ? `translate3d(var(--dx), var(--y), 0) rotateY(var(--ry))` : undefined,
         } as CSSProperties}
       >
-        <div style={face(w, d, 'rotateX(90deg)', { background: `linear-gradient(90deg, rgba(0,0,0,.14), transparent 12%, transparent 88%, rgba(0,0,0,.16)), ${tex}`, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,.08)' })} />
-        <div style={face(w, th, `translateY(${th / 2}px) translateZ(${d / 2}px)`, { background: `repeating-linear-gradient(180deg, rgba(0,0,0,.22) 0 1px, transparent 1px 3px), linear-gradient(180deg, rgba(255,255,255,.18), rgba(0,0,0,.22)), ${tex}` })} />
-        <div style={face(d, th, `translateY(${th / 2}px) rotateY(90deg) translateZ(${w / 2}px)`, { background: `repeating-linear-gradient(180deg, rgba(0,0,0,.26) 0 1px, transparent 1px 3px), linear-gradient(180deg, rgba(0,0,0,.1), rgba(0,0,0,.34)), ${tex}` })} />
+        {/* The top of the bundle: soft cloth, lit from above, with a few loose wrinkles, and its paper band. */}
+        <div className="pc-bundle-top" style={face(w, d, 'rotateX(90deg)', { background: `${BUNDLE_LIGHT}, ${tex}` })}>
+          <span className="pc-bundle-band" style={{ left: `${24 + (i % 3) * 8}%` }}>
+            <b>PC</b>
+          </span>
+        </div>
+        {/* The folded edge: the cloth doubled back on itself, a rounded roll for each fold. */}
+        <div
+          className="pc-bundle-fold"
+          style={face(w, th, `translateY(${th / 2}px) translateZ(${d / 2 - 1}px)`, {
+            backgroundImage: `${BUNDLE_ROLL}, linear-gradient(90deg, rgba(0,0,0,.18), transparent 8%, transparent 92%, rgba(0,0,0,.2)), ${tex}`,
+            backgroundSize: `100% ${th / folds}px, 100% 100%, auto`,
+          })}
+        >
+          <span className="pc-bundle-band is-edge" style={{ left: `${24 + (i % 3) * 8}%` }} />
+        </div>
+        {/* The side: the cut edges of the layers, softer and darker. */}
+        <div
+          className="pc-bundle-fold"
+          style={face(d, th, `translateY(${th / 2}px) rotateY(90deg) translateZ(${w / 2 - 1}px)`, {
+            backgroundImage: `${BUNDLE_LAYERS}, linear-gradient(180deg, rgba(0,0,0,.12), rgba(0,0,0,.34)), ${tex}`,
+            backgroundSize: `100% ${th / (folds * 2)}px, 100% 100%, auto`,
+          })}
+        />
       </div>
     );
   });
