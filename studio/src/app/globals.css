@@ -892,7 +892,7 @@ button.pc-auth-link:disabled { cursor: default; }
 .pc-printer-light { position: absolute; right: 18px; top: 10px; width: 5px; height: 5px; border-radius: 50%; background: #E9CF8F; box-shadow: 0 0 6px rgba(233, 207, 143, .9); animation: pcBlink .9s ease-in-out 6; }
 .pc-printer.is-done .pc-printer-light { animation: none; background: #7DBF8A; box-shadow: 0 0 6px rgba(125, 191, 138, .9); }
 @keyframes pcBlink { 50% { opacity: .25; } }
-.pc-print-feed { position: relative; margin-top: -6px; will-change: transform, clip-path; }
+.pc-print-feed { position: relative; margin-top: -6px; will-change: transform; }
 /* The note for the mill: a sticky note, taped, pressed onto the slip's foot once it has printed. */
 .pc-sticky {
   position: absolute; right: 12px; bottom: -66px; z-index: 4; display: block; width: 138px; padding: 13px 11px 8px; cursor: text;

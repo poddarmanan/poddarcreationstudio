@@ -1397,3 +1397,30 @@ Once the slip has printed, the way on is pointed out boldly, and all of it goes 
 - **Dock:** the dock carries "✂ Tear the slip to send ↑" in ink and gold. A tap brings the torn
   corner into view and tugs at it. It never tears the slip for the buyer.
 - **Reduced motion:** the finger and the trail are left out, and the words stay still.
+
+### Print speed follows the order
+
+The slip used to feed at one pace (a 6px line every 14ms, with 0.26–0.62s stops), so a long
+order printed for 15 seconds or more. The run is now planned against a budget:
+
+- **Time grows with the slip, ever less so.** The printing takes `min(4250ms, 1300ms + 1.4ms per
+  px of slip)`, after a 450ms lead. So a long order prints faster, not longer, and no slip takes
+  more than 4.7s from its page arriving to its last line.
+- **Stretches and stops.** It prints in 2–9 stretches of slightly varied length, one per ~160px,
+  with the stops about a quarter of the time (120–380ms each).
+- **Ends eased.** Each stretch gathers speed and slows at its ends.
+- **Lines only when slow.** The paper steps a line at a time only while it is slow enough to see
+  the lines. Faster than a line a frame, stepping would jolt, so the paper runs smoothly instead.
+
+It is also cheaper per frame:
+
+- **Clip.** The paper's holder clips it at the slot with an edge that stays put, and the paper
+  itself only moves. Before, a clip on the paper was changed every frame, repainting the whole
+  slip.
+- **Scrolling.** The page's smooth scrolling is set aside once for the whole glide
+  (`holdInstantScroll`), not twice a frame.
+- **Pivot.** The paper's pivot is set only while it sways.
+
+Measured on a phone, from the page arriving to the last line: 1 shade 2.4s, 6 shades 3.6s,
+30 shades 4.8s. The paper moved at most about 56px a frame, with steady changes between frames.
+The headless renderer dropped as many frames with the page idle as while it printed.

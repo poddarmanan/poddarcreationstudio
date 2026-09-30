@@ -101,27 +101,55 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
     printFollow.current = true;
     const printer = printerRef.current;
     const quick = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // The paper is hidden above the slot by its holder, whose edge stays put, and the paper itself
+    // is only moved: nothing is repainted as it feeds, however long the slip.
+    const holder = feed.parentElement;
+    if (holder && !quick) holder.style.clipPath = 'inset(-6px -60px -3000px -60px)';
+    feed.style.clipPath = 'none';
     const full = feed.scrollHeight;
-    const LINE = 6; // the paper advances a line at a time…
-    const LINE_MS = 14; // …a line every 14ms while it runs
-    const LEAD = 650; // the page sets off this long before the first line prints
+    const LINE = 6; // the paper advances a line at a time, while it is slow enough to see it
+    const LEAD = 450; // the page sets off this long before the first line prints
+    const BUDGET = 4700; // no slip takes longer than this, from its page arriving to its last line (with room to spare under five seconds)
+
+    // How long it prints, as the order's length asks: a longer slip takes longer, but ever less so
+    // per line, and never past the budget. So a long order prints faster, not longer.
+    const T = Math.min(BUDGET - LEAD, 1300 + full * 1.4);
+    // In a few stretches with short stops between, the stops about a quarter of the time.
+    const n = Math.max(2, Math.min(9, Math.round(full / 160)));
+    const pause = Math.max(120, Math.min(380, (T * 0.26) / (n - 1)));
+    const runTotal = T - pause * (n - 1);
+    const weights = Array.from({ length: n }, () => 0.75 + Math.random() * 0.5);
+    const sum = weights.reduce((a, w) => a + w, 0);
 
     // The bursts, planned: [start, end, from, to] in ms from now and px of paper.
     const bursts: [number, number, number, number][] = [];
     let at = LEAD;
     let made = 0;
-    while (made < full) {
-      const size = Math.min(full - made, Math.round((70 + Math.random() * 110) / LINE) * LINE);
-      const ms = (size / LINE) * LINE_MS;
+    weights.forEach((w, i) => {
+      const size = i === n - 1 ? full - made : Math.round((full * w) / sum / LINE) * LINE;
+      const ms = (runTotal * size) / full;
       bursts.push([at, at + ms, made, made + size]);
       made += size;
-      at += ms + 260 + Math.random() * 360;
-    }
+      at += ms + pause;
+    });
     const printEnd = bursts[bursts.length - 1][1];
+    // Each stretch gathers speed and slows at its ends rather than starting and stopping dead;
+    // at a pace slow enough to see, the paper steps a line at a time. Faster than a line a frame,
+    // stepping would only jolt, so the paper runs on smoothly.
+    const glide = (u: number) => {
+      const a = 0.18;
+      if (u < a) return (u * u) / (2 * a * (1 - a));
+      if (u > 1 - a) return 1 - ((1 - u) * (1 - u)) / (2 * a * (1 - a));
+      return (u - a / 2) / (1 - a);
+    };
     const printedAt = (t: number) => {
       for (const [t0, t1, p0, p1] of bursts) {
         if (t < t0) return p0;
-        if (t < t1) return p0 + Math.floor(((t - t0) / (t1 - t0)) * (p1 - p0) / LINE) * LINE;
+        if (t < t1) {
+          const x = (p1 - p0) * glide((t - t0) / (t1 - t0));
+          const perFrame = ((p1 - p0) / (t1 - t0)) * 16.7;
+          return p0 + (perFrame < LINE * 1.2 ? Math.floor(x / LINE) * LINE : x);
+        }
       }
       return full;
     };
@@ -153,6 +181,9 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
     const started = performance.now();
     let raf = 0;
     let follow = !quick && Math.abs(s1 - s0) > 4;
+    // The page's smooth scrolling is set aside once for the whole glide, not on every frame (each
+    // change to it restyles the whole page, which is what a frame cannot afford).
+    const release = holdInstantScroll();
     let running = false;
     let shown = -1;
     const letGo = () => {
@@ -172,8 +203,8 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
       if (p >= full) {
         if (shown !== full) {
           shown = full;
-          feed.style.clipPath = 'none';
           feed.style.transform = 'none';
+          if (holder) holder.style.clipPath = '';
         }
       } else {
         shown = p;
@@ -182,10 +213,12 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
         const last = stoppedAt(t);
         const since = last < 0 ? Infinity : t - last;
         const sway = run || since > 1400 ? 0 : 0.32 * Math.exp(-since / 320) * Math.sin((since / 400) * Math.PI * 2);
-        const shake = run ? (Math.random() - 0.5) * 0.5 : 0;
-        feed.style.clipPath = `inset(${full - p}px -40px -40px -40px)`;
-        feed.style.transformOrigin = `50% ${full - p}px`;
-        feed.style.transform = `translate3d(${shake.toFixed(2)}px,${p - full}px,0) rotate(${sway.toFixed(3)}deg)`;
+        const shake = run ? (Math.random() - 0.5) * 0.3 : 0;
+        // It pivots on the slot, which is only worth setting while it sways.
+        if (sway) feed.style.transformOrigin = `50% ${(full - p).toFixed(1)}px`;
+        feed.style.transform = sway
+          ? `translate3d(${shake.toFixed(2)}px,${(p - full).toFixed(2)}px,0) rotate(${sway.toFixed(3)}deg)`
+          : `translate3d(${shake.toFixed(2)}px,${(p - full).toFixed(2)}px,0)`;
       }
       if (run !== running) {
         running = run;
@@ -194,7 +227,7 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
       if (!printFollow.current && follow) letGo();
       // Each frame's step is set outright: the page's own smooth scrolling would restart on every
       // call and lag behind, which is what made this stutter before.
-      if (follow) stepTo(pathAt(t));
+      if (follow) window.scrollTo(0, pathAt(t));
       if (p >= full && !printDone.current) {
         printDone.current = true;
         setPrinted(true);
@@ -203,6 +236,7 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
       raf = requestAnimationFrame(frame);
     };
     const stop = () => {
+      release();
       window.removeEventListener('wheel', letGo);
       window.removeEventListener('touchstart', letGo);
       window.removeEventListener('keydown', letGo);
@@ -217,6 +251,7 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
       cancelAnimationFrame(raf);
       stop();
       printer?.classList.remove('is-running');
+      if (holder) holder.style.clipPath = '';
     };
   }, [phase]);
 
@@ -654,6 +689,26 @@ function stepTo(y: number) {
   jumpTo(y);
 }
 
+/**
+ * Sets the page's smooth scrolling aside while a path is set frame by frame, and returns the way
+ * to put it back (once only). Held by more than one path at a time, it is put back by the last.
+ */
+let instantHolds = 0;
+let instantWas = '';
+function holdInstantScroll() {
+  const h = document.documentElement;
+  if (instantHolds++ === 0) {
+    instantWas = h.style.scrollBehavior;
+    h.style.scrollBehavior = 'auto';
+  }
+  let done = false;
+  return () => {
+    if (done) return;
+    done = true;
+    if (--instantHolds === 0) h.style.scrollBehavior = instantWas;
+  };
+}
+
 /** Glides the page to `to` along an eased path (not the browser's own smooth scroll, which varies), then calls `then`. */
 function glideTo(to: number, then?: () => void) {
   const from = window.scrollY;
@@ -666,12 +721,16 @@ function glideTo(to: number, then?: () => void) {
   }
   const ms = Math.min(900, 380 + Math.abs(dist) * 0.45);
   const start = performance.now();
+  const release = holdInstantScroll();
   const step = (now: number) => {
     const k = Math.min(1, (now - start) / ms);
     const e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
-    stepTo(from + dist * e);
+    window.scrollTo(0, from + dist * e);
     if (k < 1) requestAnimationFrame(step);
-    else then?.();
+    else {
+      release();
+      then?.();
+    }
   };
   requestAnimationFrame(step);
 }
