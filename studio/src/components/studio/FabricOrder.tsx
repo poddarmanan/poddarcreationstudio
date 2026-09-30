@@ -573,7 +573,7 @@ function TearLine({ label, aria, runRef, onDone, ready }: { label: string; aria:
   const flapRef = useRef<HTMLButtonElement | null>(null);
   const labelRef = useRef<HTMLSpanElement | null>(null);
   const [w, setW] = useState(0);
-  const START = 36; // the chunk torn already
+  const START = 52; // the chunk torn already
   const at = useRef(START);
   const drag = useRef<{ x: number; from: number; moved: boolean } | null>(null);
   const busy = useRef(false);
@@ -589,7 +589,7 @@ function TearLine({ label, aria, runRef, onDone, ready }: { label: string; aria:
   const paint = (x: number, lift = 0) => {
     at.current = x;
     gapRef.current?.setAttribute('width', String(x));
-    if (flapRef.current) flapRef.current.style.transform = `translateX(${x - 22}px)`;
+    if (flapRef.current) flapRef.current.style.transform = `translateX(${x - 30}px)`;
     flapRef.current?.style.setProperty('--lift', `${lift}deg`);
     if (labelRef.current) labelRef.current.style.opacity = String(x > w * 0.55 ? 0 : 1);
   };
@@ -693,7 +693,9 @@ function TearLine({ label, aria, runRef, onDone, ready }: { label: string; aria:
           }
         }}
       >
+        <span aria-hidden className="pc-tearline-halo" />
         <span aria-hidden className="pc-tearline-corner" />
+        <span aria-hidden className="pc-tearline-pull">›››</span>
       </button>
     </div>
   );

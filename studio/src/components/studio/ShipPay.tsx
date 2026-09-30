@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useEffect, useId, useState, type ChangeEvent, type FormEvent } from 'react';
 import { createPortal } from 'react-dom';
 import type { Address, AddressInput, Studio } from './state';
 import { FONT_DISPLAY } from './helpers';
@@ -403,23 +403,87 @@ function PayRow({ studio, kind, on, disabled, onPick }: { studio: Studio; kind: 
 }
 
 /**
- * The way from the mill to the chosen address: two pins joined by an arc that draws itself, and
- * a parcel that travels along it once. Remounted for each address, so choosing one plays it again.
+ * The way from the mill to the chosen address, as a small illustrated map: the Surat mill on the
+ * left, smoke rising from its chimney; the buyer's place on the right; and a road between, laid
+ * down as it is revealed. A delivery truck in the house's colours, a gold-edged cargo box and an
+ * ink cab, drives the road: it pulls away, its wheels turning and dust puffing behind it, bobs
+ * along, and pulls up at the door with a small settle. A pin drops onto the place with a ripple,
+ * and its name comes up. Remounted for each address, so choosing one sends the truck again.
  */
 function RouteArt({ from, to }: { from: string; to: string }) {
-  const path = 'M 30 46 C 110 -6, 250 -6, 330 46';
+  const id = useId().replace(/:/g, '');
+  const road = 'M 62 101 C 122 101 132 60 182 64 C 232 68 242 101 298 101';
   return (
     <div className="pc-route" aria-hidden>
-      <svg viewBox="0 0 360 64" preserveAspectRatio="xMidYMid meet">
-        <path d={path} className="pc-route-base" />
-        <path d={path} className="pc-route-line" pathLength={1} />
-        <g className="pc-route-parcel">
-          <animateMotion dur="1.8s" begin="0.25s" fill="freeze" keyPoints="0;1" keyTimes="0;1" calcMode="spline" keySplines=".45 .05 .3 1" path={path} rotate="auto" />
-          <rect x="-7" y="-6" width="14" height="11" rx="1.5" fill="#C9A45A" stroke="#8A6D45" strokeWidth=".8" />
-          <path d="M-7 -1.5h14M0 -6v11" stroke="#8A6D45" strokeWidth=".7" />
+      <svg viewBox="0 0 360 132" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <pattern id={`${id}-grid`} width="12" height="12" patternUnits="userSpaceOnUse">
+            <circle cx="1" cy="1" r=".8" fill="rgba(138,109,69,.22)" />
+          </pattern>
+          <mask id={`${id}-reveal`} maskUnits="userSpaceOnUse" x="0" y="0" width="360" height="132">
+            <path d={road} className="pc-route-reveal" pathLength={1} />
+          </mask>
+        </defs>
+        {/* The map: a dotted ground and a couple of contours. */}
+        <rect x="0" y="0" width="360" height="132" fill={`url(#${id}-grid)`} />
+        <path d="M 0 40 C 60 26 110 48 170 34 S 290 20 360 36" className="pc-route-contour" />
+        <path d="M 0 124 C 70 114 130 128 200 118 S 300 110 360 122" className="pc-route-contour" />
+
+        {/* The road, laid down as it is revealed: its edge, its surface and the centre dashes. */}
+        <g mask={`url(#${id}-reveal)`}>
+          <path d={road} className="pc-road-edge" />
+          <path d={road} className="pc-road" />
+          <path d={road} className="pc-road-dash" />
         </g>
-        <circle cx="30" cy="46" r="5" className="pc-route-pin" />
-        <circle cx="330" cy="46" r="5" className="pc-route-pin is-to" />
+
+        {/* The mill: a sawtooth roof, a row of windows, and a chimney with smoke. */}
+        <g className="pc-mill" transform="translate(14 72)">
+          <path d="M0 34 V14 L10 6 V14 L20 6 V14 L30 6 V14 L40 6 V34 Z" className="pc-mill-body" />
+          <rect x="30" y="-6" width="6" height="14" className="pc-mill-body" />
+          {[5, 15, 25].map((x) => (
+            <rect key={x} x={x} y="20" width="6" height="6" rx="1" className="pc-mill-window" />
+          ))}
+          {[0, 1, 2].map((i) => (
+            <circle key={i} cx="33" cy="-9" r="3.2" className="pc-mill-smoke" style={{ animationDelay: `${i * 0.7}s` }} />
+          ))}
+        </g>
+
+        {/* The place: a shopfront with an awning and a door, where the pin drops. */}
+        <g className="pc-shop" transform="translate(306 76)">
+          <rect x="0" y="8" width="40" height="26" rx="2" className="pc-shop-body" />
+          <path d="M-3 8 H43 L39 0 H1 Z" className="pc-shop-awning" />
+          <rect x="15" y="17" width="10" height="17" rx="5" className="pc-shop-door" />
+          <g className="pc-shop-pin">
+            <path d="M20 -26 c-6.5 0-11 4.6-11 10.5 0 7.6 11 18 11 18 s11-10.4 11-18 c0-5.9-4.5-10.5-11-10.5 z" className="pc-pin-body" />
+            <circle cx="20" cy="-15.5" r="3.8" fill="#FFFDF8" />
+          </g>
+          <ellipse cx="20" cy="35" rx="18" ry="4" className="pc-shop-ripple" />
+        </g>
+
+        {/* The truck, driving the road. */}
+        <g opacity="0">
+          <set attributeName="opacity" to="1" begin="0.55s" fill="freeze" />
+          <animateMotion dur="2.6s" begin="0.55s" fill="freeze" keyPoints="0;1" keyTimes="0;1" calcMode="spline" keySplines=".55 0 .35 1" path={road} rotate="auto" />
+          <g className="pc-truck" transform="scale(1.35)">
+            {[0, 1, 2].map((i) => (
+              <circle key={i} cx="-15" cy="-2" r="3" className="pc-truck-dust" style={{ animationDelay: `${0.7 + i * 0.28}s` }} />
+            ))}
+            <g className="pc-truck-body">
+              <rect x="-14" y="-17" width="22" height="13" rx="1.6" className="pc-truck-box" />
+              <text x="-3" y="-8" textAnchor="middle" className="pc-truck-mark">PC</text>
+              <path d="M8 -13 H14.5 L18.5 -8 V-4 H8 Z" className="pc-truck-cab" />
+              <path d="M10 -11.8 H14 L16.6 -8.4 H10 Z" className="pc-truck-window" />
+            </g>
+            {[-8, 12].map((x) => (
+              <g key={x} transform={`translate(${x} -3)`}>
+                <g className="pc-truck-wheel">
+                  <circle r="3.4" className="pc-wheel-tyre" />
+                  <path d="M-2.2 0 H2.2 M0 -2.2 V2.2" className="pc-wheel-spoke" />
+                </g>
+              </g>
+            ))}
+          </g>
+        </g>
       </svg>
       <div className="pc-route-labels">
         <span>{from}</span>

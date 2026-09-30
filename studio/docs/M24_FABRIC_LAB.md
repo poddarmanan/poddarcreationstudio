@@ -578,8 +578,10 @@ total metres, the shades (or how many are not set) and the value, and an ink "Ch
   and a folded corner. It is pressed onto the slip's torn foot when printing finishes.
 - **Tear it off along the dots.** Two rows of perforation run in zig-zag under the printer's
   slot, with "Tear along the dots" at their right end. The first chunk of the strip between them
-  is torn already, its loose corner lifted and shadowed; once printed, the corner nudges a few
-  times.
+  is torn already. Its loose corner is a large torn scrap (about 44 × 36px), lifted, shadowed,
+  with its gold-tinted underside showing. It sits in a generous 72 × 64px grab area, so it is
+  easy to take hold of with a thumb. Once printed, the corner nudges, a soft gold halo pulses
+  behind it, and chevrons (›››) run out to its right to show the way to pull.
   - Draw the corner along and the paper parts between the rows behind it, a ragged gap with a
     shaded edge. Like paper, it does not mend: let go and it stays torn as far as it went, to be
     carried on later.
@@ -634,9 +636,17 @@ a ring that closes around a lock, then a green tick, and says plainly that no pa
 gateway.
 
 **Motion on the dispatch page, each suited to its section:**
-- **Ship to:** a route from "Surat mill" to the chosen city. The arc draws itself, a small kraft
-  parcel travels along it, and the destination pin pops. It plays again whenever another address
-  is chosen, as that card catches a passing light. Address cards rise in turn.
+- **Ship to:** a small illustrated map. The Surat mill (sawtooth roof, lit windows, smoke rising
+  from its chimney) is on the left, the buyer's place (a shopfront with an awning) on the right,
+  and a road between. The road is laid down as it is revealed, with an edge, a surface and white
+  centre dashes, over a dotted ground with contour lines.
+  - A delivery truck in the house's colours (a gold-edged "PC" cargo box and an ink cab) pulls
+    away from the mill with its wheels turning and dust puffing behind. It bobs along the road,
+    following its curves.
+  - It pulls up at the door with a small settle. A pin drops onto the place with a gold ripple,
+    and the city's name comes up.
+  - It all plays again whenever another address is chosen, as that card catches a passing light.
+    Address cards rise in turn.
 - **When:** the weeks ahead as a ruled bar that fills in gold to the span chosen, with its marker
   gliding there and "Needed by 29 Oct" updating.
 - **Payment:** each icon moves as its method does when chosen:
