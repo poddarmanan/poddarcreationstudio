@@ -1255,3 +1255,37 @@ page. With no orders there is a dark medallion, "No orders yet", the ink button 
 Showroom" and, off the preview and signed out, "Sign in to see your orders".
 
 The ⓘ has a tour for the page: the head, finding an order, a card, the stops and the call.
+
+## Signed in: the details, sealed
+
+The sign-in page used to end with the closed volume opening and its light spilling out, and then
+the page cut to what came next. Now, when a buyer signs in, creates an account, confirms a WhatsApp
+code or saves a number, the form's sheet closes and a moment of its own plays
+(`SealMoment.tsx`, about four seconds):
+1. An ivory veil rises, headed "Securing your details".
+2. The details this way in asked for stand as slips, each named, as typed:
+   - creating an account: full name, company, WhatsApp number, email and password;
+   - signing in: email and password;
+   - WhatsApp: the number and the one-time code (and the name, for a new account);
+   - adding a number: the number.
+
+   A password or code shows as dots, with a small lock by its name.
+3. One after another, each slip's characters turn into sealed text, left to right, the rest
+   flickering. A password becomes a bcrypt-style hash (`$2b$10$…`). The sealed text shown is an
+   illustration, stable for the same value; it is not what is stored.
+4. The slips travel down into a brass padlock marked "PC", one after another, as its dial turns.
+   The space they stood in closes, so the lock settles into the middle.
+5. The shackle drops shut with a ring of light, and "Sealed and kept safe" appears with what is true
+   of how the details are kept:
+   - "Sent to us over an encrypted connection." The site is HTTPS-only in production, under
+     `Strict-Transport-Security`.
+   - When a password was given: "Your password is kept only as a one-way hash: no one can read
+     it, not even us." Passwords are bcrypt-hashed on registration, reset and change, and never
+     stored as written.
+6. The page moves on underneath (back to where the buyer was, or on to the order), and the veil
+   lifts over it like a curtain.
+
+The sign-in page is removed the moment the buyer is handed on. So the curtain that lifts is a copy
+of the moment, left in the page on its own with every animation in it stopped, and removed once
+it is up. Google sign-in leaves for Google's page, so it has no such moment. With reduced motion
+the buyer is handed on at once.

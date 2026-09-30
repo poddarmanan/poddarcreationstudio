@@ -2191,3 +2191,59 @@ button.pc-auth-link:disabled { cursor: default; }
 .pc-track-empty-title { margin-top: 18px; font-family: var(--font-display), 'Cormorant Garamond', serif; font-size: 26px; color: #1C1917; }
 .pc-track-empty p { max-width: 340px; margin: 8px auto 0; font-size: 13.5px; line-height: 1.6; color: rgba(28, 25, 23, .6); }
 @media (prefers-reduced-motion: reduce) { .pc-track-card, .pc-track-body, .pc-track-line::after, .pc-track-line li.is-here .pc-track-dot { animation: none; } }
+
+/* ── Signed in: the details seen going into the house, sealed ─────────────────────────────── */
+.pc-seal { position: fixed; inset: 0; z-index: 170; display: grid; place-items: center; }
+.pc-seal-veil { position: absolute; inset: 0; background: radial-gradient(70% 55% at 50% 42%, #FFFDF7, #F4ECDC 70%, #E9DCC3); animation: pcCkoVeil .38s ease both; }
+.pc-seal-stage { position: relative; display: flex; flex-direction: column; align-items: center; width: min(88vw, 400px); }
+.pc-seal-eyebrow { display: flex; align-items: center; gap: 8px; font-size: 10px; letter-spacing: .4em; padding-left: .4em; text-transform: uppercase; color: #8A6D45; animation: pcRiseIn .6s .1s ease both; }
+.pc-seal-slips { display: flex; flex-direction: column; gap: 8px; width: 100%; margin-top: 18px; }
+.pc-seal-slip {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 16px; border-radius: 14px;
+  background: linear-gradient(180deg, #FFFEFA, #FAF4E8); border: 1px solid rgba(184, 144, 74, .32); box-shadow: 0 10px 22px -16px rgba(40, 24, 8, .45);
+  animation: pcRiseIn .5s ease both; animation-delay: calc(.2s + var(--i) * .08s);
+}
+.pc-seal-label { flex: none; display: inline-flex; align-items: center; gap: 5px; font-size: 9px; letter-spacing: .2em; text-transform: uppercase; color: #8A6D45; }
+.pc-seal-text {
+  min-width: 0; overflow: hidden; text-overflow: clip; white-space: nowrap; text-align: right;
+  font-family: var(--font-body), 'Jost', sans-serif; font-size: 13.5px; letter-spacing: .02em; color: #1C1917; font-variant-numeric: tabular-nums;
+  transition: color .4s ease, letter-spacing .4s ease;
+}
+.pc-seal.is-seal .pc-seal-text, .pc-seal.is-send .pc-seal-text, .pc-seal.is-shut .pc-seal-text, .pc-seal.is-out .pc-seal-text { color: #9C7630; letter-spacing: .06em; font-size: 12px; }
+/* Into the lock, one after another. */
+.pc-seal.is-send .pc-seal-slip, .pc-seal.is-shut .pc-seal-slip { animation: none; }
+/* The copy left to lift away: nothing in it plays again. */
+.pc-seal.is-copy, .pc-seal.is-copy * { animation: none !important; }
+.pc-seal.is-send .pc-seal-slip, .pc-seal.is-shut .pc-seal-slip, .pc-seal.is-out .pc-seal-slip {
+  transform: translateY(calc((var(--n) - var(--i)) * 52px + 50px)) scale(.12); opacity: 0;
+  transition: transform .55s cubic-bezier(.55, 0, .35, 1), opacity .45s ease .12s; transition-delay: calc(var(--i) * 90ms);
+}
+/* The padlock: its shackle stands open until everything is in, then drops shut. */
+.pc-seal-lock { position: relative; width: 72px; height: 88px; margin-top: 30px; animation: pcRiseIn .6s .4s ease both; }
+.pc-seal-shackle {
+  position: absolute; left: 50%; top: 0; width: 44px; height: 42px; margin-left: -22px; border: 7px solid #B8904A; border-bottom: none; border-radius: 24px 24px 0 0;
+  box-shadow: inset 0 2px 0 rgba(255, 240, 200, .5); transform: translateY(-12px) translateX(6px) rotate(10deg); transform-origin: 90% 100%;
+}
+.pc-seal.is-shut .pc-seal-shackle, .pc-seal.is-out .pc-seal-shackle { transform: none; transition: transform .32s cubic-bezier(.3, 1.6, .5, 1); }
+.pc-seal-body {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 56px; border-radius: 12px; display: grid; place-items: center;
+  background: radial-gradient(circle at 32% 25%, #FFF4CE, #D9B563 45%, #8A6524); box-shadow: inset 0 0 0 1px rgba(90, 62, 20, .5), inset 0 -6px 10px rgba(90, 62, 20, .25), 0 16px 26px -12px rgba(60, 40, 10, .55);
+}
+.pc-seal-body b { position: relative; font-family: var(--font-display), 'Cormorant Garamond', serif; font-style: italic; font-weight: 500; font-size: 20px; color: #3A2A0C; }
+.pc-seal-dial { position: absolute; width: 40px; height: 40px; border-radius: 50%; border: 1px dashed rgba(58, 42, 12, .45); }
+.pc-seal.is-send .pc-seal-dial { animation: pcCkoSpin 1.2s cubic-bezier(.33, 1, .68, 1) both; }
+.pc-seal-ring { position: absolute; left: 50%; bottom: 28px; width: 72px; height: 72px; margin: 0 0 -36px -36px; border-radius: 50%; border: 1.5px solid #D8B670; opacity: 0; }
+.pc-seal.is-shut .pc-seal-ring { animation: pcCkoRing .9s ease-out both; }
+.pc-seal-done { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: 20px; text-align: center; opacity: 0; transform: translateY(8px); }
+.pc-seal-done b { font-family: var(--font-display), 'Cormorant Garamond', serif; font-weight: 500; font-size: 26px; color: #1C1917; }
+.pc-seal-done span { max-width: 320px; font-size: 12.5px; line-height: 1.55; color: rgba(28, 25, 23, .6); }
+.pc-seal.is-shut .pc-seal-done, .pc-seal.is-out .pc-seal-done { opacity: 1; transform: none; transition: opacity .45s .15s ease, transform .45s .15s ease; }
+/* Handed on: the veil lifts like a curtain. */
+.pc-seal.is-out { pointer-events: none; }
+.pc-seal.is-out .pc-seal-veil { transform: translateY(-104%); transition: transform .7s cubic-bezier(.7, 0, .2, 1); }
+.pc-seal.is-out .pc-seal-stage { transform: translateY(-60vh); opacity: 0; transition: transform .7s cubic-bezier(.7, 0, .2, 1), opacity .4s ease; }
+@media (prefers-reduced-motion: reduce) { .pc-seal { display: none; } }
+/* Once the slips are in the lock, the space they stood in closes, and the lock and its words
+   settle into the middle as the shackle shuts. */
+.pc-seal-slips { max-height: 520px; }
+.pc-seal.is-shut .pc-seal-slips, .pc-seal.is-out .pc-seal-slips, .pc-seal.is-copy .pc-seal-slips { max-height: 0; margin-top: 0; transition: max-height .6s cubic-bezier(.4, 0, .2, 1), margin-top .6s ease; }

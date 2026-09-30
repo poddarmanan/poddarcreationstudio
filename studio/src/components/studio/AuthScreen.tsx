@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import type { Studio } from './state';
 import { FONT_DISPLAY, fabricTex } from './helpers';
 import { Binding, CoverFace, MARBLE, Room } from './SwatchBook';
+import { SealMoment, type SealEntry } from './SealMoment';
 
 /** Why the page was opened: from the menu, to order the swatch book, or for the one detail an order still needs. */
 export type AuthIntent = 'account' | 'order' | 'whatsapp';
@@ -121,14 +122,34 @@ export function AuthScreen({
     );
   };
 
-  /** The sheet goes, the page glides back to the book, the book opens and its light spills out, and the page hands on. */
+  /**
+   * Signed in: the sheet goes, and the details just given are seen going into the house, sealed
+   * (`SealMoment`); then the page hands on. What is shown is what this way in asked for.
+   */
+  const [seal, setSeal] = useState<{ entries: SealEntry[]; result: Omit<Result, 'from'> } | null>(null);
   const finish = (result: Omit<Result, 'from'>) => {
+    const entries: SealEntry[] = [];
+    const add = (label: string, value: string, secret?: boolean, hash?: boolean) => value.trim() && entries.push({ label, value: value.trim(), secret, hash });
+    if (sheet === 'create') {
+      add(t.fFullName, f.name);
+      add(t.fCompanyOnly, f.company);
+      add(t.fWhatsapp, f.whatsapp);
+      add(t.fEmail, f.email);
+      add(t.fPassword, f.password, true, true);
+    } else if (sheet === 'signin') {
+      add(t.fEmail, f.email);
+      add(t.fPassword, f.password, true, true);
+    } else if (sheet === 'number') {
+      add(t.fWhatsapp, f.whatsapp);
+    } else if (sheet === 'wa') {
+      if (f.name.trim()) add(t.fFullName, f.name);
+      add(t.fWhatsapp, wa.to || f.whatsapp);
+      add(t.sealCode ?? 'One-time code', wa.code, true);
+    }
     closeSheet(() => {
-      const far = window.scrollY > 40;
-      if (far) window.scrollTo({ top: 0, behavior: 'smooth' });
-      const wait = far ? 450 : 0;
-      timers.current.push(window.setTimeout(() => setLeaving('open'), wait));
-      timers.current.push(window.setTimeout(() => onDone({ ...result, from: bookRef.current?.getBoundingClientRect() }), wait + 1250));
+      if (window.scrollY > 40) window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (!entries.length) return onDone({ ...result, from: bookRef.current?.getBoundingClientRect() });
+      setSeal({ entries, result });
     });
   };
   const close = () => {
@@ -325,6 +346,18 @@ export function AuthScreen({
 
   return (
     <div className="pc-auth" style={{ animation: leaving === 'close' ? 'pcAuthOut .38s ease forwards' : undefined }}>
+      {seal && (
+        <SealMoment
+          entries={seal.entries}
+          title={t.sealTitle ?? 'Securing your details'}
+          sealed={t.sealDone ?? 'Sealed and kept safe'}
+          lines={[
+            t.sealLine1 ?? 'Sent to us over an encrypted connection.',
+            ...(seal.entries.some((e) => e.hash) ? [t.sealLine2 ?? 'Your password is kept only as a one-way hash: no one can read it, not even us.'] : []),
+          ]}
+          onDone={() => onDone({ ...seal.result, from: bookRef.current?.getBoundingClientRect() })}
+        />
+      )}
       <Room center>
         {/* The warm light over the reading room: it comes up, then breathes; gold dust turns in it. */}
         <div aria-hidden className="pc-auth-beam" />
