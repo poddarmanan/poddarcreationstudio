@@ -2545,3 +2545,66 @@ button.pc-auth-link:disabled { cursor: default; }
   html.pc-kb-open .pc-sheet { padding-bottom: 18px; }
 }
 html.pc-kb-open .pc-bottomnav, html.pc-kb-open .pc-order-dock { visibility: hidden; opacity: 0; pointer-events: none; }
+
+/* ── Tear the slip: said boldly ─────────────────────────────────────────────
+   Once the slip has printed, an ink tag under the torn corner says what to do and points up at
+   it; a finger presses the corner and pulls it along the dots, again and again, drawing a gold
+   trail where it tears; the dock carries the same words. The finger stops once a hand takes the
+   corner, and all of it goes as the slip tears. */
+.pc-tear-callout {
+  position: absolute; left: 12px; top: 46px; z-index: 7; display: inline-flex; align-items: center; gap: 7px; padding: 9px 14px 9px 12px; border-radius: 999px;
+  background: linear-gradient(135deg, #2A231D, #1C1917); color: #F3DFA6; white-space: nowrap; pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(216, 182, 112, .45), 0 14px 26px -10px rgba(28, 25, 23, .55);
+  font-family: var(--font-body), 'Jost', sans-serif; font-size: 11px; letter-spacing: .06em; opacity: 0; transform: translateY(8px) scale(.96);
+  transition: opacity .35s ease, transform .5s cubic-bezier(.2, 1.3, .4, 1);
+}
+.pc-tear-callout::before { content: ''; position: absolute; left: 30px; top: -6px; width: 12px; height: 12px; background: #2A231D; transform: rotate(45deg); border-radius: 2px; box-shadow: inset 1px 1px 0 rgba(216, 182, 112, .45); }
+.pc-tear-callout b { font-weight: 600; font-size: 12.5px; letter-spacing: .16em; text-transform: uppercase; color: #FFF3CC; }
+.pc-tear-callout span { color: rgba(243, 223, 166, .8); }
+.pc-tear-callout i { font-style: normal; font-size: 14px; color: #E9CF8F; animation: pcTearArrow 1.3s ease-in-out infinite; }
+.pc-tear-callout svg { color: #E9CF8F; flex: none; }
+@keyframes pcTearArrow { 50% { transform: translateX(4px); } }
+.pc-tearline.is-ready .pc-tear-callout { opacity: 1; transform: none; transition-delay: .4s; animation: pcTearBob 2.6s 1.2s ease-in-out infinite; }
+@keyframes pcTearBob { 0%, 100% { translate: 0 0; } 50% { translate: 0 -3px; } }
+
+.pc-tear-finger { position: absolute; left: 37px; top: 9px; z-index: 8; width: 34px; height: 34px; pointer-events: none; opacity: 0; filter: drop-shadow(0 4px 5px rgba(28, 25, 23, .35)); }
+.pc-tear-trail {
+  position: absolute; left: 52px; top: 13px; z-index: 5; width: var(--run, 120px); height: 4px; border-radius: 2px; pointer-events: none; opacity: 0;
+  background: linear-gradient(90deg, #B8904A, #F6E3A8 70%, rgba(246, 227, 168, 0)); transform-origin: left center; transform: scaleX(0);
+}
+.pc-tearline.is-ready:not(.is-touched) .pc-tear-finger { animation: pcTearFinger 2.8s .9s cubic-bezier(.45, .05, .35, 1) infinite; }
+.pc-tearline.is-ready:not(.is-touched) .pc-tear-trail { animation: pcTearTrail 2.8s .9s cubic-bezier(.45, .05, .35, 1) infinite; }
+@keyframes pcTearFinger {
+  0% { opacity: 0; transform: translate(-6px, 16px) scale(1.12); }
+  12% { opacity: 1; transform: translate(0, 0) scale(1); }
+  20% { opacity: 1; transform: translate(0, 1px) scale(.9); }
+  62% { opacity: 1; transform: translate(var(--run, 120px), 1px) scale(.9); }
+  74%, 100% { opacity: 0; transform: translate(calc(var(--run, 120px) + 8px), -8px) scale(1); }
+}
+@keyframes pcTearTrail {
+  0%, 20% { opacity: 0; transform: scaleX(0); }
+  22% { opacity: 1; }
+  62% { opacity: 1; transform: scaleX(1); }
+  80%, 100% { opacity: 0; transform: scaleX(1); }
+}
+/* A tap on the dock's words tugs at the corner. */
+.pc-tearline.is-nudge .pc-tearline-corner { animation: pcCornerHint .8s ease-in-out 2; }
+.pc-tearline.is-nudge .pc-tear-callout { animation: pcTearPop .5s cubic-bezier(.2, 1.4, .4, 1) 2; }
+@keyframes pcTearPop { 50% { transform: scale(1.07); } }
+.pc-print.is-tearing .pc-tear-callout, .pc-print.is-tearing .pc-tear-finger, .pc-print.is-tearing .pc-tear-trail { opacity: 0 !important; animation: none; }
+
+.pc-dock-tear {
+  position: relative; overflow: hidden; flex: 1 0 100%; display: flex; align-items: center; justify-content: center; gap: 10px; margin: -2px 0 10px; padding: 12px 16px;
+  border: none; border-radius: 14px; cursor: pointer; background: linear-gradient(135deg, #2A231D, #1C1917); color: #F3DFA6;
+  box-shadow: inset 0 0 0 1px rgba(216, 182, 112, .45); font-family: var(--font-body), 'Jost', sans-serif; font-size: 11.5px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase;
+  animation: pcRiseIn .5s ease both;
+}
+.pc-dock-tear::after { content: ''; position: absolute; top: 0; bottom: 0; left: -40%; width: 30%; background: linear-gradient(90deg, transparent, rgba(255, 243, 204, .28), transparent); transform: skewX(-18deg); animation: pcDockShine 2.8s 1s ease-in-out infinite; }
+@keyframes pcDockShine { 0% { left: -40%; } 55%, 100% { left: 130%; } }
+.pc-dock-tear i { font-style: normal; font-size: 15px; color: #E9CF8F; animation: pcTearUp 1.3s ease-in-out infinite; }
+@keyframes pcTearUp { 50% { transform: translateY(-3px); } }
+@media (prefers-reduced-motion: reduce) {
+  .pc-tear-finger, .pc-tear-trail { display: none; }
+  .pc-tear-callout, .pc-tear-callout i, .pc-dock-tear, .pc-dock-tear::after, .pc-dock-tear i { animation: none !important; }
+}
+@media (max-width: 420px) { .pc-dock-tear { letter-spacing: .12em; } .pc-tear-callout { font-size: 10.5px; } .pc-tear-callout b { font-size: 12px; } }

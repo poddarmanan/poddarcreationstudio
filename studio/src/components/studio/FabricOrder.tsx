@@ -502,7 +502,7 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
         <div className="pc-print-paper">
           <div ref={feedRef} className="pc-print-feed" style={{ clipPath: 'inset(100% 0 0 0)' }}>
             {/* Two rows of perforation in zig-zag under the slot, a corner torn already: pull it along. */}
-            <TearLine label={t.tearLabel} aria={t.tearAria} runRef={tearRun} onDone={() => tear(false)} ready={printed} />
+            <TearLine label={t.tearLabel} callA={t.tearCallA ?? 'Tear here'} callB={t.tearCallB ?? 'to send your order'} aria={t.tearAria} runRef={tearRun} onDone={() => tear(false)} ready={printed} />
             <div className="pc-slip-wrap">
               <div className="pc-slip">
                 <div className="pc-slip-head">
@@ -604,8 +604,30 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
       </div>
 
       {/* The dock: the running total and the estimate. The way on is the slip itself, torn off by
-          hand along the dots; there is no button for it. */}
-      <div className="pc-order-dock" style={{ animation: 'pcDockIn .9s 1.1s cubic-bezier(.2,.9,.25,1) both' }}>
+          hand along the dots; there is no button that tears it. Once it has printed, the dock says
+          so boldly, and a tap brings the torn corner into view and tugs at it. */}
+      <div className="pc-order-dock" style={{ flexWrap: 'wrap', animation: 'pcDockIn .9s 1.1s cubic-bezier(.2,.9,.25,1) both' }}>
+        {printed && !tearing && (
+          <button
+            className="pc-dock-tear"
+            onClick={() => {
+              const line = document.querySelector<HTMLElement>('.pc-tearline');
+              if (!line) return;
+              line.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' });
+              line.classList.remove('is-nudge');
+              void line.offsetWidth;
+              line.classList.add('is-nudge');
+            }}
+          >
+            <svg aria-hidden viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
+              <circle cx="6" cy="6" r="3" />
+              <circle cx="6" cy="18" r="3" />
+              <path d="M8.1 8.1 20 20M8.1 15.9 20 4" />
+            </svg>
+            <span>{t.tearDock ?? 'Tear the slip to send'}</span>
+            <i aria-hidden>↑</i>
+          </button>
+        )}
         <div style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
           <div key={total} className="pc-dock-total">
             {inr(total)} <span>m</span>
@@ -669,7 +691,9 @@ function zigzag(w: number, y: number, amp: number, half: number, phase = 0) {
  * (`onDone`, which answers false when there is nothing to order, and the strip is whole again).
  * A tap on the corner, Enter or Space tears it along by itself, as does the dock's hint.
  */
-function TearLine({ label, aria, runRef, onDone, ready }: { label: string; aria: string; runRef: { current: (() => void) | null }; onDone: () => boolean; ready: boolean }) {
+function TearLine({ label, callA, callB, aria, runRef, onDone, ready }: { label: string; callA: string; callB: string; aria: string; runRef: { current: (() => void) | null }; onDone: () => boolean; ready: boolean }) {
+  // Once a hand has taken the corner, the finger that shows how stops showing.
+  const [touched, setTouched] = useState(false);
   const box = useRef<HTMLDivElement | null>(null);
   const gapRef = useRef<SVGRectElement | null>(null);
   const flapRef = useRef<HTMLButtonElement | null>(null);
@@ -762,7 +786,7 @@ function TearLine({ label, aria, runRef, onDone, ready }: { label: string; aria:
     })
     .reverse();
   return (
-    <div ref={box} className={`pc-tearline${ready ? ' is-ready' : ''}`}>
+    <div ref={box} className={`pc-tearline${ready ? ' is-ready' : ''}${touched ? ' is-touched' : ''}`} style={{ ['--run' as string]: `${Math.max(80, Math.round(w * 0.5))}px` } as CSSProperties}>
       {w > 0 && (
         <svg aria-hidden width={w} height={30} className="pc-tearline-art">
           <defs>
@@ -779,6 +803,17 @@ function TearLine({ label, aria, runRef, onDone, ready }: { label: string; aria:
       <span ref={labelRef} aria-hidden className="pc-tearline-label">
         {label}
       </span>
+      {/* The way on, said boldly: an ink tag under the torn corner, pointing up at it. */}
+      <span aria-hidden className="pc-tear-callout">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
+          <circle cx="6" cy="6" r="3" />
+          <circle cx="6" cy="18" r="3" />
+          <path d="M8.1 8.1 20 20M8.1 15.9 20 4" />
+        </svg>
+        <b>{callA}</b>
+        <span>{callB}</span>
+        <i>→</i>
+      </span>
       <button
         ref={flapRef}
         className="pc-tearline-flap"
@@ -786,6 +821,7 @@ function TearLine({ label, aria, runRef, onDone, ready }: { label: string; aria:
         onPointerDown={(e) => {
           if (busy.current || e.button > 0) return;
           e.preventDefault();
+          setTouched(true);
           drag.current = { x: e.clientX, from: at.current, moved: false };
         }}
         onKeyDown={(e) => {
@@ -796,6 +832,14 @@ function TearLine({ label, aria, runRef, onDone, ready }: { label: string; aria:
         }}
       >
         <span aria-hidden className="pc-tearline-halo" />
+        {/* A finger showing how: it presses the corner and pulls it along the dots, over and
+            over, until a hand takes hold; a gold trail marks the way it tears. */}
+        <span aria-hidden className="pc-tear-trail" />
+        <span aria-hidden className="pc-tear-finger">
+          <svg viewBox="0 0 24 24" width="34" height="34">
+            <path d="M9 11.5V4.4a1.6 1.6 0 0 1 3.2 0V10h.3V8.6a1.6 1.6 0 0 1 3.2 0V10h.3V9.2a1.6 1.6 0 0 1 3.2 0v6.2A5.6 5.6 0 0 1 13.6 21h-1.3a5.6 5.6 0 0 1-4.4-2.1l-3.4-4.3a1.45 1.45 0 0 1 2.2-1.9L9 15z" fill="#FFFDF7" stroke="#1C1917" strokeWidth="1.3" strokeLinejoin="round" />
+          </svg>
+        </span>
         <span aria-hidden className="pc-tearline-corner" />
         <span aria-hidden className="pc-tearline-pull">›››</span>
       </button>

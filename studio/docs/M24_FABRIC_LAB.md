@@ -1385,3 +1385,15 @@ it swelled: the seal struck beside it, then jumped when the label came on. Stage
 comes on after. The small PAID mark on the label is now an ink impression: there at once where the
 rubber met the paper, a little heavy, settling as the ink sinks in. It no longer grows out of the
 label like a sticker.
+
+### Tear the slip: said boldly
+
+Once the slip has printed, the way on is pointed out boldly, and all of it goes as the slip tears:
+
+- **Callout:** an ink tag hangs under the torn corner, pointing up at it: "✂ **Tear here** to send
+  your order →".
+- **Finger:** a finger presses the corner and pulls it along the dots, over and over, drawing a
+  gold trail where the paper tears. It stops once a hand takes the corner.
+- **Dock:** the dock carries "✂ Tear the slip to send ↑" in ink and gold. A tap brings the torn
+  corner into view and tugs at it. It never tears the slip for the buyer.
+- **Reduced motion:** the finger and the trail are left out, and the words stay still.
