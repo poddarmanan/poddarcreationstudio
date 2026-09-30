@@ -522,10 +522,11 @@ export function FabricLab({ studio }: { studio: Studio }) {
           </div>
         </div>
 
-        {/* The buyer's column: Add to book, and the shade chart on a desktop. The product details
-            live behind the stage's "i"; a quote is asked for from the Swatch Book; the microscope
-            sits down the page beside the downloads. */}
+        {/* The buyer's column: on a desktop the shade chart first, beside the cloth, then the price
+            and Add to below it. The product details live behind the stage's "i"; a quote is asked
+            for from the Swatch Book; the microscope sits down the page beside the downloads. */}
         <div style={{ padding: 'clamp(24px,3.5vw,44px)', display: 'flex', flexDirection: 'column', gap: 26, justifyContent: 'flex-start', background: '#FAF8F5' }}>
+          <div className="pc-shades-desktop">{shadeChart}</div>
           <PriceLine price={f.price} t={t} />
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: -14 }}>
             {/* The column's one action, dressed as the Entrance's: ink with a fine gold edge, a slow
@@ -559,7 +560,6 @@ export function FabricLab({ studio }: { studio: Studio }) {
               </div>
             )}
           </div>
-          <div className="pc-shades-desktop">{shadeChart}</div>
         </div>
       </div>
 

@@ -50,8 +50,9 @@ details — name, the shade on the stage, weight, width, composition, hand, and 
 a near-opaque card over the stage, so a buyer can read the specifications without scrolling
 away from the garment. A second tap, Escape, or a tap outside closes it.
 
-**The buyer's column.** To the right of the stage (below it and its shade chart on a phone): the
-price line, then Add to book, then the shade chart on a desktop. The price line sits between two
+**The buyer's column.** To the right of the stage (below it and its shade chart on a phone). On a
+desktop the shade chart comes first, at the top of the column beside the cloth, and the price line
+and Add to sit below it, so choosing a shade and seeing it on the cloth come before the price. The price line sits between two
 hairlines (the upper one gold): "Price" in gold small caps over the price per metre in the display
 serif — one price for every customer, signed in or not, as the owner is standardising pricing —
 and opposite, "In stock" with a softly pulsing dot and "Mill fresh". The product details under the
