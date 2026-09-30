@@ -3,12 +3,13 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { Studio, Pin } from './state';
 import type { FabricRow, ColourRow } from '@/lib/types';
-import { FONT_DISPLAY, FONT_BODY, fabricTex } from './helpers';
+import { FONT_DISPLAY, fabricTex } from './helpers';
 import { BookCeremony, type OrderState } from './BookCeremony';
 import { AuthScreen } from './AuthScreen';
 import { FabricOrder } from './FabricOrder';
 import { confettiBurst } from './confetti';
 import { oklchToRgb, rgbToHex } from '@/lib/colour-science';
+import { FillLine } from './brand';
 
 /** A shade on a sheet; in the cart it carries its metres. */
 export type Cutting = { pin: Pin; colour: ColourRow; metres?: number };
@@ -144,57 +145,39 @@ export function SwatchBook({ studio }: { studio: Studio }) {
 
   return (
     <Room>
-      <div style={{ textAlign: 'center', userSelect: 'none', WebkitUserSelect: 'none' }}>
-        {/* The title plate: the house above in spaced capitals between hairlines that draw in, the
-            title set large with its last word in italic antique gold, what the book holds beneath,
-            and a printer's rule. Each part rises in turn. */}
-        <div aria-hidden style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14 }}>
-          <span style={{ width: 'clamp(26px,8vw,56px)', height: 1, background: 'linear-gradient(90deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'right', animation: 'pcRuleDraw 1s .15s cubic-bezier(.2,.8,.2,1) both' }} />
-          <span style={{ fontSize: 9.5, letterSpacing: '.5em', paddingLeft: '.5em', textTransform: 'uppercase', color: UMBER, animation: 'pcRiseIn .9s .1s cubic-bezier(.2,.8,.2,1) both' }}>Poddar Creation</span>
-          <span style={{ width: 'clamp(26px,8vw,56px)', height: 1, background: 'linear-gradient(270deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'left', animation: 'pcRuleDraw 1s .15s cubic-bezier(.2,.8,.2,1) both' }} />
+      {/* The title plate, as the Colour Closet's: the name set to fill its line, "Book" in antique
+          gold foil, a small ornament, and what the book holds. */}
+      <header className="pc-closet-head" style={{ userSelect: 'none', WebkitUserSelect: 'none' }}>
+        <FillLine>
+          {t.book.split(' ').slice(0, -1).join(' ')}{' '}
+          <em className="pc-foil-deep" style={{ paddingRight: '.06em', animation: 'pcFoil 2.8s .7s cubic-bezier(.45,.05,.3,1) both' }}>
+            {t.book.split(' ').slice(-1)[0]}
+          </em>
+        </FillLine>
+        <div aria-hidden className="pc-closet-orn">
+          <i />
+          <b />
+          <i />
         </div>
-        <h1 style={{ margin: '14px 0 0', fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(50px,13vw,84px)', lineHeight: 0.98, letterSpacing: '-.012em', color: INK, perspective: 500 }}>
-          {t.book.split(' ').map((w, i, all) => (
-            <span
-              key={i}
-              className={i === all.length - 1 ? 'pc-foil-deep' : undefined}
-              style={{ display: 'inline-block', marginRight: i < all.length - 1 ? '.2em' : 0, fontStyle: i === all.length - 1 ? 'italic' : undefined, paddingRight: i === all.length - 1 ? '.06em' : 0, transformOrigin: '50% 100%', animation: `pcWordIn 1.1s ${0.25 + i * 0.12}s cubic-bezier(.2,.8,.2,1) both${i === all.length - 1 ? ', pcFoil 2.8s .7s cubic-bezier(.45,.05,.3,1) both' : ''}` }}
-            >
-              {w}
-            </span>
-          ))}
-        </h1>
-        <div style={{ marginTop: 10, fontFamily: FONT_DISPLAY, fontSize: 16.5, color: UMBER, fontVariantNumeric: 'lining-nums', animation: 'pcRiseIn .9s .55s cubic-bezier(.2,.8,.2,1) both' }}>
-          {studio.pins.length} {studio.pins.length === 1 ? t.shade : t.shades} · {groups.length} {groups.length === 1 ? t.fabricWordOne : t.fabricWordMany} — {t.boundToOrder}
-        </div>
-        <div aria-hidden style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 16 }}>
-          <span style={{ width: 30, height: 1, background: 'linear-gradient(90deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'right', animation: 'pcRuleDraw 1s .75s cubic-bezier(.2,.8,.2,1) both' }} />
-          <span style={{ width: 6, height: 6, background: 'rgba(168,134,79,.95)', animation: 'pcDiamondIn .8s .65s cubic-bezier(.2,.8,.2,1) both' }} />
-          <span style={{ width: 30, height: 1, background: 'linear-gradient(270deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'left', animation: 'pcRuleDraw 1s .75s cubic-bezier(.2,.8,.2,1) both' }} />
-        </div>
-      </div>
+        <p className="pc-closet-sub">
+          <span>
+            {studio.pins.length} {studio.pins.length === 1 ? t.shade : t.shades} · {groups.length} {groups.length === 1 ? t.fabricWordOne : t.fabricWordMany}
+          </span>
+          <span>{t.looseNote}</span>
+        </p>
+      </header>
 
       <SheetStack studio={studio} groups={groups} />
 
-      <div style={{ marginTop: 26, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, animation: 'rise 1s .5s cubic-bezier(.22,.8,.2,1) both' }}>
-        <Fleuron width={26} color="rgba(138,109,69,.6)" />
-        <p style={{ margin: 0, maxWidth: 320, textAlign: 'center', fontFamily: FONT_DISPLAY, fontSize: 15, lineHeight: 1.45, color: 'rgba(28,25,23,.58)' }}>{t.looseNote}</p>
-      </div>
-
-      {/* The book's actions: order it — every shade in it, across all its fabrics — or see it bound first. */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 20, animation: 'rise 1s .35s cubic-bezier(.22,.8,.2,1) both' }}>
-        <button
-          ref={orderButton}
-          onClick={order}
-          className="pc-book"
-          style={{
-            cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 10, width: 'min(100%, 460px)',
-            borderRadius: 999, padding: '16px 18px', fontFamily: FONT_BODY, fontSize: 12, letterSpacing: '.2em', textTransform: 'uppercase', whiteSpace: 'nowrap',
-            background: 'linear-gradient(135deg, rgba(255,255,255,.72), rgba(250,248,245,.4))', color: INK, border: '1px solid rgba(201,169,110,.5)',
-          }}
-        >
-          <span aria-hidden className="pc-book-star">✦</span>
-          {t.orderBook}
+      {/* The book's actions: order it (every shade in it, across all its fabrics), the one ink
+          button; or see it bound first, a quiet link beneath. */}
+      <div className="pc-book-actions">
+        <button ref={orderButton} onClick={order} className="pc-primary">
+          <span aria-hidden className="pc-primary-star">✦</span>
+          <span>{t.orderBook}</span>
+          <svg aria-hidden width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
         </button>
         <button
           onClick={(e) => {
@@ -203,22 +186,21 @@ export function SwatchBook({ studio }: { studio: Studio }) {
             window.scrollTo(0, 0);
             setPreview(true);
           }}
-          className="pc-auth-ghost"
-          style={{ marginTop: 12, width: 'min(100%, 460px)', gap: 10 }}
+          className="pc-quiet-link"
         >
-          <svg aria-hidden width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round">
+          <svg aria-hidden width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round">
             <path d="M3 5.5c3-1.3 6-1.3 9 .5v13c-3-1.8-6-1.8-9-.5v-13ZM21 5.5c-3-1.3-6-1.3-9 .5v13c3-1.8 6-1.8 9-.5v-13Z" />
           </svg>
           {t.previewBook}
         </button>
         {/* Or skip the swatch book altogether, and order the fabric itself. */}
-        <div className="pc-auth-or" style={{ width: 'min(100%, 460px)', marginTop: 18 }}>
+        <div className="pc-auth-or" style={{ width: 'min(100%, 460px)', marginTop: 22 }}>
           <span />
           {t.orWord}
           <span />
         </div>
         <button
-          className="pc-direct"
+          className="pc-direct is-light"
           style={{ marginTop: 10 }}
           onClick={() => {
             window.scrollTo(0, 0);
@@ -226,10 +208,10 @@ export function SwatchBook({ studio }: { studio: Studio }) {
           }}
         >
           <span aria-hidden className="pc-direct-bolt">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1C1917" strokeWidth="1.5" strokeLinecap="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
               <ellipse cx="7" cy="12" rx="3.2" ry="7" />
               <path d="M7 5h10c1.8 0 3.2 3.1 3.2 7s-1.4 7-3.2 7H7" />
-              <circle cx="7" cy="12" r="1" fill="#1C1917" stroke="none" />
+              <circle cx="7" cy="12" r="1" fill="currentColor" stroke="none" />
             </svg>
           </span>
           <span className="pc-direct-text">
@@ -743,13 +725,24 @@ function SheetFace({ studio, sheet, group, interactive, cart }: { studio: Studio
           </div>
           <div style={{ fontFamily: FONT_DISPLAY, fontSize: 'clamp(26px,6vw,34px)', lineHeight: 1.1, color: INK }}>{group.x.name}</div>
           <div style={{ marginTop: 8, fontSize: 9, letterSpacing: '.22em', textTransform: 'uppercase', color: 'rgba(28,25,23,.5)' }}>{group.x.hand}</div>
-          {/* A die-cut window onto the chapter's first cutting. */}
-          <div
-            style={{
-              width: cart ? 'clamp(46px,12vw,58px)' : 'clamp(58px,16vw,76px)', aspectRatio: '1', borderRadius: '50%', marginTop: cart ? 'clamp(10px,3vw,14px)' : 'clamp(14px,4vw,20px)', background: fabricTex(group.x, group.items[0].colour, 3),
-              boxShadow: 'inset 0 3px 9px rgba(0,0,0,.5), inset 0 0 0 1px rgba(0,0,0,.25), 0 0 0 5px #FAF5EA, 0 0 0 6px rgba(184,144,74,.75)',
-            }}
-          />
+          {/* The chapter's cuttings, fanned like a hand of cards: up to five of its shades, pinked,
+              lit across, each a little turned. */}
+          <div aria-hidden className={`pc-sheet-fan${cart ? ' is-small' : ''}`}>
+            {group.items.slice(0, 5).map(({ colour: c }, k, all) => {
+              const mid = (all.length - 1) / 2;
+              return (
+                <span
+                  key={c.order}
+                  className="pc-pinked"
+                  style={{
+                    background: `linear-gradient(155deg, rgba(255,255,255,.24), transparent 40%, rgba(0,0,0,.16)), ${fabricTex(group.x, c, 3)}`,
+                    zIndex: 10 - Math.round(Math.abs(k - mid)),
+                    transform: `translate(${((k - mid) * 16).toFixed(1)}px, ${(Math.abs(k - mid) * 4).toFixed(1)}px) rotate(${((k - mid) * 9).toFixed(1)}deg)`,
+                  }}
+                />
+              );
+            })}
+          </div>
           {cart ? (
             <>
               {/* In the cart: the price by the metre, what the fabric comes to, and every shade of
@@ -916,27 +909,44 @@ function LooseCutting({
 /** Nothing in the book yet: the closed volume, and the way to the Showroom. */
 function EmptyBook({ studio }: { studio: Studio }) {
   const { t } = studio;
+  const words = t.book.split(' ');
   return (
     <Room center>
-      <Eyebrow>Poddar Creation</Eyebrow>
-      <h1 style={{ margin: '12px 0 0', fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(36px,6vw,62px)', lineHeight: 1.02 }}>{t.book}</h1>
+      <header className="pc-closet-head" style={{ width: '100%' }}>
+        <FillLine>
+          {words.slice(0, -1).join(' ')}{' '}
+          <em className="pc-foil-deep" style={{ paddingRight: '.06em', animation: 'pcFoil 2.8s .7s cubic-bezier(.45,.05,.3,1) both' }}>
+            {words.slice(-1)[0]}
+          </em>
+        </FillLine>
+        <div aria-hidden className="pc-closet-orn">
+          <i />
+          <b />
+          <i />
+        </div>
+        <p className="pc-closet-sub">
+          <span>{t.emptyBoard}</span>
+        </p>
+      </header>
       <div style={{ marginTop: 30 }} />
-      <Binding width="min(80%, 330px)" padded={false}>
+      <Binding width="min(76%, 320px)" padded={false}>
         <div style={{ position: 'absolute', top: 0, bottom: 0, left: 26, right: 0 }}>
           <CoverFace t={t} userName={studio.userName} />
         </div>
       </Binding>
-      <p style={{ margin: '52px 0 0', maxWidth: 360, fontFamily: FONT_DISPLAY, fontSize: 17, color: 'rgba(28,25,23,.6)' }}>{t.emptyBoard}</p>
-      <button
-        onClick={() => studio.go('showroom')}
-        className="pc-book"
-        style={{
-          cursor: 'pointer', marginTop: 18, borderRadius: 999, padding: '14px 26px', fontFamily: FONT_BODY, fontSize: 11.5, letterSpacing: '.2em', textTransform: 'uppercase',
-          background: 'linear-gradient(135deg, rgba(255,255,255,.72), rgba(250,248,245,.4))', color: INK, border: '1px solid rgba(201,169,110,.5)',
-        }}
-      >
-        {t.showroom} →
-      </button>
+      {/* The ways to fill it: the closets of shades, or the hall of fabrics. */}
+      <div className="pc-book-actions" style={{ marginTop: 48 }}>
+        <button onClick={() => studio.go('colours')} className="pc-primary">
+          <span aria-hidden className="pc-primary-star">✦</span>
+          <span>{t.explore}</span>
+          <svg aria-hidden width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
+        </button>
+        <button onClick={() => studio.go('showroom')} className="pc-quiet-link">
+          {t.enter}
+        </button>
+      </div>
     </Room>
   );
 }

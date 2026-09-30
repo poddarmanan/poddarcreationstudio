@@ -1644,9 +1644,9 @@ button.pc-auth-link:disabled { cursor: default; }
 
 /* The page's name: the display serif, "Closet" in gold, over a small ornament; nothing else. */
 .pc-closet-head { text-align: center; }
-.pc-closet-fill { margin: 0; width: 100%; font-family: var(--font-display), 'Cormorant Garamond', serif; font-weight: 500; line-height: .95; letter-spacing: -.01em; color: #1C1917; white-space: nowrap; animation: pcRiseIn .7s ease both; }
-.pc-closet-fill span { display: inline-block; font-size: clamp(40px, 11vw, 150px); }
-.pc-closet-fill em { font-style: italic; font-weight: 400; color: #8A6D45; }
+.pc-fill-title { margin: 0; width: 100%; font-family: var(--font-display), 'Cormorant Garamond', serif; font-weight: 500; line-height: .95; letter-spacing: -.01em; color: #1C1917; white-space: nowrap; animation: pcRiseIn .7s ease both; }
+.pc-fill-title span { display: inline-block; font-size: clamp(40px, 11vw, 150px); }
+.pc-fill-title em { font-style: italic; font-weight: 400; color: #8A6D45; }
 .pc-closet-sub { display: flex; flex-direction: column; align-items: center; max-width: 480px; margin: 12px auto 0; font-size: 13.5px; font-weight: 300; line-height: 1.65; letter-spacing: .02em; color: rgba(28, 25, 23, .6); text-wrap: balance; animation: pcRiseIn .7s .15s ease both; }
 .pc-closet-orn { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 14px 0 0; }
 .pc-closet-orn i { width: 30px; height: 1px; background: linear-gradient(90deg, transparent, rgba(138, 109, 69, .7)); transform-origin: right; animation: pcRuleDraw .9s .3s cubic-bezier(.2, .8, .2, 1) both; }
@@ -1971,3 +1971,40 @@ button.pc-auth-link:disabled { cursor: default; }
   font-family: var(--font-body), 'Jost', sans-serif; font-size: 10.5px; letter-spacing: .24em; text-transform: uppercase; animation: rise 1.1s .7s cubic-bezier(.22, .8, .2, 1) both;
 }
 @media (max-width: 380px) { .pc-hero-eyebrow { letter-spacing: .3em; } }
+
+/* ── The Swatch Book, refined: one ink action, a quiet link, the skip in ivory, and the fabric's
+   title sheet showing a hand of its cuttings. ─────────────────────────────────────────────────── */
+.pc-book-actions { display: flex; flex-direction: column; align-items: center; gap: 14px; margin-top: 30px; animation: rise 1s .35s cubic-bezier(.22, .8, .2, 1) both; }
+.pc-primary {
+  position: relative; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; gap: 12px; width: min(100%, 420px); cursor: pointer;
+  padding: 16px 26px; border-radius: 999px; border: 1px solid #1C1917; background: linear-gradient(180deg, #2A2521, #1C1917); color: #FAF8F5;
+  font-family: var(--font-body), 'Jost', sans-serif; font-size: 11.5px; letter-spacing: .26em; text-transform: uppercase; white-space: nowrap;
+  box-shadow: inset 0 0 0 1px rgba(216, 182, 112, .35), 0 18px 40px -14px rgba(28, 25, 23, .45);
+  transition: transform .5s cubic-bezier(.22, .8, .2, 1), box-shadow .5s ease;
+}
+.pc-primary:hover { transform: translateY(-2px); box-shadow: inset 0 0 0 1px rgba(216, 182, 112, .5), 0 24px 48px -14px rgba(28, 25, 23, .5); }
+.pc-primary:active { transform: scale(.97); transition-duration: .15s; }
+.pc-primary svg { color: #D8B670; transition: transform .4s ease; }
+.pc-primary:hover svg { transform: translateX(3px); }
+.pc-primary::after { content: ''; position: absolute; top: 0; bottom: 0; left: -60%; width: 40%; pointer-events: none; background: linear-gradient(100deg, transparent, rgba(255, 240, 200, .18), transparent); transform: skewX(-18deg); animation: pcShimmerCta 5s 1.6s ease-in-out 2; }
+.pc-primary-star { color: #D8B670; font-size: 12px; }
+.pc-quiet-link {
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer; background: none; border: none; padding: 2px 0 4px; border-bottom: 1px solid rgba(138, 109, 69, .35);
+  font-family: var(--font-body), 'Jost', sans-serif; font-size: 10.5px; letter-spacing: .24em; text-transform: uppercase; color: rgba(28, 25, 23, .62);
+  transition: color .3s ease, border-color .3s ease;
+}
+.pc-quiet-link:hover { color: #1C1917; border-color: #8A6D45; }
+.pc-quiet-link svg { color: #8A6D45; }
+/* Skipping the book: the same card, in ivory edged in gold rather than ink, so the book's own
+   order stays the one dark button. */
+.pc-direct.is-light { background: linear-gradient(180deg, rgba(255, 254, 250, .9), rgba(248, 242, 230, .9)); box-shadow: inset 0 0 0 1px rgba(184, 144, 74, .35), 0 14px 32px -18px rgba(40, 24, 8, .35); color: #1C1917; }
+.pc-direct.is-light .pc-direct-title { color: #1C1917; }
+.pc-direct.is-light .pc-direct-sub { color: #8A6D45; }
+.pc-direct.is-light .pc-direct-bolt { color: #1C1917; }
+.pc-direct.is-light .pc-direct-arrow { color: #8A6D45; border-color: rgba(138, 109, 69, .4); }
+.pc-direct.is-light::after { opacity: .5; }
+/* A chapter's cuttings, fanned on its title sheet. */
+.pc-sheet-fan { position: relative; width: clamp(64px, 17vw, 84px); aspect-ratio: 4 / 5; margin: clamp(16px, 4.4vw, 24px) 0 4px; }
+.pc-sheet-fan.is-small { width: clamp(50px, 13vw, 62px); margin: clamp(10px, 3vw, 14px) 0 2px; }
+.pc-sheet-fan > span { position: absolute; inset: 0; border-radius: 2px; transform-origin: 50% 90%; box-shadow: 0 6px 12px rgba(40, 24, 8, .22), inset 0 0 0 1px rgba(0, 0, 0, .08); }
+@media (prefers-reduced-motion: reduce) { .pc-primary::after { animation: none; } }

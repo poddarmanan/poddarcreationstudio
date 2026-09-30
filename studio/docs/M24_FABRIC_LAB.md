@@ -455,6 +455,29 @@ Every assertion is a claim about behaviour that no type checker can reach:
 
 ## The Swatch Book
 
+**Refined to match the Colour Closet.** The page is headed as the Colour Closet is:
+- "Swatch *Book*" set to fill its line (`FillLine`, now in `brand.tsx` and shared by both
+  pages), "Book" in antique gold foil;
+- a small gold ornament;
+- a two-line subtext: the count ("4 shades · 1 fabric") over "Loose cuttings, for now. They are
+  bound into your book when you order it."
+
+The "Poddar Creation" eyebrow is gone, and so is the separate note under the sheets.
+
+On each fabric's title sheet the single die-cut window is replaced by a hand of the fabric's
+cuttings: up to five of its shades, pinked, lit across and fanned. The Cart's title sheets show the
+same hand, smaller.
+
+The actions are ordered by weight:
+1. "Order swatch book" is the one ink button, edged in gold, with a star and an arrow.
+2. "Preview your book" is a quiet underlined link with a book icon.
+3. After "or", "Skip the swatch book" is the same card as before, in ivory edged in gold rather
+   than ink, so the order stays the one dark button.
+
+**The empty book** is headed the same way. Its subtext is "Add shades from any fabric — build a
+swatch book for your buyer.", set over the leather cover. Its way in is the ink button "Open the
+Colour Closet", with "Enter the Showroom" as the quiet link.
+
 The page is headed "Swatch Book" in the display face, over a gold rule. When there is more than
 one fabric, the fabrics' Roman numerals follow, in the order they sit in the book, with the open
 one underlined in gold; tapping one jumps to that fabric's title sheet. The large fabric heading,

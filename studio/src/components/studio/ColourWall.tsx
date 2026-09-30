@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react';
 import type { Studio } from './state';
 import type { ColourRow, FabricRow } from '@/lib/types';
 import { fabricTex, spectrum } from './helpers';
+import { FillLine } from './brand';
 
 /** A shade in a closet, with where it comes from. */
 type Shade = { key: string; c: ColourRow; x: FabricRow; j: number };
@@ -711,34 +712,5 @@ function Rod({
         ))}
       </div>
     </div>
-  );
-}
-
-/**
- * A headline set to fill its line: measured at a reference size, then sized so its one line runs
- * the width of the page (never above 160px), and measured again whenever the page is resized.
- */
-function FillLine({ children }: { children: ReactNode }) {
-  const box = useRef<HTMLHeadingElement | null>(null);
-  const line = useRef<HTMLSpanElement | null>(null);
-  useLayoutEffect(() => {
-    const h = box.current;
-    const l = line.current;
-    if (!h || !l) return;
-    const fit = () => {
-      l.style.fontSize = '100px';
-      const w = l.getBoundingClientRect().width;
-      if (w > 0) l.style.fontSize = `${Math.min(160, (100 * h.clientWidth) / w) - 0.5}px`;
-    };
-    fit();
-    const ro = new ResizeObserver(fit);
-    ro.observe(h);
-    document.fonts?.ready.then(fit).catch(() => {});
-    return () => ro.disconnect();
-  }, []);
-  return (
-    <h1 ref={box} className="pc-closet-fill">
-      <span ref={line}>{children}</span>
-    </h1>
   );
 }
