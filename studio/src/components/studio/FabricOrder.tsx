@@ -73,15 +73,16 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
   const [dest, setDest] = useState<{ name: string; city: string } | null>(null);
   const [warn, setWarn] = useState(0);
 
-  // The order slip prints as a bill machine does: a stretch prints line by line, the printer stops,
-  // then it carries on, until the slip is out. The whole run is planned when printing starts: the
+  // The order slip prints as a bill machine does: the paper is fed out of the slot a line at a time,
+  // printed as it passes the head, in stretches; the printer stops (the paper sways a little on
+  // the slot and settles), then it carries on, until the slip is out. The roll turns in its window
+  // and the head glows while it runs. The whole run is planned when printing starts: the
   // bursts and pauses, and one smooth path for the page to glide along, which sets off before the
   // first line prints and moves at an even pace, easing in and out, so the paper always prints
   // into room already made for it. A reader who scrolls, touches or presses a key takes over;
   // printing carries on. All is set on the elements directly each frame, so printing renders
   // nothing, and nothing is measured once it has started.
   const feedRef = useRef<HTMLDivElement | null>(null);
-  const headRef = useRef<HTMLDivElement | null>(null);
   const printerRef = useRef<HTMLDivElement | null>(null);
   const printDone = useRef(false);
   // Whether the page still follows the printing (the dock's hint takes the page elsewhere).
@@ -150,16 +151,35 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
     const letGo = () => {
       follow = false;
     };
+    // When the last stretch stopped, for the paper's sway on the slot.
+    const stoppedAt = (t: number) => {
+      let last = -1;
+      for (const [, t1] of bursts) if (t1 <= t) last = t1;
+      return last;
+    };
     const frame = (now: number) => {
       raf = 0;
       const t = now - started;
       const p = quick || printDone.current ? full : printedAt(t);
-      if (p !== shown) {
-        shown = p;
-        feed.style.clipPath = p >= full ? 'none' : `inset(0 0 ${full - p}px 0)`;
-        if (headRef.current) headRef.current.style.transform = `translateY(${p}px)`;
-      }
       const run = !quick && !printDone.current && runningAt(t);
+      if (p >= full) {
+        if (shown !== full) {
+          shown = full;
+          feed.style.clipPath = 'none';
+          feed.style.transform = 'none';
+        }
+      } else {
+        shown = p;
+        // The paper is fed out: what has printed hangs below the slot, the rest is still inside.
+        // It trembles with the motor as it runs, and sways on the slot when it stops.
+        const last = stoppedAt(t);
+        const since = last < 0 ? Infinity : t - last;
+        const sway = run || since > 1400 ? 0 : 0.32 * Math.exp(-since / 320) * Math.sin((since / 400) * Math.PI * 2);
+        const shake = run ? (Math.random() - 0.5) * 0.5 : 0;
+        feed.style.clipPath = `inset(${full - p}px -40px -40px -40px)`;
+        feed.style.transformOrigin = `50% ${full - p}px`;
+        feed.style.transform = `translate3d(${shake.toFixed(2)}px,${p - full}px,0) rotate(${sway.toFixed(3)}deg)`;
+      }
       if (run !== running) {
         running = run;
         printer?.classList.toggle('is-running', run);
@@ -390,16 +410,22 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
           with its numeral in a gold ring, its price by the metre, its shades and its subtotal on a
           dotted leader; then the totals, ruled off as in a ledger; and a pinked foot. */}
       <div ref={printRef} className={`pc-print${tearing ? ' is-tearing' : ''}${printed ? ' is-printed' : ''}`}>
-        {/* The printer's mouth: a slot edged in gold, its light blinking while it prints. */}
+        {/* The printer: a smoked window on its roll of paper, which turns while it prints; its
+            light; and its mouth, a slot with a serrated tear bar and the head glowing behind it. */}
         <div ref={printerRef} aria-hidden className={`pc-printer${printed ? ' is-done' : ''}`}>
+          <span className="pc-printer-window">
+            <span className="pc-printer-roll" />
+          </span>
+          <span className="pc-printer-brand">Poddar Creation</span>
           <span className="pc-printer-light" />
           <span className="pc-printer-slot" />
+          <span className="pc-printer-heat" />
+          <span className="pc-printer-teeth" />
           {/* What stays in the slot once the slip is torn off. */}
           <span className="pc-printer-stub" />
         </div>
         <div className="pc-print-paper">
-          <div ref={feedRef} className="pc-print-feed" style={{ clipPath: 'inset(0 0 100% 0)' }}>
-            <div ref={headRef} aria-hidden className={`pc-print-head${printed ? ' is-done' : ''}`} />
+          <div ref={feedRef} className="pc-print-feed" style={{ clipPath: 'inset(100% 0 0 0)' }}>
             {/* Two rows of perforation in zig-zag under the slot, a corner torn already: pull it along. */}
             <TearLine label={t.tearLabel} aria={t.tearAria} runRef={tearRun} onDone={() => tear(false)} ready={printed} />
             <div className="pc-slip-wrap">

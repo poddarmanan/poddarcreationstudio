@@ -101,7 +101,8 @@ export interface Studio {
   ci: number;
   setCi: (ci: number) => void;
   openFabric: (id: string, ci?: number) => void;
-  unroll: (f: FabricRow) => void;
+  /** The Showroom's full-page unroll, then the fabric; given a shade, it unrolls in that shade and opens on it. */
+  unroll: (f: FabricRow, ci?: number) => void;
   trans: TransState | null;
   garment: GarmentKey;
   setGarment: (g: GarmentKey) => void;
@@ -365,15 +366,16 @@ export function useStudio(rawFabrics: FabricRow[]): Studio {
   const search = useSearch(fabrics, q, setQ, openFabric);
 
   const unroll = useCallback(
-    (f: FabricRow) => {
-      const o = heroColour(f);
+    (f: FabricRow, ci?: number) => {
+      const shade = ci === undefined ? undefined : f.colours[ci];
+      const o = shade ?? heroColour(f);
       setTrans({
         tex: fabricTex(f, o, 6),
-        name: f.name,
+        name: shade ? shade.name : f.name,
         fg: o.l > 0.62 ? '#1C1917' : '#FAF8F5',
-        story: FABRIC_STORIES[f.id] ?? '',
+        story: shade ? f.name : (FABRIC_STORIES[f.id] ?? ''),
       });
-      timers.current.push(setTimeout(() => openFabric(f.id), 720));
+      timers.current.push(setTimeout(() => openFabric(f.id, shade ? ci : undefined), 720));
       timers.current.push(setTimeout(() => setTrans(null), 1250));
     },
     [openFabric]

@@ -820,24 +820,46 @@ button.pc-auth-link:disabled { cursor: default; }
 .pc-when-fig { font-family: var(--font-display), 'Cormorant Garamond', serif; font-size: 19px; line-height: 1.1; font-variant-numeric: lining-nums; }
 .pc-when-tile .pc-add-tile-sub { font-size: 9px; letter-spacing: .06em; line-height: 1.3; }
 
-/* The order slip prints: a printer's mouth with a gold-lipped slot and a light that blinks while
-   it prints; the paper below revealed down to a print line that glows as it moves. */
+/* The order slip prints: a thermal printer, with a smoked window on its roll of paper, a light, and
+   a slot with a serrated tear bar; the paper is fed out of the slot line by line. */
 .pc-print { position: relative; width: min(100%, 560px); margin-top: 22px; margin-bottom: 78px; }
 .pc-printer {
-  position: relative; z-index: 2; height: 30px; margin: 0 -8px; border-radius: 12px 12px 6px 6px;
-  background: linear-gradient(180deg, #3A3129, #1C1917); border: 1px solid rgba(216, 182, 112, .45); box-shadow: 0 10px 22px rgba(28, 25, 23, .25), inset 0 1px 0 rgba(255, 236, 196, .15);
+  position: relative; z-index: 2; height: 46px; margin: 0 -10px; border-radius: 14px 14px 7px 7px;
+  background: linear-gradient(180deg, #443A31, #2A231D 55%, #1C1917); border: 1px solid rgba(216, 182, 112, .45);
+  box-shadow: 0 12px 24px rgba(28, 25, 23, .28), inset 0 1px 0 rgba(255, 236, 196, .16), inset 0 -8px 12px rgba(0, 0, 0, .25);
   animation: pcFieldIn .8s .6s cubic-bezier(.2, .8, .2, 1) both;
 }
-.pc-printer-slot { position: absolute; left: 14px; right: 14px; bottom: 6px; height: 4px; border-radius: 4px; background: #0B0908; box-shadow: 0 1px 0 rgba(216, 182, 112, .5); }
-.pc-printer-light { position: absolute; right: 16px; top: 7px; width: 5px; height: 5px; border-radius: 50%; background: #E9CF8F; box-shadow: 0 0 6px rgba(233, 207, 143, .9); animation: pcBlink .9s ease-in-out 6; }
+/* The lid's seam. */
+.pc-printer::before { content: ''; position: absolute; left: 10px; right: 10px; top: 26px; height: 1px; background: rgba(0, 0, 0, .45); box-shadow: 0 1px 0 rgba(255, 236, 196, .08); }
+/* Where the paper leaves the slot, it is in the printer's shadow. */
+.pc-printer::after { content: ''; position: absolute; left: 22px; right: 22px; top: 100%; height: 12px; pointer-events: none; background: linear-gradient(180deg, rgba(28, 25, 23, .22), transparent); }
+.pc-printer-window {
+  position: absolute; left: 14px; top: 5px; width: 44px; height: 18px; border-radius: 5px; overflow: hidden;
+  background: linear-gradient(180deg, rgba(20, 16, 12, .9), rgba(60, 50, 40, .8)); box-shadow: inset 0 1px 3px rgba(0, 0, 0, .7), 0 1px 0 rgba(255, 236, 196, .12);
+}
+.pc-printer-window::after { content: ''; position: absolute; inset: 0; background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, .16) 42%, transparent 52%); }
+.pc-printer-roll {
+  position: absolute; left: 8px; top: -6px; width: 28px; height: 28px; border-radius: 50%;
+  background: radial-gradient(circle, #8A7F70 0 3px, #3A3129 3.5px 5px, transparent 5.5px), repeating-conic-gradient(#F4ECDC 0 20deg, #E4D8C2 20deg 40deg);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .2);
+}
+.pc-printer.is-running .pc-printer-roll { animation: pcRollTurn .9s linear infinite; }
+@keyframes pcRollTurn { to { transform: rotate(360deg); } }
+.pc-printer-brand { position: absolute; left: 50%; top: 8px; transform: translateX(-50%); font-size: 7px; letter-spacing: .38em; text-transform: uppercase; color: rgba(216, 182, 112, .7); white-space: nowrap; }
+.pc-printer-slot { position: absolute; left: 14px; right: 14px; bottom: 7px; height: 5px; border-radius: 4px; background: #0B0908; box-shadow: inset 0 2px 2px rgba(0, 0, 0, .8), 0 1px 0 rgba(216, 182, 112, .45); }
+/* The head, glowing warm in the slot while it prints. */
+.pc-printer-heat { position: absolute; left: 30px; right: 30px; bottom: 8px; height: 2px; border-radius: 2px; opacity: 0; background: linear-gradient(90deg, transparent, #FFB36B 20%, #FFD9A0 50%, #FFB36B 80%, transparent); box-shadow: 0 0 8px rgba(255, 170, 90, .9); transition: opacity .15s ease; }
+.pc-printer.is-running .pc-printer-heat { opacity: 1; }
+/* The tear bar: a strip of fine metal teeth along the slot's lower lip. */
+.pc-printer-teeth {
+  position: absolute; left: 18px; right: 18px; bottom: -3px; height: 5px;
+  background: linear-gradient(135deg, #B9B3A8 25%, transparent 25%) 0 0 / 6px 5px repeat-x, linear-gradient(225deg, #B9B3A8 25%, transparent 25%) 0 0 / 6px 5px repeat-x;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .35));
+}
+.pc-printer-light { position: absolute; right: 18px; top: 10px; width: 5px; height: 5px; border-radius: 50%; background: #E9CF8F; box-shadow: 0 0 6px rgba(233, 207, 143, .9); animation: pcBlink .9s ease-in-out 6; }
 .pc-printer.is-done .pc-printer-light { animation: none; background: #7DBF8A; box-shadow: 0 0 6px rgba(125, 191, 138, .9); }
 @keyframes pcBlink { 50% { opacity: .25; } }
-.pc-print-feed { position: relative; margin-top: -4px; will-change: clip-path; }
-.pc-print-head {
-  position: absolute; left: 0; right: 0; top: -1px; z-index: 3; height: 2px; pointer-events: none;
-  background: linear-gradient(90deg, transparent, rgba(216, 182, 112, .95), transparent); box-shadow: 0 0 10px rgba(216, 182, 112, .8);
-}
-.pc-print-head.is-done { opacity: 0; transition: opacity .6s ease; }
+.pc-print-feed { position: relative; margin-top: -6px; will-change: transform, clip-path; }
 /* The note for the mill: a sticky note, taped, pressed onto the slip's foot once it has printed. */
 .pc-sticky {
   position: absolute; right: 12px; bottom: -66px; z-index: 4; display: block; width: 138px; padding: 13px 11px 8px; cursor: text;
@@ -935,7 +957,7 @@ button.pc-auth-link:disabled { cursor: default; }
 }
 
 /* While printing, the printer hums: the finest tremor, gone when it stops. */
-.pc-printer.is-running .pc-printer-slot { animation: pcHum .11s linear infinite; }
+.pc-printer.is-running .pc-printer-slot, .pc-printer.is-running .pc-printer-teeth { animation: pcHum .11s linear infinite; }
 .pc-printer.is-running .pc-printer-light { animation: none; opacity: 1; box-shadow: 0 0 9px rgba(233, 207, 143, 1); }
 @keyframes pcHum { 50% { transform: translateY(.6px); } }
 
@@ -1038,7 +1060,7 @@ button.pc-auth-link:disabled { cursor: default; }
 }
 .pc-money-note b { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; border: 1px solid rgba(47, 122, 79, .5); font-family: var(--font-display), 'Cormorant Garamond', serif; font-size: 12px; color: #2F7A4F; }
 @media (prefers-reduced-motion: reduce) {
-  .pc-printer.is-running .pc-printer-slot, .pc-paid, .pc-paid-slip, .pc-stamp-impact i, .pc-stamp-ring { animation: none !important; }
+  .pc-printer.is-running .pc-printer-slot, .pc-printer.is-running .pc-printer-teeth, .pc-printer.is-running .pc-printer-roll, .pc-paid, .pc-paid-slip, .pc-stamp-impact i, .pc-stamp-ring { animation: none !important; }
   .pc-bigstamp { animation: none !important; opacity: .92; }
   .pc-stamptool, .pc-stamptool-shadow { display: none; }
   .pc-money { display: none; }
@@ -1572,27 +1594,132 @@ button.pc-auth-link:disabled { cursor: default; }
   .pc-add-thumb, .pc-cart-btn::after, .pc-cart-btn.is-bumped, .pc-cart-ring, .pc-cart-badge, .pc-cart-count, .pc-cart-empty-bag, .pc-book-bump, .pc-added { animation: none !important; }
 }
 
-/* ── The Colour Wall: swatch cards turned in depth on brass rails; the one under the hand faces you. */
-.pc-rail { margin-bottom: 6px; content-visibility: auto; contain-intrinsic-size: auto 190px; animation: pcRiseIn .6s ease both; }
-.pc-rail-track { position: relative; display: flex; padding: 14px 70px 18px 14px; overflow-x: auto; scrollbar-width: none; perspective: 900px; overscroll-behavior-x: contain; }
-.pc-rail-track::-webkit-scrollbar { display: none; }
-.pc-rail-rod { position: absolute; left: 0; right: 0; top: 12px; height: 7px; border-radius: 4px; background: linear-gradient(180deg, #F6E3A8, #C9A04B 45%, #7D5E22); box-shadow: 0 3px 5px rgba(40, 24, 8, .3); }
-.pc-card {
-  position: relative; flex: none; width: 92px; height: 150px; margin-right: -54px; padding: 0; border: none; cursor: pointer; text-align: left;
-  display: flex; flex-direction: column; background: #FFFDF7; border-radius: 3px; box-shadow: -4px 6px 14px rgba(40, 24, 8, .25), inset 0 0 0 1px rgba(138, 109, 69, .2);
-  transform-origin: 50% 0; transform: rotateY(38deg); transition: transform .45s cubic-bezier(.22, .8, .2, 1), box-shadow .45s ease;
-  animation: pcCardHang .6s cubic-bezier(.3, 1.3, .5, 1) both;
+/* ── The Colour Closet: a walnut wardrobe to each quality, its slips hanging on brass rods ──────── */
+.pc-closet-names { display: flex; gap: 6px; margin: 0 calc(-1 * clamp(16px, 5vw, 64px)); padding: 2px clamp(16px, 5vw, 64px) 4px; overflow-x: auto; scrollbar-width: none; }
+.pc-closet-names::-webkit-scrollbar { display: none; }
+.pc-closet-names button {
+  flex: none; padding: 7px 14px; border-radius: 999px; border: 1px solid rgba(28, 25, 23, .14); background: transparent; color: rgba(28, 25, 23, .7);
+  font-family: var(--font-body), system-ui, sans-serif; font-size: 12px; cursor: pointer; transition: background .25s ease, color .25s ease, border-color .25s ease;
 }
-@keyframes pcCardHang { from { opacity: 0; transform: rotateY(38deg) rotateX(-40deg); } to { opacity: 1; transform: rotateY(38deg); } }
-.pc-card:hover, .pc-card:focus-visible, .pc-card.is-picked { transform: rotateY(0deg) translateY(4px); box-shadow: 0 16px 26px rgba(40, 24, 8, .3); z-index: 999 !important; }
-.pc-card:hover ~ .pc-card, .pc-card:focus-visible ~ .pc-card, .pc-card.is-picked ~ .pc-card { transform: rotateY(38deg) translateX(48px); }
-.pc-card.is-picked { animation: pcCardPull .42s cubic-bezier(.3, 1.2, .5, 1) both; }
-@keyframes pcCardPull { to { transform: rotateY(0deg) translateY(14px) scale(1.1); } }
+.pc-closet-names button.is-on { background: #1C1917; border-color: #1C1917; color: #FAF8F5; }
+.pc-closet-count { display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 648px; margin: 16px auto 10px; }
+.pc-closet-count span { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 9.5px; letter-spacing: .32em; text-transform: uppercase; color: #8A6D45; }
+.pc-closet-count span i { font-style: normal; letter-spacing: .04em; text-transform: none; font-family: var(--font-display), 'Cormorant Garamond', serif; font-size: 17px; color: #1C1917; }
+.pc-closet-count button {
+  width: 36px; height: 36px; border-radius: 50%; border: 1px solid rgba(138, 109, 69, .4); background: #FFFDF7; color: #8A6D45; font-size: 20px; line-height: 1; cursor: pointer;
+  transition: opacity .2s ease, transform .2s ease;
+}
+.pc-closet-count button:disabled { opacity: .3; cursor: default; }
+.pc-closet-count button:not(:disabled):active { transform: scale(.92); }
+.pc-closet-hint { margin: 14px 0 0; text-align: center; font-size: 9.5px; letter-spacing: .28em; text-transform: uppercase; color: rgba(138, 109, 69, .85); animation: pcRiseIn .6s 1.2s ease both; }
+
+.pc-closets { position: relative; margin: 0 calc(-1 * clamp(16px, 5vw, 64px)); overflow: hidden; touch-action: pan-y; user-select: none; -webkit-user-select: none; padding: 6px 0 24px; }
+.pc-closets-track { display: flex; align-items: flex-start; will-change: transform; }
+.pc-closet { position: relative; flex: none; box-sizing: border-box; cursor: pointer; transition: opacity .5s ease, transform .5s cubic-bezier(.22, .8, .2, 1); }
+.pc-closet:not(.is-here) { opacity: .5; transform: scale(.92); }
+.pc-closet.is-here { z-index: 2; }
+
+/* The cornice, with the quality's brass plate. */
+.pc-closet-top {
+  position: relative; height: 40px; margin: 0 -6px; border-radius: 4px 4px 1px 1px; display: grid; place-items: center;
+  background: linear-gradient(180deg, #7A5334, #5B3B22 55%, #432A17); box-shadow: 0 6px 10px -4px rgba(30, 16, 6, .5), inset 0 1px 0 rgba(255, 220, 170, .25), inset 0 -3px 0 rgba(0, 0, 0, .25);
+}
+.pc-closet-plaque {
+  display: flex; align-items: baseline; gap: 8px; padding: 4px 14px 5px; border-radius: 2px; max-width: 80%;
+  background: linear-gradient(180deg, #F6E3A8, #D2AC5C 55%, #A9843A); box-shadow: 0 1px 2px rgba(0, 0, 0, .4), inset 0 1px 0 rgba(255, 255, 255, .5);
+}
+.pc-closet-plaque i { font-style: normal; font-size: 8px; letter-spacing: .2em; color: #5E4415; white-space: nowrap; }
+.pc-closet-plaque b { font-family: var(--font-display), 'Cormorant Garamond', serif; font-weight: 600; font-size: 15px; color: #3A2A0C; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* The carcass: walnut stiles either side, the inside in shade, the doors swinging in perspective. */
+.pc-closet-body {
+  position: relative; perspective: 1300px; perspective-origin: 50% 40%;
+  border-left: 12px solid #573820; border-right: 12px solid #573820;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .25), 0 26px 40px -22px rgba(30, 16, 6, .6);
+}
+.pc-closet-inside {
+  position: absolute; inset: 0; overflow: hidden;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, .45), transparent 10%, transparent 90%, rgba(0, 0, 0, .45)),
+    linear-gradient(180deg, rgba(0, 0, 0, .5), transparent 12%),
+    repeating-linear-gradient(90deg, #2E1E12 0 58px, #26180E 58px 60px),
+    #2A1B10;
+}
+.pc-closet-lamp {
+  position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .9s ease .35s;
+  background: radial-gradient(70% 55% at 50% 0%, rgba(255, 214, 150, .42), rgba(255, 200, 130, .12) 55%, transparent 80%);
+}
+.pc-closet.is-open .pc-closet-lamp { opacity: 1; }
+
+/* A brass rod across the closet, in its sockets, and the run of slips hanging from it. */
+.pc-crod { position: absolute; left: 0; right: 0; height: 176px; perspective: 700px; }
+.pc-crod-bar {
+  position: absolute; left: 0; right: 0; top: 4px; height: 7px; border-radius: 4px;
+  background: linear-gradient(180deg, #FBEBB8, #C9A04B 45%, #6E511C); box-shadow: 0 5px 7px rgba(0, 0, 0, .5);
+}
+.pc-crod-bar::before, .pc-crod-bar::after { content: ''; position: absolute; top: -4px; width: 8px; height: 15px; border-radius: 2px; background: linear-gradient(180deg, #E9CF85, #8D6B28); }
+.pc-crod-bar::before { left: 0; }
+.pc-crod-bar::after { right: 0; }
+.pc-crod-run { position: absolute; left: 12px; top: 16px; height: 150px; }
+.pc-cslip {
+  position: absolute; left: 0; top: 0; width: 84px; height: 140px; padding: 0; border: none; cursor: grab; text-align: left; touch-action: pan-y;
+  display: flex; flex-direction: column; background: #FFFDF7; border-radius: 3px; transform-origin: 50% -8px; will-change: transform;
+  box-shadow: -5px 8px 14px rgba(0, 0, 0, .45), inset 0 0 0 1px rgba(138, 109, 69, .2);
+}
+.pc-cslip:active { cursor: grabbing; }
+.pc-cslip:focus-visible { outline: 2px solid #D8B670; outline-offset: 2px; }
+.pc-cslip.is-picked { z-index: 999 !important; box-shadow: 0 22px 34px rgba(0, 0, 0, .55), inset 0 0 0 1px rgba(138, 109, 69, .2); }
 .pc-card-hook { position: absolute; left: 50%; top: -12px; width: 12px; height: 14px; margin-left: -6px; border: 2px solid #9C7630; border-bottom: none; border-radius: 8px 8px 0 0; }
 .pc-card-head { display: flex; flex-direction: column; gap: 1px; padding: 8px 8px 6px; border-bottom: 1px solid rgba(138, 109, 69, .25); }
 .pc-card-head b { font-family: var(--font-display), 'Cormorant Garamond', serif; font-weight: 500; font-size: 13px; line-height: 1.1; color: #1C1917; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pc-card-head i { font-style: normal; font-size: 7px; letter-spacing: .14em; text-transform: uppercase; color: #8A6D45; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pc-card-cloth { flex: 1; margin: 6px; border-radius: 1px; clip-path: polygon(0 0, 100% 0, 100% 94%, 94% 100%, 88% 94%, 82% 100%, 76% 94%, 70% 100%, 64% 94%, 58% 100%, 52% 94%, 46% 100%, 40% 94%, 34% 100%, 28% 94%, 22% 100%, 16% 94%, 10% 100%, 4% 94%, 0 100%); }
+
+/* The doors: walnut with two raised panels and a brass knob; a mirror inside the left one. */
+.pc-door { position: absolute; top: 0; bottom: 0; width: 50%; padding: 0; border: none; background: none; cursor: pointer; transform-style: preserve-3d; }
+.pc-door.is-left { left: 0; transform-origin: 0 50%; }
+.pc-door.is-right { right: 0; transform-origin: 100% 50%; }
+.pc-door-face {
+  position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 220, 170, .035) 0 3px, rgba(0, 0, 0, .04) 3px 7px, transparent 7px 13px),
+    linear-gradient(180deg, #6F4A2B, #5E3D22 50%, #4F331C);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .3), inset 0 1px 0 rgba(255, 220, 170, .18);
+}
+.pc-door.is-left .pc-door-face:not(.is-back) { box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .3), inset -2px 0 0 rgba(0, 0, 0, .35); }
+.pc-door-face.is-back { transform: rotateY(180deg); background: linear-gradient(180deg, #5A3B22, #45301C); }
+.pc-door-panel { position: absolute; left: 12%; right: 12%; border-radius: 2px; box-shadow: inset 2px 2px 0 rgba(255, 220, 170, .14), inset -2px -2px 0 rgba(0, 0, 0, .35), 0 0 0 4px rgba(0, 0, 0, .08); background: linear-gradient(160deg, rgba(255, 220, 170, .07), rgba(0, 0, 0, .12)); }
+.pc-door-panel.is-top { top: 5%; height: 54%; }
+.pc-door-panel.is-bottom { top: 63%; bottom: 5%; }
+.pc-door-panel.is-inner { top: 6%; bottom: 6%; }
+.pc-door-knob {
+  position: absolute; top: 52%; width: 13px; height: 13px; margin-top: -6px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #FFF4CC, #D6B25C 45%, #7C5A1D); box-shadow: 0 3px 4px rgba(0, 0, 0, .5);
+}
+.pc-door.is-left .pc-door-knob { right: 10px; }
+.pc-door.is-right .pc-door-knob { left: 10px; }
+.pc-door-mirror {
+  position: absolute; left: 12%; right: 12%; top: 6%; bottom: 6%; border-radius: 3px; border: 3px solid #B8904A;
+  background: linear-gradient(125deg, #E8EDEF, #BCC7CC 35%, #F5F8F9 48%, #AEB9BF 62%, #DDE3E6);
+}
+.pc-closet.is-open .pc-door { pointer-events: none; }
+.pc-closet.is-open .pc-door.is-left { animation: pcDoorL 1.25s cubic-bezier(.55, .05, .25, 1) both; }
+.pc-closet.is-open .pc-door.is-right { animation: pcDoorR 1.25s .06s cubic-bezier(.55, .05, .25, 1) both; }
+@keyframes pcDoorL { 0% { transform: rotateY(0); } 12% { transform: rotateY(-7deg); } 22% { transform: rotateY(-5deg); } 100% { transform: rotateY(-106deg); } }
+@keyframes pcDoorR { 0% { transform: rotateY(0); } 12% { transform: rotateY(7deg); } 22% { transform: rotateY(5deg); } 100% { transform: rotateY(106deg); } }
+.pc-closet-tag {
+  position: absolute; left: 50%; top: 38%; transform: translateX(-50%); padding: 5px 12px; border-radius: 999px; pointer-events: none; white-space: nowrap;
+  font-size: 9px; letter-spacing: .26em; text-transform: uppercase; color: #3A2A0C; background: linear-gradient(180deg, #F6E3A8, #D2AC5C); box-shadow: 0 4px 10px rgba(0, 0, 0, .35);
+  animation: pcRiseIn .5s .3s ease both;
+}
+
+/* The plinth and its feet. */
+.pc-closet-base { position: relative; height: 14px; margin: 0 -4px; border-radius: 0 0 3px 3px; background: linear-gradient(180deg, #5B3B22, #3A2414); box-shadow: 0 10px 18px -6px rgba(30, 16, 6, .45); }
+.pc-closet-base span { position: absolute; bottom: -8px; width: 22px; height: 9px; border-radius: 0 0 4px 4px; background: #3A2414; }
+.pc-closet-base span:first-child { left: 10px; }
+.pc-closet-base span:last-child { right: 10px; }
 @media (prefers-reduced-motion: reduce) {
-  .pc-card, .pc-rail { animation: none !important; }
+  .pc-closet.is-open .pc-door.is-left { animation: none; transform: rotateY(-106deg); }
+  .pc-closet.is-open .pc-door.is-right { animation: none; transform: rotateY(106deg); }
+  .pc-closet-lamp, .pc-closet, .pc-closet-names button { transition: none; }
 }

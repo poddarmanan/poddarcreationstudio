@@ -37,11 +37,11 @@ function Icon({ name }: { name: View }) {
           <path d="M9 20v-6a3 3 0 0 1 6 0v6" />
         </svg>
       );
-    case 'colours': // the shade wall
+    case 'colours': // the colour closet: a wardrobe's two doors and their knobs
       return (
         <svg {...common}>
-          <circle cx="12" cy="12" r="8.5" />
-          <path d="M12 3.5v17M3.5 12h17" />
+          <rect x="4.5" y="3.5" width="15" height="15.5" rx="1.2" />
+          <path d="M12 3.5V19M6 21v-2M18 21v-2M10 11.5v1.5M14 11.5v1.5" />
         </svg>
       );
     case 'book': // the swatch book
@@ -75,11 +75,11 @@ const short = (label: string) => label.split(' ')[0];
 export function BottomNav({ studio }: { studio: Studio }) {
   const { t, view, go, pins, isStaff, cart, cartBump, bookBump } = studio;
 
-  // Four for everyone: Showroom, Colours, the Swatch Book and the Cart; the logo in the header is
+  // Four for everyone: Showroom, the Colour Closet, the Swatch Book and the Cart; the logo in the header is
   // the way to the Entrance. Staff get Admin as a fifth.
   const items: { k: View; label: string; count?: number }[] = [
     { k: 'showroom', label: t.showroom },
-    { k: 'colours', label: t.colours },
+    { k: 'colours', label: t.closetShort ?? t.colours },
     { k: 'book', label: t.book, count: pins.length },
     { k: 'cart', label: t.cartWord, count: cart.length },
     ...(isStaff ? [{ k: 'admin' as View, label: t.admin }] : []),

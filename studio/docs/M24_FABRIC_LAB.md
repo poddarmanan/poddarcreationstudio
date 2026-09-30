@@ -193,28 +193,62 @@ quarter and lights in warm gold with a breathing glow while its rays wheel slowl
 stretch button's icon goes to ink and its two bars pull apart once and hold there, easing back
 together when the test is switched off — one movement each way, not a loop.
 
-## The Colour Wall
+## The Colour Closet
 
-The Colours page (`ColourWall.tsx`) is a swatch rail. Of four iterations tried (a thread room of
-cones, the swatch rail, a 3D colour atlas and a bolt wall), the owner kept the rail, and the other
-three are gone with their switcher.
+The Colours page (`ColourWall.tsx`) is the Colour Closet, and the nav names it so: "Colour
+Closet" in the header and "Closet" under a wardrobe icon in the phone's bottom bar (रंग अलमारी and
+अलमारी in Hindi). Of four iterations tried for the colour wall (a thread room of cones, a swatch
+rail, a 3D colour atlas and a bolt wall), the owner kept the swatch rail, and it now hangs inside
+the closets.
 
-It shows one quality at a time. The quality chips list only individual qualities: there is no
-"All qualities" chip, and the wall opens on the first quality until another is chosen. The line
-under the title names the quality, its count of shades, and "tap a shade to open it".
+**Every quality is a closet of its own,** a walnut wardrobe:
+- a cornice carrying a brass plate with the closet's number and the quality's name;
+- walnut stiles either side;
+- two doors, each with raised panels and a brass knob;
+- a plinth on feet.
 
-Every shade is a swatch card hanging on a brass rod. The card has a hook, a printed head with the
-shade's name, the quality and its number, and a pinked cutting of the cloth in its shade. The cards
-stand turned in depth, overlapping like cards in a file. Hovering or choosing one swings it square
-to the buyer, and the cards after it slide along the rod. A tap marks the card for a moment (about
-0.4s, none with reduced motion) and then opens the shade in the Lab.
+The closets stand in a row as wide as the screen. On a phone one fills it. On a wider screen a
+closet takes up to 680px, and its neighbours stand either side, smaller and faded. To move along
+the row:
+- swipe it sideways (anywhere but on a slip; the page still scrolls up and down), and the row
+  follows the finger and settles on the next closet, giving only a little past either end;
+- use the arrows either side of "Closet 3 of 11", over the quality's name and count of shades;
+- tap a name in the row of names above, which is kept centred on the closet being looked at;
+- tap a neighbouring closet.
 
-There are no family headings (neutrals, reds and so on). The shades are hung as one run of colour:
-the near-greys first (OKLCH chroma under 0.035), light to dark, then round the colour wheel from
-red, with shades of nearly the same hue light to dark. The run is cut into rails as wide as the
-page, one under another, and carries on along the next rail: on a 390px phone that is six cards
-to a rail, and on a desktop a whole quality usually hangs on one rail. Cards hang in with a small
-swing, rail by rail. With reduced motion they do not.
+There is no "All qualities": one quality at a time.
+
+**The doors.** A closet's doors are shut until they are tapped, and a gold tag on the shut doors
+of the closet being looked at says "Open the closet". Tapped, the doors unlatch (a small give),
+then swing wide in perspective, the right a beat after the left. The inside of the left door
+has a mirror. A warm lamp comes on inside. The closet arrived at opens by itself about a second
+after the page's curtain, which is the page's opening animation. Opened closets stay open.
+
+**Inside,** the shades hang as swatch slips on brass rods set in sockets across a dark walnut
+back. Each slip has a hook, a printed head with the shade's name, the quality and its number, and
+a pinked cutting of the cloth in its shade. There are no family headings (neutrals, reds and so
+on). The shades hang as one run of colour: the near-greys first (OKLCH chroma under 0.035), light to
+dark, then round the colour wheel from red, with shades of nearly the same hue light to dark. The
+run is cut into rods of about equal length:
+- six to a rod on a 390px phone (four rods for 24 shades);
+- at most eight to a rod on a wider screen.
+
+**The slips slide like hangers.** A slip can be dragged along its rod. It pushes the slips it meets
+(two hooks never closer than 12px, and none past the rod's ends) and glides a little when let go.
+Arrow keys slide a focused slip. A slip is turned in depth by how much of it the next one covers,
+so one given room turns to face you. Each swings from its hook as it moves, against the way it is
+moved, and settles. When a closet opens, the draught from its doors sets the slips swinging, rod by
+rod. The motion is computed and set on the slips a frame at a time, and only while something
+moves.
+
+**A tap takes a slip out.** It lifts forward and grows a little (about 14%) and faces you. Then the
+page is covered by the Showroom's full-page unroll, the same as opening a fabric from the Fabric
+Hall, but in the tapped shade: the cloth unfurls down the screen with the shade's name and the
+quality under it. The Lab opens on that shade. `studio.unroll(fabric, shadeIndex)` takes the shade.
+With reduced motion:
+- the doors are shown open;
+- nothing swings or glides;
+- the unroll starts at once.
 
 ## A test that measured nothing
 
@@ -607,10 +641,23 @@ total metres, the shades (or how many are not set) and the value, and an ink "Ch
   The totals are ruled off as in a ledger: metres and shades on dotted leaders, then the estimate
   large under a double gold rule. The fine print sits beneath, and the slip ends in a pinked foot,
   as if torn from a pad.
-- **The slip prints out as a bill machine does,** in bursts. A stretch of 70 to 180px prints line
-  by line (a line every 14ms), then the printer stops for a quarter to half a second, then carries
-  on, until the slip is out. While it runs, the slot hums and the light glows steady; between
-  bursts it blinks. It turns green when done.
+- **The printer** is a small thermal printer in dark lacquer edged in gold. It has a lid seam, a
+  smoked window on its roll of paper, "Poddar Creation" in gold, a light, and its mouth: a slot
+  with a serrated metal tear bar along its lower lip. The paper leaving the slot is in the
+  printer's shadow.
+- **The slip is fed out of the slot as a bill machine feeds it,** in bursts. The paper itself moves:
+  it comes out of the slot a line at a time, foot first, and the part not yet fed is still inside
+  the printer (the slip is translated up and clipped at the slot, not wiped in over paper that is
+  already there). A stretch of 70 to 180px feeds a line every 14ms, then the printer stops for a
+  quarter to half a second, then carries on, until the slip is out. While it runs:
+  - the roll turns in its window;
+  - the head glows warm along the slot;
+  - the slot and tear bar hum;
+  - the light glows steady;
+  - the paper trembles very slightly with the motor.
+
+  When a burst stops, the hanging paper sways a fraction of a degree on the slot and settles
+  within about a second. The light blinks between bursts and turns green when done.
 
   **The page leads the paper.** The whole run is planned when printing starts: the bursts and
   pauses, and one smooth path for the page. The page sets off about two-thirds of a second before
