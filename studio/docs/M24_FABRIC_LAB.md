@@ -155,7 +155,9 @@ less the header, the bottom bar and 296px; at least 300px, at most 660px). That 
 390 × 844 phone, 491px on 412 × 915 and 316px on 360 × 740, the gap 12px on each.
 
 **Under every price, a way to talk about it.** A small bracketed line sits under the price per
-metre: "( Not satisfied with the price? ☏ Give us a call )" (`PriceCall` in `brand.tsx`). It
+metre: "( Not satisfied with the price? ☏ Give us a call )" (`PriceCall` in `brand.tsx`). In the Lab
+it is a row of its own under both the price and the stock, and it never wraps (9px under 350px
+wide, so it still fits one line). It
 appears in the Lab's price line and on each fabric's title sheet in the cart. The call is
 underlined in gold and dials the house on +91 98258 87554 (`tel:`). A tap on it does not slide a
 sheet.

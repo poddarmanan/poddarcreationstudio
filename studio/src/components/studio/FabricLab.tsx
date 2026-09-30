@@ -685,8 +685,8 @@ function PriceLine({ price, t }: { price: number; t: Record<string, string> }) {
   return (
     <div
       style={{
-        position: 'relative', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16,
-        padding: '14px 2px 16px', borderTop: '1px solid rgba(138,109,69,.35)', borderBottom: '1px solid rgba(28,25,23,.07)',
+        position: 'relative', display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: '10px 16px',
+        padding: '14px 2px 14px', borderTop: '1px solid rgba(138,109,69,.35)', borderBottom: '1px solid rgba(28,25,23,.07)',
         animation: 'rise 1s .2s cubic-bezier(.22,.8,.2,1) both',
       }}
     >
@@ -697,8 +697,6 @@ function PriceLine({ price, t }: { price: number; t: Record<string, string> }) {
           <span style={{ fontSize: 40, fontWeight: 500, lineHeight: 0.9, letterSpacing: '.01em' }}>{price}</span>
           <span style={{ fontFamily: FONT_BODY, fontSize: 11, letterSpacing: '.16em', color: 'rgba(28,25,23,.5)', textTransform: 'uppercase', marginLeft: 4 }}>/ {t.metre}</span>
         </div>
-        {/* Under the price, a quiet way to talk about it. */}
-        <PriceCall ask={t.priceAsk ?? 'Not satisfied with the price?'} call={t.priceCall ?? 'Give us a call'} style={{ marginTop: 8 }} />
       </div>
       <div style={{ textAlign: 'right', flex: 'none' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 10, letterSpacing: '.2em', color: 'rgba(28,25,23,.6)', textTransform: 'uppercase' }}>
@@ -707,6 +705,9 @@ function PriceLine({ price, t }: { price: number; t: Record<string, string> }) {
         </div>
         <div style={{ fontSize: 10.5, color: 'rgba(28,25,23,.45)', marginTop: 5, letterSpacing: '.04em' }}>{t.millFresh}</div>
       </div>
+      {/* Under the price and the stock, a quiet way to talk about the price: a row of its own, on
+          one line. */}
+      <PriceCall ask={t.priceAsk ?? 'Not satisfied with the price?'} call={t.priceCall ?? 'Give us a call'} style={{ flexBasis: '100%' }} />
     </div>
   );
 }
