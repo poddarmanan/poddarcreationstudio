@@ -2046,12 +2046,8 @@ button.pc-auth-link:disabled { cursor: default; }
 .pc-sheet-fan > span { position: absolute; inset: 0; border-radius: 2px; transform-origin: 50% 90%; box-shadow: 0 6px 12px rgba(40, 24, 8, .22), inset 0 0 0 1px rgba(0, 0, 0, .08); }
 @media (prefers-reduced-motion: reduce) { .pc-primary::after { animation: none; } }
 
-/* A quiet line under a price: "Not satisfied with the price? Give us a call", in small type within
-   fine brackets; the call dials the house. */
-.pc-price-call { display: inline-flex; align-items: baseline; flex-wrap: nowrap; white-space: nowrap; gap: 5px; padding: 3px 0; text-decoration: none; font-family: var(--font-body), 'Jost', sans-serif; font-size: 10px; letter-spacing: .03em; line-height: 1.3; color: rgba(28, 25, 23, .5); }
-.pc-price-call::before { content: '('; color: rgba(138, 109, 69, .6); }
-.pc-price-call::after { content: ')'; color: rgba(138, 109, 69, .6); }
-.pc-price-call-go { display: inline-flex; align-items: center; gap: 4px; color: #8A6D45; border-bottom: 1px solid rgba(138, 109, 69, .4); transition: color .25s ease, border-color .25s ease; }
+/* A quiet note under a price, on two lines: "Not satisfied with the price?" and beneath it the
+   call, underlined in gold, which dials the house. */
+.pc-price-call { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 2px 0; text-decoration: none; font-family: var(--font-body), 'Jost', sans-serif; font-size: 10px; letter-spacing: .03em; line-height: 1.3; color: rgba(28, 25, 23, .5); white-space: nowrap; }
+.pc-price-call-go { display: inline-flex; align-items: center; gap: 5px; color: #8A6D45; border-bottom: 1px solid rgba(138, 109, 69, .4); transition: color .25s ease, border-color .25s ease; }
 .pc-price-call:hover .pc-price-call-go { color: #5E4626; border-color: #8A6D45; }
-/* The smallest phones: a touch smaller, so the line still fits on one. */
-@media (max-width: 350px) { .pc-price-call { font-size: 9px; letter-spacing: 0; gap: 4px; } }

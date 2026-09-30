@@ -53,8 +53,8 @@ export function FillLine({ children }: { children: ReactNode }) {
 export const PRICE_PHONE = '+919825887554';
 
 /**
- * A small line under a price: "Not satisfied with the price? Give us a call", the call a tap
- * away (it dials the house). Kept quiet, in small type, bracketed by fine hairlines.
+ * A small note under a price, on two lines: "Not satisfied with the price?", and beneath it "Give
+ * us a call", a tap away (it dials the house). Kept quiet, in small type.
  */
 export function PriceCall({ ask, call, style }: { ask: string; call: string; style?: CSSProperties }) {
   return (

@@ -154,13 +154,12 @@ shades, and the shades' last row ends about 12px above the bottom bar (`.pc-lab-
 less the header, the bottom bar and 296px; at least 300px, at most 660px). That is 420px on a
 390 × 844 phone, 491px on 412 × 915 and 316px on 360 × 740, the gap 12px on each.
 
-**Under every price, a way to talk about it.** A small bracketed line sits under the price per
-metre: "( Not satisfied with the price? ☏ Give us a call )" (`PriceCall` in `brand.tsx`). In the Lab
-it is a row of its own under both the price and the stock, and it never wraps (9px under 350px
-wide, so it still fits one line). It
-appears in the Lab's price line and on each fabric's title sheet in the cart. The call is
-underlined in gold and dials the house on +91 98258 87554 (`tel:`). A tap on it does not slide a
-sheet.
+**Under every price, a way to talk about it.** A small note sits under the price per metre, on
+two lines: "Not satisfied with the price?" and beneath it "☏ Give us a call" (`PriceCall` in
+`brand.tsx`). It appears in the Lab's price line and on each fabric's title sheet in the cart.
+In the Lab it is a row of its own under both the price and the stock; on a cart sheet it is
+centred. The call is underlined in gold and dials the house on +91 98258 87554 (`tel:`). A tap on
+it does not slide a sheet.
 
 **The light menu stands above the stage's buttons.** Opened, the list of lights (Daylight, Golden
 Hour, Studio, Boutique, White Cyc) is raised above the pull, shine and wind buttons on the right
