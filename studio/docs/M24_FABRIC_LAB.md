@@ -154,6 +154,12 @@ shades, and the shades' last row ends about 12px above the bottom bar (`.pc-lab-
 less the header, the bottom bar and 296px; at least 300px, at most 660px). That is 420px on a
 390 × 844 phone, 491px on 412 × 915 and 316px on 360 × 740, the gap 12px on each.
 
+**Under every price, a way to talk about it.** A small bracketed line sits under the price per
+metre: "( Not satisfied with the price? ☏ Give us a call )" (`PriceCall` in `brand.tsx`). It
+appears in the Lab's price line and on each fabric's title sheet in the cart. The call is
+underlined in gold and dials the house on +91 98258 87554 (`tel:`). A tap on it does not slide a
+sheet.
+
 **The light menu stands above the stage's buttons.** Opened, the list of lights (Daylight, Golden
 Hour, Studio, Boutique, White Cyc) is raised above the pull, shine and wind buttons on the right
 (which used to be drawn over it), and its options are a little more compact.
@@ -1066,3 +1072,35 @@ The cloth arcs at the foot sit lower, clear of the links.
 **The weave mark is gone from the site.** The interlaced-thread glyph (three bars crossed by two)
 stood beside "Poddar Studio" in the header and above the Entrance's title. The owner asked for
 it removed everywhere, and `WeaveMark` is deleted.
+
+## The Fabric Hall, walked without a seam
+
+The Showroom (`Showroom.tsx`) used to change room at a threshold. As the walk's middle passed a
+room's first roll:
+- the room's heading was remounted and replayed its entrance;
+- every roll's lettering was re-rendered in the new colours;
+- the whole studio re-rendered to remember the room.
+
+Going from the Cotton Gallery into the Rayon Room jumped because of this.
+
+Now the rooms blend in step with the walk. Where the walk stands is a number, 0 in the Cotton
+Gallery, 1 in the Rayon Room and 1.5 halfway to the Silk Gallery. Between two rooms it runs
+smoothly across a stretch of the walk about 70% of the screen wide, centred on the gap between
+their rolls. At either end of the walk it eases fully into the first room or the last over the
+last stretch of scrolling, so a short walk (a wide screen) starts in pure cotton and ends in pure
+silk, with no jump at the end.
+
+From that number, on each frame of scrolling and with no re-render:
+- each room's wall, floor and light is set to its share;
+- the three headings, stacked in one place, fade into one another, each sliding a little the way
+  the walk goes;
+- the slider's dark marker travels in step;
+- the slider's glass and the fade at the walk's edge blend between light and dark by the Silk
+  Gallery's share;
+- the rolls' lettering takes colours mixed between the two rooms (`color-mix`, through
+  `--room-fg`, `--room-sub` and `--room-accent`).
+
+Only the slider's labels follow the nearest room, and the studio is told of it 300ms after it
+changes. The starting opacities are written once, from the room the page opened in, so that a
+re-render never writes over what the walk has set. Sampled 48 times along the walk, the largest
+change between two samples is about 0.15.

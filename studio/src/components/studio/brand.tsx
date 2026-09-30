@@ -48,3 +48,24 @@ export function FillLine({ children }: { children: ReactNode }) {
     </h1>
   );
 }
+
+/** The house's number, to talk about a price: 98258 87554. */
+export const PRICE_PHONE = '+919825887554';
+
+/**
+ * A small line under a price: "Not satisfied with the price? Give us a call", the call a tap
+ * away (it dials the house). Kept quiet, in small type, bracketed by fine hairlines.
+ */
+export function PriceCall({ ask, call, style }: { ask: string; call: string; style?: CSSProperties }) {
+  return (
+    <a className="pc-price-call" href={`tel:${PRICE_PHONE}`} onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()} style={style}>
+      <span className="pc-price-call-ask">{ask}</span>
+      <span className="pc-price-call-go">
+        <svg aria-hidden width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2" />
+        </svg>
+        {call}
+      </span>
+    </a>
+  );
+}

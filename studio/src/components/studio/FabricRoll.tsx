@@ -27,6 +27,9 @@ export function FabricRoll({ f, no, onClick, fg, sub, accent, shades, className 
   const s3 = colourShade(o, -0.12);
   const s4 = colourShade(o, -0.32);
   const body = `linear-gradient(90deg, ${s1} 0%, ${s2} 16%, ${mid} 42%, ${mid} 58%, ${s3} 84%, ${s4} 100%)`;
+  // Colours given as live variables (the Showroom blends them as it is walked) follow at once;
+  // plain colours ease over a second.
+  const ease = fg.startsWith('var(') ? undefined : 'color 1s ease';
   return (
     <div
       onClick={onClick}
@@ -47,12 +50,12 @@ export function FabricRoll({ f, no, onClick, fg, sub, accent, shades, className 
         />
       </div>
       <div style={{ marginTop: 32, textAlign: 'center', position: 'relative', zIndex: 2 }}>
-        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 12.5, letterSpacing: '.14em', color: accent, marginBottom: 3, transition: 'color 1s ease' }}>{no}</div>
-        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 19, fontWeight: 600, color: fg, transition: 'color 1s ease' }}>{f.name}</div>
-        <div style={{ fontSize: 11, letterSpacing: '.14em', color: sub, marginTop: 3, transition: 'color 1s ease' }}>
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 12.5, letterSpacing: '.14em', color: accent, marginBottom: 3, transition: ease }}>{no}</div>
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 19, fontWeight: 600, color: fg, transition: ease }}>{f.name}</div>
+        <div style={{ fontSize: 11, letterSpacing: '.14em', color: sub, marginTop: 3, transition: ease }}>
           {f.weight} · {f.width}
         </div>
-        <div style={{ fontSize: 10.5, letterSpacing: '.1em', color: accent, marginTop: 3, transition: 'color 1s ease' }}>
+        <div style={{ fontSize: 10.5, letterSpacing: '.1em', color: accent, marginTop: 3, transition: ease }}>
           {f.nc} {shades}
         </div>
       </div>

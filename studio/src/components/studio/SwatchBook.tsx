@@ -9,7 +9,7 @@ import { AuthScreen } from './AuthScreen';
 import { FabricOrder } from './FabricOrder';
 import { confettiBurst } from './confetti';
 import { oklchToRgb, rgbToHex } from '@/lib/colour-science';
-import { FillLine } from './brand';
+import { FillLine, PriceCall } from './brand';
 
 /** A shade on a sheet; in the cart it carries its metres. */
 export type Cutting = { pin: Pin; colour: ColourRow; metres?: number };
@@ -750,6 +750,7 @@ function SheetFace({ studio, sheet, group, interactive, cart }: { studio: Studio
               <div style={{ marginTop: 12, fontFamily: FONT_DISPLAY, fontSize: 14, color: UMBER, fontVariantNumeric: 'lining-nums', whiteSpace: 'nowrap' }}>
                 ₹ {inr(group.x.price)} / {t.metre} · {group.items.length} {group.items.length === 1 ? t.shade : t.shades}
               </div>
+              <PriceCall ask={t.priceAsk ?? 'Not satisfied with the price?'} call={t.priceCall ?? 'Give us a call'} style={{ marginTop: 3, pointerEvents: interactive ? 'auto' : 'none' }} />
               {unset ? (
                 <div className="pc-sheet-ask">{unset === 1 ? t.metresNeededOne : t.metresNeeded.replace('{n}', String(unset))}</div>
               ) : (

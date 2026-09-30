@@ -13,6 +13,7 @@ import { FONT_DISPLAY, FONT_BODY, fabricTex, fabricWeave, colourCss, colourShade
 import { useDragScroll } from './interactions';
 import { AddChooser, AddedToast, flyInto } from './AddChooser';
 import { ShadeStrip } from './ShadeStrip';
+import { PriceCall } from './brand';
 import {
   GARMENTS, LIGHTS, PHYSICS_NOTES, STRETCH_TEST_NOTES,
   type GarmentKey, type LightKey,
@@ -696,6 +697,8 @@ function PriceLine({ price, t }: { price: number; t: Record<string, string> }) {
           <span style={{ fontSize: 40, fontWeight: 500, lineHeight: 0.9, letterSpacing: '.01em' }}>{price}</span>
           <span style={{ fontFamily: FONT_BODY, fontSize: 11, letterSpacing: '.16em', color: 'rgba(28,25,23,.5)', textTransform: 'uppercase', marginLeft: 4 }}>/ {t.metre}</span>
         </div>
+        {/* Under the price, a quiet way to talk about it. */}
+        <PriceCall ask={t.priceAsk ?? 'Not satisfied with the price?'} call={t.priceCall ?? 'Give us a call'} style={{ marginTop: 8 }} />
       </div>
       <div style={{ textAlign: 'right', flex: 'none' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 10, letterSpacing: '.2em', color: 'rgba(28,25,23,.6)', textTransform: 'uppercase' }}>
