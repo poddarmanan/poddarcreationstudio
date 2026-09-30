@@ -148,7 +148,9 @@ Over the swatches is a thin bar of the whole range. On the bar:
 The shade on the stage is kept in view (centred when the Lab opens, and brought back gently if it
 was scrolled away).
 
-On a phone the stage is sized to leave room for the bar and two rows under it
+On a phone the price follows the shades closely: no empty band between them (the shades'
+foot and the column's head are trimmed to 6px and 10px). The stage is sized to leave room for the
+bar and two rows under it
 (`.pc-lab-stage`, at least 340px). On a 390 × 844 phone the stage is 386px and the shades end
 above the bottom bar, so cloth and shades share the screen.
 
@@ -280,8 +282,9 @@ cover-flow: set back (`translateZ(-90px)`), turned 24 degrees and faded. Setting
 an open door of the middle closet in front of them. On a phone one closet fills the screen; on a
 wider screen (a closet takes up to 680px) its neighbours stand either side. To move along the
 row:
-- swipe it sideways (anywhere but on a slip; the page still scrolls up and down), and the row
-  follows the finger and settles on the next closet, giving only a little past either end;
+- swipe the closet itself sideways, anywhere on it, across the slips too (the page still scrolls
+  up and down). The row follows the finger and settles on the next closet, giving only a little
+  past either end;
 - use the arrows either side of "Closet 3 of 11", over the quality's name, count of shades and
   make. That line is a pill pinned under the header (`position: sticky`) for as long as the
   closets are on screen, so the next fabric is a tap away from anywhere down a closet, even its
@@ -292,12 +295,18 @@ row:
 
 There is no "All qualities": one quality at a time.
 
+**One closet is open at a time.** Leaving a closet (by swipe, arrow, name, or a tap on a
+neighbour) shuts its doors: they swing closed as the row moves on, meet with a small bounce and
+settle, and its lamp goes out. The closet arrived at is shut until its doors are tapped. On a phone
+the closet has 30px either side (16px on a wider screen), so it stands in the room with space
+around it.
+
 **The doors.** A closet's doors are shut until they are tapped, and a tag in the closet's metal on
 the shut doors of the closet looked at says "Open the closet". Where the pointer can hover, the
 doors ease open a crack under it. Tapped, the doors unlatch (a small give), then swing wide in
 perspective, the right a beat after the left. The inside of the left door has a mirror. A warm
 lamp comes on inside. The closet arrived at opens by itself about a second after the page's
-curtain, which is the page's opening animation. Opened closets stay open.
+curtain, which is the page's opening animation.
 
 **Inside,** the shades hang as swatch slips on rods (in the closet's metal) set in sockets across
 the lining. Each slip has a hook, a printed head with the shade's name, the quality and its number, and
@@ -354,9 +363,12 @@ colours, about 9,100 relationships).
 
 **A rod is parted like hangers.** The slips hang packed, a few pixels of each showing, so a
 closet holds its whole range. You look through them by parting the rod:
-- Draw a finger along it (or move the pointer over it on a desktop). The slip there gets its full
-  width and turns to face you. The two either side part by about half and a quarter of a slip, and
-  the rest close up to make room.
+- Press a finger on the rod and hold it a moment (about a quarter of a second; a phone gives a
+  tiny buzz and the rod's metal catches the light), then slide along it. On a desktop, move the
+  pointer over it. The slip there gets its full width and turns to face you. The two either side
+  part by about half and a quarter of a slip, and the rest close up to make room.
+- A finger that moves at once, without holding, is a swipe of the row, to the next closet. The
+  rod marks itself as held (`data-scrub`) and the row's swipe stands down only then.
 - The rod is read in even zones, one to a slip, so the parting follows the finger steadily and
   never jumps back under it.
 - The parted slip stays parted when the finger lifts.
@@ -369,9 +381,7 @@ With a mouse, the pointer has parted the rod already, so one click takes out the
 Arrow keys move the parting along the rod, and Enter takes the slip out.
 
 A slip is turned in depth by how much of it the next one covers, so a parted one faces you. Each
-swings from its hook as it moves, against the way it is moved, and settles. A sideways drag along a
-rod parts it rather than swiping to the next closet. The row is swiped from anywhere else: the
-crown, the plinth, between rods, or the "Closet 3 of 11" line above. When a closet opens, the draught from its doors sets the slips swinging, rod by
+swings from its hook as it moves, against the way it is moved, and settles. When a closet opens, the draught from its doors sets the slips swinging, rod by
 rod. The motion is computed and set on the slips a frame at a time, and only while something
 moves.
 
