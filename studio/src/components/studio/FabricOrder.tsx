@@ -69,6 +69,8 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
   const [order, setOrder] = useState<{ state: OrderState; ref?: string; whatsapp: string | null; paid?: { amount: number; ref: string } }>({ state: 'pending', whatsapp: null });
   // A payment already made is kept, so a failed order is retried without paying twice.
   const [proof, setProof] = useState<{ razorpay: RazorpayProof; amount: number; shipTo: string } | null>(null);
+  // Where the parcel is addressed, for its shipping label.
+  const [dest, setDest] = useState<{ name: string; city: string } | null>(null);
   const [warn, setWarn] = useState(0);
 
   // The order slip prints as a bill machine does: a stretch prints line by line, the printer stops,
@@ -270,6 +272,7 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
   // Placing the order: paying online first when chosen (verified on the server with the order).
   const placeOrder = async (a: Address, demoPaid?: boolean): Promise<string | null> => {
     const shipTo = addressText(a);
+    setDest({ name: a.contactName || a.label, city: a.city });
     if (payment !== 'razorpay') {
       send(shipTo);
       return null;
@@ -337,6 +340,7 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
         total={sent?.total ?? total}
         value={sent?.value ?? value}
         order={order}
+        dest={dest}
         onDone={onBack}
         // Already paid: send the same order again with the same payment, not a new one.
         onRetry={() => (proof ? send(proof.shipTo, { razorpay: proof.razorpay, amount: proof.amount, ref: proof.razorpay.paymentId }) : go('ship'))}
@@ -746,7 +750,155 @@ function Row({ line, metres, t, delay, onChange, onRemove, readOnly }: { line: L
 
 /** The dispatch's stages: the paper laid out (0), the fabrics folded onto it (1), wrapped (2), tied (3), sealed (4), tagged (5), and handed over (6). */
 type Stage = 0 | 1 | 2 | 3 | 4 | 5 | 6;
-const PARCEL = 216;
+
+/** The carton's size: width, height and depth (px). */
+const BW = 210;
+const BH = 118;
+const BD = 132;
+/** Where the twine runs, across the carton's width. */
+const TX = -62;
+
+/** A face of the carton, `w` × `h`, centred on the carton's middle and put in place by `tf`. */
+const face = (w: number, h: number, tf: string, extra?: CSSProperties): CSSProperties => ({
+  position: 'absolute', left: '50%', top: '50%', width: w, height: h, marginLeft: -w / 2, marginTop: -h / 2, transform: tf, ...extra,
+});
+
+/**
+ * The parcel, packed in front of the buyer, in real 3D and seen from a little above: an open kraft
+ * carton on the table, its four flaps standing open.
+ *   1. The fabrics, each folded into a flat bolt in its own cloth, drop in one after another and
+ *      settle into a stack.
+ *   2. A sheet of tissue floats down over them; the side flaps fold in, then the long flaps close
+ *      over them, and the carton gives a small thud.
+ *   3. Printed tape runs across the seam and down the side, and twine is drawn over the top and
+ *      down the front.
+ *   4. A drop of red wax swells on the twine's knot, and the house's brass seal comes down onto it
+ *      and lifts, leaving "PC" in the wax.
+ *   5. A shipping label, addressed to the buyer's city, is slapped onto the front; the order's tag
+ *      swings on the twine.
+ * Once the order has settled (stage 6) the carton lifts a little and turns towards the buyer.
+ */
+function Parcel({
+  studio, stage, lines, quick, sealRef, ref_, dest, paid,
+}: {
+  studio: Studio; stage: Stage; lines: Line[]; quick: boolean; sealRef: { current: HTMLDivElement | null }; ref_: string; dest: { name: string; city: string } | null; paid: boolean;
+}) {
+  const { t } = studio;
+  const n = Math.max(1, lines.length);
+  const th = Math.min(13, 62 / n); // each folded bolt's thickness
+  // The box is filled as a packer fills it: the fabrics sit on an insert, so the stack always tops
+  // out just under the rim, where it can be seen, however many there are.
+  const stackTop = -BH / 2 + 16;
+  const base = stackTop + n * th;
+  const done = stage === 6;
+  const closed = stage >= 2;
+  const flaps = [0, 1, 2, 3].map((k) => {
+    const long = k % 2 === 0; // front and back
+    const w = long ? BW : BD;
+    const depth = long ? BD : BW;
+    const len = long ? BD / 2 : 64;
+    const open = long ? -34 : -44;
+    // The side flaps fold in first; the long ones close over them.
+    const delay = [880, 480, 1040, 600][k];
+    return (
+      <div key={k} className="pc-bx-wrap" style={{ transform: `rotateY(${k * 90}deg)` }}>
+        <div
+          className="pc-bx-flap"
+          style={{
+            ...face(w, len, `translate3d(0, ${-BH / 2 + (long ? 0 : 0.8)}px, ${depth / 2}px) rotateX(${closed ? 90 : open}deg)`),
+            marginTop: -len, transformOrigin: '50% 100%',
+            transition: quick ? 'none' : `transform .62s cubic-bezier(.55,.05,.35,1.06) ${delay}ms`,
+          }}
+        />
+      </div>
+    );
+  });
+  const bolts = lines.map((l, i) => {
+    // Staggered, as bolts are when stacked by hand: each a little smaller and turned, so every fabric shows.
+    const w = BW - 24 - i * Math.min(16, 60 / n);
+    const d = BD - 22 - i * Math.min(12, 44 / n);
+    const y = base - (i + 1) * th;
+    const tex = fabricTex(l.x, l.c, 3);
+    return (
+      <div
+        key={l.key}
+        className="pc-bolt"
+        style={{
+          ['--y' as string]: `${y}px`, ['--dx' as string]: `${i % 2 ? 6 : -5}px`, ['--ry' as string]: `${i === 0 ? 0 : i % 2 ? 5 : -4}deg`,
+          ['--ry0' as string]: `${i % 2 ? 24 : -20}deg`, ['--rz0' as string]: `${i % 2 ? -8 : 7}deg`,
+          animation: quick ? 'none' : `pcBoltDrop .78s ${i * 210}ms both`,
+          transform: quick ? `translate3d(var(--dx), var(--y), 0) rotateY(var(--ry))` : undefined,
+        } as CSSProperties}
+      >
+        <div style={face(w, d, 'rotateX(90deg)', { background: `linear-gradient(90deg, rgba(0,0,0,.14), transparent 12%, transparent 88%, rgba(0,0,0,.16)), ${tex}`, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,.08)' })} />
+        <div style={face(w, th, `translateY(${th / 2}px) translateZ(${d / 2}px)`, { background: `repeating-linear-gradient(180deg, rgba(0,0,0,.22) 0 1px, transparent 1px 3px), linear-gradient(180deg, rgba(255,255,255,.18), rgba(0,0,0,.22)), ${tex}` })} />
+        <div style={face(d, th, `translateY(${th / 2}px) rotateY(90deg) translateZ(${w / 2}px)`, { background: `repeating-linear-gradient(180deg, rgba(0,0,0,.26) 0 1px, transparent 1px 3px), linear-gradient(180deg, rgba(0,0,0,.1), rgba(0,0,0,.34)), ${tex}` })} />
+      </div>
+    );
+  });
+  return (
+    <div className={`pc-bx-scene${quick ? ' is-quick' : ''}${done ? ' is-done' : ''}`} aria-hidden>
+      <div className="pc-bx-shadow" />
+      <div className="pc-bx-lift">
+        <div className={`pc-bx-bump${closed ? ' is-closed' : ''}`}>
+          <div className="pc-bx">
+            {/* The carton: its floor and inner walls in shade, its outer walls in kraft. */}
+            <div className="pc-bx-inner" style={face(BW, BD, `translateY(${base}px) rotateX(90deg)`)} />
+            <div className="pc-bx-inner" style={face(BW, BH, `translateZ(${-BD / 2 + 0.6}px)`)} />
+            <div className="pc-bx-inner" style={face(BD, BH, `rotateY(90deg) translateZ(${-BW / 2 + 0.6}px)`)} />
+            <div className="pc-bx-wall" style={face(BW, BH, `rotateY(180deg) translateZ(${BD / 2}px)`)} />
+            <div className="pc-bx-wall" style={face(BD, BH, `rotateY(-90deg) translateZ(${BW / 2}px)`)} />
+            {stage >= 1 && bolts}
+            {/* Tissue, floated down over the fabrics. */}
+            {stage >= 2 && <div className="pc-bx-tissue" style={{ ...face(BW - 14, BD - 12, `translate3d(0, ${stackTop - 2}px, 0) rotateX(90deg)`), ['--ty' as string]: `${stackTop - 2}px` } as CSSProperties} />}
+            <div className="pc-bx-wall is-side" style={face(BD, BH, `rotateY(90deg) translateZ(${BW / 2}px)`)} />
+            <div className="pc-bx-wall is-front" style={face(BW, BH, `translateZ(${BD / 2}px)`)}>
+              <span className="pc-bx-print">Poddar Creation · Surat</span>
+              <span className="pc-bx-arrows">↑↑</span>
+            </div>
+            {flaps}
+
+            {/* Printed tape along the seam, and down the side. */}
+            <div className={`pc-bx-tape${stage >= 3 ? ' is-on' : ''}`} style={face(BW + 2, 24, `translate3d(0, ${-BH / 2 - 2.6}px, 0) rotateX(90deg)`)}>
+              <span>Poddar Creation ✦ Poddar Creation ✦ Poddar Creation</span>
+            </div>
+            <div className={`pc-bx-tape is-tail${stage >= 3 ? ' is-on' : ''}`} style={{ ...face(24, 34, `rotateY(90deg) translateZ(${BW / 2 + 0.8}px)`), marginTop: -BH / 2 }} />
+            {/* Twine over the top and down the front. */}
+            <div className={`pc-bx-twine${stage >= 3 ? ' is-on' : ''}`} style={face(4, BD + 2, `translate3d(${TX}px, ${-BH / 2 - 3.8}px, 0) rotateX(90deg)`)} />
+            <div className={`pc-bx-twine is-front${stage >= 3 ? ' is-on' : ''}`} style={{ ...face(4, BH + 2, `translate3d(${TX}px, 0, ${BD / 2 + 1.2}px)`) }} />
+
+            {/* The knot, the wax and the seal. */}
+            <div ref={sealRef} className={`pc-bx-wax${stage >= 4 ? ' is-on' : ''}`} style={face(40, 40, `translate3d(${TX}px, ${-BH / 2 + 26}px, ${BD / 2 + 2.4}px)`)}>
+              <b>PC</b>
+            </div>
+            {stage >= 4 && !quick && <div className="pc-bx-sealtool" style={{ ...face(46, 46, ''), ['--tx' as string]: `${TX}px`, ['--ty' as string]: `${-BH / 2 + 26}px`, ['--tz' as string]: `${BD / 2 + 3}px` } as CSSProperties} />}
+
+            {/* The shipping label, slapped on. */}
+            <div className={`pc-bx-label${stage >= 5 ? ' is-on' : ''}`} style={{ ...face(118, 82, ''), ['--tz' as string]: `${BD / 2 + 1.6}px` } as CSSProperties}>
+              <div className="pc-bx-label-row">
+                <span>{t.fromWord}</span> {t.millSurat}
+              </div>
+              <div className="pc-bx-label-to">
+                <span>{t.toWord}</span>
+                <b>{dest?.name ?? '—'}</b>
+                <i>{dest?.city ?? ''}</i>
+              </div>
+              <div className="pc-bx-barcode" />
+              <div className="pc-bx-label-ref">{ref_ || '···'}</div>
+              {paid && stage >= 5 && <span className="pc-paid-stamp">{t.paidWord}</span>}
+            </div>
+            {/* The order's tag, swinging on the twine. */}
+            <div className={`pc-bx-tag${stage >= 5 ? ' is-on' : ''}`} style={{ ...face(34, 70, ''), ['--tx' as string]: `${TX}px`, ['--ty' as string]: `${-BH / 2 + 38 + 35}px`, ['--tz' as string]: `${BD / 2 + 3}px` } as CSSProperties}>
+              <span className="pc-bx-tag-hole" />
+              <span className="pc-bx-tag-k">{t.orderRef}</span>
+              <span className="pc-bx-tag-v">{ref_ || '···'}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /**
  * The order dispatched, in the reading room: the buyer's fabrics fall folded onto kraft paper, its
@@ -756,12 +908,12 @@ const PARCEL = 216;
  * order is summed up.
  */
 function Dispatch({
-  studio, lines, total, value, order, onDone, onRetry,
+  studio, lines, total, value, order, dest, onDone, onRetry,
 }: {
-  studio: Studio; lines: Line[]; total: number; value: number; order: { state: OrderState; ref?: string; whatsapp: string | null; paid?: { amount: number; ref: string } }; onDone: () => void; onRetry: () => void;
+  studio: Studio; lines: Line[]; total: number; value: number; order: { state: OrderState; ref?: string; whatsapp: string | null; paid?: { amount: number; ref: string } }; dest: { name: string; city: string } | null; onDone: () => void; onRetry: () => void;
 }) {
   const { t } = studio;
-  const shown = lines.slice(0, 8);
+  const shown = lines.slice(0, 7);
   const [stage, setStage] = useState<Stage>(0);
   const [sealed, setSealed] = useState(false);
   const sealRef = useRef<HTMLDivElement | null>(null);
@@ -775,14 +927,15 @@ function Dispatch({
       }, 60);
       return () => window.clearTimeout(tm);
     }
-    const folded = 500 + shown.length * 110 + 800;
+    // Into the box (1), tissue and flaps (2), tape and twine (3), wax and seal (4), label and tag (5).
+    const packed = 300 + shown.length * 210 + 650;
     const at: [number, () => void][] = [
-      [120, () => setStage(1)],
-      [folded, () => setStage(2)],
-      [folded + 1500, () => setStage(3)],
-      [folded + 2500, () => setStage(4)],
-      [folded + 3300, () => setStage(5)],
-      [folded + 4300, () => setSealed(true)],
+      [300, () => setStage(1)],
+      [packed, () => setStage(2)],
+      [packed + 1550, () => setStage(3)],
+      [packed + 3250, () => setStage(4)],
+      [packed + 4600, () => setStage(5)],
+      [packed + 5600, () => setSealed(true)],
     ];
     const timers = at.map(([ms, f]) => window.setTimeout(f, ms));
     return () => timers.forEach((x) => window.clearTimeout(x));
@@ -799,8 +952,8 @@ function Dispatch({
     return () => window.clearTimeout(tm);
   }, [sealed, settled, order.state, lines]);
 
-  const captions = [t.pkFolding, t.pkWrapping, t.pkTying, t.pkSealing, order.state === 'failed' ? t.orderBook : t.pkPlaced];
-  const captionAt = stage <= 1 ? 0 : stage === 2 ? 1 : stage === 3 ? 2 : stage <= 5 ? 3 : 4;
+  const captions = [t.pkFolding, t.pkWrapping, t.pkTying, t.pkSealing, dest?.city ? t.pkLabelling.replace('{city}', dest.city) : t.pkLabellingAny, order.state === 'failed' ? t.orderBook : t.pkPlaced];
+  const captionAt = Math.max(0, Math.min(5, stage - 1));
   const ref = order.ref ?? (order.state === 'demo' ? 'PC-PREVIEW' : '');
   const done = stage === 6;
 
@@ -832,70 +985,8 @@ function Dispatch({
           </div>
         </div>
 
-        {/* The parcel, on the table, seen from a little above. */}
-        <div style={{ position: 'relative', marginTop: 'clamp(30px,7vh,56px)', width: PARCEL * 1.9, maxWidth: '100%', height: PARCEL * 1.6, perspective: 1100, transform: done ? 'translateY(-10px) scale(.86)' : 'none', transition: 'transform 1s cubic-bezier(.22,.8,.2,1)' }}>
-          <div aria-hidden className="pc-parcel-shadow" style={{ transform: `translate(-50%, 0) scale(${stage >= 2 ? 0.8 : 1.15}, ${stage >= 2 ? 0.8 : 1})` }} />
-          <div
-            style={{ position: 'absolute', left: '50%', top: '50%', width: PARCEL, height: PARCEL, marginLeft: -PARCEL / 2, marginTop: -PARCEL / 2, transformStyle: 'preserve-3d', transform: `rotateX(${done ? 30 : 42}deg) rotateZ(${done ? -4 : -8}deg)`, transition: 'transform 1.2s cubic-bezier(.22,.8,.2,1)', animation: 'pcFadeIn .6s ease both' }}
-          >
-            {/* The paper under the parcel, and its four flaps, laid out and then folded over. */}
-            <div className="pc-kraft" style={{ position: 'absolute', inset: 0 }} />
-            {([
-              ['left', 'right center', 'rotateY(180deg)', { right: '100%', top: 0, width: PARCEL * 0.62, height: PARCEL }, 0],
-              ['right', 'left center', 'rotateY(-180deg)', { left: '100%', top: 0, width: PARCEL * 0.62, height: PARCEL }, 260],
-              ['top', 'center bottom', 'rotateX(-180deg)', { bottom: '100%', left: 0, width: PARCEL, height: PARCEL * 0.6 }, 560],
-              ['bottom', 'center top', 'rotateX(180deg)', { top: '100%', left: 0, width: PARCEL, height: PARCEL * 0.6 }, 860],
-            ] as const).map(([side, origin, fold, box, delay], k) => {
-              const folded = stage >= 2;
-              return (
-                <div
-                  key={side}
-                  aria-hidden
-                  className="pc-kraft pc-kraft-flap"
-                  style={{ position: 'absolute', ...box, transformOrigin: origin, transform: `translateZ(${(k + 2) * 0.6}px) ${folded ? fold : ''}`, transition: `transform .8s cubic-bezier(.55,.05,.3,1) ${delay}ms`, zIndex: 3 + k } as CSSProperties}
-                />
-              );
-            })}
-            {/* The fabrics, folded, falling onto the paper one after another. */}
-            {shown.map((l, i) => (
-              <div
-                key={l.key}
-                aria-hidden
-                className="pc-bundle"
-                style={{
-                  left: 24 + (i % 2) * 8, top: shown.length === 1 ? (PARCEL - 64) / 2 : 26 + i * ((PARCEL - 116) / (shown.length - 1)), background: fabricTex(l.x, l.c, 3),
-                  transform: `translateZ(${1 + i * 0.1}px) rotate(${((i * 7) % 9) - 4}deg)`,
-                  animation: stage >= 1 ? `pcBundleDrop .75s ${300 + i * 110}ms cubic-bezier(.3,1.35,.5,1) both` : 'none', opacity: stage >= 1 ? undefined : 0,
-                }}
-              />
-            ))}
-          </div>
-          {/* The twine, the seal and the tag lie on the wrapped parcel: drawn on a layer of their
-              own with the parcel's tilt, above its folded flaps. */}
-          <div
-            style={{ position: 'absolute', left: '50%', top: '50%', width: PARCEL, height: PARCEL, marginLeft: -PARCEL / 2, marginTop: -PARCEL / 2, pointerEvents: 'none', transform: `rotateX(${done ? 30 : 42}deg) rotateZ(${done ? -4 : -8}deg) translateZ(2px)`, transition: 'transform 1.2s cubic-bezier(.22,.8,.2,1)' }}
-          >
-            {/* The twine, drawn across both ways and knotted. */}
-            <div aria-hidden className="pc-twine" style={{ left: -2, right: -2, top: '50%', height: 4, marginTop: -2, transform: `scaleX(${stage >= 3 ? 1 : 0})`, transition: 'transform .55s cubic-bezier(.6,0,.2,1)' }} />
-            <div aria-hidden className="pc-twine" style={{ top: -2, bottom: -2, left: '50%', width: 4, marginLeft: -2, transform: `scaleY(${stage >= 3 ? 1 : 0})`, transition: 'transform .55s cubic-bezier(.6,0,.2,1) .35s' }} />
-            {/* The house's wax seal, stamped down over the knot. */}
-            <div ref={sealRef} aria-hidden className="pc-seal" style={{ transform: stage >= 4 ? undefined : 'scale(0)', animation: stage >= 4 ? 'pcSealStamp .6s cubic-bezier(.3,1.5,.5,1) both' : 'none' }}>
-              <span>PC</span>
-            </div>
-            {stage >= 4 && <div aria-hidden className="pc-seal-ripple" />}
-            {/* The shipping tag, swinging in on its string with the order's reference. */}
-            <div aria-hidden className="pc-tag-wrap" style={{ opacity: stage >= 5 ? 1 : 0, animation: stage >= 5 ? 'pcTagSwing 1.8s cubic-bezier(.3,.6,.3,1) both' : 'none' }}>
-              <span className="pc-tag-string" />
-              <div className="pc-tag">
-                <span className="pc-tag-hole" />
-                <div style={{ fontSize: 7, letterSpacing: '.3em', textTransform: 'uppercase', color: '#6B4C1E' }}>{t.orderRef}</div>
-                <div style={{ fontFamily: FONT_DISPLAY, fontSize: 15, color: INK, fontVariantNumeric: 'lining-nums', marginTop: 1 }}>{ref || '···'}</div>
-                {/* Paid online: a stamp comes down on the tag. */}
-                {order.paid && stage >= 5 && <span className="pc-paid-stamp">{t.paidWord}</span>}
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* The parcel, packed on the table. */}
+        <Parcel studio={studio} stage={stage} lines={shown} quick={quick} sealRef={sealRef} ref_={ref} dest={dest} paid={!!order.paid} />
 
         {/* The order, summed up. */}
         {done && (

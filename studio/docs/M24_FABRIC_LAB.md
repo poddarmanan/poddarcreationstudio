@@ -441,16 +441,30 @@ change to "Your order awaits — your N metres go straight to the mill". It then
 
 The order's reference is PC- and the last six characters of its id.
 
-**The dispatch** plays in the reading room while the order goes in:
-1. **Folding your fabrics:** kraft paper is laid out and the fabrics fall onto it, folded, one
-   after another.
-2. **Wrapped in kraft:** its four flaps fold over them in turn.
-3. **Tied with twine:** twine is drawn across both ways.
-4. **Sealed by the house:** an oxblood wax seal with the "PC" monogram stamps down over the knot,
-   and a gold ripple spreads from it.
-5. A shipping tag swings in on its string with the order's reference.
+**The dispatch** plays in the reading room while the order goes in (`Parcel` in
+`FabricOrder.tsx`). It is a kraft carton in real CSS 3D, seen from a little above, with walls in
+kraft, its inside in shade, "Poddar Creation · Surat" printed on its front, and four flaps standing
+open. It takes about seven seconds:
+1. **Folding your fabrics:** each fabric, folded into a flat bolt in its own cloth (with the
+   layered edge of the folds showing), drops in from above. It turns as it falls, speeds up, and
+   lands with a bounce. The bolts stack staggered, each a little smaller and turned, so every
+   fabric shows. They rest on an insert, as a packer fills a box, so the stack always tops out
+   just under the rim where it can be seen.
+2. **Boxed in kraft:** a crinkled sheet of tissue floats down over them. The side flaps fold in,
+   then the long flaps close over them, and the carton gives a small thud.
+3. **Taped and tied:** ink tape printed with the house's name in gold runs across the seam and
+   down the side, then twine is drawn over the top and down the front.
+4. **Sealed by the house:** a drop of red wax swells on the knot. A brass seal comes down onto it,
+   presses and lifts, and "PC" is left in the wax.
+5. **Labelled for Ahmedabad** (the buyer's city): a shipping label is slapped onto the front with
+   a little squash. It reads from Surat mill, to the buyer's name and city, with a barcode and
+   the order's reference, and a green "PAID" stamp if it was paid online. The order's tag,
+   hanging from the knot, swings on the twine and settles.
 
-Once the order has settled, the parcel lifts, confetti bursts from the seal, and the order is
+Nothing in the 3D chain uses opacity, which would take it out of the depth order; leaves appear
+with `visibility` instead. With reduced motion, the packed carton is shown as it ends.
+
+Once the order has settled, the carton lifts and turns a little towards the buyer, confetti bursts from the seal, and the order is
 summed up: its reference, metres and estimate. Below that, a line says the price and dispatch
 date will be confirmed on WhatsApp to the buyer's number, followed by "Back to the Showroom" and
 "Done". If the order failed, the page says so and offers to try again, keeping the selection. On
