@@ -1480,7 +1480,7 @@ button.pc-auth-link:disabled { cursor: default; }
    the wax spreads out under it, the carton takes the knock and a puff of air rings out. It rocks as
    it is pressed home, peels away, and "PC" stands in the wax, inside the ring of the die. */
 .pc-bx-wax {
-  display: grid; place-items: center; border-radius: 47% 53% 49% 51% / 52% 46% 54% 48%;
+  position: absolute; inset: 0; display: grid; place-items: center; border-radius: 47% 53% 49% 51% / 52% 46% 54% 48%;
   background: radial-gradient(circle at 36% 30%, #B03A43, #7A1E27 55%, #4E0F17); box-shadow: 0 3px 5px rgba(40, 10, 10, .45), inset 0 -3px 6px rgba(0, 0, 0, .35), inset 0 2px 3px rgba(255, 190, 180, .3);
   scale: 0;
 }
@@ -1503,7 +1503,7 @@ button.pc-auth-link:disabled { cursor: default; }
 /* The desk seal, drawn flat over the scene as the PAID stamp is, its foot seated on the wax: a
    turned wooden knob and neck, a brass collar, and the brass die. Its timings match the wax's. */
 .pc-stamp2d { position: absolute; left: 50%; top: 50%; z-index: 6; width: 0; height: 0; pointer-events: none; }
-.pc-stamp2d-tool { position: absolute; left: -28px; top: -104px; width: 56px; height: 118px; transform-origin: 50% 100%; opacity: 0; animation: pcStamp2d 2.2s .5s both; filter: drop-shadow(0 6px 8px rgba(40, 20, 5, .3)); }
+.pc-stamp2d-tool { position: absolute; left: -28px; top: -112px; width: 56px; height: 118px; transform-origin: 50% 100%; opacity: 0; animation: pcStamp2d 2.2s .5s both; filter: drop-shadow(0 6px 8px rgba(40, 20, 5, .3)); }
 .pc-stamp2d-tool > i { position: absolute; left: 50%; transform: translateX(-50%); }
 .pc-stamp2d-knob { top: 0; width: 44px; height: 40px; border-radius: 50% 50% 44% 44%; background: radial-gradient(ellipse at 34% 28%, #CF9A6C, #8A4F2B 46%, #4E2A14 100%); box-shadow: inset 0 -5px 8px rgba(0, 0, 0, .35), inset 0 3px 4px rgba(255, 220, 180, .3); }
 .pc-stamp2d-neck { top: 34px; width: 20px; height: 40px; clip-path: polygon(18% 0, 82% 0, 70% 50%, 100% 100%, 0 100%, 30% 50%); background: linear-gradient(90deg, #4E2A14, #9A5E35 38%, #C48A5C 52%, #5A321A); }
@@ -1549,7 +1549,7 @@ button.pc-auth-link:disabled { cursor: default; }
 }
 @media (prefers-reduced-motion: reduce) { .pc-stamp2d { display: none; } }
 /* The puff of the strike. */
-.pc-bx-sealring { border-radius: 50%; border: 1.5px solid rgba(255, 244, 222, .8); box-shadow: 0 0 0 1px rgba(120, 80, 40, .25); opacity: 0; animation: pcSealRing .55s 1.56s ease-out both; }
+.pc-bx-sealring { position: absolute; inset: 0; border-radius: 50%; border: 1.5px solid rgba(255, 244, 222, .8); box-shadow: 0 0 0 1px rgba(120, 80, 40, .25); opacity: 0; animation: pcSealRing .55s 1.56s ease-out both; }
 @keyframes pcSealRing { 0% { opacity: 0; scale: .55; } 1% { opacity: .9; } 100% { opacity: 0; scale: 1.7; } }
 /* The carton takes the knock. */
 .pc-bx-bump.is-closed.is-sealing { animation: pcBxThump .42s 1.62s cubic-bezier(.3, .8, .4, 1) both, pcBxKnock .45s 1.56s cubic-bezier(.3, .8, .4, 1) both; }

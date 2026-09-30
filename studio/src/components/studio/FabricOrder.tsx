@@ -886,7 +886,7 @@ const face = (w: number, h: number, tf: string, extra?: CSSProperties): CSSPrope
  *      over them, and the carton gives a small thud.
  *   3. Printed tape runs across the seam and down the side, and twine is drawn over the top and
  *      down the front.
- *   4. A drop of red wax swells on the twine's knot. The house's desk seal, a brass die on a turned
+ *   4. A drop of red wax swells on the lid, where the twine crosses the tape. The house's desk seal, a brass die on a turned
  *      wooden handle, swings in, hovers, draws back and strikes: the wax spreads, the carton takes
  *      the knock and a puff rings out; it rocks as it is pressed home, peels away, and leaves "PC"
  *      standing in the wax.
@@ -1039,11 +1039,19 @@ function Parcel({
             <div className={`pc-bx-twine${stage >= 3 ? ' is-on' : ''}`} style={face(4, BD + 2, `translate3d(${TX}px, ${-BH / 2 - 3.8}px, 0) rotateX(90deg)`)} />
             <div className={`pc-bx-twine is-front${stage >= 3 ? ' is-on' : ''}`} style={{ ...face(4, BH + 2, `translate3d(${TX}px, 0, ${BD / 2 + 1.2}px)`) }} />
 
-            {/* The knot, the wax and the seal. The seal's shadow falls on the carton as it comes
-                down, and a puff of air rings out where it strikes. */}
-            {stage >= 4 && !quick && <div className="pc-bx-sealring" style={face(76, 76, `translate3d(${TX}px, ${-BH / 2 + 26}px, ${BD / 2 + 1.6}px)`)} />}
-            <div ref={sealRef} className={`pc-bx-wax${stage >= 4 ? ' is-on' : ''}`} style={face(46, 46, `translate3d(${TX}px, ${-BH / 2 + 26}px, ${BD / 2 + 2.4}px)`)}>
-              <b>PC</b>
+            {/* The wax, on the lid where the twine crosses the tape, and a puff of air that rings out
+                where the seal strikes. On the lid, the seal comes straight down onto it. */}
+            {/* Each is set on a seat that stays put, and grows inside it: scaling the placed element
+                itself would scale its offset from the carton's centre too, and walk it off the knot. */}
+            {stage >= 4 && !quick && (
+              <div style={face(76, 76, `translate3d(${TX}px, ${-BH / 2 - 4.2}px, 0) rotateX(90deg)`)}>
+                <div className="pc-bx-sealring" />
+              </div>
+            )}
+            <div ref={sealRef} style={face(46, 46, `translate3d(${TX}px, ${-BH / 2 - 4.8}px, 0) rotateX(90deg)`)}>
+              <div className={`pc-bx-wax${stage >= 4 ? ' is-on' : ''}`}>
+                <b>PC</b>
+              </div>
             </div>
 
             {/* The shipping label, slapped on. */}

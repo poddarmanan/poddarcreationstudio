@@ -1373,8 +1373,15 @@ The wax seal was a flat gold disc that faded in and out. It is now struck like t
 6. Its shadow on the carton is wide and faint while the seal is high, and tight and dark as it
    lands.
 
-The seal is drawn flat over the 3D scene, seated on the wax's position as measured on screen. Seen
-along its axis in 3D, it read as a stack of rings. Stage 4 is given 2.45s for it, so the label
+The wax sits on the lid, where the twine crosses the tape. There a seal comes straight down onto
+it, as a real one does: on the carton's front, which faces sideways, a seal from above looked
+wrong. The seal is drawn flat over the 3D scene, seated on the wax's position as measured on
+screen. Seen along its axis in 3D, it read as a stack of rings.
+
+The wax, and the ring the strike sends out, grow inside a seat that stays put. The CSS `scale`
+property also scales the `transform` it is combined with. So scaling the placed element itself
+scaled its offset from the carton's centre too, and walked the wax about 14px off the spot while
+it swelled: the seal struck beside it, then jumped when the label came on. Stage 4 is given 2.45s for it, so the label
 comes on after. The small PAID mark on the label is now an ink impression: there at once where the
 rubber met the paper, a little heavy, settling as the ink sinks in. It no longer grows out of the
 label like a sticker.
