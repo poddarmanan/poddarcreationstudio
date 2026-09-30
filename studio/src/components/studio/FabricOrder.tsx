@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import type { RazorpayProof, Studio } from './state';
 import type { ColourRow, FabricRow } from '@/lib/types';
-import { FONT_DISPLAY, fabricTex, spectrum } from './helpers';
+import { FONT_DISPLAY, fabricTex, spectrum, jumpTo } from './helpers';
 import { FillLine } from './brand';
 import { Room, roman } from './SwatchBook';
 import { PaidMoment } from './PaidMoment';
@@ -438,6 +438,7 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
 
   return (
     <Room center>
+      <div className="pc-split is-top">
       {/* The way back, as every page of the studio has it. */}
       <div style={{ alignSelf: 'stretch', display: 'flex', marginTop: -6, animation: 'pcRiseIn .8s .15s ease both' }}>
         <button onClick={onBack} className="pc-auth-back">
@@ -450,7 +451,7 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
       <Steps studio={studio} fromCart={fromCart} at={1} onStep={onStep} />
 
       {/* The title plate. */}
-      <div aria-hidden style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, marginTop: 14 }}>
+      <div aria-hidden className="pc-order-eyebrow" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, marginTop: 14 }}>
         <span style={{ width: 'clamp(26px,8vw,56px)', height: 1, background: 'linear-gradient(90deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'right', animation: 'pcRuleDraw 1s .2s cubic-bezier(.2,.8,.2,1) both' }} />
         <span style={{ fontSize: 9.5, letterSpacing: '.46em', paddingLeft: '.46em', textTransform: 'uppercase', color: UMBER, animation: 'pcRiseIn .9s .15s cubic-bezier(.2,.8,.2,1) both' }}>{t.directEyebrow}</span>
         <span style={{ width: 'clamp(26px,8vw,56px)', height: 1, background: 'linear-gradient(270deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'left', animation: 'pcRuleDraw 1s .2s cubic-bezier(.2,.8,.2,1) both' }} />
@@ -467,7 +468,7 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
         ))}
       </h1>
       <p style={{ margin: '12px 0 0', maxWidth: 360, fontFamily: FONT_DISPLAY, fontSize: 16.5, lineHeight: 1.45, color: UMBER, animation: 'pcRiseIn .9s .6s cubic-bezier(.2,.8,.2,1) both' }}>{fromCart ? t.checkoutSub : t.directSub}</p>
-      <div aria-hidden style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 16 }}>
+      <div aria-hidden className="pc-order-orn" style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 16 }}>
         <span style={{ width: 30, height: 1, background: 'linear-gradient(90deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'right', animation: 'pcRuleDraw 1s .8s cubic-bezier(.2,.8,.2,1) both' }} />
         <span style={{ width: 6, height: 6, background: 'rgba(168,134,79,.95)', animation: 'pcDiamondIn .8s .7s cubic-bezier(.2,.8,.2,1) both' }} />
         <span style={{ width: 30, height: 1, background: 'linear-gradient(270deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'left', animation: 'pcRuleDraw 1s .8s cubic-bezier(.2,.8,.2,1) both' }} />
@@ -476,6 +477,7 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
       {/* The order slip: the house and the date at its head under a double gold rule; each fabric
           with its numeral in a gold ring, its price by the metre, its shades and its subtotal on a
           dotted leader; then the totals, ruled off as in a ledger; and a pinked foot. */}
+      <div className="pc-main">
       <div ref={printRef} className={`pc-print${tearing ? ` is-tearing is-${tearStage}` : ''}${printed ? ' is-printed' : ''}`}>
         {/* The printer: a smoked window on its roll of paper, which turns while it prints; its
             light; and its mouth, a slot with a serrated tear bar and the head glowing behind it. */}
@@ -599,6 +601,7 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
           </div>
         </div>
       </div>
+      </div>
 
       {/* The dock: the running total and the estimate. The way on is the slip itself, torn off by
           hand along the dots; there is no button for it. */}
@@ -615,6 +618,7 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
         </div>
       </div>
       {warn > 0 && !chosen.length && <div style={{ marginTop: 10, fontSize: 12.5, color: '#A5392B' }}>{t.nothingChosen}</div>}
+      </div>
     </Room>
   );
 }
@@ -625,7 +629,7 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
  * call would start a fresh smooth scroll that lags behind the one before.
  */
 function stepTo(y: number) {
-  window.scrollTo({ top: y, behavior: 'instant' });
+  jumpTo(y);
 }
 
 /** Glides the page to `to` along an eased path (not the browser's own smooth scroll, which varies), then calls `then`. */
@@ -866,6 +870,9 @@ const BUNDLE_LAYERS = 'linear-gradient(180deg, rgba(0,0,0,.3) 0%, rgba(255,255,2
 const TX = -62;
 
 /** A face of the carton, `w` × `h`, centred on the carton's middle and put in place by `tf`. */
+/** When the seal meets the wax, after the wax is dropped; the stylesheet's seal timings match it. */
+const SEAL_HIT_MS = 1560;
+
 const face = (w: number, h: number, tf: string, extra?: CSSProperties): CSSProperties => ({
   position: 'absolute', left: '50%', top: '50%', width: w, height: h, marginLeft: -w / 2, marginTop: -h / 2, transform: tf, ...extra,
 });
@@ -879,8 +886,10 @@ const face = (w: number, h: number, tf: string, extra?: CSSProperties): CSSPrope
  *      over them, and the carton gives a small thud.
  *   3. Printed tape runs across the seam and down the side, and twine is drawn over the top and
  *      down the front.
- *   4. A drop of red wax swells on the twine's knot, and the house's brass seal comes down onto it
- *      and lifts, leaving "PC" in the wax.
+ *   4. A drop of red wax swells on the twine's knot. The house's desk seal, a brass die on a turned
+ *      wooden handle, swings in, hovers, draws back and strikes: the wax spreads, the carton takes
+ *      the knock and a puff rings out; it rocks as it is pressed home, peels away, and leaves "PC"
+ *      standing in the wax.
  *   5. A shipping label, addressed to the buyer's city, is slapped onto the front; the order's tag
  *      swings on the twine.
  * Once the order has settled (stage 6) the carton lifts a little and turns towards the buyer.
@@ -892,6 +901,28 @@ function Parcel({
 }) {
   const { t } = studio;
   const n = Math.max(1, lines.length);
+  // The desk seal is drawn flat, over the scene, as the PAID stamp is: seated where the wax is.
+  const sceneRef = useRef<HTMLDivElement | null>(null);
+  const stampRef = useRef<HTMLDivElement | null>(null);
+  useLayoutEffect(() => {
+    const scene = sceneRef.current;
+    const stamp = stampRef.current;
+    const wax = sealRef.current;
+    if (!scene || !stamp || !wax) return;
+    const box = scene.getBoundingClientRect();
+    const k = box.width / (scene.offsetWidth || 1);
+    const w = wax.getBoundingClientRect();
+    stamp.style.left = `${(w.left + w.width / 2 - box.left) / k}px`;
+    stamp.style.top = `${(w.top + w.height / 2 - box.top) / k}px`;
+  }, [stage, sealRef]);
+  // The strike, felt: a short buzz on phones that have it, as the seal meets the wax.
+  useEffect(() => {
+    if (stage !== 4 || quick) return;
+    const tm = window.setTimeout(() => {
+      if ('vibrate' in navigator) navigator.vibrate?.([35, 25, 15]);
+    }, SEAL_HIT_MS);
+    return () => window.clearTimeout(tm);
+  }, [stage, quick]);
   // The bundles are laid side by side, as a packer lays them: one layer of cells, up to four across
   // and two deep, so every colour shows from above. They sit on an insert just under the rim.
   const cols = Math.min(n, 4);
@@ -978,10 +1009,10 @@ function Parcel({
     );
   });
   return (
-    <div className={`pc-bx-scene${quick ? ' is-quick' : ''}${done ? ' is-done' : ''}`} aria-hidden>
+    <div ref={sceneRef} className={`pc-bx-scene${quick ? ' is-quick' : ''}${done ? ' is-done' : ''}`} aria-hidden>
       <div className="pc-bx-shadow" />
       <div className="pc-bx-lift">
-        <div className={`pc-bx-bump${closed ? ' is-closed' : ''}`}>
+        <div className={`pc-bx-bump${closed ? ' is-closed' : ''}${stage === 4 && !quick ? ' is-sealing' : ''}`}>
           <div className="pc-bx">
             {/* The carton: its floor and inner walls in shade, its outer walls in kraft. */}
             <div className="pc-bx-inner" style={face(BW, BD, `translateY(${base}px) rotateX(90deg)`)} />
@@ -1008,11 +1039,12 @@ function Parcel({
             <div className={`pc-bx-twine${stage >= 3 ? ' is-on' : ''}`} style={face(4, BD + 2, `translate3d(${TX}px, ${-BH / 2 - 3.8}px, 0) rotateX(90deg)`)} />
             <div className={`pc-bx-twine is-front${stage >= 3 ? ' is-on' : ''}`} style={{ ...face(4, BH + 2, `translate3d(${TX}px, 0, ${BD / 2 + 1.2}px)`) }} />
 
-            {/* The knot, the wax and the seal. */}
-            <div ref={sealRef} className={`pc-bx-wax${stage >= 4 ? ' is-on' : ''}`} style={face(40, 40, `translate3d(${TX}px, ${-BH / 2 + 26}px, ${BD / 2 + 2.4}px)`)}>
+            {/* The knot, the wax and the seal. The seal's shadow falls on the carton as it comes
+                down, and a puff of air rings out where it strikes. */}
+            {stage >= 4 && !quick && <div className="pc-bx-sealring" style={face(76, 76, `translate3d(${TX}px, ${-BH / 2 + 26}px, ${BD / 2 + 1.6}px)`)} />}
+            <div ref={sealRef} className={`pc-bx-wax${stage >= 4 ? ' is-on' : ''}`} style={face(46, 46, `translate3d(${TX}px, ${-BH / 2 + 26}px, ${BD / 2 + 2.4}px)`)}>
               <b>PC</b>
             </div>
-            {stage >= 4 && !quick && <div className="pc-bx-sealtool" style={{ ...face(46, 46, ''), ['--tx' as string]: `${TX}px`, ['--ty' as string]: `${-BH / 2 + 26}px`, ['--tz' as string]: `${BD / 2 + 3}px` } as CSSProperties} />}
 
             {/* The shipping label, slapped on. */}
             <div className={`pc-bx-label${stage >= 5 ? ' is-on' : ''}`} style={{ ...face(118, 82, ''), ['--tz' as string]: `${BD / 2 + 1.6}px` } as CSSProperties}>
@@ -1037,6 +1069,20 @@ function Parcel({
           </div>
         </div>
       </div>
+      {/* The desk seal: a turned wooden handle, a brass collar and the die. It swings in, hovers
+          over the wax, draws back and strikes; rocks as it is pressed home; peels away. Its shadow
+          on the carton sharpens as it comes down. */}
+      {stage >= 4 && stage <= 5 && !quick && (
+        <div ref={stampRef} className="pc-stamp2d">
+          <span className="pc-stamp2d-shadow" />
+          <span className="pc-stamp2d-tool">
+            <i className="pc-stamp2d-knob" />
+            <i className="pc-stamp2d-neck" />
+            <i className="pc-stamp2d-collar" />
+            <i className="pc-stamp2d-die" />
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -1075,8 +1121,8 @@ function Dispatch({
       [packed, () => setStage(2)],
       [packed + 1550, () => setStage(3)],
       [packed + 3250, () => setStage(4)],
-      [packed + 4600, () => setStage(5)],
-      [packed + 5600, () => setSealed(true)],
+      [packed + 5700, () => setStage(5)],
+      [packed + 6700, () => setSealed(true)],
     ];
     const timers = at.map(([ms, f]) => window.setTimeout(f, ms));
     return () => timers.forEach((x) => window.clearTimeout(x));

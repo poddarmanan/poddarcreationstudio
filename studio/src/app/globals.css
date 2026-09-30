@@ -69,6 +69,29 @@ button:focus-visible, a:focus-visible, input:focus-visible {
 .pc-hdrnav { display: flex; order: 0; flex: 1 1 auto; }
 .pc-hdricon { width: 32px; height: 32px; }
 .pc-hdrbtn { padding: 5px 10px; }
+.pc-logo-word { font-size: 20px; }
+.pc-logo-sub { font-size: 9px; margin-top: 2px; }
+.pc-navbtn { font-size: 10.5px; padding: 6px 8px; }
+
+/* ── Large screens ──────────────────────────────────────────────────────────
+   The pages were drawn at laptop size; on a wide monitor they read as small and adrift in empty
+   space. From 1280px the chrome and type step up, and again from 1600px. */
+@media (min-width: 1280px) {
+  :root { --pc-topbar: 60px; }
+  .pc-topbar { padding: 10px 44px; min-height: 60px; }
+  .pc-logo-word { font-size: 23px; }
+  .pc-logo-sub { font-size: 10px; margin-top: 3px; }
+  .pc-navbtn { font-size: 12px; padding: 8px 14px; letter-spacing: .1em !important; }
+  .pc-hdricon { width: 38px; height: 38px; }
+}
+@media (min-width: 1600px) {
+  :root { --pc-topbar: 68px; }
+  .pc-topbar { padding: 12px 56px; min-height: 68px; }
+  .pc-logo-word { font-size: 26px; }
+  .pc-logo-sub { font-size: 11px; }
+  .pc-navbtn { font-size: 13px; padding: 9px 16px; }
+  .pc-hdricon { width: 42px; height: 42px; }
+}
 
 /* ── Phones ─────────────────────────────────────────────────────────────────
    Navigation moves from a link row at the top to a floating pill at the bottom,
@@ -1307,10 +1330,13 @@ button.pc-auth-link:disabled { cursor: default; }
 .pc-paid-stamp {
   text-transform: uppercase;
   position: absolute; right: 7px; top: 4px; padding: 1px 5px; border: 1.2px solid #3E8E5C; border-radius: 3px; transform: rotate(-8deg);
-  font-family: var(--font-body), 'Jost', sans-serif; font-size: 7px; font-weight: 600; letter-spacing: .24em; color: #3E8E5C; background: rgba(245, 252, 244, .85);
-  animation: pcStamp .5s .3s cubic-bezier(.3, 1.6, .5, 1) both;
+  font-family: var(--font-body), 'Jost', sans-serif; font-size: 7px; font-weight: 700; letter-spacing: .24em; color: #3E8E5C; background: transparent;
+  box-shadow: inset 0 0 0 1px rgba(62, 142, 92, .35); mix-blend-mode: multiply;
+  animation: pcStamp .6s .6s ease-out both;
 }
-@keyframes pcStamp { from { opacity: 0; transform: rotate(-8deg) scale(2.4); } to { opacity: 1; transform: rotate(-8deg); } }
+/* An impression, not a sticker: it is there at once where the rubber met the paper, a touch heavy
+   with ink, and settles as the ink sinks in. */
+@keyframes pcStamp { 0% { opacity: 0; } 1% { opacity: 1; transform: rotate(-8deg) scale(1.08); filter: blur(.4px); } 100% { opacity: .88; transform: rotate(-8deg); filter: none; } }
 .pc-paid-line { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; padding: 6px 12px; border-radius: 999px; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: #1F5E3A; background: rgba(46, 125, 80, .1); font-variant-numeric: lining-nums; }
 @media (prefers-reduced-motion: reduce) {
   .pc-printer, .pc-printer-light, .pc-sticky.is-on, .pc-route-reveal, .pc-mill-smoke, .pc-shop-pin, .pc-shop-ripple, .pc-truck-body, .pc-truck-wheel, .pc-truck-dust, .pc-route-labels .is-to, .pc-addr, .pc-addr.is-on::after, .pc-pay-icon svg, .pc-pay-scan, .pc-pay-coin, .pc-paid-stamp { animation: none !important; }
@@ -1450,31 +1476,84 @@ button.pc-auth-link:disabled { cursor: default; }
 .pc-bx-twine { border-radius: 2px; background: repeating-linear-gradient(45deg, #EAD6AC 0 2px, #C8A874 2px 4px); box-shadow: 0 1px 2px rgba(40, 20, 5, .4); clip-path: inset(0 0 100% 0); transition: clip-path .45s ease-in-out .95s; }
 .pc-bx-twine.is-front { transition-delay: 1.35s; }
 .pc-bx-twine.is-on { clip-path: inset(0 0 0 0); }
-/* The wax swells on the knot; the brass seal comes down onto it and lifts, leaving its mark. */
+/* The wax swells on the knot. The desk seal swings in, hovers, draws back and strikes (1.56s in):
+   the wax spreads out under it, the carton takes the knock and a puff of air rings out. It rocks as
+   it is pressed home, peels away, and "PC" stands in the wax, inside the ring of the die. */
 .pc-bx-wax {
   display: grid; place-items: center; border-radius: 47% 53% 49% 51% / 52% 46% 54% 48%;
   background: radial-gradient(circle at 36% 30%, #B03A43, #7A1E27 55%, #4E0F17); box-shadow: 0 3px 5px rgba(40, 10, 10, .45), inset 0 -3px 6px rgba(0, 0, 0, .35), inset 0 2px 3px rgba(255, 190, 180, .3);
   scale: 0;
 }
-.pc-bx-wax.is-on { animation: pcWaxDrop .45s cubic-bezier(.3, 1.4, .5, 1) both, pcWaxPress .3s .72s ease-out both; }
+.pc-bx-wax.is-on { animation: pcWaxDrop .45s cubic-bezier(.3, 1.4, .5, 1) both, pcWaxPress .5s 1.56s cubic-bezier(.2, .9, .3, 1) both; }
 @keyframes pcWaxDrop { 0% { scale: 0; } 70% { scale: 1.12 .9; } 100% { scale: .82; } }
-@keyframes pcWaxPress { 0% { scale: .82; } 45% { scale: 1.14 1.06; border-radius: 50%; } 100% { scale: 1.06; border-radius: 44% 56% 52% 48% / 50% 44% 56% 50%; } }
-.pc-bx-wax b { font-family: var(--font-display), 'Cormorant Garamond', serif; font-weight: 500; font-size: 16px; letter-spacing: -.04em; color: #5A1219; text-shadow: 0 1px 0 rgba(255, 170, 160, .4), 0 -1px 0 rgba(0, 0, 0, .5); opacity: 0; }
-.pc-bx-wax.is-on b { animation: pcFadeIn .3s 1.02s ease both; }
-.pc-bx-scene.is-quick .pc-bx-wax.is-on { animation: none; scale: 1.06; }
-.pc-bx-scene.is-quick .pc-bx-wax.is-on b { animation: none; opacity: 1; }
-.pc-bx-sealtool {
-  border-radius: 50%; background: radial-gradient(circle at 38% 32%, #FFF1C2, #D8B25E 45%, #8A6524 100%); box-shadow: inset 0 0 0 3px rgba(90, 62, 20, .45), inset 0 0 0 7px rgba(255, 240, 200, .3), 0 10px 18px rgba(40, 20, 5, .35);
-  animation: pcSealTool 1.2s .4s both;
+/* Struck: it spreads at once past its size, then draws back a little into an uneven round. */
+@keyframes pcWaxPress {
+  0% { scale: .82; }
+  18% { scale: 1.2 1.16; border-radius: 50%; }
+  100% { scale: 1.08; border-radius: 44% 56% 52% 48% / 50% 44% 56% 50%; }
 }
-@keyframes pcSealTool {
-  0% { opacity: 0; transform: translate3d(var(--tx), calc(var(--ty) - 110px), calc(var(--tz) + 60px)); animation-timing-function: cubic-bezier(.5, 0, .8, .5); }
-  12% { opacity: 1; }
-  28% { transform: translate3d(var(--tx), var(--ty), var(--tz)) scale(1.02); animation-timing-function: ease-out; }
-  52% { transform: translate3d(var(--tx), var(--ty), var(--tz)) scale(.97); animation-timing-function: cubic-bezier(.4, 0, .6, 1); }
-  85% { opacity: 1; }
-  100% { opacity: 0; transform: translate3d(var(--tx), calc(var(--ty) - 120px), calc(var(--tz) + 60px)); }
+/* The die's ring, pressed into the wax. */
+.pc-bx-wax::after { content: ''; position: absolute; inset: 6px; border-radius: 50%; box-shadow: inset 0 1.5px 2px rgba(0, 0, 0, .55), 0 1px 0 rgba(255, 170, 160, .35); opacity: 0; }
+.pc-bx-wax b { position: relative; font-family: var(--font-display), 'Cormorant Garamond', serif; font-weight: 500; font-size: 19px; letter-spacing: -.04em; color: #5A1219; text-shadow: 0 1px 0 rgba(255, 170, 160, .4), 0 -1px 0 rgba(0, 0, 0, .5); opacity: 0; }
+/* Seen only as the seal peels away (2.2s in). */
+.pc-bx-wax.is-on b, .pc-bx-wax.is-on::after { animation: pcFadeIn .25s 2.2s ease both; }
+.pc-bx-scene.is-quick .pc-bx-wax.is-on { animation: none; scale: 1.08; }
+.pc-bx-scene.is-quick .pc-bx-wax.is-on b, .pc-bx-scene.is-quick .pc-bx-wax.is-on::after { animation: none; opacity: 1; }
+
+/* The desk seal, drawn flat over the scene as the PAID stamp is, its foot seated on the wax: a
+   turned wooden knob and neck, a brass collar, and the brass die. Its timings match the wax's. */
+.pc-stamp2d { position: absolute; left: 50%; top: 50%; z-index: 6; width: 0; height: 0; pointer-events: none; }
+.pc-stamp2d-tool { position: absolute; left: -28px; top: -104px; width: 56px; height: 118px; transform-origin: 50% 100%; opacity: 0; animation: pcStamp2d 2.2s .5s both; filter: drop-shadow(0 6px 8px rgba(40, 20, 5, .3)); }
+.pc-stamp2d-tool > i { position: absolute; left: 50%; transform: translateX(-50%); }
+.pc-stamp2d-knob { top: 0; width: 44px; height: 40px; border-radius: 50% 50% 44% 44%; background: radial-gradient(ellipse at 34% 28%, #CF9A6C, #8A4F2B 46%, #4E2A14 100%); box-shadow: inset 0 -5px 8px rgba(0, 0, 0, .35), inset 0 3px 4px rgba(255, 220, 180, .3); }
+.pc-stamp2d-neck { top: 34px; width: 20px; height: 40px; clip-path: polygon(18% 0, 82% 0, 70% 50%, 100% 100%, 0 100%, 30% 50%); background: linear-gradient(90deg, #4E2A14, #9A5E35 38%, #C48A5C 52%, #5A321A); }
+.pc-stamp2d-collar { top: 72px; width: 40px; height: 10px; border-radius: 3px; background: linear-gradient(90deg, #7D5E22, #D8B866 35%, #F6E3A8 50%, #B8913F 70%, #7D5E22); box-shadow: 0 2px 2px rgba(0, 0, 0, .3); }
+.pc-stamp2d-die {
+  top: 82px; width: 52px; height: 36px; border-radius: 5px 5px 50% 50% / 5px 5px 9px 9px;
+  background: linear-gradient(90deg, #6E5220, #C9A04E 30%, #F6E3A8 46%, #B8913F 64%, #6E5220);
+  box-shadow: inset 0 -3px 0 rgba(90, 20, 25, .55), inset 0 2px 0 rgba(255, 240, 200, .5);
 }
+@keyframes pcStamp2d {
+  0% { opacity: 0; transform: translate(130px, -190px) rotate(26deg) scale(1.15); animation-timing-function: cubic-bezier(.2, .8, .3, 1); }
+  8% { opacity: 1; }
+  /* It hovers over the wax, finding its place. */
+  26% { transform: translate(8px, -64px) rotate(4deg); animation-timing-function: ease-in-out; }
+  34% { transform: translate(-3px, -58px) rotate(-3deg); animation-timing-function: cubic-bezier(.3, 0, .4, 1); }
+  /* Drawn back, then brought down hard. */
+  42% { transform: translate(0, -92px) rotate(0deg); animation-timing-function: cubic-bezier(.7, 0, 1, .55); }
+  48% { transform: translate(0, 0) rotate(0deg) scale(1); animation-timing-function: ease-out; }
+  51% { transform: translate(0, 3px) rotate(0deg) scale(1.05, .9); animation-timing-function: ease-in-out; }
+  55% { transform: translate(0, 1px) rotate(0deg) scale(1.02, .96); animation-timing-function: ease-in-out; }
+  /* Pressed home, rocked on its rim. */
+  61% { transform: translate(0, 1px) rotate(-5deg) scale(1.01, .98); animation-timing-function: ease-in-out; }
+  67% { transform: translate(0, 1px) rotate(5deg) scale(1.01, .98); animation-timing-function: ease-in-out; }
+  73% { transform: translate(0, 0) rotate(0deg) scale(1); animation-timing-function: cubic-bezier(.5, 0, .7, .4); }
+  /* It comes away slowly at first, the wax holding it, one edge before the other. */
+  80% { opacity: 1; transform: translate(2px, -14px) rotate(4deg); animation-timing-function: cubic-bezier(.3, 0, .5, 1); }
+  92% { opacity: 1; }
+  100% { opacity: 0; transform: translate(150px, -210px) rotate(22deg) scale(1.12); }
+}
+/* Its shadow on the carton: wide and faint while it is high, tight and dark as it comes down. */
+.pc-stamp2d-shadow {
+  position: absolute; left: -36px; top: -6px; width: 72px; height: 26px; border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(40, 22, 6, .5), rgba(40, 22, 6, 0)); opacity: 0; animation: pcStamp2dShadow 2.2s .5s both;
+}
+@keyframes pcStamp2dShadow {
+  0% { opacity: 0; transform: translate(60px, 20px) scale(2.2); }
+  26% { opacity: .22; transform: translate(14px, 8px) scale(1.5); }
+  34% { opacity: .24; transform: translate(10px, 7px) scale(1.45); }
+  42% { opacity: .14; transform: translate(18px, 12px) scale(1.8); animation-timing-function: cubic-bezier(.7, 0, 1, .55); }
+  48%, 73% { opacity: .6; transform: none; }
+  80% { opacity: .45; transform: translate(3px, 3px) scale(1.1); }
+  100% { opacity: 0; transform: translate(60px, 20px) scale(2.2); }
+}
+@media (prefers-reduced-motion: reduce) { .pc-stamp2d { display: none; } }
+/* The puff of the strike. */
+.pc-bx-sealring { border-radius: 50%; border: 1.5px solid rgba(255, 244, 222, .8); box-shadow: 0 0 0 1px rgba(120, 80, 40, .25); opacity: 0; animation: pcSealRing .55s 1.56s ease-out both; }
+@keyframes pcSealRing { 0% { opacity: 0; scale: .55; } 1% { opacity: .9; } 100% { opacity: 0; scale: 1.7; } }
+/* The carton takes the knock. */
+.pc-bx-bump.is-closed.is-sealing { animation: pcBxThump .42s 1.62s cubic-bezier(.3, .8, .4, 1) both, pcBxKnock .45s 1.56s cubic-bezier(.3, .8, .4, 1) both; }
+@keyframes pcBxKnock { 0% { transform: none; } 20% { transform: translate3d(0, 3px, -4px) scale(1.012, .982); } 50% { transform: translate3d(0, -1px, 1px); } 75% { transform: translate3d(0, .5px, 0); } 100% { transform: none; } }
 /* The shipping label, slapped on the front with a little squash. */
 .pc-bx-label {
   padding: 7px 8px 6px; border-radius: 3px; text-align: left; background: #FFFDF8; box-shadow: 0 1px 2px rgba(40, 20, 5, .3), inset 0 0 0 1px rgba(138, 109, 69, .25);
@@ -1524,7 +1603,7 @@ button.pc-auth-link:disabled { cursor: default; }
 .pc-order-summary b { font-family: var(--font-display), 'Cormorant Garamond', serif; font-weight: 500; font-size: clamp(16px, 4.6vw, 20px); color: #1C1917; font-variant-numeric: lining-nums; white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) {
   .pc-direct::after { animation: none; }
-  .pc-bx-tissue, .pc-bx-sealtool, .pc-bx-label.is-on, .pc-bx-tag.is-on { animation-duration: .01s !important; animation-delay: 0s !important; }
+  .pc-bx-tissue, .pc-bx-label.is-on, .pc-bx-tag.is-on { animation-duration: .01s !important; animation-delay: 0s !important; }
 }
 
 /* ── The cart ────────────────────────────────────────────────────────────────────────────────
@@ -1979,7 +2058,7 @@ button.pc-auth-link:disabled { cursor: default; }
 .pc-shadebar-mark { position: absolute; top: -3px; width: 0; height: 0; margin-left: -4px; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid #8A6D45; pointer-events: none; transition: left .35s cubic-bezier(.22, .8, .2, 1); }
 .pc-shadestrip-run {
   display: grid; grid-auto-flow: column; grid-template-rows: repeat(var(--rows), var(--chip)); grid-auto-columns: var(--chip); gap: 6px;
-  overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scrollbar-width: none; padding: 2px 1px 4px;
+  overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scrollbar-width: none; padding: 2px 1px 4px;
   margin: 0 calc(-1 * clamp(16px, 2.5vw, 28px)); padding-inline: clamp(16px, 2.5vw, 28px); scroll-padding-inline: clamp(16px, 2.5vw, 28px);
 }
 .pc-shades-desktop .pc-shadestrip-run { margin: 0; padding-inline: 1px; scroll-padding-inline: 0; }
@@ -2247,3 +2326,222 @@ button.pc-auth-link:disabled { cursor: default; }
    settle into the middle as the shackle shuts. */
 .pc-seal-slips { max-height: 520px; }
 .pc-seal.is-shut .pc-seal-slips, .pc-seal.is-out .pc-seal-slips, .pc-seal.is-copy .pc-seal-slips { max-height: 0; margin-top: 0; transition: max-height .6s cubic-bezier(.4, 0, .2, 1), margin-top .6s ease; }
+
+/* ── Large screens, page by page ────────────────────────────────────────────
+   Set last so it wins over each page's own rules. Some of these override sizes written inline on
+   the elements, hence the !important. From 1280px the type and the content widths step up; from
+   1600px again, so a wide monitor shows the pages in proportion rather than small in the middle. */
+.pc-hero-inner { max-width: 640px; }
+.pc-hero-search { max-width: 520px; }
+.pc-hero-q { font-size: 14px; }
+.pc-sheet-deck { width: min(100%, 440px); }
+@media (min-width: 768px) {
+  /* No tab bar under the page on a desktop: the docks follow the page close to the bottom. */
+  .pc-order-dock { bottom: 22px; }
+}
+@media (min-width: 1280px) {
+  .pc-guide-btn { width: 28px; height: 28px; }
+  .pc-guide-btn i { font-size: 16px; }
+
+  /* Page heads: the headline fills a measure, not the whole monitor, and the lines under it read. */
+  .pc-fill-title { max-width: 1080px; margin-inline: auto; }
+  .pc-closet-sub { max-width: 560px; font-size: 15.5px; }
+
+  /* The entrance. */
+  .pc-hero-inner { max-width: 820px; }
+  .pc-hero-eyebrow { font-size: 11.5px; }
+  .pc-hero-title { font-size: min(clamp(112px, 8.4vw, 150px), 13.5vh); }
+  .pc-hero-est { font-size: 11px; }
+  .pc-hero-promise { max-width: 460px; font-size: 16.5px; }
+  .pc-hero-enter { padding: 18px 36px 18px 40px; font-size: 12.5px; }
+  .pc-hero-link { font-size: 11.5px; }
+  .pc-hero-search { max-width: 620px; }
+  .pc-hero-search > div { padding: 8px 9px 8px 24px !important; }
+  .pc-hero-q { font-size: 15.5px; }
+  .pc-hero-img { padding: 11px 20px !important; font-size: 13px !important; }
+
+  /* The showroom. */
+  .pc-sr-eyebrow { font-size: 11px !important; }
+  .pc-sr-title { font-size: clamp(64px, 5vw, 84px) !important; }
+  .pc-sr-desc { max-width: 560px !important; font-size: 21px !important; }
+  .pc-sr-rooms { width: min(100%, 500px) !important; margin-top: 26px !important; }
+  .pc-sr-room { padding: 12px 8px !important; font-size: 13px !important; }
+  .pc-sr-hint { font-size: 12px !important; }
+  .pc-roll-no { font-size: 14px !important; }
+  .pc-roll-name { font-size: 22px !important; }
+  .pc-roll-spec { font-size: 12px !important; }
+  .pc-roll-shades { font-size: 11.5px !important; }
+
+  /* The Lab: larger shades beside the cloth, the price and the action in step with them. */
+  .pc-shades-desktop .pc-shadestrip { --chip: 68px; }
+  .pc-shadechip > span:last-child { font-size: 9.5px; }
+  .pc-lab-label { font-size: 12px !important; }
+  .pc-lab-multi { font-size: 10.5px !important; padding: 6px 12px !important; }
+  .pc-price-lbl { font-size: 11px !important; }
+  .pc-price-num { font-size: 50px !important; }
+  .pc-price-per { font-size: 12.5px !important; }
+  .pc-price-stock { font-size: 11.5px !important; }
+  .pc-price-fresh { font-size: 12px !important; }
+  .pc-price-call { font-size: 12.5px; }
+  .pc-lab-add { padding: 19px 16px !important; font-size: 13.5px !important; }
+  .pc-fab-name { font-size: clamp(40px, 3.6vw, 64px); }
+  .pc-fab-spec { font-size: 12px; }
+
+  /* The order: a wider slip and dock. */
+  .pc-print, .pc-order-dock, .pc-when { width: min(100%, 640px); }
+  .pc-dock-total { font-size: 32px; }
+  .pc-dock-meta { font-size: 10.5px; }
+  .pc-order-place { padding: 17px 24px; font-size: 12px; }
+
+  /* Tracking. */
+  .pc-track-find { width: min(100%, 600px); padding: 14px 22px; }
+  .pc-track-find input { font-size: 15.5px; }
+  .pc-track-list { width: min(100%, 720px); gap: 18px; }
+  .pc-track-head { padding: 20px 24px 18px; }
+  .pc-track-body { padding: 6px 24px 24px; }
+  .pc-track-ref b { font-size: 27px; }
+  .pc-track-ref i { font-size: 11.5px; }
+  .pc-track-pill { font-size: 11px; padding: 6px 13px; }
+  .pc-track-stop { font-size: 10.5px; }
+  .pc-track-now { font-size: 18.5px; }
+
+  /* The swatch book's and the cart's sheets. */
+  .pc-sheet-deck { width: min(100%, 480px); }
+}
+@media (min-width: 1600px) {
+  .pc-closet-sub { font-size: 16.5px; }
+  .pc-hero-inner { max-width: 920px; }
+  .pc-hero-eyebrow { font-size: 12.5px; }
+  .pc-hero-promise { max-width: 520px; font-size: 18px; }
+  .pc-hero-enter { font-size: 13.5px; }
+  .pc-hero-link { font-size: 12.5px; }
+  .pc-hero-search { max-width: 680px; }
+  .pc-shades-desktop .pc-shadestrip { --chip: 76px; }
+  .pc-shadechip > span:last-child { font-size: 10.5px; }
+  .pc-price-num { font-size: 56px !important; }
+  .pc-print, .pc-order-dock, .pc-when { width: min(100%, 700px); }
+  .pc-track-list { width: min(100%, 780px); }
+  .pc-sheet-deck { width: min(100%, 520px); }
+}
+
+/* The Showroom's rolls, drawn larger on a big screen (their unit, --rk), but never so tall that the
+   hall and its labels leave the screen: the unit is held to the screen's height too. */
+@media (min-width: 1280px) { .pc-walk-row { --rk: clamp(1px, calc((100vh - 640px) / 360), 1.2px); } }
+@media (min-width: 1600px) { .pc-walk-row { --rk: clamp(1px, calc((100vh - 640px) / 360), 1.35px); } }
+@media (min-width: 1900px) { .pc-walk-row { --rk: clamp(1px, calc((100vh - 640px) / 360), 1.5px); } }
+
+/* ── Desktop spreads ────────────────────────────────────────────────────────
+   On a phone a page is one column: its head, then the thing itself, then its actions. On a desktop
+   the same page is laid out as a spread: the head, the words and the actions down the left, the
+   thing itself (the book, the cart's sheets, the printer, the closet, the orders) on the right.
+   Only the layout changes: on a phone both wrappers step aside (`display: contents`) and the
+   children fall back into the one column, in the order they are written.
+   The left column's items stack in rows between two flexible rows, so they sit centred beside
+   the right-hand side (or from the top, `.is-top`); the right side spans every row. */
+.pc-split, .pc-main { display: contents; }
+@media (min-width: 1100px) {
+  .pc-split {
+    display: grid; width: 100%; max-width: 1420px; margin-inline: auto; align-self: center;
+    grid-template-columns: minmax(380px, 5fr) minmax(0, 7fr); grid-template-rows: 1fr repeat(10, auto) 1fr;
+    column-gap: clamp(56px, 6vw, 132px); min-height: calc(100vh - var(--pc-topbar) - 150px); text-align: left;
+  }
+  .pc-split::before { content: ''; grid-column: 1; grid-row: 1; }
+  .pc-split.is-top { grid-template-rows: 0 repeat(10, auto) 1fr; }
+  .pc-split > * { grid-column: 1; min-width: 0; }
+  .pc-split > .pc-main { grid-column: 2; grid-row: 1 / -1; align-self: center; display: flex; flex-direction: column; align-items: center; }
+  .pc-split.is-top > .pc-main { align-self: start; }
+
+  /* The head, set flush left. */
+  .pc-split .pc-closet-head { text-align: left; }
+  .pc-split .pc-fill-title { max-width: none; }
+  .pc-split .pc-closet-orn { justify-content: flex-start; }
+  .pc-split .pc-closet-orn i:first-child { display: none; }
+  .pc-split .pc-closet-sub { align-items: flex-start; margin-left: 0; text-align: left; }
+  .pc-split .pc-book-actions { align-items: flex-start; }
+  .pc-split .pc-order-dock { position: relative; bottom: auto; width: 100%; }
+}
+
+/* The entrance's spread, and its window of bolts (a desktop only). */
+.pc-hero-spread { display: contents; }
+.pc-hero-window { display: none; }
+.pc-closet-index { display: none; }
+@media (min-width: 1100px) {
+  .pc-hero-spread {
+    position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); align-items: center; column-gap: clamp(40px, 5vw, 110px);
+    width: 100%; max-width: 1480px; padding: 0 clamp(40px, 5vw, 96px) clamp(60px, 12vh, 150px);
+  }
+  .pc-hero-spread .pc-hero-inner { max-width: none; padding: 0 !important; text-align: left !important; }
+  .pc-hero-spread .pc-hero-orn { justify-content: flex-start; }
+  .pc-hero-spread .pc-hero-orn i:first-child { display: none; }
+  .pc-hero-spread .pc-hero-eyebrow { padding-left: 0; }
+  .pc-hero-spread .pc-hero-est { justify-content: flex-start; padding-left: 0; }
+  .pc-hero-spread .pc-hero-est i:first-child { display: none; }
+  .pc-hero-spread .pc-hero-promise { margin-left: 0; }
+  .pc-hero-spread .pc-hero-ways { flex-direction: row; align-items: center; gap: 28px; }
+  .pc-hero-spread .pc-hero-enter, .pc-hero-spread .pc-hero-link { white-space: nowrap; }
+  .pc-hero-window .pc-roll-name { white-space: nowrap; font-size: 18px !important; }
+  .pc-hero-spread .pc-hero-search { margin-left: 0 !important; margin-right: 0 !important; }
+  .pc-hero-window {
+    --rk: min(1.25px, .13vh); position: relative; display: flex; align-items: flex-end; justify-content: center; gap: clamp(18px, 2.2vw, 40px);
+    padding: 40px 0 0; animation: rise 1.2s .2s cubic-bezier(.2, .8, .2, 1) both;
+  }
+  /* The plinth the bolts stand on: a pale stone step, lit from above. */
+  .pc-hero-plinth {
+    position: absolute; left: -4%; right: -4%; bottom: -8px; height: calc(32 * var(--rk) + 56px); border-radius: 8px;
+    background: linear-gradient(180deg, #FBF7EF, #EDE3D2 60%, #E2D5BF); box-shadow: 0 30px 50px -30px rgba(60, 40, 18, .45), inset 0 1px 0 #FFFFFF;
+  }
+  /* In the window only the bolt's name is shown. */
+  .pc-hero-window .pc-roll-no, .pc-hero-window .pc-roll-spec, .pc-hero-window .pc-roll-shades { display: none; }
+  .pc-hero-window > div { position: relative; }
+
+  /* The closets: the list of them down the side. */
+  .pc-closetpage .pc-split { grid-template-columns: minmax(330px, 4fr) minmax(0, 8fr); }
+  .pc-split > .pc-closet-index {
+    display: block; position: relative; top: auto; left: auto; right: auto; max-height: none; overflow: visible; margin-top: 26px;
+    animation: pcRiseIn .6s .2s ease both; box-shadow: 0 18px 40px -28px rgba(40, 24, 8, .4);
+  }
+  .pc-split > .pc-closet-index button { padding: 11px 12px; }
+  .pc-split > .pc-closet-index .pc-closet-list-nm { font-size: 17.5px; }
+
+  /* The cart and the review: the dock and the steps on the left. */
+  .pc-split .pc-cart-dockrow { justify-content: flex-start !important; margin-top: 26px !important; }
+  .pc-split .pc-cart-ask { margin-left: 0; margin-right: 0; }
+  .pc-split .pc-cart-warn { text-align: left !important; }
+  .pc-split .pc-steps { justify-content: flex-start; }
+  .pc-split .pc-order-eyebrow, .pc-split .pc-order-orn { justify-content: flex-start !important; }
+  .pc-split .pc-order-eyebrow > span:first-child, .pc-split .pc-order-orn > span:first-child { display: none; }
+  .pc-split .pc-order-eyebrow > span:nth-child(2) { padding-left: 0 !important; }
+  .pc-split > h1 { font-size: clamp(64px, 5.6vw, 96px) !important; }
+  .pc-split > p { max-width: 440px !important; }
+  .pc-split .pc-order-dock { margin-top: 30px; }
+  .pc-split .pc-print { margin-top: 8px; }
+
+  /* Tracking: the find field on the left, the orders on the right. */
+  .pc-split .pc-track-find { margin: 28px 0 0; }
+  .pc-split .pc-track-list { width: 100%; max-width: 780px; margin-top: 0; }
+  .pc-split .pc-track-note { justify-content: flex-start; text-align: left; }
+
+  /* The swatch book on the right, larger. */
+  .pc-split { --pc-book-w: 400px; }
+  .pc-split .pc-sheet-deck { margin-top: 0 !important; }
+}
+@media (min-width: 1100px) {
+  /* Delivery and payment: the three sheets on the right, one under another. */
+  .pc-split .pc-ship-main .pc-when { width: 100%; max-width: 720px; }
+  .pc-split .pc-ship-main .pc-when:first-child { margin-top: 0; }
+}
+@media (min-width: 1100px) {
+  /* The dispatch's parcel, drawn larger on a desktop. */
+  .pc-bx-scene { scale: 1.35; margin-block: 70px 50px; }
+}
+
+/* ── The on-screen keyboard ─────────────────────────────────────────────────
+   Safari on an iPhone lays its keyboard over the page. Its height is published as --pc-kb
+   (KeyboardInset): a sheet pinned to the bottom stands on the keyboard instead of under it, and
+   while it is up the bottom bar and the docks that follow the page's foot step aside, so nothing
+   covers the field being typed into. */
+@media (max-width: 639px) {
+  .pc-sheet { bottom: var(--pc-kb, 0px); max-height: calc(92svh - var(--pc-kb, 0px)); transition: bottom .25s ease, max-height .25s ease; }
+  html.pc-kb-open .pc-sheet { padding-bottom: 18px; }
+}
+html.pc-kb-open .pc-bottomnav, html.pc-kb-open .pc-order-dock { visibility: hidden; opacity: 0; pointer-events: none; }

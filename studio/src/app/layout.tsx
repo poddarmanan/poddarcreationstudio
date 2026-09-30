@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Jost } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
+import { KeyboardInset } from "@/components/KeyboardInset";
 
 const cormorant = Cormorant_Garamond({
   variable: "--font-display",
@@ -33,6 +34,9 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: "#faf8f5",
+  // Where the browser supports it (Chrome on Android), the keyboard shrinks the page rather than
+  // covering it. Safari on an iPhone does not; KeyboardInset handles that.
+  interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({
@@ -43,6 +47,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${cormorant.variable} ${jost.variable}`}>
       <body style={{ fontFamily: "var(--font-body), sans-serif" }}>
+        <KeyboardInset />
         <Providers>{children}</Providers>
       </body>
     </html>

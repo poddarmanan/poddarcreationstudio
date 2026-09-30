@@ -61,7 +61,9 @@ export function ShadeStrip({
     const inView = left >= el.scrollLeft && left + on.offsetWidth <= el.scrollLeft + el.clientWidth;
     if (!inView || first.current) {
       const quick = first.current || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      el.scrollTo({ left: left - (el.clientWidth - on.offsetWidth) / 2, behavior: quick ? 'instant' : 'smooth' });
+      const x = left - (el.clientWidth - on.offsetWidth) / 2;
+      if (quick) el.scrollLeft = x;
+      else el.scrollTo({ left: x, behavior: 'smooth' });
     }
     first.current = false;
   }, [current]);
@@ -75,7 +77,9 @@ export function ShadeStrip({
     const to = (clientX: number, smooth: boolean) => {
       const r = b.getBoundingClientRect();
       const k = Math.max(0, Math.min(1, (clientX - r.left) / r.width));
-      el.scrollTo({ left: k * el.scrollWidth - el.clientWidth / 2, behavior: smooth ? 'smooth' : 'instant' });
+      const x = k * el.scrollWidth - el.clientWidth / 2;
+      if (smooth) el.scrollTo({ left: x, behavior: 'smooth' });
+      else el.scrollLeft = x;
     };
     const down = (e: PointerEvent) => {
       id = e.pointerId;

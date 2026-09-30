@@ -250,14 +250,14 @@ export function FabricLab({ studio }: { studio: Studio }) {
             <div>
           <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
-                <div style={{ fontSize: 10.5, letterSpacing: '.22em', color: 'rgba(28,25,23,.45)', textTransform: 'uppercase' }}>
+                <div className="pc-lab-label" style={{ fontSize: 10.5, letterSpacing: '.22em', color: 'rgba(28,25,23,.45)', textTransform: 'uppercase' }}>
                   {f.nc} {t.shades}
                   {picking && picked.length > 0 && <span style={{ color: '#8A6D45' }}> · {picked.length} {t.selected}</span>}
                 </div>
                 <button
                   onClick={toggleMulti}
                   aria-pressed={picking}
-                  className="pc-hv-scale-06"
+                  className="pc-hv-scale-06 pc-lab-multi"
                   style={{
                     cursor: 'pointer', flex: 'none', display: 'inline-flex', alignItems: 'center', gap: 5, borderRadius: 999, padding: '4px 9px',
                     fontFamily: FONT_BODY, fontSize: 9, letterSpacing: '.12em', textTransform: 'uppercase', lineHeight: 1.4,
@@ -538,7 +538,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
             <button
               onClick={openChooser}
               aria-haspopup="dialog"
-              className={`pc-book${alreadyIn ? ' is-done' : ''}`}
+              className={`pc-book pc-lab-add${alreadyIn ? ' is-done' : ''}`}
               style={{
                 cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 10, borderRadius: 999, whiteSpace: 'nowrap',
                 padding: '16px 14px', fontFamily: FONT_BODY, fontSize: 'clamp(11px, 3vw, 12.5px)', letterSpacing: '.2em', textTransform: 'uppercase',
@@ -581,8 +581,8 @@ export function FabricLab({ studio }: { studio: Studio }) {
             className="pc-nav"
             {...moreDrag}
             style={{
-              display: 'flex', alignItems: 'flex-end', gap: 'clamp(30px,4.5vw,64px)', overflowX: 'auto', padding: '30px clamp(34px,7vw,100px) 44px', marginTop: 4,
-              cursor: 'grab', touchAction: 'pan-y',
+              display: 'flex', alignItems: 'flex-end', gap: 'clamp(30px,4.5vw,64px)', overflowX: 'auto', overflowY: 'hidden', padding: '30px clamp(34px,7vw,100px) 44px', marginTop: 4,
+              cursor: 'grab', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain',
               // The Showroom's hall, in miniature: a pale wall meeting a floor the rolls stand on,
               // fading out of the page at the top and back into it at the bottom so the hall and the
               // page read as one piece. No scroll snapping: it fought the hold-and-drag, pulling
@@ -691,19 +691,19 @@ function PriceLine({ price, t }: { price: number; t: Record<string, string> }) {
       }}
     >
       <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 9.5, letterSpacing: '.3em', color: '#8A6D45', textTransform: 'uppercase' }}>{t.pricePerMetre}</div>
+        <div className="pc-price-lbl" style={{ fontSize: 9.5, letterSpacing: '.3em', color: '#8A6D45', textTransform: 'uppercase' }}>{t.pricePerMetre}</div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 6, fontFamily: FONT_DISPLAY, color: '#1C1917' }}>
           <span style={{ fontSize: 18, color: '#8A6D45', transform: 'translateY(-10px)' }}>₹</span>
-          <span style={{ fontSize: 40, fontWeight: 500, lineHeight: 0.9, letterSpacing: '.01em' }}>{price}</span>
-          <span style={{ fontFamily: FONT_BODY, fontSize: 11, letterSpacing: '.16em', color: 'rgba(28,25,23,.5)', textTransform: 'uppercase', marginLeft: 4 }}>/ {t.metre}</span>
+          <span className="pc-price-num" style={{ fontSize: 40, fontWeight: 500, lineHeight: 0.9, letterSpacing: '.01em' }}>{price}</span>
+          <span className="pc-price-per" style={{ fontFamily: FONT_BODY, fontSize: 11, letterSpacing: '.16em', color: 'rgba(28,25,23,.5)', textTransform: 'uppercase', marginLeft: 4 }}>/ {t.metre}</span>
         </div>
       </div>
       <div style={{ textAlign: 'right', flex: 'none' }}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 10, letterSpacing: '.2em', color: 'rgba(28,25,23,.6)', textTransform: 'uppercase' }}>
+        <div className="pc-price-stock" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 10, letterSpacing: '.2em', color: 'rgba(28,25,23,.6)', textTransform: 'uppercase' }}>
           <span aria-hidden style={{ width: 7, height: 7, borderRadius: '50%', background: '#5E8C61', boxShadow: '0 0 0 3px rgba(94,140,97,.16)', animation: 'pulse 3s infinite' }} />
           {t.inStockShort}
         </div>
-        <div style={{ fontSize: 10.5, color: 'rgba(28,25,23,.45)', marginTop: 5, letterSpacing: '.04em' }}>{t.millFresh}</div>
+        <div className="pc-price-fresh" style={{ fontSize: 10.5, color: 'rgba(28,25,23,.45)', marginTop: 5, letterSpacing: '.04em' }}>{t.millFresh}</div>
       </div>
       {/* Under the price and the stock, a quiet way to talk about the price: a row of its own, on
           one line. */}

@@ -146,6 +146,7 @@ export function SwatchBook({ studio }: { studio: Studio }) {
 
   return (
     <Room>
+      <div className="pc-split">
       {/* The title plate, as the Colour Closet's: the name set to fill its line, "Book" in antique
           gold foil, a small ornament, and what the book holds. */}
       <header className="pc-closet-head" style={{ userSelect: 'none', WebkitUserSelect: 'none' }}>
@@ -168,7 +169,9 @@ export function SwatchBook({ studio }: { studio: Studio }) {
         </p>
       </header>
 
-      <SheetStack studio={studio} groups={groups} />
+      <div className="pc-main">
+        <SheetStack studio={studio} groups={groups} />
+      </div>
 
       {/* The book's actions: order it (every shade in it, across all its fabrics), the one ink
           button; or see it bound first, a quiet link beneath. */}
@@ -221,6 +224,7 @@ export function SwatchBook({ studio }: { studio: Studio }) {
           </span>
           <span aria-hidden className="pc-direct-arrow">→</span>
         </button>
+      </div>
       </div>
     </Room>
   );
@@ -384,8 +388,9 @@ export function SheetStack({ studio, groups, cart }: { studio: Studio; groups: G
             wheel.current.dx = -1e6 * Math.sign(wheel.current.dx);
           }
         }}
+        className="pc-sheet-deck"
         style={{
-          position: 'relative', width: 'min(100%, 440px)', aspectRatio: '3 / 4', margin: 'clamp(24px,4vw,34px) auto 0', outline: 'none',
+          position: 'relative', aspectRatio: '3 / 4', margin: 'clamp(24px,4vw,34px) auto 0', outline: 'none',
           touchAction: 'pan-y', userSelect: 'none', WebkitUserSelect: 'none', cursor: dragging ? 'grabbing' : 'grab', animation: 'rise 1s .1s cubic-bezier(.22,.8,.2,1) both',
         }}
       >
@@ -914,6 +919,7 @@ function EmptyBook({ studio }: { studio: Studio }) {
   const words = t.book.split(' ');
   return (
     <Room center>
+      <div className="pc-split">
       <header className="pc-closet-head" style={{ width: '100%' }}>
         <FillLine>
           {words.slice(0, -1).join(' ')}{' '}
@@ -930,12 +936,14 @@ function EmptyBook({ studio }: { studio: Studio }) {
           <span>{t.emptyBoard}</span>
         </p>
       </header>
-      <div style={{ marginTop: 30 }} />
-      <Binding width="min(76%, 320px)" padded={false}>
-        <div style={{ position: 'absolute', top: 0, bottom: 0, left: 26, right: 0 }}>
-          <CoverFace t={t} userName={studio.userName} />
-        </div>
-      </Binding>
+      <div className="pc-main">
+        <div style={{ marginTop: 30 }} />
+        <Binding width="min(76%, var(--pc-book-w, 320px))" padded={false}>
+          <div style={{ position: 'absolute', top: 0, bottom: 0, left: 26, right: 0 }}>
+            <CoverFace t={t} userName={studio.userName} />
+          </div>
+        </Binding>
+      </div>
       {/* The ways to fill it: the closets of shades, or the hall of fabrics. */}
       <div className="pc-book-actions" style={{ marginTop: 48 }}>
         <button onClick={() => studio.go('colours')} className="pc-primary">
@@ -948,6 +956,7 @@ function EmptyBook({ studio }: { studio: Studio }) {
         <button onClick={() => studio.go('showroom')} className="pc-quiet-link">
           {t.enter}
         </button>
+      </div>
       </div>
     </Room>
   );

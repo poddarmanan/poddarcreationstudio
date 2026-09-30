@@ -1289,3 +1289,92 @@ The sign-in page is removed the moment the buyer is handed on. So the curtain th
 of the moment, left in the page on its own with every animation in it stopped, and removed once
 it is up. Google sign-in leaves for Google's page, so it has no such moment. With reduced motion
 the buyer is handed on at once.
+
+## Desktop spreads, iPhone scrolling and the keyboard, and the desk seal
+
+### Pages laid out for a desktop
+
+The pages were drawn for a phone. On a monitor they read as a phone column, small and adrift in
+empty space. From 1100px wide, each page is now laid out as a spread: the head, the words and the
+actions down the left, and the thing itself on the right.
+
+| Page | Left | Right |
+| --- | --- | --- |
+| Entrance | Eyebrow, "Poddar *Creation*", Est. Surat, the promise, both ways in side by side, search | A window of five bolts on a stone plinth, each a tap from its lab |
+| Colour Closet | Title, subtext, and every closet in a list (wood, number, name, finish, count) | The closet with its bar |
+| Swatch Book | Title, count, Order swatch book, Preview, Skip the swatch book | The sheets (the book, when empty) |
+| Cart | Title, count, the metres ask, and the dock with Checkout | The sheets |
+| Review | Back, steps, "Your *Order*", the line, and the dock | The printer and the slip |
+| Delivery & Payment | Steps, title, totals, and the dock with Pay / Place order | Ship to, When, Payment |
+| Track your order | Title, subtext, the find field | The order cards |
+
+This is one set of rules (`.pc-split`, `.pc-main`), not a second layout per page. The left
+column's items stack in rows between two flexible rows, so they sit centred beside the right-hand
+side, or from the top on the long pages (`.is-top`). The right-hand side spans every row. Below
+1100px both wrappers are `display: contents`, so on a phone the children fall back into the one
+column in the order they are written, and nothing on a phone moves.
+
+Sizes also step up at 1280px and at 1600px:
+
+- the header: its height, the wordmark, the links, and the account button (the ⓘ under it
+  centres on its own width);
+- the Entrance's title (held to the screen's height too), its promise, buttons and search;
+- the Showroom's eyebrow, title, line, room switch, hint, and each bolt's labels;
+- the Lab's shade chips (60 → 68 → 76px), the price (40 → 50 → 56px) and its labels, the Add
+  button, and the fabric name;
+- the order slip and the docks (560 → 640 → 700px), and the dock's figures;
+- tracking's field, cards and type.
+
+On a desktop the docks follow the page 22px from the foot, since there is no tab bar.
+
+In the Showroom the bolts now take a unit, `--rk`, instead of fixed pixels. It is set larger on a
+wide screen (1.2px, 1.35px, then 1.5px per pixel of the drawing) but held to the screen's height,
+so the hall and its labels always fit. The walk is centred when it is shorter than the screen and
+fills the height of the view. The floor meets the wall just behind the bolts' feet, wherever the
+layout puts them: it is measured (`--hz`) rather than fixed at 62%. The Dispatch parcel is drawn
+1.35× on a desktop.
+
+### iPhone (Safari)
+
+- **Horizontal strips scroll natively.** The Showroom walk, the Lab's "More fabrics" and the shade
+  strip scroll under the finger with momentum. Drag-to-scroll by hand is for a mouse only. The
+  strips take `touch-action: pan-x pan-y` and `overflow-y: hidden`. Before, a strip with
+  `overflow-x: auto` was also a vertical scroller, and caught the vertical swipes meant for the
+  page.
+- **Jumps work.** Every immediate scroll goes through `jumpTo`, or sets `scrollLeft`. Older Safari
+  throws on `behavior: 'instant'`. Safari also applies the page's smooth scrolling to programmatic
+  jumps.
+- **The keyboard never covers a field** (`KeyboardInset`, mounted once for the whole site). Safari
+  lays its keyboard over the page rather than shrinking it. The keyboard's height is read from the
+  visual viewport and published as `--pc-kb`:
+  - bottom sheets (sign in, WhatsApp, new address, Add to…) stand on the keyboard, and their
+    height shrinks with it;
+  - while the keyboard is up, the tab bar and the docks step aside;
+  - a field that takes the focus is brought into the middle of what still shows.
+
+  Chrome on Android is asked to shrink the page instead (`interactiveWidget: resizes-content`).
+
+### The desk seal on the parcel
+
+The wax seal was a flat gold disc that faded in and out. It is now struck like the PAID stamp:
+
+1. The wax drops on the knot.
+2. The house's desk seal (a turned wooden knob and neck, a brass collar, the brass die) swings in
+   from the upper right. It hovers over the wax, finding its place, and draws back.
+3. It strikes, 1.56s in. At that moment:
+   - the die squashes;
+   - the wax spreads out under it past its size, then draws back into an uneven round;
+   - the carton takes the knock;
+   - a puff rings out;
+   - a phone buzzes.
+4. It rocks on its rim as it is pressed home, then peels away slowly, one edge first, and flies
+   off.
+5. Only then do "PC" and the ring of the die show in the wax.
+6. Its shadow on the carton is wide and faint while the seal is high, and tight and dark as it
+   lands.
+
+The seal is drawn flat over the 3D scene, seated on the wax's position as measured on screen. Seen
+along its axis in 3D, it read as a stack of rings. Stage 4 is given 2.45s for it, so the label
+comes on after. The small PAID mark on the label is now an ink impression: there at once where the
+rubber met the paper, a little heavy, settling as the ink sinks in. It no longer grows out of the
+label like a sticker.

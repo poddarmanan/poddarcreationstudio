@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import type { Studio } from './state';
+import { jumpTo } from './helpers';
 
 /** One stop on a page's tour: what to point at (the first of these on screen), and what to say. */
 type Step = { at?: string; title: string; text: string };
@@ -151,7 +152,7 @@ export function Guide({ studio }: { studio: Studio }) {
       const b = btn.current;
       if (!acc || !b) return;
       const r = acc.getBoundingClientRect();
-      b.style.left = `${Math.round(r.left + r.width / 2 - 12)}px`;
+      b.style.left = `${Math.round(r.left + r.width / 2 - b.offsetWidth / 2)}px`;
       b.style.top = `${Math.round(Math.max(r.bottom, 0) + 10)}px`;
     };
     place();
@@ -213,7 +214,8 @@ export function Guide({ studio }: { studio: Studio }) {
       if (!fits) {
         const quick = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         const y = window.scrollY + r.top - Math.max(90, (window.innerHeight - Math.min(r.height, window.innerHeight * 0.5)) / 2 - 60);
-        window.scrollTo({ top: Math.max(0, y), behavior: quick ? 'instant' : 'smooth' });
+        if (quick) jumpTo(Math.max(0, y));
+        else window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
       }
     }
     let raf = 0;

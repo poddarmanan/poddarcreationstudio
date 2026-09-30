@@ -71,3 +71,17 @@ export function spectrum(a: ColourRow, b: ColourRow) {
   if (dl !== 0) return dl;
   return a.h - b.h || a.order - b.order;
 }
+
+/**
+ * Sets the page's scroll at once, in every browser. The site scrolls smoothly by default
+ * (`scroll-behavior: smooth`), and `behavior: 'instant'` is not understood by older Safari (it
+ * throws, and the scroll never happens), so the smooth scrolling is set aside for the one call and
+ * the plain two-number form is used.
+ */
+export function jumpTo(y: number) {
+  const h = document.documentElement;
+  const was = h.style.scrollBehavior;
+  h.style.scrollBehavior = 'auto';
+  window.scrollTo(0, y);
+  h.style.scrollBehavior = was;
+}

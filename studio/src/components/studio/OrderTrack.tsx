@@ -132,6 +132,7 @@ export function OrderTrack({ studio }: { studio: Studio }) {
 
   return (
     <Room>
+      <div className="pc-split is-top">
       <header className="pc-closet-head" style={{ width: '100%' }}>
         <FillLine>
           {words.slice(0, -1).join(' ')}{' '}
@@ -161,6 +162,7 @@ export function OrderTrack({ studio }: { studio: Studio }) {
         </label>
       )}
 
+      <div className="pc-main">
       <div className="pc-track-list">
         {loading && <div className="pc-track-loading" />}
         {!loading && !orders.length && (
@@ -284,6 +286,7 @@ export function OrderTrack({ studio }: { studio: Studio }) {
           );
         })}
       </div>
+      </div>
 
       {!signedIn && !PREVIEW && orders.length > 0 && (
         <p className="pc-track-note">
@@ -293,6 +296,7 @@ export function OrderTrack({ studio }: { studio: Studio }) {
           </button>
         </p>
       )}
+      </div>
     </Room>
   );
 }

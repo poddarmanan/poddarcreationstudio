@@ -7,12 +7,15 @@ import { useRef, type PointerEvent as ReactPointerEvent, type MouseEvent as Reac
  * fabrics"). Mirrors the prototype's dsDown/dsMove/dsUp/dsClick: a drag past a small
  * threshold captures the pointer and pans the container; a captured drag also swallows the
  * click that would otherwise open whatever was under the cursor, so dragging never
- * mis-fires a navigation. Touch keeps native vertical scroll via `touch-action: pan-y`.
+ * mis-fires a navigation. Touch is left to the browser: native scrolling both ways, with momentum.
  */
 export function useDragScroll() {
   const st = useRef<{ x: number; sl: number; moved: boolean; id: number } | null>(null);
 
   const onPointerDown = (e: ReactPointerEvent<HTMLElement>) => {
+    // A finger scrolls the gallery natively (with its momentum, as Safari on an iPhone expects);
+    // only a mouse is dragged by hand.
+    if (e.pointerType !== 'mouse') return;
     st.current = { x: e.clientX, sl: e.currentTarget.scrollLeft, moved: false, id: e.pointerId };
   };
   const onPointerMove = (e: ReactPointerEvent<HTMLElement>) => {

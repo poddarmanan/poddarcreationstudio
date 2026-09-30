@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import type { Studio } from './state';
 import type { FabricRow } from '@/lib/types';
-import { fabricTex, spectrum } from './helpers';
+import { fabricTex, spectrum, jumpTo } from './helpers';
 import { Room, SheetStack, roman, type Cutting, type Group } from './SwatchBook';
 import { FabricOrder, EmptyCart } from './FabricOrder';
 import { usePresence } from './motion';
@@ -69,7 +69,7 @@ export function CartBook({ studio }: { studio: Studio }) {
       anchor={measuring.anchor}
       onCut={() => {
         // Straight to the top, not smoothly: the review plans its own glide from where the page is.
-        window.scrollTo({ top: 0, behavior: 'instant' });
+        jumpTo(0);
         setCheckout(true);
       }}
       onGone={() => setMeasuring(null)}
@@ -112,7 +112,7 @@ export function CartBook({ studio }: { studio: Studio }) {
     <>
     {measure}
     <Room>
-      <div style={{ textAlign: 'center', userSelect: 'none', WebkitUserSelect: 'none' }}>
+      <div className="pc-split" style={{ textAlign: 'center', userSelect: 'none', WebkitUserSelect: 'none' }}>
         {/* The title plate, as the Swatch Book's and the Colour Closet's: the name set to fill its
             line, "Cart" in antique gold foil, a small ornament, then what the cart holds over how
             to set it. */}
@@ -143,19 +143,19 @@ export function CartBook({ studio }: { studio: Studio }) {
             <small>{t.tapForMetres}</small>
           </div>
         )}
-        <SheetStack
-          studio={studio}
-          groups={groups}
-          cart={{
-            onPick: (cut, g) => open({ g, gi: groups.indexOf(g), cut }),
-            onAll: (g) => open({ g, gi: groups.indexOf(g), cut: null }),
-          }}
-        />
-      </div>
-
+        <div className="pc-main">
+          <SheetStack
+            studio={studio}
+            groups={groups}
+            cart={{
+              onPick: (cut, g) => open({ g, gi: groups.indexOf(g), cut }),
+              onAll: (g) => open({ g, gi: groups.indexOf(g), cut: null }),
+            }}
+          />
+        </div>
 
       {/* The dock: the running total, the estimate, and the way to checkout. */}
-      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8 }}>
+      <div className="pc-cart-dockrow" style={{ display: 'flex', justifyContent: 'center', marginTop: 8 }}>
         <div className="pc-order-dock" style={{ animation: 'pcDockIn .9s .8s cubic-bezier(.2,.9,.25,1) both' }}>
           <div style={{ minWidth: 0 }}>
             <div key={total} className="pc-dock-total">
@@ -192,7 +192,8 @@ export function CartBook({ studio }: { studio: Studio }) {
           </button>
         </div>
       </div>
-      {warn > 0 && unset > 0 && <p style={{ margin: '10px 0 0', textAlign: 'center', fontSize: 12.5, color: '#A5392B' }}>{t.selectAllFirst}</p>}
+      {warn > 0 && unset > 0 && <p className="pc-cart-warn" style={{ margin: '10px 0 0', textAlign: 'center', fontSize: 12.5, color: '#A5392B' }}>{t.selectAllFirst}</p>}
+      </div>
 
       {pickPresence.shown && pick && (
         <MetrePicker

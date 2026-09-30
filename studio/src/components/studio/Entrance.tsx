@@ -1,8 +1,12 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, type CSSProperties } from 'react';
 import type { Studio } from './state';
-import { FONT_BODY, fabricTex, heroColour } from './helpers';
+import { FONT_BODY, fabricNo, fabricTex, heroColour } from './helpers';
+import { FabricRoll } from './FabricRoll';
+
+/** The bolts stood in the entrance's window on a desktop: one from each room, in contrasting cloth. */
+const WINDOW = ['jaam11', 'rayon14', 'gajji', 'lycra', 'roman'];
 
 export function Entrance({ studio }: { studio: Studio }) {
   const { t, fabrics, q, setQ, reduceMotion } = studio;
@@ -70,7 +74,11 @@ export function Entrance({ studio }: { studio: Studio }) {
           entrance — mark, title, promise, call to action and search — fits a phone screen
           without scrolling. Every value reaches its original number at about 615px wide, so
           nothing above a large phone moves. */}
-      <div style={{ position: 'relative', width: '100%', maxWidth: 640, textAlign: 'center', padding: 'clamp(16px,4vw,56px) 20px', animation: 'rise 1.2s cubic-bezier(.2,.8,.2,1) both' }}>
+      {/* On a desktop the title page is a spread: the house's name and the way in on the left, and
+          on the right a window of bolts standing on a plinth, each a tap from its lab. On a phone
+          the wrapper steps aside and the window is not drawn. */}
+      <div className="pc-hero-spread">
+      <div className="pc-hero-inner" style={{ position: 'relative', width: '100%', textAlign: 'center', padding: 'clamp(16px,4vw,56px) 20px', animation: 'rise 1.2s cubic-bezier(.2,.8,.2,1) both' }}>
         {/* The house, set as a title page: an ornament, what the house is, its name, where it was
             founded between hairlines, its promise, and the way in. */}
         <div aria-hidden className="pc-hero-orn">
@@ -104,7 +112,7 @@ export function Entrance({ studio }: { studio: Studio }) {
             {t.explore}
           </button>
         </div>
-        <div className="pc-hero-search" style={{ position: 'relative', maxWidth: 520, margin: 'clamp(26px,7.2vw,44px) auto 0' }}>
+        <div className="pc-hero-search" style={{ position: 'relative', margin: 'clamp(26px,7.2vw,44px) auto 0' }}>
           <div
             style={{
               display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,.86)',
@@ -119,11 +127,11 @@ export function Entrance({ studio }: { studio: Studio }) {
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder={t.searchPh}
-              style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontFamily: FONT_BODY, fontSize: 14, color: '#1C1917', minWidth: 0 }}
+              className="pc-hero-q" style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontFamily: FONT_BODY, color: '#1C1917', minWidth: 0 }}
             />
             <button
               onClick={studio.runAi}
-              className="pc-hv-gold-bg"
+              className="pc-hv-gold-bg pc-hero-img"
               style={{
                 cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, background: '#1C1917', color: '#FAF8F5',
                 border: 'none', borderRadius: 999, padding: '9px 16px', fontFamily: FONT_BODY, fontSize: 12, whiteSpace: 'nowrap',
@@ -189,6 +197,19 @@ export function Entrance({ studio }: { studio: Studio }) {
             </div>
           )}
         </div>
+      </div>
+      <div className="pc-hero-window is-in" aria-label={t.showroom}>
+        <div className="pc-hero-plinth" aria-hidden />
+        {WINDOW.map((id, i) => {
+          const f = fabrics.find((x) => x.id === id);
+          if (!f) return null;
+          return (
+            <div key={id} className="pc-roll-rise" style={{ ['--d' as string]: `${500 + i * 120}ms` } as CSSProperties}>
+              <FabricRoll f={f} no={fabricNo(fabrics, f.id)} onClick={() => studio.unroll(f)} fg="#1C1917" sub="rgba(28,25,23,.55)" accent="#8A6D45" shades={t.shades} />
+            </div>
+          );
+        })}
+      </div>
       </div>
     </div>
   );

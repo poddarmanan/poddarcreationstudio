@@ -127,9 +127,10 @@ export function ShipPay({
 
   return (
     <Room center>
+      <div className="pc-split is-top">
       <Steps studio={studio} fromCart={fromCart} at={2} onStep={onStep} />
 
-      <div aria-hidden style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, marginTop: 18 }}>
+      <div aria-hidden className="pc-order-eyebrow" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, marginTop: 18 }}>
         <span style={{ width: 'clamp(26px,8vw,56px)', height: 1, background: 'linear-gradient(90deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'right', animation: 'pcRuleDraw 1s .2s cubic-bezier(.2,.8,.2,1) both' }} />
         <span style={{ fontSize: 9.5, letterSpacing: '.46em', paddingLeft: '.46em', textTransform: 'uppercase', color: UMBER, animation: 'pcRiseIn .9s .15s cubic-bezier(.2,.8,.2,1) both' }}>{t.directEyebrow}</span>
         <span style={{ width: 'clamp(26px,8vw,56px)', height: 1, background: 'linear-gradient(270deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'left', animation: 'pcRuleDraw 1s .2s cubic-bezier(.2,.8,.2,1) both' }} />
@@ -149,6 +150,7 @@ export function ShipPay({
         {shades} {shades === 1 ? t.shade : t.shades} · {inr(total)} m · ₹ {inr(value)}
       </p>
 
+      <div className="pc-main pc-ship-main">
       {/* I — Where it goes. */}
       <section className="pc-order-sheet pc-when" style={{ animation: 'pcFieldIn .9s .75s cubic-bezier(.2,.8,.2,1) both' }}>
         <div className="pc-ship-head">
@@ -229,6 +231,7 @@ export function ShipPay({
           {payNow ? (online === 'demo' ? t.payDemoNote : t.payNowNote) : t.payNote}
         </p>
       </section>
+      </div>
 
       {/* The dock: the total, the estimate, and the order. */}
       <div className="pc-order-dock" style={{ animation: 'pcDockIn .9s 1.1s cubic-bezier(.2,.9,.25,1) both' }}>
@@ -248,6 +251,7 @@ export function ShipPay({
         </button>
       </div>
       {error && <p className="pc-pay-error">{error}</p>}
+      </div>
 
       {demoPresence.shown && (
         <PayDemo

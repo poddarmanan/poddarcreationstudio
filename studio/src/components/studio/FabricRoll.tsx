@@ -16,6 +16,9 @@ export function FabricRoll({ f, no, onClick, fg, sub, accent, shades, className 
    * stands taller, but the lightest roll no longer leaves a band of empty wall above it. */
   compact?: boolean;
 }) {
+  // Every length is in the roll's own unit, --rk (1px unless a page sets it larger), so a page can
+  // draw its rolls larger on a big screen without redrawing them.
+  const k = (n: number) => `calc(${n} * var(--rk, 1px))`;
   const o = heroColour(f);
   const w = parseFloat(f.weight);
   const h = Math.round(compact ? 232 + w * 2.6 : 190 + w * 7);
@@ -36,26 +39,26 @@ export function FabricRoll({ f, no, onClick, fg, sub, accent, shades, className 
       className={className}
       style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', transition: 'transform .6s cubic-bezier(.22,.8,.2,1)', ...style }}
     >
-      <div style={{ position: 'relative', width: 92, height: h }}>
-        <div style={{ position: 'absolute', top: -12, left: 0, width: 92, height: 24, borderRadius: '50%', background: `radial-gradient(ellipse at 42% 40%, ${top1}, ${top2} 70%)`, border: '1px solid rgba(28,25,23,.12)' }} />
-        <div style={{ position: 'absolute', top: -4, left: 33, width: 26, height: 9, borderRadius: '50%', background: '#EFE9DF', border: '1px solid rgba(28,25,23,.18)' }} />
+      <div style={{ position: 'relative', width: k(92), height: k(h) }}>
+        <div style={{ position: 'absolute', top: k(-12), left: 0, width: k(92), height: k(24), borderRadius: '50%', background: `radial-gradient(ellipse at 42% 40%, ${top1}, ${top2} 70%)`, border: '1px solid rgba(28,25,23,.12)' }} />
+        <div style={{ position: 'absolute', top: k(-4), left: k(33), width: k(26), height: k(9), borderRadius: '50%', background: '#EFE9DF', border: '1px solid rgba(28,25,23,.18)' }} />
         <div style={{ position: 'absolute', inset: 0, borderRadius: '0 0 7px 7px', background: body, boxShadow: 'inset 0 -34px 44px rgba(28,25,23,.13)' }} />
         <div style={{ position: 'absolute', inset: 0, background: fabricWeave(f, o, 3), opacity: 0.5, borderRadius: '0 0 7px 7px' }} />
-        <div style={{ position: 'absolute', left: -16, right: -16, bottom: -13, height: 20, borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(28,25,23,.32), transparent 70%)' }} />
+        <div style={{ position: 'absolute', left: k(-16), right: k(-16), bottom: k(-13), height: k(20), borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(28,25,23,.32), transparent 70%)' }} />
         <div
           style={{
-            position: 'absolute', top: '100%', left: 0, right: 0, height: 60, marginTop: 14, borderRadius: '7px 7px 0 0',
+            position: 'absolute', top: '100%', left: 0, right: 0, height: k(60), marginTop: k(14), borderRadius: '7px 7px 0 0',
             background: body, opacity: 0.14, transform: 'scaleY(-1)', maskImage: 'linear-gradient(180deg,transparent, #000)',
           }}
         />
       </div>
-      <div style={{ marginTop: 32, textAlign: 'center', position: 'relative', zIndex: 2 }}>
-        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 12.5, letterSpacing: '.14em', color: accent, marginBottom: 3, transition: ease }}>{no}</div>
-        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 19, fontWeight: 600, color: fg, transition: ease }}>{f.name}</div>
-        <div style={{ fontSize: 11, letterSpacing: '.14em', color: sub, marginTop: 3, transition: ease }}>
+      <div data-roll-label style={{ marginTop: k(32), textAlign: 'center', position: 'relative', zIndex: 2 }}>
+        <div className="pc-roll-no" style={{ fontFamily: FONT_DISPLAY, fontSize: 12.5, letterSpacing: '.14em', color: accent, marginBottom: 3, transition: ease }}>{no}</div>
+        <div className="pc-roll-name" style={{ fontFamily: FONT_DISPLAY, fontSize: 19, fontWeight: 600, color: fg, transition: ease }}>{f.name}</div>
+        <div className="pc-roll-spec" style={{ fontSize: 11, letterSpacing: '.14em', color: sub, marginTop: 3, transition: ease }}>
           {f.weight} · {f.width}
         </div>
-        <div style={{ fontSize: 10.5, letterSpacing: '.1em', color: accent, marginTop: 3, transition: ease }}>
+        <div className="pc-roll-shades" style={{ fontSize: 10.5, letterSpacing: '.1em', color: accent, marginTop: 3, transition: ease }}>
           {f.nc} {shades}
         </div>
       </div>

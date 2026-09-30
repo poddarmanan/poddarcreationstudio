@@ -31,8 +31,8 @@ export function Nav({ studio }: { studio: Studio }) {
     >
       <div onClick={() => go('home')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 9, flex: 'none' }}>
         <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
-          <span style={{ fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: 600, letterSpacing: '.14em' }}>PODDAR</span>
-          <span style={{ fontSize: 9, letterSpacing: '.42em', color: '#8A6D45', marginTop: 2 }}>STUDIO</span>
+          <span className="pc-logo-word" style={{ fontFamily: FONT_DISPLAY, fontWeight: 600, letterSpacing: '.14em' }}>PODDAR</span>
+          <span className="pc-logo-sub" style={{ letterSpacing: '.42em', color: '#8A6D45' }}>STUDIO</span>
         </span>
       </div>
       <div
@@ -45,18 +45,18 @@ export function Nav({ studio }: { studio: Studio }) {
             onClick={() => go(n.k)}
             data-cart-target={n.k === 'cart' ? '' : undefined}
             data-book-target={n.k === 'book' ? '' : undefined}
-            className="pc-hv-ink"
+            className="pc-hv-ink pc-navbtn"
             style={{
               cursor: 'pointer', border: 'none',
               background: view === n.k ? 'rgba(28,25,23,.07)' : 'transparent',
               color: view === n.k ? '#1C1917' : 'rgba(28,25,23,.55)',
-              fontFamily: FONT_BODY, fontSize: 10.5, letterSpacing: '.06em', textTransform: 'uppercase',
-              padding: '6px 8px', borderRadius: 999, whiteSpace: 'nowrap', transition: 'color .25s,background .25s',
+              fontFamily: FONT_BODY, letterSpacing: '.06em', textTransform: 'uppercase',
+              borderRadius: 999, whiteSpace: 'nowrap', transition: 'color .25s,background .25s',
             }}
           >
             {n.label}
             {n.count ? (
-              <span key={n.k === 'cart' ? studio.cartBump : n.k === 'book' ? studio.bookBump : undefined} className={n.k === 'cart' || n.k === 'book' ? 'pc-cart-count' : undefined} style={{ display: 'inline-block', color: '#8A6D45', marginLeft: 4, fontSize: 10 }}>
+              <span key={n.k === 'cart' ? studio.cartBump : n.k === 'book' ? studio.bookBump : undefined} className={n.k === 'cart' || n.k === 'book' ? 'pc-cart-count' : undefined} style={{ display: 'inline-block', color: '#8A6D45', marginLeft: 4, fontSize: '.95em' }}>
                 {n.count}
               </span>
             ) : null}
@@ -101,7 +101,7 @@ function UserMenu({ studio, signLabel }: { studio: Studio; signLabel: string }) 
           border: '1px solid rgba(28,25,23,.85)', borderRadius: '50%', transition: 'background .25s,color .25s',
         }}
       >
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+        <svg width="15" height="15" style={{ width: '47%', height: '47%' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
           <circle cx="12" cy="8" r="4" />
           <path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" />
         </svg>

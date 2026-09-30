@@ -343,10 +343,37 @@ export function ColourWall({ studio }: { studio: Studio }) {
     else setOpenId(id);
   };
 
+  // Every closet, as a list: in the bar's drop-down, and down the side of the page on a desktop.
+  const closetItems = fabrics.map((f, k) => {
+    const look = lookOf(f.id, k);
+    return (
+      <button
+        key={f.id}
+        role="option"
+        aria-selected={k === idx}
+        className={k === idx ? 'is-on' : undefined}
+        style={{ ...lookVars(look), animationDelay: `${k * 18}ms` }}
+        onClick={() => {
+          setListOpen(false);
+          if (k !== idx) goTo(k);
+        }}
+      >
+        <span aria-hidden className="pc-closet-list-wood" />
+        <b>{String(k + 1).padStart(2, '0')}</b>
+        <span className="pc-closet-list-nm">
+          {f.name}
+          <i>{look[studio.lang === 'hi' ? 'hi' : 'en']}</i>
+        </span>
+        <em>{f.colours.length}</em>
+      </button>
+    );
+  });
+
   return (
     <div className="pc-closetpage" style={{ padding: 'clamp(18px,3.5vw,40px) clamp(16px,5vw,64px) 80px', animation: 'layCloth .95s cubic-bezier(.22,.8,.2,1) both' }}>
       {/* The page's name, set to fill the width of the page on one line, a small ornament, and a
           line on what the closets hold. */}
+      <div className="pc-split is-top">
       <header className="pc-closet-head">
         <FillLine>
           {t.closetTitleA ?? 'The Colour'} <em>{t.closetTitleB ?? 'Closet'}</em>
@@ -365,8 +392,13 @@ export function ColourWall({ studio }: { studio: Studio }) {
             ))}
         </p>
       </header>
+      {/* On a desktop, every closet down the side: a tap goes to it. */}
+      <div className="pc-closet-list pc-closet-index" role="listbox" aria-label={t.colourWall}>
+        {closetItems}
+      </div>
 
-      <div ref={zone}>
+      <div className="pc-main">
+      <div ref={zone} style={{ width: '100%' }}>
       {/* The one bar for moving between closets, pinned under the header: back, the closet looked
           at (its number over the count, its name, its shades; a tap lists them all), forward. */}
       <div ref={bar} className="pc-closet-count">
@@ -395,30 +427,7 @@ export function ColourWall({ studio }: { studio: Studio }) {
         </button>
         {listOpen && (
           <div className="pc-closet-list" role="listbox" aria-label={t.colourWall}>
-            {fabrics.map((f, k) => {
-              const look = lookOf(f.id, k);
-              return (
-                <button
-                  key={f.id}
-                  role="option"
-                  aria-selected={k === idx}
-                  className={k === idx ? 'is-on' : undefined}
-                  style={{ ...lookVars(look), animationDelay: `${k * 18}ms` }}
-                  onClick={() => {
-                    setListOpen(false);
-                    goTo(k);
-                  }}
-                >
-                  <span aria-hidden className="pc-closet-list-wood" />
-                  <b>{String(k + 1).padStart(2, '0')}</b>
-                  <span className="pc-closet-list-nm">
-                    {f.name}
-                    <i>{look[studio.lang === 'hi' ? 'hi' : 'en']}</i>
-                  </span>
-                  <em>{f.colours.length}</em>
-                </button>
-              );
-            })}
+            {closetItems}
           </div>
         )}
       </div>
@@ -476,6 +485,8 @@ export function ColourWall({ studio }: { studio: Studio }) {
       {/* What the closet is made of, and once it is open, how to look through it. */}
       {fab && <p key={fab.id} className="pc-closet-make">{lookOf(fab.id, idx)[studio.lang === 'hi' ? 'hi' : 'en']}</p>}
       {fab && openId === fab.id && <p className="pc-closet-hint">{t.slideHint}</p>}
+      </div>
+      </div>
     </div>
   );
 }

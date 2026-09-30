@@ -14,6 +14,9 @@ const GLASS = { light: 'rgba(250,248,245,.62)', dark: 'rgba(20,17,15,.45)' };
 const RIM = { light: 'rgba(28,25,23,.08)', dark: 'rgba(201,169,110,.22)' };
 
 const smooth = (k: number) => k * k * (3 - 2 * k);
+/** A room's wall and floor, with the line where they meet set by --hz: just behind the rolls' feet,
+ * wherever the layout puts them, so the rolls always stand on the floor. */
+const onFloor = (bg: string) => bg.replace('62.2%', 'calc(var(--hz, 62%) + 2px)').replace(' 62%', ' var(--hz, 62%)');
 const mix = (a: string, b: string, k: number) => `color-mix(in oklab, ${b} ${(k * 100).toFixed(2)}%, ${a})`;
 
 /**
@@ -53,6 +56,14 @@ export function Showroom({ studio }: { studio: Studio }) {
       const last = ns[ns.length - 1];
       return { start: first ? first.offsetLeft : 0, end: last ? last.offsetLeft + last.offsetWidth : 0 };
     });
+    // The floor meets the wall a little behind the rolls' feet.
+    const row = el.firstElementChild as HTMLElement | null;
+    const label = el.querySelector<HTMLElement>('[data-roll-label]');
+    const box = root.current;
+    if (row && label && box) {
+      const feet = row.getBoundingClientRect().bottom - box.getBoundingClientRect().top - label.offsetHeight - parseFloat(getComputedStyle(label).marginTop);
+      box.style.setProperty('--hz', `${Math.round(feet - 26)}px`);
+    }
   };
 
   // How far along the rooms the walk is, as a number: 0 in the first room, 1 in the second, 1.5
@@ -143,25 +154,29 @@ export function Showroom({ studio }: { studio: Studio }) {
     [],
   );
 
-  const glideTo = (k: RoomKey, behavior: ScrollBehavior = 'smooth') => {
+  const glideTo = (k: RoomKey, at: 'smooth' | 'now' = 'smooth') => {
     const el = walk.current;
     const first = el?.querySelector<HTMLElement>(`[data-room="${k}"]`);
     if (!el || !first) return;
     const pad = parseFloat(getComputedStyle(el.firstElementChild as HTMLElement).paddingLeft) || 0;
-    el.scrollTo({ left: k === rooms[0].k ? 0 : Math.max(0, first.offsetLeft - pad), behavior });
+    const left = k === rooms[0].k ? 0 : Math.max(0, first.offsetLeft - pad);
+    if (at === 'now') el.scrollLeft = left;
+    else el.scrollTo({ left, behavior: 'smooth' });
   };
 
   // Measured and painted before the first frame, and again on a resize. Arriving in a room other
   // than the first (from elsewhere in the studio), the walk starts there.
   useLayoutEffect(() => {
     measure();
-    if (ri > 0) glideTo(rooms[ri].k, 'instant');
+    if (ri > 0) glideTo(rooms[ri].k, 'now');
     paint(place());
     const ro = new ResizeObserver(() => {
       measure();
       paint(place());
     });
     if (walk.current) ro.observe(walk.current);
+    if (root.current) ro.observe(root.current);
+    document.fonts?.ready.then(() => measure()).catch(() => {});
     return () => ro.disconnect();
     // Only on arrival.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -170,8 +185,8 @@ export function Showroom({ studio }: { studio: Studio }) {
   return (
     <div
       ref={root}
-      className="pc-view"
-      style={{ position: 'relative', background: rooms[0].bg, overflow: 'hidden', animation: 'layCloth .95s cubic-bezier(.22,.8,.2,1) both' } as CSSProperties}
+      className="pc-view pc-showroom"
+      style={{ position: 'relative', display: 'flex', flexDirection: 'column', background: rooms[0].bg, overflow: 'hidden', animation: 'layCloth .95s cubic-bezier(.22,.8,.2,1) both' } as CSSProperties}
     >
       {/* Each room's wall, floor and light, one layer apiece, blended by the walk. */}
       {rooms.map((r, j) => (
@@ -181,7 +196,7 @@ export function Showroom({ studio }: { studio: Studio }) {
             layers.current[j] = el;
           }}
           aria-hidden
-          style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: r.bg, opacity: j === ri0 ? 1 : 0, willChange: 'opacity' }}
+          style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: onFloor(r.bg), opacity: j === ri0 ? 1 : 0, willChange: 'opacity' }}
         >
           <div
             style={{
@@ -210,7 +225,7 @@ export function Showroom({ studio }: { studio: Studio }) {
                 aria-hidden={j !== ri}
                 style={{ gridArea: '1 / 1', opacity: j === ri0 ? 1 : 0, visibility: j === ri0 ? 'visible' : 'hidden', willChange: 'opacity, transform' }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, fontSize: 9.5, letterSpacing: '.42em', textTransform: 'uppercase', color: room.accent }}>
+                <div className="pc-sr-eyebrow" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, fontSize: 9.5, letterSpacing: '.42em', textTransform: 'uppercase', color: room.accent }}>
                   <span aria-hidden style={{ width: 'clamp(22px,6vw,48px)', height: 1, background: `linear-gradient(90deg, transparent, ${room.accent})`, opacity: 0.7 }} />
                   <span>
                     {t.theShowroom} · <span style={{ fontVariantNumeric: 'lining-nums' }}>{String(j + 1).padStart(2, '0')} / {String(rooms.length).padStart(2, '0')}</span>
@@ -218,16 +233,16 @@ export function Showroom({ studio }: { studio: Studio }) {
                   <span aria-hidden style={{ width: 'clamp(22px,6vw,48px)', height: 1, background: `linear-gradient(270deg, transparent, ${room.accent})`, opacity: 0.7 }} />
                 </div>
                 {j === ri ? (
-                  <h1 style={{ margin: '12px 0 0', fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(38px,5.4vw,64px)', lineHeight: 1.02, color: room.fg }}>
+                  <h1 className="pc-sr-title" style={{ margin: '12px 0 0', fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(38px,5.4vw,64px)', lineHeight: 1.02, color: room.fg }}>
                     {words.join(' ')} <em style={{ fontWeight: 400, color: room.accent }}>{last}</em>
                   </h1>
                 ) : (
-                  <div style={{ margin: '12px 0 0', fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(38px,5.4vw,64px)', lineHeight: 1.02, color: room.fg }}>
+                  <div className="pc-sr-title" style={{ margin: '12px 0 0', fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(38px,5.4vw,64px)', lineHeight: 1.02, color: room.fg }}>
                     {words.join(' ')} <em style={{ fontWeight: 400, color: room.accent }}>{last}</em>
                   </div>
                 )}
                 <Selvage style={{ margin: '16px auto 0', width: 64 }} />
-                <p style={{ margin: '12px auto 0', maxWidth: 420, fontFamily: FONT_DISPLAY, fontSize: 'clamp(16px,1.6vw,19px)', color: room.sub }}>{t[room.descKey]}</p>
+                <p className="pc-sr-desc" style={{ margin: '12px auto 0', maxWidth: 420, fontFamily: FONT_DISPLAY, fontSize: 'clamp(16px,1.6vw,19px)', color: room.sub }}>{t[room.descKey]}</p>
               </div>
             );
           })}
@@ -237,6 +252,7 @@ export function Showroom({ studio }: { studio: Studio }) {
         <div
           role="group"
           data-guide="rooms"
+          className="pc-sr-rooms"
           aria-label={t.showroom}
           style={{
             position: 'relative', display: 'grid', gridTemplateColumns: `repeat(${rooms.length}, minmax(0, 1fr))`, width: 'min(100%, 420px)', margin: '20px auto 0',
@@ -260,6 +276,7 @@ export function Showroom({ studio }: { studio: Studio }) {
               key={r.k}
               onClick={() => glideTo(r.k)}
               aria-pressed={active === r.k}
+              className="pc-sr-room"
               style={{
                 position: 'relative', cursor: 'pointer', whiteSpace: 'nowrap', background: 'transparent', border: 'none', borderRadius: 999,
                 color: active === r.k ? '#FAF8F5' : dark ? 'rgba(250,248,245,.72)' : 'rgba(28,25,23,.7)',
@@ -272,18 +289,18 @@ export function Showroom({ studio }: { studio: Studio }) {
           ))}
         </div>
       </div>
-      <div style={{ position: 'relative' }}>
+      <div style={{ position: 'relative', flex: '1 1 auto', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: 0 }}>
         <div
           id="pc-walk"
           ref={walk}
           className="pc-nav"
           {...walkDrag}
           onScroll={onScroll}
-          style={{ position: 'relative', overflowX: 'auto', padding: '34px 0 30px', cursor: 'grab', touchAction: 'pan-y' }}
+          style={{ position: 'relative', overflowX: 'auto', overflowY: 'hidden', padding: '34px 0 30px', cursor: 'grab', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain' }}
         >
           <div
-            className="is-in"
-            style={{ display: 'flex', alignItems: 'flex-end', gap: 'clamp(30px,4.5vw,64px)', padding: '0 clamp(34px,7vw,100px)', minWidth: 'max-content' }}
+            className="is-in pc-walk-row"
+            style={{ display: 'flex', alignItems: 'flex-end', gap: 'clamp(30px,4.5vw,64px)', padding: '0 clamp(34px,7vw,100px)', width: 'max-content', margin: '0 auto' }}
           >
             {rolls.map((r, i) => (
               <div key={r.f.id} data-room={r.room}>
@@ -304,7 +321,7 @@ export function Showroom({ studio }: { studio: Studio }) {
         </div>
         <div style={{ position: 'absolute', top: 0, bottom: 0, right: 0, width: 90, pointerEvents: 'none', background: 'linear-gradient(270deg, var(--room-edge, rgba(240,235,226,.85)), transparent)' }} />
       </div>
-      <div style={{ position: 'relative', textAlign: 'center', paddingBottom: 26, fontSize: 11, letterSpacing: '.24em', color: 'var(--room-sub)' }}>
+      <div className="pc-sr-hint" style={{ position: 'relative', textAlign: 'center', paddingBottom: 26, fontSize: 11, letterSpacing: '.24em', color: 'var(--room-sub)' }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, animation: 'pulse 3s infinite' }}>
           <svg width="26" height="10" viewBox="0 0 26 10" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden style={{ animation: 'pcNudge 2.4s ease-in-out infinite' }}>
             <path d="M0 5h22M18 1l4 4-4 4" />
