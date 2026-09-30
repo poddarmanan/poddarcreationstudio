@@ -282,9 +282,9 @@ cover-flow: set back (`translateZ(-90px)`), turned 24 degrees and faded. Setting
 an open door of the middle closet in front of them. On a phone one closet fills the screen; on a
 wider screen (a closet takes up to 680px) its neighbours stand either side. To move along the
 row:
-- swipe the closet itself sideways, anywhere on it, across the slips too (the page still scrolls
-  up and down). The row follows the finger and settles on the next closet, giving only a little
-  past either end;
+- swipe the closet itself sideways, anywhere off its rods, or flick along a rod (the page still
+  scrolls up and down). The row follows the finger and settles on the next closet, giving only a
+  little past either end;
 - use the arrows either side of "Closet 3 of 11", over the quality's name, count of shades and
   make. That line is a pill pinned under the header (`position: sticky`) for as long as the
   closets are on screen, so the next fabric is a tap away from anywhere down a closet, even its
@@ -295,9 +295,12 @@ row:
 
 There is no "All qualities": one quality at a time.
 
-**One closet is open at a time.** Leaving a closet (by swipe, arrow, name, or a tap on a
-neighbour) shuts its doors: they swing closed as the row moves on, meet with a small bounce and
-settle, and its lamp goes out. The closet arrived at is shut until its doors are tapped. On a phone
+**One closet is open at a time, and it is shut before the row moves.** Leaving an open closet
+(by swipe, flick, arrow, name, or a tap on a neighbour) first shuts its doors: they swing closed
+(0.8s), meet with a small bounce and settle, and its lamp goes out. Only then does the row move on
+to the next closet. While an open closet is swiped, the row gives only a little under the finger
+and settles back as the doors shut. A shut closet moves at once. While the doors shut, a second
+call to move is ignored, and the "Open the closet" tag waits until they have shut. The closet arrived at is shut until its doors are tapped. On a phone
 the closet has 30px either side (16px on a wider screen), so it stands in the room with space
 around it.
 
@@ -363,12 +366,13 @@ colours, about 9,100 relationships).
 
 **A rod is parted like hangers.** The slips hang packed, a few pixels of each showing, so a
 closet holds its whole range. You look through them by parting the rod:
-- Press a finger on the rod and hold it a moment (about a quarter of a second; a phone gives a
-  tiny buzz and the rod's metal catches the light), then slide along it. On a desktop, move the
-  pointer over it. The slip there gets its full width and turns to face you. The two either side
-  part by about half and a quarter of a slip, and the rest close up to make room.
-- A finger that moves at once, without holding, is a swipe of the row, to the next closet. The
-  rod marks itself as held (`data-scrub`) and the row's swipe stands down only then.
+- Slide a finger along it (on a desktop, move the pointer over it). The slip there gets its full
+  width and turns to face you. The two either side part by about half and a quarter of a slip, and
+  the rest close up to make room. While a finger browses a rod, the rod says so (`data-scrub`) and
+  the row's swipe stands down. (A press-and-hold before browsing was tried and dropped: sliding at
+  once reads better.)
+- A quick flick along a rod is a swipe to the next closet: over 44px, in under 380ms, faster than
+  0.3px a millisecond. A browse is slower and longer.
 - The rod is read in even zones, one to a slip, so the parting follows the finger steadily and
   never jumps back under it.
 - The parted slip stays parted when the finger lifts.

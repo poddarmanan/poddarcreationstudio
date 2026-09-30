@@ -18,6 +18,7 @@ const STILE = 12; // the closet's side walls
 const INSIDE_PAD = 12; // from a wall to the ends of the slips' run
 const ROWS = 4; // every closet holds its range on four rods, so all stand the same height
 const INSIDE_TOP = 16;
+const DOORS_SHUT_MS = 800; // the doors' swing shut, before the row moves on
 const SPACING = 56; // a loose rod's slips hang no further apart than this
 /** A slip's size and the rod's pitch: smaller in a phone's closet, so a closet fits on a screen. */
 const sizes = (slideW: number) => (slideW < 520 ? { w: 64, h: 104, rod: 134 } : { w: 84, h: 124, rod: 156 });
@@ -132,22 +133,32 @@ export function ColourWall({ studio }: { studio: Studio }) {
   const { t, fabrics, wallFab } = studio;
   const idx = Math.max(0, fabrics.findIndex((x) => x.id === wallFab));
   const fab = fabrics[idx];
-  // One closet is open at a time. Leaving it (by swipe, arrow or name) shuts its doors, which
-  // swing closed as the row moves on; the one arrived at stays shut until tapped.
+  // One closet is open at a time. Leaving it (by swipe, flick, arrow or name) first shuts its
+  // doors, and only once they have met does the row move on; the one arrived at stays shut until
+  // tapped. While the doors shut, a second call is ignored.
   const [openId, setOpenId] = useState<string | null>(null);
   const [closingId, setClosingId] = useState<string | null>(null);
   const closing = useRef(0);
-  useEffect(() => () => window.clearTimeout(closing.current), []);
+  const leaving = useRef(0);
+  useEffect(
+    () => () => {
+      window.clearTimeout(closing.current);
+      window.clearTimeout(leaving.current);
+    },
+    [],
+  );
   const goTo = (k: number) => {
     const next = fabrics[Math.max(0, Math.min(fabrics.length - 1, k))];
-    if (!next || next.id === fab?.id) return;
-    if (openId) {
-      setClosingId(openId);
-      setOpenId(null);
-      window.clearTimeout(closing.current);
-      closing.current = window.setTimeout(() => setClosingId(null), reduced() ? 0 : 950);
-    }
-    studio.setWallFab(next.id);
+    if (!next || next.id === fab?.id || leaving.current) return;
+    if (!openId) return studio.setWallFab(next.id);
+    setClosingId(openId);
+    setOpenId(null);
+    window.clearTimeout(closing.current);
+    leaving.current = window.setTimeout(() => {
+      leaving.current = 0;
+      studio.setWallFab(next.id);
+      closing.current = window.setTimeout(() => setClosingId(null), 700);
+    }, reduced() ? 0 : DOORS_SHUT_MS);
   };
 
   // Each quality's shades as one run of colour.
@@ -190,10 +201,12 @@ export function ColourWall({ studio }: { studio: Studio }) {
 
   // What the swipe reads, kept current.
   const idxRef = useRef(idx);
+  const openRef = useRef<string | null>(null);
   const baseRef = useRef(base);
   const goToRef = useRef(goTo);
   useEffect(() => {
     idxRef.current = idx;
+    openRef.current = openId;
     baseRef.current = base;
     goToRef.current = goTo;
   });
@@ -231,7 +244,8 @@ export function ColourWall({ studio }: { studio: Studio }) {
       }
       // Past the first or the last closet it gives, but only a little.
       const atEnd = (dx > 0 && idxRef.current === 0) || (dx < 0 && idxRef.current === fabrics.length - 1);
-      s.dx = atEnd ? dx * 0.3 : dx;
+      // An open closet gives only a little: its doors will shut before the row moves.
+      s.dx = atEnd ? dx * 0.3 : openRef.current ? dx * 0.35 : dx;
       tr.style.transform = `translate3d(${baseRef.current + s.dx}px,0,0)`;
     };
     const up = (e: PointerEvent) => {
@@ -242,9 +256,12 @@ export function ColourWall({ studio }: { studio: Studio }) {
       swipedAt.current = e.timeStamp;
       tr.style.transition = 'transform .5s cubic-bezier(.22,.8,.2,1)';
       const w = Math.min(vw0.clientWidth, SLIDE_MAX);
-      const step = Math.abs(s.dx) > Math.min(70, w * 0.18) ? (s.dx < 0 ? 1 : -1) : 0;
+      const raw = openRef.current ? s.dx / 0.35 : s.dx;
+      const step = Math.abs(raw) > Math.min(70, w * 0.18) ? (raw < 0 ? 1 : -1) : 0;
+      const wasOpen = !!openRef.current;
       if (step) goToRef.current(idxRef.current + step);
-      tr.style.transform = `translate3d(${baseRef.current - step * w}px,0,0)`;
+      // From an open closet the row settles back while the doors shut, then moves on its own.
+      tr.style.transform = `translate3d(${baseRef.current - (wasOpen ? 0 : step * w)}px,0,0)`;
     };
     el.addEventListener('pointerdown', down);
     el.addEventListener('pointermove', move);
@@ -375,7 +392,7 @@ export function ColourWall({ studio }: { studio: Studio }) {
                       <span aria-hidden className="pc-closet-lamp" />
                       {(isOpen || isClosing) &&
                         rods.map((rod, r) => (
-                          <Rod key={`${len}-${r}`} shades={rod} len={len} slipW={size.w} top={INSIDE_TOP + r * size.rod} delay={r * 0.12} onPick={pick} />
+                          <Rod key={`${len}-${r}`} shades={rod} len={len} slipW={size.w} top={INSIDE_TOP + r * size.rod} delay={r * 0.12} onPick={pick} onFlick={(dir) => goTo(idx + dir)} />
                         ))}
                     </div>
                     {(['left', 'right'] as const).map((side) => (
@@ -386,7 +403,7 @@ export function ColourWall({ studio }: { studio: Studio }) {
                         </span>
                       </button>
                     ))}
-                    {!isOpen && here && <span className="pc-closet-tag">{t.closetOpen ?? 'Open'}</span>}
+                    {!isOpen && !isClosing && here && <span className="pc-closet-tag">{t.closetOpen ?? 'Open'}</span>}
                   </div>
                   <div className="pc-closet-base">
                     <span />
@@ -404,18 +421,24 @@ export function ColourWall({ studio }: { studio: Studio }) {
 }
 
 /**
- * One rod of slips, packed close as in a closet. A finger pressed on the rod and held a moment,
- * then slid along it (or the pointer moved over it), parts the slips around it, as a hand parts
- * hangers: the one there is given its full width and turns to face you, its neighbours part a
- * little, and the rest close up. A quick sideways swipe is left to the row, to the next closet. A
- * tap on a packed slip parts the rod there; a tap on the parted slip takes it out. Each slip swings from
+ * One rod of slips, packed close as in a closet. A finger drawn along the rod (or the pointer
+ * moved over it) parts the slips around it, as a hand parts hangers: the one there is given its
+ * full width and turns to face you, its neighbours part a little, and the rest close up. A quick
+ * flick along it is a swipe to the next closet. A tap on a packed slip parts the rod there; a tap
+ * on the parted slip takes it out. Each slip swings from
  * its hook as it moves. Everything is moved a frame at a time, and only while something moves.
  */
-function Rod({ shades, len, slipW, top, delay, onPick }: { shades: Shade[]; len: number; slipW: number; top: number; delay: number; onPick: (s: Shade) => boolean }) {
+function Rod({
+  shades, len, slipW, top, delay, onPick, onFlick,
+}: {
+  shades: Shade[]; len: number; slipW: number; top: number; delay: number; onPick: (s: Shade) => boolean; onFlick: (dir: 1 | -1) => void;
+}) {
   const box = useRef<HTMLDivElement | null>(null);
   const pickRef = useRef(onPick);
+  const flickRef = useRef(onFlick);
   useEffect(() => {
     pickRef.current = onPick;
+    flickRef.current = onFlick;
   });
 
   useLayoutEffect(() => {
@@ -505,33 +528,17 @@ function Rod({ shades, len, slipW, top, delay, onPick }: { shades: Shade[]; len:
     const zone = (clientX: number) => Math.floor(((clientX - root.getBoundingClientRect().left) / len) * n);
 
     const at = (e: Event) => els.indexOf((e.target as HTMLElement).closest('.pc-cslip') as HTMLElement);
-    // A finger pressed on the rod and held a moment takes hold of it: then it browses, parting the
-    // slips as it slides, and the row's swipe stands down. Moved at once, it is a swipe of the row.
-    let drag: { id: number; sx: number; sy: number; hold: boolean } | null = null;
-    let holdTimer = 0;
+    // A finger drawn along the rod parts it as it goes, and the row's swipe stands down (the rod
+    // says so, data-scrub). A quick flick instead (short and fast) is a swipe to the next closet.
+    let drag: { id: number; sx: number; sy: number; t0: number; on: boolean } | null = null;
     let moved = false;
     const release = () => {
-      window.clearTimeout(holdTimer);
       delete root.dataset.scrub;
-      root.classList.remove('is-browsing');
     };
     const down = (e: PointerEvent) => {
-      if (e.pointerType === 'mouse') return; // a mouse parts the rod by passing over it
+      if (e.pointerType === 'mouse') return; // a mouse parts the rod by passing over it, and drags the row
       moved = false;
-      const d = { id: e.pointerId, sx: e.clientX, sy: e.clientY, hold: false };
-      drag = d;
-      window.clearTimeout(holdTimer);
-      holdTimer = window.setTimeout(() => {
-        if (drag !== d) return;
-        d.hold = moved = true;
-        root.dataset.scrub = '1';
-        root.classList.add('is-browsing');
-        try {
-          root.setPointerCapture(d.id);
-        } catch {}
-        if ('vibrate' in navigator) navigator.vibrate?.(8);
-        part(zone(d.sx));
-      }, 260);
+      drag = { id: e.pointerId, sx: e.clientX, sy: e.clientY, t0: e.timeStamp, on: false };
     };
     const move = (e: PointerEvent) => {
       const d = drag;
@@ -540,16 +547,32 @@ function Rod({ shades, len, slipW, top, delay, onPick }: { shades: Shade[]; len:
         return;
       }
       if (d.id !== e.pointerId) return;
-      if (d.hold) return part(zone(e.clientX));
-      if (Math.hypot(e.clientX - d.sx, e.clientY - d.sy) > 6) {
-        // Moved before taking hold: a swipe of the row, or a scroll of the page.
-        moved = true;
-        drag = null;
-        release();
+      if (!d.on) {
+        const dx = e.clientX - d.sx;
+        const dy = e.clientY - d.sy;
+        if (Math.abs(dx) > 6 && Math.abs(dx) > Math.abs(dy)) {
+          d.on = moved = true;
+          root.dataset.scrub = '1';
+          try {
+            root.setPointerCapture(d.id);
+          } catch {}
+        } else if (Math.abs(dy) > 10) {
+          drag = null;
+          return;
+        }
+        if (!d.on) return;
       }
+      part(zone(e.clientX));
     };
     const up = (e: PointerEvent) => {
-      if (drag && drag.id === e.pointerId) drag = null;
+      const d = drag;
+      if (d && d.id === e.pointerId) {
+        drag = null;
+        const dx = e.clientX - d.sx;
+        const ms = Math.max(1, e.timeStamp - d.t0);
+        // A flick: short, and fast (over 0.3px a millisecond), not a browse.
+        if (d.on && ms < 380 && Math.abs(dx) > 44 && Math.abs(dx) / ms > 0.3) flickRef.current(dx < 0 ? 1 : -1);
+      }
       release();
     };
     const click = (e: MouseEvent) => {

@@ -1848,8 +1848,6 @@ button.pc-auth-link:disabled { cursor: default; }
 .pc-closet.is-closing .pc-door.is-right { animation: pcDoorRShut .85s .05s cubic-bezier(.45, 0, .3, 1) both; }
 @keyframes pcDoorLShut { 0% { transform: rotateY(-106deg); } 82% { transform: rotateY(2.5deg); } 92% { transform: rotateY(-1deg); } 100% { transform: rotateY(0); } }
 @keyframes pcDoorRShut { 0% { transform: rotateY(106deg); } 82% { transform: rotateY(-2.5deg); } 92% { transform: rotateY(1deg); } 100% { transform: rotateY(0); } }
-/* A rod taken hold of to browse: its metal catches the light. */
-.pc-crod:has(.is-browsing) .pc-crod-bar { box-shadow: 0 5px 7px rgba(0, 0, 0, .5), 0 0 0 1px var(--m1), 0 0 10px var(--m1); }
 @keyframes pcDoorR { 0% { transform: rotateY(0); } 12% { transform: rotateY(7deg); } 22% { transform: rotateY(5deg); } 100% { transform: rotateY(106deg); } }
 .pc-closet-tag {
   position: absolute; left: 50%; top: 38%; transform: translateX(-50%); padding: 5px 12px; border-radius: 999px; pointer-events: none; white-space: nowrap;
