@@ -4,10 +4,11 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import type { Studio } from './state';
 import type { FabricRow } from '@/lib/types';
-import { FONT_DISPLAY, fabricTex, spectrum } from './helpers';
-import { Room, SheetStack, Fleuron, roman, UMBER, INK, type Cutting, type Group } from './SwatchBook';
+import { fabricTex, spectrum } from './helpers';
+import { Room, SheetStack, roman, type Cutting, type Group } from './SwatchBook';
 import { FabricOrder, EmptyCart } from './FabricOrder';
 import { usePresence } from './motion';
+import { FillLine } from './brand';
 
 /**
  * The figures the slider stops at: every 25 m to 1,000 m, then every 100 m to 2,000 m, then every
@@ -112,27 +113,29 @@ export function CartBook({ studio }: { studio: Studio }) {
     {measure}
     <Room>
       <div style={{ textAlign: 'center', userSelect: 'none', WebkitUserSelect: 'none' }}>
-        {/* The title plate, as the Swatch Book's. */}
-        <div aria-hidden style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14 }}>
-          <span style={{ width: 'clamp(26px,8vw,56px)', height: 1, background: 'linear-gradient(90deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'right', animation: 'pcRuleDraw 1s .15s cubic-bezier(.2,.8,.2,1) both' }} />
-          <span style={{ fontSize: 9.5, letterSpacing: '.5em', paddingLeft: '.5em', textTransform: 'uppercase', color: UMBER, animation: 'pcRiseIn .9s .1s cubic-bezier(.2,.8,.2,1) both' }}>Poddar Creation</span>
-          <span style={{ width: 'clamp(26px,8vw,56px)', height: 1, background: 'linear-gradient(270deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'left', animation: 'pcRuleDraw 1s .15s cubic-bezier(.2,.8,.2,1) both' }} />
-        </div>
-        <h1 style={{ margin: '14px 0 0', fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(50px,13vw,84px)', lineHeight: 0.98, letterSpacing: '-.012em', color: INK, perspective: 500 }}>
-          {[t.cartTitleA, t.cartTitleB].map((w, i, all) => (
-            <span
-              key={i}
-              className={i === all.length - 1 ? 'pc-foil-deep' : undefined}
-              style={{ display: 'inline-block', marginRight: i < all.length - 1 ? '.2em' : 0, fontStyle: i === all.length - 1 ? 'italic' : undefined, paddingRight: i === all.length - 1 ? '.06em' : 0, transformOrigin: '50% 100%', animation: `pcWordIn 1.1s ${0.25 + i * 0.12}s cubic-bezier(.2,.8,.2,1) both${i === all.length - 1 ? ', pcFoil 2.8s .7s cubic-bezier(.45,.05,.3,1) both' : ''}` }}
-            >
-              {w}
+        {/* The title plate, as the Swatch Book's and the Colour Closet's: the name set to fill its
+            line, "Cart" in antique gold foil, a small ornament, then what the cart holds over how
+            to set it. */}
+        <header className="pc-closet-head">
+          <FillLine>
+            {t.cartTitleA}{' '}
+            <em className="pc-foil-deep" style={{ paddingRight: '.06em', animation: 'pcFoil 2.8s .7s cubic-bezier(.45,.05,.3,1) both' }}>
+              {t.cartTitleB}
+            </em>
+          </FillLine>
+          <div aria-hidden className="pc-closet-orn">
+            <i />
+            <b />
+            <i />
+          </div>
+          <p className="pc-closet-sub">
+            <span style={{ fontVariantNumeric: 'lining-nums' }}>
+              {cuts.length} {cuts.length === 1 ? t.shade : t.shades} · {groups.length} {groups.length === 1 ? t.fabricWordOne : t.fabricWordMany}
+              {total > 0 ? ` · ${inr(total)} m` : ''}
             </span>
-          ))}
-        </h1>
-        <div style={{ marginTop: 10, fontFamily: FONT_DISPLAY, fontSize: 16.5, color: UMBER, fontVariantNumeric: 'lining-nums', animation: 'pcRiseIn .9s .55s cubic-bezier(.2,.8,.2,1) both' }}>
-          {cuts.length} {cuts.length === 1 ? t.shade : t.shades} · {groups.length} {groups.length === 1 ? t.fabricWordOne : t.fabricWordMany}
-          {total > 0 ? ` — ${inr(total)} m` : ''}
-        </div>
+            <span>{t.cartNote}</span>
+          </p>
+        </header>
         {unset > 0 && (
           <div key={warn} className="pc-cart-ask" style={{ animation: warn ? 'pcShake .5s cubic-bezier(.36,.07,.19,.97) both' : undefined }}>
             <span aria-hidden>✦</span>
@@ -140,11 +143,6 @@ export function CartBook({ studio }: { studio: Studio }) {
             <small>{t.tapForMetres}</small>
           </div>
         )}
-        <div aria-hidden style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 16 }}>
-          <span style={{ width: 30, height: 1, background: 'linear-gradient(90deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'right', animation: 'pcRuleDraw 1s .75s cubic-bezier(.2,.8,.2,1) both' }} />
-          <span style={{ width: 6, height: 6, background: 'rgba(168,134,79,.95)', animation: 'pcDiamondIn .8s .65s cubic-bezier(.2,.8,.2,1) both' }} />
-          <span style={{ width: 30, height: 1, background: 'linear-gradient(270deg, transparent, rgba(138,109,69,.7))', transformOrigin: 'left', animation: 'pcRuleDraw 1s .75s cubic-bezier(.2,.8,.2,1) both' }} />
-        </div>
         <SheetStack
           studio={studio}
           groups={groups}
@@ -155,13 +153,9 @@ export function CartBook({ studio }: { studio: Studio }) {
         />
       </div>
 
-      <div style={{ marginTop: 26, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, animation: 'rise 1s .5s cubic-bezier(.22,.8,.2,1) both' }}>
-        <Fleuron width={26} color="rgba(138,109,69,.6)" />
-        <p style={{ margin: 0, maxWidth: 320, textAlign: 'center', fontFamily: FONT_DISPLAY, fontSize: 15, lineHeight: 1.45, color: 'rgba(28,25,23,.58)' }}>{t.cartNote}</p>
-      </div>
 
       {/* The dock: the running total, the estimate, and the way to checkout. */}
-      <div style={{ display: 'flex', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8 }}>
         <div className="pc-order-dock" style={{ animation: 'pcDockIn .9s .8s cubic-bezier(.2,.9,.25,1) both' }}>
           <div style={{ minWidth: 0 }}>
             <div key={total} className="pc-dock-total">

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { RazorpayProof, Studio } from './state';
 import type { ColourRow, FabricRow } from '@/lib/types';
 import { FONT_DISPLAY, fabricTex, spectrum } from './helpers';
+import { FillLine } from './brand';
 import { Room, roman } from './SwatchBook';
 import { PaidMoment } from './PaidMoment';
 import { AuthScreen } from './AuthScreen';
@@ -1161,22 +1162,45 @@ function Dispatch({
   );
 }
 
-/** An empty cart: a folded bolt of kraft, waiting, and the way to the Showroom. */
+/** An empty cart, headed as the full one is: the name across the page, the bag waiting, and the ways to fill it. */
 export function EmptyCart({ studio }: { studio: Studio }) {
   const { t } = studio;
   return (
     <Room center>
-      <div aria-hidden className="pc-cart-empty-art">
+      <header className="pc-closet-head" style={{ width: '100%' }}>
+        <FillLine>
+          {t.cartTitleA}{' '}
+          <em className="pc-foil-deep" style={{ paddingRight: '.06em', animation: 'pcFoil 2.8s .7s cubic-bezier(.45,.05,.3,1) both' }}>
+            {t.cartTitleB}
+          </em>
+        </FillLine>
+        <div aria-hidden className="pc-closet-orn">
+          <i />
+          <b />
+          <i />
+        </div>
+        <p className="pc-closet-sub">
+          <span>{t.cartEmpty}</span>
+          <span>{t.cartEmptySub}</span>
+        </p>
+      </header>
+      <div aria-hidden className="pc-cart-empty-art" style={{ marginTop: 34 }}>
         <span className="pc-cart-empty-bag">
           <CartGlyph size={46} />
         </span>
       </div>
-      <h1 style={{ margin: '26px 0 0', fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 'clamp(38px,10vw,58px)', lineHeight: 1.04, color: INK, animation: 'pcRiseIn .9s .3s cubic-bezier(.2,.8,.2,1) both' }}>{t.cartEmpty}</h1>
-      <p style={{ margin: '12px 0 0', maxWidth: 330, fontFamily: FONT_DISPLAY, fontSize: 17, lineHeight: 1.45, color: UMBER, animation: 'pcRiseIn .9s .5s cubic-bezier(.2,.8,.2,1) both' }}>{t.cartEmptySub}</p>
-      <button className="pc-auth-btn" style={{ marginTop: 26, width: 'min(100%, 380px)', animation: 'pcFieldIn .8s .7s cubic-bezier(.2,.8,.2,1) both' }} onClick={() => studio.go('showroom')}>
-        <span aria-hidden className="pc-auth-star">✦</span>
-        {t.showroom}
-      </button>
+      <div className="pc-book-actions" style={{ marginTop: 40 }}>
+        <button onClick={() => studio.go('showroom')} className="pc-primary">
+          <span aria-hidden className="pc-primary-star">✦</span>
+          <span>{t.enter}</span>
+          <svg aria-hidden width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
+        </button>
+        <button onClick={() => studio.go('colours')} className="pc-quiet-link">
+          {t.explore}
+        </button>
+      </div>
     </Room>
   );
 }

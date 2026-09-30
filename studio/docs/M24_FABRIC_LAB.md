@@ -1170,3 +1170,21 @@ The old order compared hues only when two sat within 6° of each other. That com
 consistent, so the same shades could come out in different orders, with light and dark mixed
 along the wheel. The new comparator compares one key in turn, family then lightness then hue, so
 every list comes out the same.
+
+## The cart, refined
+
+The cart is headed as the Swatch Book and the Colour Closet are:
+- "Your *Cart*" set to fill its line (`FillLine`), "Cart" in antique gold foil;
+- a small gold ornament;
+- a subtext: the count ("4 shades · 2 fabrics · 150 m") over "Tap a cutting to set its metres.
+  Slide the sheets for every fabric."
+
+The "Poddar Creation" eyebrow and the separate note under the sheets are gone. The ask for missing
+metres (in red, "Select metres for 1 shade") still sits under the subtext and shakes if checkout is
+tried too soon. The fabrics' title sheets show a fanned hand of their cuttings with the
+price-call note. The dock's checkout, and every dock action, wear the house's ink button with a
+gold hairline inside its edge.
+
+**The empty cart** is headed the same way: "Your Cart", the ornament, "Your cart is empty" over how
+to fill it, and the ink bag. It leads to the Showroom with the ink button "Enter the Showroom", and
+to the Colour Closet with a quiet link.
