@@ -347,8 +347,7 @@ curtain, which is the page's opening animation.
 **Inside,** the shades hang as swatch slips on rods (in the closet's metal) set in sockets across
 the lining. Each slip has a hook, a printed head with the shade's name, the quality and its number, and
 a pinked cutting of the cloth in its shade. There are no family headings (neutrals, reds and so
-on). The shades hang as one run of colour: the near-greys first (OKLCH chroma under 0.035), light to
-dark, then round the colour wheel from red, with shades of nearly the same hue light to dark. The
+on). The shades hang as one run of colour in shade-card order (see "Every shade, sorted" below). The
 run is cut into four rods of about equal length, whatever the range: 56 shades hang fourteen to a
 rod, 96 twenty-four to a rod.
 
@@ -1137,3 +1136,37 @@ what is on screen.
 
 On a phone the closets' pinned bar sits 40px lower, leaving room for the ⓘ under the account
 button.
+
+## Every shade, sorted
+
+Every list of shades on the site uses one order, that of a shade card (`spectrum` in
+`helpers.ts`). The lists are:
+- the Colour Closet's rods;
+- the Lab's shades;
+- the cuttings on the Swatch Book's and the cart's sheets;
+- the order slip's lines;
+- the binding ceremony.
+
+The order is:
+1. **The neutrals** (OKLCH chroma under 0.035), white to black: Doodhiya, Kapaas, Ivory … Kajal,
+   Kaala.
+2. **Family by family round the wheel**, each family light to dark (`colourFamily`):
+   | Family | OKLCH hue |
+   |---|---|
+   | reds | 0°–40° |
+   | oranges | 40°–75° |
+   | yellows | 75°–115° |
+   | greens | 115°–170° |
+   | teals | 170°–220° |
+   | blues | 220°–275° |
+   | violets | 275°–315° |
+   | pinks | 315°–360° |
+
+   The pinks run on to 360°, so rani and gulabi pinks (350°–359°) hang with the pinks rather than
+   among the reds.
+3. Shades of the same lightness go by hue, then by their number.
+
+The old order compared hues only when two sat within 6° of each other. That comparison is not
+consistent, so the same shades could come out in different orders, with light and dark mixed
+along the wheel. The new comparator compares one key in turn, family then lightness then hue, so
+every list comes out the same.

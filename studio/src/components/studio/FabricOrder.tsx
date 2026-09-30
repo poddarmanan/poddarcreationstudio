@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { RazorpayProof, Studio } from './state';
 import type { ColourRow, FabricRow } from '@/lib/types';
-import { FONT_DISPLAY, fabricTex } from './helpers';
+import { FONT_DISPLAY, fabricTex, spectrum } from './helpers';
 import { Room, roman } from './SwatchBook';
 import { PaidMoment } from './PaidMoment';
 import { AuthScreen } from './AuthScreen';
@@ -44,6 +44,7 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
         .filter((p) => p.fabricId === x.id)
         .map((p) => x.colours.find((c) => c.order === p.colourOrder))
         .filter((c): c is ColourRow => !!c)
+        .sort(spectrum)
         .map((c) => ({ x, c, key: `${x.id}:${c.id}` })),
     }))
     .filter((g) => g.lines.length);

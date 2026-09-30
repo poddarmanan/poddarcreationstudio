@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { Studio, Pin } from './state';
 import type { FabricRow, ColourRow } from '@/lib/types';
-import { FONT_DISPLAY, fabricTex } from './helpers';
+import { FONT_DISPLAY, fabricTex, spectrum } from './helpers';
 import { BookCeremony, type OrderState } from './BookCeremony';
 import { AuthScreen } from './AuthScreen';
 import { FabricOrder } from './FabricOrder';
@@ -70,7 +70,8 @@ export function SwatchBook({ studio }: { studio: Studio }) {
       items: pins
         .filter((p) => p.fabricId === x.id)
         .map((p) => ({ pin: p, colour: x.colours.find((c) => c.order === p.colourOrder) }))
-        .filter((c): c is Cutting => !!c.colour),
+        .filter((c): c is Cutting => !!c.colour)
+        .sort((a, b) => spectrum(a.colour, b.colour)),
     }))
     .filter((g) => g.items.length);
 

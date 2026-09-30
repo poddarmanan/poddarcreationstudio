@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { Studio } from './state';
 import type { ColourRow } from '@/lib/types';
-import { FONT_DISPLAY, FONT_BODY, fabricTex } from './helpers';
+import { FONT_DISPLAY, FONT_BODY, fabricTex, spectrum } from './helpers';
 import { Binding, BindingStrip, CoverFace, GiltBlock, HINGE, MARBLE, paperFace, Room } from './SwatchBook';
 import { buildSwatchBookPdf, resolveFont, saveBlob } from '@/lib/swatch-book-pdf';
 
@@ -39,7 +39,8 @@ export function BookCeremony({ studio, mode, whatsapp = '', order = 'sent', onDo
       colours: pins
         .filter((p) => p.fabricId === fabric.id)
         .map((p) => fabric.colours.find((c) => c.order === p.colourOrder))
-        .filter((c): c is ColourRow => !!c),
+        .filter((c): c is ColourRow => !!c)
+        .sort(spectrum),
     }))
     .filter((ch) => ch.colours.length);
   const cuts = chapters.flatMap((ch) => ch.colours.map((c) => ({ x: ch.fabric, c })));

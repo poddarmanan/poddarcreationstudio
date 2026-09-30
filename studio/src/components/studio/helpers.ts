@@ -41,18 +41,33 @@ export function chipStyle(on: boolean) {
 
 /** Below this OKLCH chroma a shade reads as a grey, and is hung with the neutrals. */
 const NEUTRAL_C = 0.035;
-/** Where the colour wheel is cut to lay it out in a line: between the pinks and the reds. */
-const HUE_START = 350;
 /**
- * Shades in one run of colour, as a mill hangs its cards: the neutrals first, light to dark, then
- * round the colour wheel from red, each hue light to dark where two sit close. A sort comparator.
+ * The colour families of a shade card, round the OKLCH wheel from red: each is where its hues
+ * start. The pinks run on to 360°, so a rani or gulabi pink (350°–359°) hangs with the pinks, and
+ * the reds start at 0°. A shade belongs to the last family whose start it has passed.
+ */
+const FAMILY_STARTS = [0, 40, 75, 115, 170, 220, 275, 315]; // red, orange, yellow, green, teal, blue, violet, pink
+/** Where a shade sits on a shade card: 0 for the neutrals, then 1 to 8 for each family in turn. */
+export function colourFamily(c: ColourRow): number {
+  if (c.c < NEUTRAL_C) return 0;
+  const h = ((c.h % 360) + 360) % 360;
+  let f = 0;
+  FAMILY_STARTS.forEach((start, i) => {
+    if (h >= start) f = i;
+  });
+  return 1 + f;
+}
+/**
+ * Shades in the order of a shade card: the neutrals first, white to black, then family by family
+ * round the wheel (reds, oranges, yellows, greens, teals, blues, violets, pinks), each family light
+ * to dark, and shades of the same lightness by hue. A sort comparator, and a proper one (a single
+ * key compared in turn), so every list of shades on the site comes out in the same order.
  */
 export function spectrum(a: ColourRow, b: ColourRow) {
-  const an = a.c < NEUTRAL_C;
-  const bn = b.c < NEUTRAL_C;
-  if (an !== bn) return an ? -1 : 1;
-  if (an) return b.l - a.l;
-  const ha = (a.h - HUE_START + 720) % 360;
-  const hb = (b.h - HUE_START + 720) % 360;
-  return Math.abs(ha - hb) < 6 ? b.l - a.l : ha - hb;
+  const fa = colourFamily(a);
+  const fb = colourFamily(b);
+  if (fa !== fb) return fa - fb;
+  const dl = Math.round((b.l - a.l) * 1000);
+  if (dl !== 0) return dl;
+  return a.h - b.h || a.order - b.order;
 }
