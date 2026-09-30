@@ -564,25 +564,32 @@ total metres, the shades (or how many are not set) and the value, and an ink "Ch
   on, until the slip is out. While it runs, the slot hums and the light glows steady; between
   bursts it blinks. It turns green when done.
 
-  The page glides along during the printing, not after. It first brings the printer into view,
-  then eases to keep the print line in sight above the dock, burst by burst, ending with room for
-  the note. A reader who scrolls, touches or presses a key takes over, and printing carries on.
-  Everything is set on the elements each frame, so printing renders nothing.
+  **The page leads the paper.** The whole run is planned when printing starts: the bursts and
+  pauses, and one smooth path for the page. The page sets off about two-thirds of a second before
+  the first line prints and moves at an even pace, easing in and out, to where the slip's foot and
+  the note sit above the dock. So the paper always prints into room already made for it, and the
+  page never waits on a burst or lurches after one.
+
+  Each frame's position is set outright (`behavior: 'instant'`), because the site's own
+  `scroll-behavior: smooth` would restart on every call and lag behind; that is what made the
+  scrolling stutter before. A reader who scrolls, touches or presses a key takes over, and
+  printing carries on.
 - **A note for the mill** is a small butter-yellow sticky note with a strip of tape, ruled lines
   and a folded corner. It is pressed onto the slip's torn foot when printing finishes.
-- **Unzip to tear it off.** A zip runs along the tear line just under the printer's slot: gold
-  teeth interlocked on a dark tape, with a brass pull and ring at its left end. Once printed, the
-  pull nudges a few times as a hint.
-  - Slide the pull along and the teeth part behind it. Let go before about nine-tenths and it
-    zips back shut.
-  - Carry it to the end and the slip tears off along the zip: the printer tugs, the slip's top
-    goes jagged, a stub stays in the slot, and the slip and its note drop away. Then the dispatch
+- **Tear it off along the dots.** Two rows of perforation run in zig-zag under the printer's
+  slot, with "Tear along the dots" at their right end. The first chunk of the strip between them
+  is torn already, its loose corner lifted and shadowed; once printed, the corner nudges a few
+  times.
+  - Draw the corner along and the paper parts between the rows behind it, a ragged gap with a
+    shaded edge. Like paper, it does not mend: let go and it stays torn as far as it went, to be
+    carried on later.
+  - At the end, the slip comes away. The upper row of dots stays behind on the stub in the slot;
+    the slip, keeping the lower row, is tugged and drops away with its note. Then the dispatch
     (or sign-in) opens.
-  - A tap, Enter or Space on the pull runs it along by itself.
+  - A tap on the corner, Enter or Space tears it along by itself.
 
-  The dock says "Unzip to tear · The zip at the printer". A tap there glides the page up to the
-  printer and unzips it. With nothing to order, the zip runs back shut and the hint shakes.
-  Coming back to the review prints the slip afresh.
+  The dock says "Tear it off · Along the dots". A tap there glides the page up to the printer and
+  tears the slip. Coming back to the review prints the slip afresh.
 
 **III Dispatch** (`ShipPay.tsx`), titled "Delivery & *Payment*", comes after the review. A buyer
 who is not signed in signs in first, since the address book belongs to the account. It has three

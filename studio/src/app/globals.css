@@ -869,42 +869,45 @@ button.pc-auth-link:disabled { cursor: default; }
   36% { transform: translateY(14px) rotate(1.4deg); opacity: 1; }
   100% { transform: translate(-16px, 78vh) rotate(-9deg); opacity: 0; }
 }
-.pc-print.is-tearing .pc-slip { clip-path: polygon(0 7px, 4.17% 0px, 8.33% 7px, 12.50% 0px, 16.67% 7px, 20.83% 0px, 25.00% 7px, 29.17% 0px, 33.33% 7px, 37.50% 0px, 41.67% 7px, 45.83% 0px, 50.00% 7px, 54.17% 0px, 58.33% 7px, 62.50% 0px, 66.67% 7px, 70.83% 0px, 75.00% 7px, 79.17% 0px, 83.33% 7px, 87.50% 0px, 91.67% 7px, 95.83% 0px, 100% 7px, 100% 100%, 0 100%); }
+.pc-print.is-tearing .pc-slip { clip-path: polygon(0 24px, 4.17% 18px, 8.33% 24px, 12.50% 18px, 16.67% 24px, 20.83% 18px, 25.00% 24px, 29.17% 18px, 33.33% 24px, 37.50% 18px, 41.67% 24px, 45.83% 18px, 50.00% 24px, 54.17% 18px, 58.33% 24px, 62.50% 18px, 66.67% 24px, 70.83% 18px, 75.00% 24px, 79.17% 18px, 83.33% 24px, 87.50% 18px, 91.67% 24px, 95.83% 18px, 100% 24px, 100% 100%, 0 100%); }
 .pc-print.is-tearing .pc-slip::before { display: none; }
-.pc-printer-stub { position: absolute; left: 22px; right: 22px; top: 100%; height: 9px; background: #FAF3E4; clip-path: polygon(0 0, 100% 0, 100.00% 100%, 95.83% calc(100% - 6px), 91.67% 100%, 87.50% calc(100% - 6px), 83.33% 100%, 79.17% calc(100% - 6px), 75.00% 100%, 70.83% calc(100% - 6px), 66.67% 100%, 62.50% calc(100% - 6px), 58.33% 100%, 54.17% calc(100% - 6px), 50.00% 100%, 45.83% calc(100% - 6px), 41.67% 100%, 37.50% calc(100% - 6px), 33.33% 100%, 29.17% calc(100% - 6px), 25.00% 100%, 20.83% calc(100% - 6px), 16.67% 100%, 12.50% calc(100% - 6px), 8.33% 100%, 4.17% calc(100% - 6px), 0.00% 100%); transform: scaleY(0); transform-origin: top; }
+/* Torn: the upper row of dots stays behind with the stub; the slip keeps the lower one. */
+.pc-print.is-tearing .pc-tearline { clip-path: polygon(0 15px, 4.17% 11px, 8.33% 15px, 12.50% 11px, 16.67% 15px, 20.83% 11px, 25.00% 15px, 29.17% 11px, 33.33% 15px, 37.50% 11px, 41.67% 15px, 45.83% 11px, 50.00% 15px, 54.17% 11px, 58.33% 15px, 62.50% 11px, 66.67% 15px, 70.83% 11px, 75.00% 15px, 79.17% 11px, 83.33% 15px, 87.50% 11px, 91.67% 15px, 95.83% 11px, 100% 15px, 100% 100%, 0 100%); }
+.pc-print.is-tearing .pc-tearline-flap, .pc-print.is-tearing .pc-tearline-label { opacity: 0; }
+.pc-printer-stub { position: absolute; left: 22px; right: 22px; top: 100%; height: 24px; background: radial-gradient(circle, rgba(138, 109, 69, .7) 0 1px, transparent 1.4px) 0 9px / 4.5px 5px repeat-x, #FAF3E4; clip-path: polygon(0 0, 100% 0, 100.00% 100%, 95.83% calc(100% - 6px), 91.67% 100%, 87.50% calc(100% - 6px), 83.33% 100%, 79.17% calc(100% - 6px), 75.00% 100%, 70.83% calc(100% - 6px), 66.67% 100%, 62.50% calc(100% - 6px), 58.33% 100%, 54.17% calc(100% - 6px), 50.00% 100%, 45.83% calc(100% - 6px), 41.67% 100%, 37.50% calc(100% - 6px), 33.33% 100%, 29.17% calc(100% - 6px), 25.00% 100%, 20.83% calc(100% - 6px), 16.67% 100%, 12.50% calc(100% - 6px), 8.33% 100%, 4.17% calc(100% - 6px), 0.00% 100%); transform: scaleY(0); transform-origin: top; }
 .pc-print.is-tearing .pc-printer-stub { transform: none; transition: transform .12s .18s ease-out; }
 .pc-print.is-tearing .pc-printer { animation: pcTug .45s ease both; }
 @keyframes pcTug { 25% { transform: translateY(3px); } 50% { transform: translateY(-1px); } 75% { transform: translateY(2px); } }
 
-/* The zipper along the slot: gold teeth interlocked on a dark tape, opened behind the pull. */
-.pc-zip { position: absolute; left: 0; right: 0; top: 2px; z-index: 6; height: 22px; }
-.pc-zip-shut, .pc-zip-open { position: absolute; left: 0; right: 0; top: 4px; height: 14px; pointer-events: none; }
-.pc-zip-shut {
-  background:
-    repeating-linear-gradient(90deg, #D9B96A 0 4px, #8A6524 4px 5px, transparent 5px 8px) 0 3px / 100% 4px no-repeat,
-    repeating-linear-gradient(90deg, transparent 0 4px, #D9B96A 4px 8px) 0 7px / 100% 4px no-repeat,
-    linear-gradient(180deg, #2A231D, #1C1917);
-  box-shadow: 0 2px 4px rgba(28, 25, 23, .25);
+/* The tear line under the slot: two rows of perforation in zig-zag, the paper parted between them
+   as far as it has been torn, and the loose corner, lifted, to pull along. */
+.pc-print .pc-slip { padding-top: 46px; }
+.pc-tearline { position: absolute; left: 0; right: 0; top: 6px; z-index: 6; height: 30px; }
+.pc-tearline-art { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+.pc-tearline-dots { fill: none; stroke: rgba(138, 109, 69, .75); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: .1 3.6; }
+.pc-tearline-gap { fill: #D9CBB1; }
+.pc-tearline-edge { fill: none; stroke: rgba(70, 48, 24, .28); stroke-width: 1.4; transform: translateY(1px); }
+.pc-tearline-label {
+  position: absolute; right: 8px; top: 50%; margin-top: -7px; padding: 0 6px; pointer-events: none; background: #FFFDF7;
+  font-size: 7.5px; line-height: 14px; letter-spacing: .24em; text-transform: uppercase; color: #8A6D45; transition: opacity .35s ease;
 }
-.pc-zip-open {
-  background:
-    repeating-linear-gradient(90deg, #D9B96A 0 4px, transparent 4px 8px) 0 0 / 100% 4px no-repeat,
-    repeating-linear-gradient(90deg, transparent 0 4px, #D9B96A 4px 8px) 0 10px / 100% 4px no-repeat,
-    linear-gradient(180deg, #2A231D 0 3px, #F3EAD6 3px 11px, #2A231D 11px);
+/* The loose corner: a scrap of the strip, torn and lifted, which is what the hand takes hold of. */
+.pc-tearline-flap {
+  position: absolute; left: 0; top: -9px; width: 44px; height: 44px; padding: 0; border: none; background: none; cursor: grab; touch-action: none;
+  --lift: 0deg;
 }
-.pc-zip-label {
-  position: absolute; left: 44px; top: 4px; height: 14px; display: flex; align-items: center; padding: 0 7px; pointer-events: none;
-  font-family: var(--font-body), 'Jost', sans-serif; font-size: 7.5px; letter-spacing: .24em; text-transform: uppercase; color: #F3DFA6; background: #1F1A16; border-radius: 3px;
+.pc-tearline-flap:active { cursor: grabbing; }
+.pc-tearline-flap:focus-visible { outline: 2px solid #1C1917; outline-offset: -4px; border-radius: 8px; }
+.pc-tearline-corner {
+  position: absolute; left: 10px; top: 6px; width: 30px; height: 24px; transform-origin: 0% 100%; filter: drop-shadow(0 3px 3px rgba(60, 40, 20, .35));
+  transform: rotate(calc(-22deg + var(--lift))) translateY(-2px); transition: transform .25s ease;
+  background: linear-gradient(160deg, #FFFFFF, #F4ECDB 50%, #D9C7A4);
+  clip-path: polygon(0 100%, 12% 62%, 4% 44%, 20% 30%, 14% 12%, 36% 0, 58% 14%, 76% 4%, 100% 22%, 88% 46%, 100% 70%, 78% 84%, 62% 100%);
+  box-shadow: inset -3px -3px 5px rgba(120, 90, 50, .22);
 }
-.pc-zip-pull {
-  position: absolute; left: 0; top: -3px; width: 34px; height: 28px; padding: 0; cursor: grab; touch-action: none; border-radius: 6px 6px 10px 10px;
-  border: 1px solid rgba(90, 62, 20, .6); background: linear-gradient(180deg, #FFF1C2, #D8B25E 45%, #9C7630); box-shadow: 0 3px 6px rgba(40, 26, 12, .35), inset 0 1px 0 rgba(255, 255, 255, .6);
-}
-.pc-zip-pull:active { cursor: grabbing; }
-.pc-zip-pull:focus-visible { outline: 2px solid #1C1917; outline-offset: 2px; }
-.pc-zip-ring { position: absolute; left: 50%; top: 100%; width: 14px; height: 14px; margin: -3px 0 0 -7px; border-radius: 50%; border: 3px solid #C9A45A; box-shadow: 0 2px 3px rgba(40, 26, 12, .3); }
-.pc-zip.is-ready .pc-zip-pull { animation: pcZipHint 1.8s .4s ease-in-out 3; }
-@keyframes pcZipHint { 0%, 60%, 100% { translate: 0; } 25% { translate: 16px; } 45% { translate: 3px; } }
+.pc-tearline-flap::before { content: ''; position: absolute; left: 14px; top: 26px; width: 22px; height: 6px; border-radius: 50%; background: radial-gradient(closest-side, rgba(40, 26, 12, .28), transparent); pointer-events: none; }
+.pc-tearline.is-ready .pc-tearline-corner { animation: pcCornerHint 1.6s .5s ease-in-out 3; }
+@keyframes pcCornerHint { 0%, 55%, 100% { translate: 0 0; } 20% { translate: 7px -3px; rotate: -10deg; } 38% { translate: 2px 0; } }
 /* The dock's way on: what to do, with scissors; a tap tears the slip for you. */
 .pc-tear-hint {
   flex: none; display: inline-flex; align-items: center; gap: 10px; max-width: 58%; padding: 8px 14px 8px 8px; border-radius: 999px; cursor: pointer; text-align: left;
@@ -915,7 +918,7 @@ button.pc-auth-link:disabled { cursor: default; }
 .pc-tear-hint-text { display: flex; flex-direction: column; font-size: 10.5px; line-height: 1.35; color: rgba(28, 25, 23, .6); }
 .pc-tear-hint-text b { font-family: var(--font-display), 'Cormorant Garamond', serif; font-weight: 500; font-size: 17px; color: #1C1917; }
 @media (prefers-reduced-motion: reduce) {
-  .pc-print.is-tearing .pc-print-paper, .pc-print.is-tearing .pc-printer, .pc-zip-pull, .pc-tear-hint-icon { animation: none !important; }
+  .pc-print.is-tearing .pc-print-paper, .pc-print.is-tearing .pc-printer, .pc-tearline-corner, .pc-tear-hint-icon { animation: none !important; }
 }
 
 /* While printing, the printer hums: the finest tremor, gone when it stops. */

@@ -66,7 +66,8 @@ export function CartBook({ studio }: { studio: Studio }) {
       flights={measuring.flights}
       anchor={measuring.anchor}
       onCut={() => {
-        window.scrollTo(0, 0);
+        // Straight to the top, not smoothly: the review plans its own glide from where the page is.
+        window.scrollTo({ top: 0, behavior: 'instant' });
         setCheckout(true);
       }}
       onGone={() => setMeasuring(null)}

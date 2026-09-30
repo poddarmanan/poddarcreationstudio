@@ -72,15 +72,17 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
   const [warn, setWarn] = useState(0);
 
   // The order slip prints as a bill machine does: a stretch prints line by line, the printer stops,
-  // then it carries on, until the slip is out. The page glides along while it prints: first to
-  // bring the printer into view, then keeping the print line in sight above the dock, burst by
-  // burst. A reader who scrolls, touches or presses a key takes over; printing carries on. All is
-  // set on the elements directly each frame, so printing renders nothing.
+  // then it carries on, until the slip is out. The whole run is planned when printing starts: the
+  // bursts and pauses, and one smooth path for the page to glide along, which sets off before the
+  // first line prints and moves at an even pace, easing in and out, so the paper always prints
+  // into room already made for it. A reader who scrolls, touches or presses a key takes over;
+  // printing carries on. All is set on the elements directly each frame, so printing renders
+  // nothing, and nothing is measured once it has started.
   const feedRef = useRef<HTMLDivElement | null>(null);
   const headRef = useRef<HTMLDivElement | null>(null);
   const printerRef = useRef<HTMLDivElement | null>(null);
   const printDone = useRef(false);
-  // Whether the page still follows the printing (the dock's unzip takes the page elsewhere).
+  // Whether the page still follows the printing (the dock's hint takes the page elsewhere).
   const printFollow = useRef(true);
   const [printed, setPrinted] = useState(false);
   useEffect(() => {
@@ -88,70 +90,87 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
     const feed = feedRef.current;
     if (!feed) return;
     printDone.current = false;
+    printFollow.current = true;
     const printer = printerRef.current;
     const quick = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const LINE = 6; // the paper advances a line at a time
-    let shown = 0;
-    let raf = 0;
-    let follow = !quick;
-    printFollow.current = true;
-    // The bursts: how far each prints before the printer stops, and for how long it stops.
-    let burstLeft = 0;
-    let pauseUntil = performance.now() + (quick ? 0 : 700);
-    let lastLine = 0;
-    let running = false;
-    const setRunning = (on: boolean) => {
-      if (on === running) return;
-      running = on;
-      printer?.classList.toggle('is-running', on);
+    const full = feed.scrollHeight;
+    const LINE = 6; // the paper advances a line at a time…
+    const LINE_MS = 14; // …a line every 14ms while it runs
+    const LEAD = 650; // the page sets off this long before the first line prints
+
+    // The bursts, planned: [start, end, from, to] in ms from now and px of paper.
+    const bursts: [number, number, number, number][] = [];
+    let at = LEAD;
+    let made = 0;
+    while (made < full) {
+      const size = Math.min(full - made, Math.round((70 + Math.random() * 110) / LINE) * LINE);
+      const ms = (size / LINE) * LINE_MS;
+      bursts.push([at, at + ms, made, made + size]);
+      made += size;
+      at += ms + 260 + Math.random() * 360;
+    }
+    const printEnd = bursts[bursts.length - 1][1];
+    const printedAt = (t: number) => {
+      for (const [t0, t1, p0, p1] of bursts) {
+        if (t < t0) return p0;
+        if (t < t1) return p0 + Math.floor(((t - t0) / (t1 - t0)) * (p1 - p0) / LINE) * LINE;
+      }
+      return full;
     };
+    const runningAt = (t: number) => bursts.some(([t0, t1]) => t >= t0 && t < t1);
+
+    // The page's path: from where it is to where the slip's foot (and the note under it) sits
+    // above the dock, over the whole run, at an even pace with a gentle start and finish.
+    const top = feed.getBoundingClientRect().top + window.scrollY;
+    // The slip is only hidden while it prints, not left out of the layout, so the page already has room for it.
+    const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+    const s0 = window.scrollY;
+    const s1 = Math.max(s0, Math.min(maxScroll, top + full + 130 - (window.innerHeight - 250)));
+    const D = printEnd + 350;
+    const RAMP_IN = Math.min(700, D / 3);
+    const RAMP_OUT = Math.min(900, D / 3);
+    const cruise = (s1 - s0) / (D - RAMP_IN / 2 - RAMP_OUT / 2);
+    const pathAt = (t: number) => {
+      if (t <= 0) return s0;
+      if (t >= D) return s1;
+      if (t < RAMP_IN) return s0 + (cruise * t * t) / (2 * RAMP_IN);
+      const inDone = (cruise * RAMP_IN) / 2;
+      if (t < D - RAMP_OUT) return s0 + inDone + cruise * (t - RAMP_IN);
+      const left = D - t;
+      return s1 - (cruise * left * left) / (2 * RAMP_OUT);
+    };
+
+    const started = performance.now();
+    let raf = 0;
+    let follow = !quick && s1 - s0 > 4;
+    let running = false;
+    let shown = -1;
     const letGo = () => {
       follow = false;
     };
     const frame = (now: number) => {
       raf = 0;
-      const full = feed.scrollHeight;
-      if (quick || printDone.current) shown = full;
-      else if (now >= pauseUntil) {
-        if (burstLeft <= 0) burstLeft = 70 + Math.random() * 110;
-        setRunning(true);
-        // A line every 14ms or so while running.
-        if (now - lastLine >= 14) {
-          lastLine = now;
-          shown = Math.min(full, shown + LINE);
-          burstLeft -= LINE;
-          if (burstLeft <= 0) {
-            setRunning(false);
-            pauseUntil = now + 260 + Math.random() * 360;
-          }
-        }
+      const t = now - started;
+      const p = quick || printDone.current ? full : printedAt(t);
+      if (p !== shown) {
+        shown = p;
+        feed.style.clipPath = p >= full ? 'none' : `inset(0 0 ${full - p}px 0)`;
+        if (headRef.current) headRef.current.style.transform = `translateY(${p}px)`;
       }
-      feed.style.clipPath = shown >= full ? 'none' : `inset(0 0 ${full - shown}px 0)`;
-      if (headRef.current) headRef.current.style.transform = `translateY(${shown}px)`;
-      if (!printFollow.current) follow = false;
-      if (follow) {
-        // Where the page wants to be: the printer in view at first, then the print line held above
-        // the dock (a little further at the end, for the note). It eases there, so it glides.
-        const rect = feed.getBoundingClientRect();
-        const printerTop = rect.top + window.scrollY - 150;
-        const lineAt = rect.top + window.scrollY + shown + (shown >= full ? 110 : 0) - (window.innerHeight - 260);
-        const want = Math.max(printerTop, lineAt);
-        const step = (want - window.scrollY) * 0.14;
-        if (Math.abs(step) > 0.5) window.scrollTo(0, window.scrollY + step);
+      const run = !quick && !printDone.current && runningAt(t);
+      if (run !== running) {
+        running = run;
+        printer?.classList.toggle('is-running', run);
       }
-      if (shown >= full) {
-        setRunning(false);
-        if (!printDone.current) {
-          printDone.current = true;
-          setPrinted(true);
-        }
-        // Let the last glide finish, then stop.
-        if (follow && Math.abs(window.scrollY - (feed.getBoundingClientRect().top + window.scrollY + full + 110 - (window.innerHeight - 260))) > 2 && now < pauseUntil + 3000) {
-          raf = requestAnimationFrame(frame);
-          return;
-        }
-        return stop();
+      if (!printFollow.current && follow) letGo();
+      // Each frame's step is set outright: the page's own smooth scrolling would restart on every
+      // call and lag behind, which is what made this stutter before.
+      if (follow) stepTo(pathAt(t));
+      if (p >= full && !printDone.current) {
+        printDone.current = true;
+        setPrinted(true);
       }
+      if (p >= full && (!follow || t >= D)) return stop();
       raf = requestAnimationFrame(frame);
     };
     const stop = () => {
@@ -240,15 +259,13 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
     }, quick ? 60 : lead + 1170);
     return true;
   };
-  // The zipper along the slot: unzipped by hand (or run by itself from the dock's hint), it tears
-  // the slip off without another scroll.
-  const zipRun = useRef<(() => void) | null>(null);
-  const unzipFromDock = () => {
+  // The perforation along the slot: torn by hand from its loose corner (or run by itself from the
+  // dock's hint, once the page has glided up to the printer), it tears the slip off.
+  const tearRun = useRef<(() => void) | null>(null);
+  const tearFromDock = () => {
     printFollow.current = false;
-    const quick = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const top = printRef.current ? printRef.current.getBoundingClientRect().top + window.scrollY - 140 : 0;
-    window.scrollTo({ top: Math.max(0, top), behavior: quick ? 'auto' : 'smooth' });
-    window.setTimeout(() => zipRun.current?.(), quick ? 0 : 550);
+    glideTo(Math.max(0, top), () => tearRun.current?.());
   };
   // Placing the order: paying online first when chosen (verified on the server with the order).
   const placeOrder = async (a: Address, demoPaid?: boolean): Promise<string | null> => {
@@ -377,10 +394,10 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
           <span className="pc-printer-stub" />
         </div>
         <div className="pc-print-paper">
-          {/* The zipper along the slot: slide its pull across to tear the slip off. */}
-          <Zipper label={t.unzipLabel} aria={t.tearAria} runRef={zipRun} onDone={() => tear(false)} ready={printed} />
           <div ref={feedRef} className="pc-print-feed" style={{ clipPath: 'inset(0 0 100% 0)' }}>
             <div ref={headRef} aria-hidden className={`pc-print-head${printed ? ' is-done' : ''}`} />
+            {/* Two rows of perforation in zig-zag under the slot, a corner torn already: pull it along. */}
+            <TearLine label={t.tearLabel} aria={t.tearAria} runRef={tearRun} onDone={() => tear(false)} ready={printed} />
             <div className="pc-slip-wrap">
               <div className="pc-slip">
                 <div className="pc-slip-head">
@@ -486,12 +503,11 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
           </div>
         </div>
         {/* How to go on: pull the slip off the printer (or tap here, which tears it for you). */}
-        <button key={warn} className="pc-tear-hint" aria-label={t.tearAria} onClick={unzipFromDock} style={{ animation: warn ? 'pcShake .5s cubic-bezier(.36,.07,.19,.97) both' : undefined }}>
+        <button key={warn} className="pc-tear-hint" aria-label={t.tearAria} onClick={tearFromDock} style={{ animation: warn ? 'pcShake .5s cubic-bezier(.36,.07,.19,.97) both' : undefined }}>
           <span aria-hidden className="pc-tear-hint-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2v3M10 5h4M12 8v2M10 10h4M12 13v2" />
-              <rect x="8.5" y="15" width="7" height="5" rx="1.5" />
-              <circle cx="12" cy="21.5" r="1" />
+              <path d="M2 9l2.5-2.5L7 9l2.5-2.5L12 9l2.5-2.5L17 9l2.5-2.5L22 9" strokeDasharray="0.1 2.6" />
+              <path d="M2 15l2.5-2.5L7 15l2.5-2.5L12 15l2.5-2.5L17 15l2.5-2.5L22 15" strokeDasharray="0.1 2.6" />
             </svg>
           </span>
           <span className="pc-tear-hint-text">
@@ -506,51 +522,97 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
 }
 
 /**
- * The zipper along the printer's slot: interlocking gold teeth on a dark tape, with a pull at the
- * start. Sliding the pull along opens the teeth behind it; let go before the end and it zips back
- * shut; carried to the end, the slip is torn off (`onDone`, which answers false when there is
- * nothing to order, and the zipper closes again). A tap, Enter or Space runs the pull along by
- * itself, as does the dock's hint (through `runRef`).
+ * Sets the page's scroll outright. The site scrolls smoothly by default (`scroll-behavior: smooth`
+ * on the html), which is right for a single jump but wrong for a path set frame by frame: every
+ * call would start a fresh smooth scroll that lags behind the one before.
  */
-function Zipper({ label, aria, runRef, onDone, ready }: { label: string; aria: string; runRef: { current: (() => void) | null }; onDone: () => boolean; ready: boolean }) {
-  const strip = useRef<HTMLDivElement | null>(null);
-  const pullRef = useRef<HTMLButtonElement | null>(null);
-  const openRef = useRef<HTMLSpanElement | null>(null);
-  const shutRef = useRef<HTMLSpanElement | null>(null);
-  const textRef = useRef<HTMLSpanElement | null>(null);
-  const at = useRef(0);
+function stepTo(y: number) {
+  window.scrollTo({ top: y, behavior: 'instant' });
+}
+
+/** Glides the page to `to` along an eased path (not the browser's own smooth scroll, which varies), then calls `then`. */
+function glideTo(to: number, then?: () => void) {
+  const from = window.scrollY;
+  const quick = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const dist = to - from;
+  if (quick || Math.abs(dist) < 2) {
+    stepTo(to);
+    then?.();
+    return;
+  }
+  const ms = Math.min(900, 380 + Math.abs(dist) * 0.45);
+  const start = performance.now();
+  const step = (now: number) => {
+    const k = Math.min(1, (now - start) / ms);
+    const e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+    stepTo(from + dist * e);
+    if (k < 1) requestAnimationFrame(step);
+    else then?.();
+  };
+  requestAnimationFrame(step);
+}
+
+/** A zig-zag across `w`px: its points at `y`, swinging `amp` either side, every `half`px. */
+function zigzag(w: number, y: number, amp: number, half: number, phase = 0) {
+  const pts: string[] = [];
+  for (let x = 0, i = phase; x <= w + half; x += half, i++) pts.push(`${x.toFixed(1)},${(y + (i % 2 ? amp : -amp)).toFixed(1)}`);
+  return pts;
+}
+
+/**
+ * Tearing the slip off the printer: two rows of perforation in zig-zag run along under the slot,
+ * the first chunk of the strip between them already torn away, its loose corner lifted. Draw that
+ * corner along and the paper parts between the rows behind it; tearing, like paper, does not
+ * mend, so let go and it stays torn as far as it went. Carried to the end, the slip comes away
+ * (`onDone`, which answers false when there is nothing to order, and the strip is whole again).
+ * A tap on the corner, Enter or Space tears it along by itself, as does the dock's hint.
+ */
+function TearLine({ label, aria, runRef, onDone, ready }: { label: string; aria: string; runRef: { current: (() => void) | null }; onDone: () => boolean; ready: boolean }) {
+  const box = useRef<HTMLDivElement | null>(null);
+  const gapRef = useRef<SVGRectElement | null>(null);
+  const flapRef = useRef<HTMLButtonElement | null>(null);
+  const labelRef = useRef<HTMLSpanElement | null>(null);
+  const [w, setW] = useState(0);
+  const START = 36; // the chunk torn already
+  const at = useRef(START);
   const drag = useRef<{ x: number; from: number; moved: boolean } | null>(null);
   const busy = useRef(false);
-  const PULL = 34;
-  const span = () => Math.max(1, (strip.current?.clientWidth ?? 320) - PULL);
-  const paint = (p: number) => {
-    at.current = p;
-    const x = p * span();
-    if (pullRef.current) pullRef.current.style.transform = `translateX(${x}px)`;
-    const edge = `${((x + PULL / 2) / (span() + PULL)) * 100}%`;
-    if (openRef.current) openRef.current.style.clipPath = `inset(0 calc(100% - ${edge}) 0 0)`;
-    if (shutRef.current) shutRef.current.style.clipPath = `inset(0 0 0 ${edge})`;
-    if (textRef.current) textRef.current.style.opacity = String(Math.max(0, 1 - p * 2.2));
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const measure = () => setW(el.clientWidth);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const paint = (x: number, lift = 0) => {
+    at.current = x;
+    gapRef.current?.setAttribute('width', String(x));
+    if (flapRef.current) flapRef.current.style.transform = `translateX(${x - 22}px)`;
+    flapRef.current?.style.setProperty('--lift', `${lift}deg`);
+    if (labelRef.current) labelRef.current.style.opacity = String(x > w * 0.55 ? 0 : 1);
   };
-  // Runs the pull from where it is to `to` over `ms`, then calls `then`.
-  const glide = (to: number, ms: number, then?: () => void) => {
+  useEffect(() => {
+    if (w) paint(at.current);
+  });
+  const finish = () => {
+    if (busy.current || !w) return;
+    busy.current = true;
     const from = at.current;
+    const ms = Math.max(260, (w - from) * 1.5);
     const start = performance.now();
     const step = (now: number) => {
       const k = Math.min(1, (now - start) / ms);
-      const e = to > from ? k * k * (3 - 2 * k) : 1 - Math.pow(1 - k, 3);
-      paint(from + (to - from) * e);
-      if (k < 1) requestAnimationFrame(step);
-      else then?.();
+      const e = k * k * (3 - 2 * k);
+      paint(from + (w - from) * e, -14 * Math.sin(k * Math.PI));
+      if (k < 1) return requestAnimationFrame(step);
+      if (!onDone()) {
+        paint(START);
+        busy.current = false;
+      }
     };
     requestAnimationFrame(step);
-  };
-  const finish = () => {
-    if (busy.current) return;
-    busy.current = true;
-    glide(1, Math.max(250, (1 - at.current) * 750), () => {
-      if (!onDone()) glide(0, 450, () => (busy.current = false));
-    });
   };
   useEffect(() => {
     runRef.current = finish;
@@ -562,15 +624,17 @@ function Zipper({ label, aria, runRef, onDone, ready }: { label: string; aria: s
     const move = (e: PointerEvent) => {
       const d = drag.current;
       if (!d) return;
-      if (Math.abs(e.clientX - d.x) > 4) d.moved = true;
-      paint(Math.max(0, Math.min(1, d.from + (e.clientX - d.x) / span())));
+      const dx = e.clientX - d.x;
+      if (Math.abs(dx) > 4) d.moved = true;
+      // Paper tears one way only: forward, never back.
+      paint(Math.max(at.current, Math.min(w, d.from + dx)), dx > 0 ? -16 : 0);
     };
     const up = () => {
       const d = drag.current;
       if (!d) return;
       drag.current = null;
-      if (!d.moved || at.current > 0.88) finish();
-      else glide(0, 420);
+      if (!d.moved || at.current >= w - 12) finish();
+      else paint(at.current, 0);
     };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
@@ -581,16 +645,41 @@ function Zipper({ label, aria, runRef, onDone, ready }: { label: string; aria: s
       window.removeEventListener('pointercancel', up);
     };
   });
+
+  // The rows of dots, and the ragged gap the tear leaves between them.
+  const upper = zigzag(w, 8, 3, 6).join(' ');
+  const lower = zigzag(w, 22, 3, 6, 1).join(' ');
+  const gapTop = zigzag(w, 12, 2.2, 4.5).map((pt, i) => {
+    const [x, y] = pt.split(',').map(Number);
+    return `${x},${(y + ((i * 7) % 5) * 0.35).toFixed(1)}`;
+  });
+  const gapBottom = zigzag(w, 18, 2.2, 4.5, 1)
+    .map((pt, i) => {
+      const [x, y] = pt.split(',').map(Number);
+      return `${x},${(y - ((i * 5) % 4) * 0.4).toFixed(1)}`;
+    })
+    .reverse();
   return (
-    <div ref={strip} className={`pc-zip${ready ? ' is-ready' : ''}`}>
-      <span ref={shutRef} aria-hidden className="pc-zip-shut" />
-      <span ref={openRef} aria-hidden className="pc-zip-open" style={{ clipPath: 'inset(0 100% 0 0)' }} />
-      <span ref={textRef} aria-hidden className="pc-zip-label">
-        {label} ›
+    <div ref={box} className={`pc-tearline${ready ? ' is-ready' : ''}`}>
+      {w > 0 && (
+        <svg aria-hidden width={w} height={30} className="pc-tearline-art">
+          <defs>
+            <clipPath id="pc-tear-gap">
+              <rect ref={gapRef} x="0" y="0" width={START} height="30" />
+            </clipPath>
+          </defs>
+          <polygon points={[...gapTop, ...gapBottom].join(' ')} className="pc-tearline-gap" clipPath="url(#pc-tear-gap)" />
+          <polyline points={gapTop.join(' ')} className="pc-tearline-edge" clipPath="url(#pc-tear-gap)" />
+          <polyline points={upper} className="pc-tearline-dots" />
+          <polyline points={lower} className="pc-tearline-dots" />
+        </svg>
+      )}
+      <span ref={labelRef} aria-hidden className="pc-tearline-label">
+        {label}
       </span>
       <button
-        ref={pullRef}
-        className="pc-zip-pull"
+        ref={flapRef}
+        className="pc-tearline-flap"
         aria-label={aria}
         onPointerDown={(e) => {
           if (busy.current || e.button > 0) return;
@@ -604,7 +693,7 @@ function Zipper({ label, aria, runRef, onDone, ready }: { label: string; aria: s
           }
         }}
       >
-        <span aria-hidden className="pc-zip-ring" />
+        <span aria-hidden className="pc-tearline-corner" />
       </button>
     </div>
   );
