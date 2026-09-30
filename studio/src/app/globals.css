@@ -891,25 +891,62 @@ button.pc-auth-link:disabled { cursor: default; }
 .pc-sticky textarea::placeholder { color: rgba(28, 25, 23, .4); }
 
 /* Tearing the slip off: a tug, a torn top edge and a stub left in the slot, fibres shed; the slip
-   swings free, is lifted, and flies with its note into the "Dispatch" step. */
+   drops free, is rolled into a bundle and tied, and the bundle flies into the "Dispatch" step. */
 .pc-print-paper { position: relative; transform-origin: 50% 0; }
-.pc-print.is-tearing .pc-print-paper { animation: pcTornFree 1.05s cubic-bezier(.3, .7, .3, 1) forwards; pointer-events: none; }
-/* Free of the slot: it drops with the tug, swings on nothing, and is lifted as if in hand. */
-@keyframes pcTornFree {
+.pc-print.is-tearing .pc-print-paper { animation: pcTornDrop .42s cubic-bezier(.3, .7, .3, 1) forwards; pointer-events: none; }
+/* Free of the slot: it drops with the tug, swings a little, and settles. */
+@keyframes pcTornDrop {
   0% { transform: none; }
-  10% { transform: translateY(12px) rotate(.9deg); }
-  22% { transform: translateY(7px) rotate(-.7deg); }
-  34% { transform: translateY(10px) rotate(.4deg); }
-  46% { transform: translateY(9px) rotate(-.15deg); }
-  100% { transform: translateY(-14px) rotate(-1.6deg) scale(1.03); }
+  30% { transform: translateY(12px) rotate(.8deg); }
+  60% { transform: translateY(6px) rotate(-.5deg); }
+  100% { transform: translateY(8px); }
 }
-/* Then it flies, turning and shrinking, into the "Dispatch" step. */
-.pc-print.is-flying .pc-print-paper { z-index: 5; animation: pcSlipFly .7s cubic-bezier(.55, 0, .35, 1) forwards; }
-@keyframes pcSlipFly {
-  0% { transform: translateY(-14px) rotate(-1.6deg) scale(1.03); opacity: 1; }
-  35% { transform: translate(calc(var(--fx, 0px) * .18), calc(var(--fy, -300px) * .12 - 40px)) rotate(-6deg) scale(.62); opacity: 1; }
+/* Then it is rolled up from its foot, note and all: what is left of it is cut away at the roll as
+   the roll climbs (the two share one duration and one curve, so the edge stays under the roll). */
+.pc-print.is-rolling .pc-print-paper { animation: pcRollClip .95s cubic-bezier(.45, 0, .3, 1) forwards; }
+@keyframes pcRollClip {
+  from { transform: translateY(8px); clip-path: inset(-30px -60px calc(var(--PH, 600px) - var(--H, 600px)) -60px); }
+  to { transform: translateY(8px); clip-path: inset(-30px -60px 100% -60px); }
+}
+.pc-print.is-tied .pc-print-paper, .pc-print.is-flying .pc-print-paper { visibility: hidden; }
+/* The roll: paper wound on itself, lit across, its ends showing the turns. */
+.pc-roll-fly { position: absolute; left: 0; right: 0; top: calc(var(--pt, 0px) + 30px); height: 0; z-index: 6; pointer-events: none; visibility: hidden; }
+.pc-print.is-rolling .pc-roll-fly, .pc-print.is-tied .pc-roll-fly, .pc-print.is-flying .pc-roll-fly { visibility: visible; }
+.pc-roll {
+  position: absolute; left: -3px; right: -3px; top: -15px; height: 30px; border-radius: 15px;
+  background: linear-gradient(180deg, #CFC4AE, #F4ECDC 18%, #FFFDF7 38%, #F1E8D6 62%, #D9CDB5 82%, #BDB199);
+  box-shadow: 0 12px 20px -8px rgba(40, 24, 8, .4);
+}
+.pc-roll::before, .pc-roll::after {
+  content: ''; position: absolute; top: 0; bottom: 0; width: 12px; border-radius: 50%;
+  background: repeating-radial-gradient(circle at 50% 50%, #FBF6EC 0 1.3px, #D6C9AE 1.3px 2.3px); box-shadow: inset 0 0 0 1px rgba(120, 95, 50, .25);
+}
+.pc-roll::before { left: -5px; }
+.pc-roll::after { right: -5px; }
+.pc-print.is-rolling .pc-roll { animation: pcRollUp .95s cubic-bezier(.45, 0, .3, 1) forwards; }
+@keyframes pcRollUp { from { transform: translateY(calc(var(--H, 600px) - 22px)) scaleY(.45); } to { transform: none; } }
+.pc-print.is-tied .pc-roll { animation: pcRollTie .45s cubic-bezier(.3, 1.4, .5, 1); }
+@keyframes pcRollTie { 50% { transform: scale(1.04, 1.12); } }
+/* Tied: a gold band round its middle, and a dot of red wax on the band. */
+.pc-roll-band {
+  position: absolute; left: 50%; top: -3px; bottom: -3px; width: 16px; margin-left: -8px; border-radius: 3px;
+  background: linear-gradient(90deg, #8D6B28, #F6E3A8 50%, #8D6B28); box-shadow: 0 1px 2px rgba(0, 0, 0, .3);
+  transform: scaleY(0); transition: transform .35s cubic-bezier(.3, 1.4, .5, 1);
+}
+.pc-roll-band::after {
+  content: ''; position: absolute; left: 50%; top: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #D0564A, #8E1F1A 70%); box-shadow: 0 2px 3px rgba(0, 0, 0, .35);
+  transform: scale(0); transition: transform .3s .22s cubic-bezier(.3, 1.6, .5, 1);
+}
+.pc-print.is-tied .pc-roll-band, .pc-print.is-flying .pc-roll-band { transform: scaleY(1); }
+.pc-print.is-tied .pc-roll-band::after, .pc-print.is-flying .pc-roll-band::after { transform: scale(1); }
+/* The bundle flies, turning and shrinking, into the "Dispatch" step. */
+.pc-print.is-flying .pc-roll-fly { animation: pcBundleFly .65s cubic-bezier(.55, 0, .35, 1) forwards; }
+@keyframes pcBundleFly {
+  0% { transform: none; opacity: 1; }
+  35% { transform: translate(calc(var(--fx, 0px) * .18), calc(var(--fy, -300px) * .12 - 36px)) rotate(-10deg) scale(.7); opacity: 1; }
   85% { opacity: 1; }
-  100% { transform: translate(var(--fx, 0px), var(--fy, -300px)) rotate(-14deg) scale(.03); opacity: 0; }
+  100% { transform: translate(var(--fx, 0px), var(--fy, -300px)) rotate(-24deg) scale(.08); opacity: 0; }
 }
 /* Fibres shed from the tear, falling from the slot. */
 .pc-tear-dust { position: absolute; left: 18px; right: 18px; top: 100%; height: 0; pointer-events: none; }
@@ -988,7 +1025,7 @@ button.pc-auth-link:disabled { cursor: default; }
 .pc-tear-hint-text { display: flex; flex-direction: column; font-size: 10.5px; line-height: 1.35; color: rgba(28, 25, 23, .6); }
 .pc-tear-hint-text b { font-family: var(--font-display), 'Cormorant Garamond', serif; font-weight: 500; font-size: 17px; color: #1C1917; }
 @media (prefers-reduced-motion: reduce) {
-  .pc-print.is-tearing .pc-print-paper, .pc-print.is-flying .pc-print-paper, .pc-print.is-tearing .pc-tear-dust i, .pc-steps li.is-catch .pc-steps-num, .pc-steps li.is-catch .pc-steps-num::after, .pc-print.is-tearing .pc-printer, .pc-tearline-corner, .pc-tearline-halo, .pc-tearline-pull, .pc-tear-hint-icon { animation: none !important; }
+  .pc-print.is-tearing .pc-print-paper, .pc-print.is-rolling .pc-roll, .pc-print.is-tied .pc-roll, .pc-print.is-flying .pc-roll-fly, .pc-print.is-tearing .pc-tear-dust i, .pc-steps li.is-catch .pc-steps-num, .pc-steps li.is-catch .pc-steps-num::after, .pc-print.is-tearing .pc-printer, .pc-tearline-corner, .pc-tearline-halo, .pc-tearline-pull, .pc-tear-hint-icon { animation: none !important; }
 }
 
 /* While printing, the printer hums: the finest tremor, gone when it stops. */

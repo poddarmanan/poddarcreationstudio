@@ -865,16 +865,18 @@ total metres, the shades (or how many are not set) and the value, and an ink "Ch
   When a burst stops, the hanging paper sways a fraction of a degree on the slot and settles
   within about a second. The light blinks between bursts and turns green when done.
 
-  **The page leads the paper.** The whole run is planned when printing starts: the bursts and
-  pauses, and one smooth path for the page. The page sets off about two-thirds of a second before
-  the first line prints and moves at an even pace, easing in and out, to where the slip's foot and
-  the note sit above the dock. So the paper always prints into room already made for it, and the
-  page never waits on a burst or lurches after one.
+  **The page settles on the printer and stays.** As printing starts, the page glides so the
+  printer sits just under the header, and holds there. The buyer watches each line come out of
+  the slot, the paper printed so far moving down beneath it:
+  1. the estimate first;
+  2. then every fabric and its shades;
+  3. then the slip's head.
 
-  Each frame's position is set outright (`behavior: 'instant'`), because the site's own
-  `scroll-behavior: smooth` would restart on every call and lag behind; that is what made the
-  scrolling stutter before. A reader who scrolls, touches or presses a key takes over, and
-  printing carries on.
+  This replaced a page that followed the slip's foot as it fed, where only the total showed the
+  whole time. The glide is planned when printing starts: a gentle start and finish, over at most
+  1.5s. Each frame's position is set outright (`behavior: 'instant'`), because the site's own
+  `scroll-behavior: smooth` would restart on every call. A reader who scrolls, touches or presses
+  a key takes over, and printing carries on.
 - **A note for the mill** is a small butter-yellow sticky note with a strip of tape, ruled lines
   and a folded corner. It is pressed onto the slip's torn foot when printing finishes.
 - **Tear it off along the dots.** Two rows of perforation run in zig-zag under the printer's
@@ -887,15 +889,17 @@ total metres, the shades (or how many are not set) and the value, and an ink "Ch
     shaded edge. Like paper, it does not mend: let go and it stays torn as far as it went, to be
     carried on later.
   - At the end, the slip comes away. The upper row of dots stays behind on the stub in the slot;
-    the slip keeps the lower row. What follows takes a little over two seconds:
-    1. The printer gives a tug, and a few paper fibres shed from the tear and fall from the slot.
-    2. The slip drops free and swings back and forth, then is lifted slightly towards the buyer,
-       as if taken in hand.
-    3. The page glides up to the steps at the top (Cart · Review · Dispatch).
-    4. The slip flies, with its note, turning and shrinking along an arc, into the "Dispatch"
-       numeral. It passes over the printer, not behind it. The flight's path is measured from
-       the slip's top to the numeral when the tear begins; both move with the page, so the
-       glide does not throw it off.
+    the slip keeps the lower row. What follows takes about three seconds:
+    1. The printer gives a tug, a few paper fibres shed from the tear and fall from the slot, and
+       the slip drops free, swings a little and settles.
+    2. It is rolled up from its foot, note and all, into a bundle: a roll of the paper, lit across,
+       its ends showing the turns. The roll climbs the slip, and what is left of the slip is cut
+       away at the roll (one duration and one curve for both, so the edge stays under the roll).
+       Meanwhile the page glides up to the steps.
+    3. The bundle is tied: a gold band springs round its middle and a dot of red wax lands on it.
+       The bundle rests just under the slot.
+    4. It flies, turning and shrinking along an arc, into the "Dispatch" numeral. The way is
+       measured from the bundle's middle once the page is at rest.
     5. "Dispatch" catches it: its numeral pops, fills gold and throws a gold ring.
     6. The dispatch (or sign-in) opens.
 

@@ -122,14 +122,16 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
     };
     const runningAt = (t: number) => bursts.some(([t0, t1]) => t >= t0 && t < t1);
 
-    // The page's path: from where it is to where the slip's foot (and the note under it) sits
-    // above the dock, over the whole run, at an even pace with a gentle start and finish.
-    const top = feed.getBoundingClientRect().top + window.scrollY;
+    // The page's path: from where it is to the printer, with a gentle start and finish.
     // The slip is only hidden while it prints, not left out of the layout, so the page already has room for it.
     const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
     const s0 = window.scrollY;
-    const s1 = Math.max(s0, Math.min(maxScroll, top + full + 130 - (window.innerHeight - 250)));
-    const D = printEnd + 350;
+    // The page settles on the printer and stays: the buyer watches each line come out of the slot
+    // (the estimate first, then every fabric and shade, then the head), the paper printed so far
+    // moving down beneath it, rather than following the slip's foot, where only the total showed.
+    const slot = (printer?.getBoundingClientRect().top ?? feed.getBoundingClientRect().top) + window.scrollY;
+    const s1 = Math.max(0, Math.min(maxScroll, slot - 118));
+    const D = Math.min(printEnd + 350, 1500);
     const RAMP_IN = Math.min(700, D / 3);
     const RAMP_OUT = Math.min(900, D / 3);
     const cruise = (s1 - s0) / (D - RAMP_IN / 2 - RAMP_OUT / 2);
@@ -145,7 +147,7 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
 
     const started = performance.now();
     let raf = 0;
-    let follow = !quick && s1 - s0 > 4;
+    let follow = !quick && Math.abs(s1 - s0) > 4;
     let running = false;
     let shown = -1;
     const letGo = () => {
@@ -255,12 +257,13 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
   };
   const onStep = (i: 0 | 1) => (i === 0 ? onBack() : go('edit'));
   // Tearing the slip off: the rest prints at once and the slip comes free of the slot with a tug,
-  // a few fibres shed from the tear. It swings, is lifted as if in hand while the page glides up to
-  // the steps, and then flies, turning and shrinking, into "Dispatch", which catches it with a pop
-  // and a gold ring, and the dispatch opens.
+  // a few fibres shed from the tear, and it drops and settles. Then it is rolled up from its foot,
+  // note and all, into a bundle, which is tied with a gold band and a dot of wax; the page glides
+  // up to the steps, and the bundle flies, turning and shrinking, into "Dispatch", which catches
+  // it with a pop and a gold ring, and the dispatch opens.
   const printRef = useRef<HTMLDivElement | null>(null);
-  const [tearing, setTearing] = useState(false);
-  const [flying, setFlying] = useState(false);
+  const [tearStage, setTearStage] = useState<null | 'torn' | 'rolling' | 'tied' | 'flying'>(null);
+  const tearing = tearStage !== null;
   const tear = (scroll = true): boolean => {
     if (!chosen.length) {
       setWarn((n) => n + 1);
@@ -284,32 +287,42 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
       window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
     }
     const lead = scroll ? 480 : 0;
-    window.setTimeout(() => {
-      // Where the slip will fly: from its top edge to the "Dispatch" numeral. Both move with the
-      // page, so the way between them holds however the page scrolls meanwhile.
+    const at = (ms: number, fn: () => void) => window.setTimeout(fn, lead + ms);
+    at(0, () => {
+      // How far the roll has to travel: from the foot of the note, below the slip, to its head.
       const paper = printRef.current?.querySelector<HTMLElement>('.pc-print-paper');
+      if (paper && printRef.current) {
+        const note = paper.querySelector<HTMLElement>('.pc-sticky');
+        const foot = Math.max(paper.offsetHeight, note ? note.offsetTop + note.offsetHeight : 0);
+        printRef.current.style.setProperty('--H', `${foot}px`);
+        printRef.current.style.setProperty('--pt', `${paper.offsetTop}px`);
+        printRef.current.style.setProperty('--PH', `${paper.offsetHeight}px`);
+      }
+      setTearStage('torn');
+    });
+    at(420, () => {
+      printFollow.current = false;
+      setTearStage('rolling');
+      glideTo(0);
+    });
+    at(1400, () => setTearStage('tied'));
+    at(1800, () => {
+      // Where the bundle flies: from its middle to the "Dispatch" numeral, the page at rest now.
+      const roll = printRef.current?.querySelector<HTMLElement>('.pc-roll');
       const dot = document.querySelector<HTMLElement>('.pc-steps li:last-child .pc-steps-num');
-      if (paper && dot && printRef.current) {
-        const a = paper.getBoundingClientRect();
+      if (roll && dot && printRef.current) {
+        const a = roll.getBoundingClientRect();
         const b = dot.getBoundingClientRect();
         printRef.current.style.setProperty('--fx', `${(b.left + b.width / 2 - (a.left + a.width / 2)).toFixed(1)}px`);
-        printRef.current.style.setProperty('--fy', `${(b.top + b.height / 2 - a.top - a.height * 0.03).toFixed(1)}px`);
+        printRef.current.style.setProperty('--fy', `${(b.top + b.height / 2 - (a.top + a.height / 2)).toFixed(1)}px`);
       }
-      setTearing(true);
-    }, lead);
-    // Lifted: the page glides up to the steps.
-    window.setTimeout(() => {
-      printFollow.current = false;
-      glideTo(0);
-    }, lead + 420);
-    window.setTimeout(() => setFlying(true), lead + 1050);
-    // Caught.
-    window.setTimeout(() => document.querySelector('.pc-steps li:last-child')?.classList.add('is-catch'), lead + 1700);
-    window.setTimeout(() => {
-      setTearing(false);
-      setFlying(false);
+      setTearStage('flying');
+    });
+    at(2450, () => document.querySelector('.pc-steps li:last-child')?.classList.add('is-catch'));
+    at(3000, () => {
+      setTearStage(null);
       next();
-    }, lead + 2250);
+    });
     return true;
   };
   // The perforation along the slot: torn by hand from its loose corner (or run by itself from the
@@ -440,7 +453,7 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
       {/* The order slip: the house and the date at its head under a double gold rule; each fabric
           with its numeral in a gold ring, its price by the metre, its shades and its subtotal on a
           dotted leader; then the totals, ruled off as in a ledger; and a pinked foot. */}
-      <div ref={printRef} className={`pc-print${tearing ? ' is-tearing' : ''}${flying ? ' is-flying' : ''}${printed ? ' is-printed' : ''}`}>
+      <div ref={printRef} className={`pc-print${tearing ? ` is-tearing is-${tearStage}` : ''}${printed ? ' is-printed' : ''}`}>
         {/* The printer: a smoked window on its roll of paper, which turns while it prints; its
             light; and its mouth, a slot with a serrated tear bar and the head glowing behind it. */}
         <div ref={printerRef} aria-hidden className={`pc-printer${printed ? ' is-done' : ''}`}>
@@ -554,6 +567,13 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
             <span className="pc-sticky-title">{t.noteSticky}</span>
             <textarea value={note} rows={2} placeholder={t.notePlaceholder} onChange={(e) => setNote(e.target.value.slice(0, 500))} />
           </label>
+        </div>
+        {/* The slip rolled into a bundle: a roll of the paper, its ends showing the turns, that
+            winds up from the note's foot to the slip's head, then a gold band and a dot of wax. */}
+        <div aria-hidden className="pc-roll-fly">
+          <div className="pc-roll">
+            <i className="pc-roll-band" />
+          </div>
         </div>
       </div>
 
