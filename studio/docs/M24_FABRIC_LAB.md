@@ -1437,3 +1437,22 @@ model is supplied, it is drawn from its outline:
 The outline is puffed into cloth on the female form, as every built-in cut is. Drop a
 `saree.glb` into `public/models/` and it is used instead, with nothing else to configure (see
 the README there).
+
+### The saree model, and the shirt's taken out
+
+`public/models/saree.glb` is "Traditional Saree" by Mobin Mithun, CC-BY-4.0 (credited in
+`public/models/README.md`). As uploaded, it needed three changes to stand right on the form:
+
+- **Pallu.** It was modelled blowing out about 1.3 m behind and to the left, as if in a gale. It
+  is bent down in the file to hang from the left shoulder down the back, and gathered in towards
+  the body. The bend grows with distance from the body, so the drape and shoulder are untouched.
+  It is also shortened to clear the floor. The upload as it came is commit `a5fd974`.
+- **Placement.** Being deeper than a top, it was read as side-on and turned a quarter. Its extent
+  also pulled it off the pole. `MODEL_FIT` in `GarmentModel.tsx` sets the saree as modelled
+  (no turn), centred on its hem.
+- **Form and sleeves.** It has no sleeves to let down: its ~45 small pieces are embroidery. It is
+  shown on a standard female dress form (`standardBody` in `lib/three/mannequin.ts`) rather than
+  one read from the cloth, which a loose drape and an off-body pallu made lopsided.
+
+The old `shirt.glb` is removed at the owner's request. The Shirt shows the built-in cut until a
+new model is added, with its line in `GARMENT_MODEL_FILES` put back.

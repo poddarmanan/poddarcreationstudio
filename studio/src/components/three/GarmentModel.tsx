@@ -12,7 +12,7 @@ import { tileRepeat } from '@/lib/three/fabric-spec';
 import { FabricMaterial } from './FabricMaterial';
 import { Mannequin } from './Mannequin';
 import { FORM_SEX } from './GarmentMesh';
-import { bodyFromGarment, fitForm } from '@/lib/three/mannequin';
+import { bodyFromGarment, fitForm, standardBody } from '@/lib/three/mannequin';
 import { relaxSleeves, sleevesByPart } from '@/lib/three/relax';
 
 /**
@@ -22,7 +22,7 @@ import { relaxSleeves, sleevesByPart } from '@/lib/three/relax';
  * model — a kurti with a placket, a shirt with a collar and cuffs — is what a buyer recognises,
  * and the owner supplies those as glTF files, one per cut, in `public/models/`:
  *
- *   kurti.glb · shirt.glb · saree.glb · top.glb · tshirt.glb
+ *   kurti.glb · saree.glb · top.glb · tshirt.glb (and shirt.glb, once one is added back)
  *
  * Drop a file in and that cut uses it; take it out and the cut falls back. Nothing else to
  * configure. The model's own materials are discarded: every surface is re-dressed in the same
@@ -36,9 +36,21 @@ import { relaxSleeves, sleevesByPart } from '@/lib/three/relax';
 
 const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
 
+/**
+ * How a cut's model is set on the form, where the general rules do not fit it. A saree is a
+ * fitted blouse over loose drape with the pallu off one side: it stands as modelled (it is deeper
+ * than a top is, so the "wider than deep" turn would misread it), it is centred on its hem (the
+ * pallu would pull a centre taken from its extent off the body), it has no sleeves to let down
+ * (its many small pieces are embroidery, not sleeves), and it is shown on a standard form rather
+ * than one read out of the cloth.
+ */
+const MODEL_FIT: Partial<Record<GarmentKey, { turn?: boolean; centre?: 'hem'; relax?: boolean; form?: 'standard'; formSize?: number }>> = {
+  saree: { turn: false, centre: 'hem', relax: false, form: 'standard', formSize: 0.96 },
+};
+
 export const GARMENT_MODEL_FILES: Partial<Record<GarmentKey, string>> = {
   kurti: `${BASE}/models/kurti.glb`,
-  shirt: `${BASE}/models/shirt.glb`,
+  // The shirt has no model at present (its old one was taken out): the built-in cut stands in.
   saree: `${BASE}/models/saree.glb`,
   top: `${BASE}/models/top.glb`,
   tshirt: `${BASE}/models/tshirt.glb`,
@@ -230,8 +242,28 @@ export function GarmentModel({ url, garment, spec, tier, wind = 0, metres = 1.15
     // scene itself is left untouched (it is cached and shared); every part is baked into a
     // fresh geometry in stage space — turned, centred, scaled to garment height — so that the
     // sleeves can be moved and the form fitted on the very vertices that are drawn.
-    const turn = raw.x < raw.z;
-    const centre = turn ? new THREE.Vector3(rawCentre.z, rawCentre.y, -rawCentre.x) : rawCentre;
+    const how = MODEL_FIT[garment] ?? {};
+    const turn = how.turn ?? raw.x < raw.z;
+    const centre = turn ? new THREE.Vector3(rawCentre.z, rawCentre.y, -rawCentre.x) : rawCentre.clone();
+    if (how.centre === 'hem') {
+      // Across and front to back, the middle of the lowest few centimetres of cloth: the hem
+      // stands under the body whatever the drape above it does.
+      const xs: number[] = [];
+      const zs: number[] = [];
+      for (let i = 0; i < total; i++) {
+        if (!shown[i] || world[i * 3 + 1] > box.min.y + raw.y * 0.05) continue;
+        xs.push(turn ? world[i * 3 + 2] : world[i * 3]);
+        zs.push(turn ? -world[i * 3] : world[i * 3 + 2]);
+      }
+      if (xs.length > 8) {
+        const mid = (v: number[]) => {
+          v.sort((a, b) => a - b);
+          return (v[Math.floor(v.length * 0.05)] + v[Math.floor(v.length * 0.95)]) / 2;
+        };
+        centre.x = mid(xs);
+        centre.z = mid(zs);
+      }
+    }
     const scale = raw.y > 0 ? metres / raw.y : 1;
     const all = new Float32Array(total * 3);
     for (let i = 0; i < total; i++) {
@@ -278,7 +310,7 @@ export function GarmentModel({ url, garment, spec, tier, wind = 0, metres = 1.15
     let relaxed = false;
     const swing = new Float32Array(total);
     let membership: Int8Array | null = null;
-    if (fit) {
+    if (fit && how.relax !== false) {
       const sleeves = sleevesByPart(garmentOnly, ranges, fit.shoulderY);
       membership = sleeves.membership;
       if (sleeves.confident) {
@@ -295,7 +327,10 @@ export function GarmentModel({ url, garment, spec, tier, wind = 0, metres = 1.15
       }
     }
     // The form is the body read out of the garment as it now hangs — the cloth lies on it.
-    const body = bodyFromGarment(garmentOnly, membership, FORM_SEX[garment]);
+    const body =
+      how.form === 'standard'
+        ? standardBody(FORM_SEX[garment], metres / 2 - 0.06 * (how.formSize ?? 1), how.formSize ?? 1)
+        : bodyFromGarment(garmentOnly, membership, FORM_SEX[garment]);
     at = 0;
     const parts = sources.map((source) => {
       const count = source.geometry.attributes.position.count;

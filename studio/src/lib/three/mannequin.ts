@@ -266,6 +266,48 @@ export function bodyFromGarment(positions: ArrayLike<number>, membership: ArrayL
   return { rings, neckR, sex };
 }
 
+/**
+ * A standard dress form, for a garment that hugs the body only in places: a saree is a fitted
+ * blouse over yards of loose drape, with a pallu over one shoulder, and a body read out of that
+ * comes out lopsided wherever the cloth stands off it. The form is a size-M tailor's form, as
+ * half-width and half-depth by drop below the shoulder line, metres; `size` scales it, and its
+ * shoulder line sits at `shoulderY`.
+ */
+const STANDARD_FORM: Record<FormSex, [number, number, number][]> = {
+  female: [
+    [0.0, 0.15, 0.075], [0.04, 0.172, 0.09], [0.1, 0.165, 0.104], [0.18, 0.158, 0.118], [0.26, 0.14, 0.104],
+    [0.34, 0.122, 0.09], [0.42, 0.138, 0.098], [0.52, 0.162, 0.108], [0.58, 0.165, 0.108],
+  ],
+  male: [
+    [0.0, 0.17, 0.085], [0.04, 0.2, 0.1], [0.12, 0.19, 0.115], [0.22, 0.175, 0.112], [0.34, 0.155, 0.1],
+    [0.46, 0.158, 0.1], [0.56, 0.165, 0.105],
+  ],
+};
+
+export function standardBody(sex: FormSex, shoulderY: number, size = 1): FormBody {
+  const table = STANDARD_FORM[sex];
+  const step = 0.02;
+  const end = table[table.length - 1][0];
+  const rings: FormRing[] = [];
+  for (let drop = 0; drop <= end + 1e-6; drop += step) {
+    let k = 0;
+    while (k < table.length - 2 && table[k + 1][0] < drop) k++;
+    const [d0, w0, z0] = table[k];
+    const [d1, w1, z1] = table[k + 1];
+    const t = Math.max(0, Math.min(1, (drop - d0) / (d1 - d0)));
+    const e = t * t * (3 - 2 * t);
+    const a = (w0 + (w1 - w0) * e) * size;
+    const b = (z0 + (z1 - z0) * e) * size;
+    const radii = new Float32Array(BODY_SECTORS);
+    for (let s2 = 0; s2 < BODY_SECTORS; s2++) {
+      const ang = (s2 / BODY_SECTORS) * Math.PI * 2;
+      radii[s2] = 1 / Math.sqrt((Math.cos(ang) / a) ** 2 + (Math.sin(ang) / b) ** 2);
+    }
+    rings.push({ y: shoulderY - drop * size, cz: 0, radii });
+  }
+  return { rings, neckR: 0.05 * size, sex };
+}
+
 /** The body's ring at a height, interpolated; null above the neck or well below the hip. */
 export function bodyRing(body: FormBody, y: number): FormRing | null {
   const { rings } = body;

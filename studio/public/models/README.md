@@ -36,11 +36,23 @@ cut-out; the studio's cloth honours it and measures the garment from the visible
 Licences: models from Sketchfab and similar carry a licence (commonly CC-BY, which requires
 naming the author). Keep the attribution here, one line per model, before publishing.
 
-What is in place now: `shirt.glb` (a poplin shirt saved arms-down, as four chunks, so its
-sleeves hang as modelled), `kurti.glb` (a kurta with palazzo, one mesh in three pieces, scaled
+What is in place now: `saree.glb` (see below), `kurti.glb` (a kurta with palazzo, one mesh in three pieces, scaled
 together to the kurti's height), `top.glb` and `tshirt.glb` — all stripped of their textures and
 Draco-compressed, between 0.4 and 1.3 MB each.
 
+The shirt has no model at present: the old `shirt.glb` was taken out, and the Shirt shows the
+built-in cut until a new one is added (and its line in `GARMENT_MODEL_FILES` put back).
+
+`saree.glb` was modelled with its pallu blowing out behind, which on a still form read as
+caught in a gale. Its pallu was bent down to hang from the left shoulder down the back, and
+shortened to clear the floor; the rest of the drape is as modelled. The saree is shown on a
+standard dress form rather than one read from the cloth, centred on its hem (`MODEL_FIT` in
+`GarmentModel.tsx`).
+
 ## Attribution
+
+- `saree.glb`: "Traditional Saree" by Mobin Mithun (https://sketchfab.com/MobinMithun), CC-BY-4.0,
+  https://sketchfab.com/3d-models/traditional-saree-c70eeeafd37c4d8aa138b61a45821c25. Changed:
+  the pallu bent down to hang, and shortened.
 
 <!-- kurti.glb — "Title" by Author, licence, URL -->
