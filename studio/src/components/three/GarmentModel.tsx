@@ -22,7 +22,7 @@ import { relaxSleeves, sleevesByPart } from '@/lib/three/relax';
  * model — a kurti with a placket, a shirt with a collar and cuffs — is what a buyer recognises,
  * and the owner supplies those as glTF files, one per cut, in `public/models/`:
  *
- *   kurti.glb · shirt.glb · dress.glb · top.glb · tshirt.glb
+ *   kurti.glb · shirt.glb · saree.glb · top.glb · tshirt.glb
  *
  * Drop a file in and that cut uses it; take it out and the cut falls back. Nothing else to
  * configure. The model's own materials are discarded: every surface is re-dressed in the same
@@ -39,7 +39,7 @@ const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
 export const GARMENT_MODEL_FILES: Partial<Record<GarmentKey, string>> = {
   kurti: `${BASE}/models/kurti.glb`,
   shirt: `${BASE}/models/shirt.glb`,
-  dress: `${BASE}/models/dress.glb`,
+  saree: `${BASE}/models/saree.glb`,
   top: `${BASE}/models/top.glb`,
   tshirt: `${BASE}/models/tshirt.glb`,
 };

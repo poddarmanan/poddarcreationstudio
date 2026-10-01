@@ -55,7 +55,7 @@ export interface FabricViewerProps {
 }
 
 /** Real garment heights, metres — a kurti is not a t-shirt. */
-const GARMENT_METRES: Record<string, number> = { kurti: 1.15, dress: 1.3, shirt: 0.8, tshirt: 0.74, top: 0.62 };
+const GARMENT_METRES: Record<string, number> = { kurti: 1.15, saree: 1.32, shirt: 0.8, tshirt: 0.74, top: 0.62 };
 /** Where the shoulder line sits on the stage, whatever the cut, so the form's neck stays put. */
 const SHOULDER_Y = 0.6;
 /** The floor every pole stands on. */

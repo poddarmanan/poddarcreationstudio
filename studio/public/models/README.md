@@ -7,7 +7,7 @@ Nothing else to configure — remove the file and the cut falls back.
 |---|---|
 | Kurti | `kurti.glb` |
 | Shirt | `shirt.glb` |
-| Dress | `dress.glb` |
+| Saree | `saree.glb` |
 | Top | `top.glb` |
 | T-Shirt | `tshirt.glb` |
 

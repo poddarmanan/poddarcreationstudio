@@ -8,7 +8,7 @@
  */
 
 export type FabricFamily = 'cotton' | 'rayon' | 'slub' | 'wrinkle' | 'silk' | 'lycra';
-export type GarmentKey = 'kurti' | 'shirt' | 'dress' | 'top' | 'tshirt' | 'roll';
+export type GarmentKey = 'kurti' | 'shirt' | 'saree' | 'top' | 'tshirt' | 'roll';
 export type LightKey = 'daylight' | 'golden' | 'studio' | 'boutique' | 'white';
 export type RoomKey = 'cotton' | 'rayon' | 'silk';
 export type Lang = 'en' | 'hi';
@@ -266,7 +266,9 @@ export const WATER_OPACITY: Record<FabricFamily, number> = {
 export const GARMENTS: Record<GarmentKey, { d: string; label: string }> = {
   kurti: { d: 'M100 24c-9 0-16-3-21-7L42 30l7 74 15-4v52l-8 84h32v-36h24v36h32l-8-84v-52l15 4 7-74-37-13c-5 4-12 7-21 7Z', label: 'Kurti' },
   shirt: { d: 'M100 26c-10 0-18-3-24-7L38 34l9 86 17-4v112h72V116l17 4 9-86-38-15c-6 4-14 7-24 7Z', label: 'Shirt' },
-  dress: { d: 'M100 24c-9 0-16-3-21-7L46 28l9 42 12-3 5 38-30 127h116L128 105l5-38 12 3 9-42-33-11c-5 4-12 7-21 7Z', label: 'Dress' },
+  // A saree on the form: a short-sleeved blouse, the skirt falling straight to the floor, and the
+  // pallu over the left shoulder, hanging down that side to a point.
+  saree: { d: 'M100 24c-9 0-16-3-21-7L46 30L34 198L44 214L66 150L56 252H150L136 102L140 74L144 64L157 60L150 30L121 17C116 21 109 24 100 24Z', label: 'Saree' },
   top: { d: 'M79 30l-11 7 5 58 9-2v103h36V93l9 2 5-58-11-7c-8 9-34 9-42 0Z', label: 'Top' },
   tshirt: { d: 'M100 28c-11 0-19-4-25-8L36 36l13 27 17-9v176h68V54l17 9 13-27-39-16c-6 4-14 8-25 8Z', label: 'T-Shirt' },
   roll: { d: '', label: 'Fabric Roll' },

@@ -1424,3 +1424,16 @@ It is also cheaper per frame:
 Measured on a phone, from the page arriving to the last line: 1 shade 2.4s, 6 shades 3.6s,
 30 shades 4.8s. The paper moved at most about 56px a frame, with steady changes between frames.
 The headless renderer dropped as many frames with the page idle as while it printed.
+
+### Saree in place of the Dress
+
+The Lab's sixth cut is now the **Saree** (`GarmentKey` `saree`); the Dress is gone. Until a
+model is supplied, it is drawn from its outline:
+
+- a short-sleeved blouse;
+- the skirt, falling straight to just above the floor (1.32 m);
+- the pallu, over the left shoulder and hanging down that side to a point.
+
+The outline is puffed into cloth on the female form, as every built-in cut is. Drop a
+`saree.glb` into `public/models/` and it is used instead, with nothing else to configure (see
+the README there).

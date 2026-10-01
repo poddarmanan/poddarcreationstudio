@@ -35,7 +35,7 @@ const GARMENT_KEYS = Object.keys(GARMENTS) as GarmentKey[];
 const HOLD_MS = 1500;
 const AFTER_LOAD_MS = 300;
 const FADE_OUT_MS = 450;
-const DIAL_LABELS: Record<GarmentKey, string> = { kurti: 'Kurti', shirt: 'Shirt', dress: 'Dress', top: 'Top', tshirt: 'T-Shirt', roll: 'Roll' };
+const DIAL_LABELS: Record<GarmentKey, string> = { kurti: 'Kurti', shirt: 'Shirt', saree: 'Saree', top: 'Top', tshirt: 'T-Shirt', roll: 'Roll' };
 
 export function FabricLab({ studio }: { studio: Studio }) {
   const { t, currentFabric: f, currentColour: col, tests, garment, light: lightKey, wind, reduceMotion } = studio;

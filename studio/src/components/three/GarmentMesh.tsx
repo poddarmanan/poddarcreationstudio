@@ -20,7 +20,7 @@ import { sleevesByPart } from '@/lib/three/relax';
 import { Cloth, bendEdgesOf, edgesOf, type Collider } from '@/lib/three/cloth';
 
 /** Whose form each cut is shown on. */
-export const FORM_SEX: Record<GarmentKey, FormSex> = { shirt: 'male', tshirt: 'male', kurti: 'female', dress: 'female', top: 'female', roll: 'female' };
+export const FORM_SEX: Record<GarmentKey, FormSex> = { shirt: 'male', tshirt: 'male', kurti: 'female', saree: 'female', top: 'female', roll: 'female' };
 
 /**
  * The Garment Visualiser (Phase 4 M25).
