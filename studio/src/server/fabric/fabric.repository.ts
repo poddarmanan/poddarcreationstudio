@@ -1,9 +1,18 @@
 import type { PrismaClient } from '@/generated/prisma/client';
 import type { FabricRow } from '@/lib/types';
-import type { FabricFamily } from '@/lib/fabric-generator';
+import { FABRIC_DEFS, type FabricFamily } from '@/lib/fabric-generator';
 
-/** Catalogue/showroom ordering (matches FABRIC_DEFS sequence), not alphabetical. */
-const DISPLAY_ORDER = ['pcpc', 'cambric', 'jaam11', 'jaam125', 'rayon14', 'rayon17', 'slub', 'wrinkle', 'roman', 'gajji', 'lycra'];
+/** Catalogue/showroom ordering (the FABRIC_DEFS sequence), not alphabetical. */
+const DISPLAY_ORDER = FABRIC_DEFS.map((f) => f.id);
+
+/**
+ * The live range only. A quality taken out of the range, or a shade past the end of its card, can
+ * still be in the database because an order refers to it (the seed leaves those rows, so orders
+ * keep their history); the studio does not offer them.
+ */
+function current<T extends { id: string; nc: number; colours: { order: number }[] }>(r: T): T {
+  return { ...r, colours: r.colours.filter((c) => c.order < r.nc) };
+}
 
 export interface FabricRepository {
   listWithColours(): Promise<FabricRow[]>;
@@ -22,8 +31,10 @@ export class PrismaFabricRepository implements FabricRepository {
     const rows = await this.db.fabric.findMany({
       include: { colours: { orderBy: { order: 'asc' } } },
     });
-    rows.sort((a, b) => DISPLAY_ORDER.indexOf(a.id) - DISPLAY_ORDER.indexOf(b.id));
-    return rows.map((r) => ({ ...r, family: r.family as FabricFamily }));
+    return rows
+      .filter((r) => DISPLAY_ORDER.includes(r.id))
+      .sort((a, b) => DISPLAY_ORDER.indexOf(a.id) - DISPLAY_ORDER.indexOf(b.id))
+      .map((r) => ({ ...current(r), family: r.family as FabricFamily }));
   }
 
   async findById(id: string): Promise<FabricRow | null> {
@@ -31,7 +42,7 @@ export class PrismaFabricRepository implements FabricRepository {
       where: { id },
       include: { colours: { orderBy: { order: 'asc' } } },
     });
-    return r ? { ...r, family: r.family as FabricFamily } : null;
+    return r && DISPLAY_ORDER.includes(r.id) ? { ...current(r), family: r.family as FabricFamily } : null;
   }
 
   async exists(id: string): Promise<boolean> {

@@ -51,11 +51,29 @@ async function main() {
     for (const colour of colours) {
       await prisma.colour.upsert({
         where: { fabricId_order: { fabricId: fabric.id, order: colour.order } },
-        create: { fabricId: fabric.id, name: colour.name, l: colour.l, c: colour.c, h: colour.h, order: colour.order },
-        update: { name: colour.name, l: colour.l, c: colour.c, h: colour.h },
+        create: { fabricId: fabric.id, name: colour.name, l: colour.l, c: colour.c, h: colour.h, order: colour.order, code: colour.code ?? null },
+        update: { name: colour.name, l: colour.l, c: colour.c, h: colour.h, code: colour.code ?? null },
       });
     }
-    console.log(`  ${fabric.name} — ${colours.length} shades`);
+    // Shades past the end of the card are taken out, unless an order refers to one: that row
+    // stays, so the order keeps its history, and the studio no longer offers it.
+    const stale = await prisma.colour.findMany({ where: { fabricId: fabric.id, order: { gte: colours.length } }, select: { id: true, _count: { select: { quoteItems: true } } } });
+    const unused = stale.filter((c) => c._count.quoteItems === 0).map((c) => c.id);
+    if (unused.length) await prisma.colour.deleteMany({ where: { id: { in: unused } } });
+    console.log(`  ${fabric.name} — ${colours.length} shades${unused.length ? `, ${unused.length} old shades removed` : ''}${stale.length > unused.length ? `, ${stale.length - unused.length} kept for orders` : ''}`);
+  }
+
+  // Qualities no longer in the range go the same way: removed, unless an order refers to them.
+  const range = FABRIC_DEFS.map((f) => f.id);
+  const gone = await prisma.fabric.findMany({ where: { id: { notIn: range } }, select: { id: true, name: true, _count: { select: { quoteItems: true } } } });
+  for (const f of gone) {
+    if (f._count.quoteItems) {
+      console.log(`  ${f.name} — out of the range; kept for ${f._count.quoteItems} order lines`);
+      continue;
+    }
+    await prisma.colour.deleteMany({ where: { fabricId: f.id } });
+    await prisma.fabric.delete({ where: { id: f.id } });
+    console.log(`  ${f.name} — out of the range; removed`);
   }
 
   // Accounts. The demo accounts (one shared, published password) are for a local database only:

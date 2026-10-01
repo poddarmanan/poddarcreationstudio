@@ -14,7 +14,7 @@ import { oklchToHex } from '../src/lib/three/colour';
  */
 async function main() {
   const rows = FABRIC_DEFS.map((f) => ({ fabric: f, colours: generateColours(f) }));
-  assert(rows.length >= 11, 'the whole catalogue is covered');
+  assert(rows.length === 9 && rows.every((r) => r.colours.length === r.fabric.nc), 'the whole catalogue is covered, each quality with its whole shade card');
 
   // ---- Every fabric produces a physically sane material -------------------------------
   for (const { fabric, colours } of rows) {

@@ -88,7 +88,7 @@ export function verifyEmailTemplate(p: { name: string; url: string }): RenderedE
 export function welcomeTemplate(p: { name: string }): RenderedEmail {
   const paragraphs = [
     `Welcome to the studio, ${escapeHtml(p.name)}.`,
-    'Explore eleven constructions and hundreds of shades, build swatch books, and request quotations. Pricing unlocks once our team approves your account.',
+    'Explore nine qualities and hundreds of shades, build swatch books, and request quotations. Pricing unlocks once our team approves your account.',
   ];
   return {
     subject: 'Welcome to Poddar Creation Studio',

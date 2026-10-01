@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react';
 import type { Studio } from './state';
 import type { ColourRow, FabricRow } from '@/lib/types';
+import { shadeCode } from '@/lib/fabric-generator';
 import { fabricTex, spectrum } from './helpers';
 import { FillLine } from './brand';
 
@@ -46,12 +47,10 @@ const LOOKS: Record<string, Look> = {
   pcpc: { en: 'Whitewashed ash · fluted doors', hi: 'सफ़ेद ऐश · नालीदार दरवाज़े', door: 'fluted', pull: 'bar', crown: 'flat', wood: ['#EDE6DA', '#DED4C4', '#CBBFAC'], metal: 'brass', inside: '#4A4036', room: ['#F2F4F3', '#DEE5E8', '#C3D3DA'] },
   cambric: { en: 'Sage lacquer · shaker panels', hi: 'सेज लैकर · पैनल दरवाज़े', door: 'panel', pull: 'knob', crown: 'pediment', wood: ['#AEBBA3', '#9AA98F', '#86967B'], metal: 'brass', inside: '#2F3A2C', room: ['#F3F5ED', '#E1E9D7', '#C6D5B4'] },
   jaam11: { en: 'Teak · woven cane', hi: 'सागौन · बुनी बेंत', door: 'cane', pull: 'ring', crown: 'flat', wood: ['#9C6B3F', '#875A30', '#704A25'], metal: 'brass', inside: '#2E2014', room: ['#F7F0E4', '#EBDCC5', '#D9BD94'] },
-  jaam125: { en: 'Rosewood · carved jaali', hi: 'शीशम · नक्काशीदार जाली', door: 'jaali', pull: 'ring', crown: 'arch', wood: ['#6E3427', '#5A281D', '#461D15'], metal: 'brass', inside: '#2A1410', room: ['#F8EDE7', '#EED4C8', '#DDAC97'] },
   lycra: { en: 'Light oak · louvred doors', hi: 'हल्का ओक · झिलमिली दरवाज़े', door: 'louvre', pull: 'bar', crown: 'flat', wood: ['#D6B98F', '#C4A378', '#AD8B61'], metal: 'silver', inside: '#3A2C1D', room: ['#EFF6F3', '#D9EBE4', '#B5D8CA'] },
   rayon14: { en: 'Powder-blue lacquer · arched panels', hi: 'हल्का नीला लैकर · मेहराबी पैनल', door: 'arch', pull: 'knob', crown: 'scallop', wood: ['#A7BDD0', '#91A9BE', '#7B93A9'], metal: 'silver', inside: '#1F2A36', room: ['#F1F3F9', '#DDE2F0', '#BCC6E3'] },
-  rayon17: { en: 'Walnut · raised panels', hi: 'अखरोट · उभरे पैनल', door: 'panel', pull: 'knob', crown: 'pediment', wood: ['#6F4A2B', '#5E3D22', '#4F331C'], metal: 'brass', inside: '#2A1B10', room: ['#F5F0EA', '#E6DBCE', '#CDB8A1'] },
+  rayondyed: { en: 'Walnut · raised panels', hi: 'अखरोट · उभरे पैनल', door: 'panel', pull: 'knob', crown: 'pediment', wood: ['#6F4A2B', '#5E3D22', '#4F331C'], metal: 'brass', inside: '#2A1B10', room: ['#F5F0EA', '#E6DBCE', '#CDB8A1'] },
   slub: { en: 'Honey mango wood · cane', hi: 'शहद रंग आम की लकड़ी · बेंत', door: 'cane', pull: 'tassel', crown: 'scallop', wood: ['#C38D4C', '#AE7A3D', '#956530'], metal: 'brass', inside: '#33220F', room: ['#FBF4E3', '#F2E0BA', '#E4C283'], tassel: '#B5452F' },
-  wrinkle: { en: 'Charcoal oak · fluted doors', hi: 'चारकोल ओक · नालीदार दरवाज़े', door: 'fluted', pull: 'bar', crown: 'flat', wood: ['#4C4946', '#3C3936', '#2C2A28'], metal: 'silver', inside: '#1A1918', room: ['#F3F2F4', '#E2DFE6', '#C6BFCF'] },
   roman: { en: 'Black lacquer & gold · velvet lined', hi: 'काला लैकर और सोना · मखमली अस्तर', door: 'lacquer', pull: 'tassel', crown: 'arch', wood: ['#2B2727', '#1F1C1C', '#141212'], metal: 'brass', inside: '#3E0F18', room: ['#F8EFEA', '#ECD9D0', '#D6B0A1'], tassel: '#9E1B2F' },
   gajji: { en: 'Crimson lacquer · jaali', hi: 'लाल लैकर · जाली', door: 'jaali', pull: 'ring', crown: 'arch', wood: ['#932537', '#7C1C2C', '#631522'], metal: 'brass', inside: '#2B0A10', room: ['#FAEEF0', '#F1D4DA', '#E1A8B5'] },
 };
@@ -715,7 +714,7 @@ function Rod({
             <span className="pc-card-head">
               <b>{s.c.name}</b>
               <i>
-                {s.x.name} · {String(s.c.order + 1).padStart(2, '0')}
+                {s.x.name} · No. {shadeCode(s.c)}
               </i>
             </span>
             <span aria-hidden className="pc-card-cloth" style={{ background: `linear-gradient(90deg, rgba(0,0,0,.1), transparent 30%, rgba(255,255,255,.08) 55%, rgba(0,0,0,.14)), ${fabricTex(s.x, s.c, 3)}` }} />

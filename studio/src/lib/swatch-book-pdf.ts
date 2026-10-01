@@ -1,4 +1,5 @@
 import type { ColourRow, FabricRow } from './types';
+import { shadeCode } from './fabric-generator';
 import { oklchToRgb, type Rgb } from './colour-science';
 
 /**
@@ -437,10 +438,11 @@ function plate(input: BookPdfInput, ch: BookChapter, i: number, colours: ColourR
     const w = cellW - 56;
     const h = cellH - 110;
     cutting(ctx, ch.fabric, col, cx + 28, cy, w, h, i * 1000 + col.order);
-    text(ctx, `${t.shadeNo} ${String(col.order).padStart(2, '0')}`.toUpperCase(), cx + 28, cy + h + 48, `500 19px ${fonts.body}`, '#9C7A45', 'left', 5);
+    const no = `${t.shadeNo} ${shadeCode(col)}`;
+    text(ctx, no.toUpperCase(), cx + 28, cy + h + 48, `500 19px ${fonts.body}`, '#9C7A45', 'left', 5);
     ctx.font = `500 19px ${fonts.body}`;
     // The number is set with 5px letter spacing, which measureText does not count.
-    const numberW = ctx.measureText(`${t.shadeNo} 00`).width + `${t.shadeNo} 00`.length * 5 + 18;
+    const numberW = ctx.measureText(no.toUpperCase()).width + no.length * 5 + 18;
     text(ctx, fitText(ctx, col.name, `500 38px ${fonts.display}`, w - numberW), cx + 28 + numberW, cy + h + 50, `500 38px ${fonts.display}`, INK, 'left');
     const hex = oklchToRgb(col.l, col.c, col.h);
     text(ctx, `#${[hex.r, hex.g, hex.b].map((v) => v.toString(16).padStart(2, '0')).join('').toUpperCase()}`, cx + 28, cy + h + 84, `400 18px ${fonts.body}`, 'rgba(28,25,23,.42)', 'left', 3);

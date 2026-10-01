@@ -7,6 +7,8 @@ export interface ColourRow {
   c: number;
   h: number;
   order: number;
+  /** The shade's number on the mill's card ("13", "401"). */
+  code?: string | null;
 }
 
 export interface FabricRow {

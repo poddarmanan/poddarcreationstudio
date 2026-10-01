@@ -217,8 +217,8 @@ export class AdminService {
       const metrics = computeColourMetrics(colour.l, colour.c, colour.h);
       await this.db.colour.upsert({
         where: { fabricId_order: { fabricId, order: colour.order } },
-        create: { fabricId, order: colour.order, name: colour.name, l: colour.l, c: colour.c, h: colour.h, ...metrics },
-        update: { name: colour.name, l: colour.l, c: colour.c, h: colour.h, ...metrics },
+        create: { fabricId, order: colour.order, code: colour.code ?? null, name: colour.name, l: colour.l, c: colour.c, h: colour.h, ...metrics },
+        update: { code: colour.code ?? null, name: colour.name, l: colour.l, c: colour.c, h: colour.h, ...metrics },
       });
     }
   }

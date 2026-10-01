@@ -2,7 +2,7 @@
  * Procedural weave maps (Phase 4 M21; extended to full PBR in M22).
  *
  * **Why generated rather than downloaded.** A stock fabric texture is a photograph of *some*
- * cloth. This catalogue has eleven qualities with real specifications already in the codebase —
+ * cloth. This catalogue has nine qualities with real specifications already in the codebase —
  * weight, composition, thread count, hand, sheen, flow, stretch — and a customer is deciding
  * whether to order *this* one. Deriving the weave from those numbers means the render is a
  * picture of the actual product: a 40s cambric and a 20kg gajji silk differ on screen because

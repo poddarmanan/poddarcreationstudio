@@ -7,7 +7,7 @@
  * weave generator writes sRGB.
  *
  * Without this conversion the generator's hex parser rejects `oklch(63.5% 0.05 320)` and falls
- * back to its default beige — which means all 824 shades render as the *same colour* and the
+ * back to its default beige — which means all shades render as the *same colour* and the
  * failure looks like a lighting problem rather than a parsing one. The M22 smoke asserts the
  * output is a hex triplet for exactly that reason.
  *
@@ -27,8 +27,8 @@ function encode(v: number): number {
 /**
  * @param lightness Lightness **0-1**, as the catalogue stores it — the CSS helper is what
  *                  multiplies by 100 for `oklch()`, not the data. Passing a percentage here
- *                  sends every shade to near-black, which is a very quiet way to lose 824
- *                  colours, so the M22 smoke checks a fabric's shades stay distinct.
+ *                  sends every shade to near-black, which is a very quiet way to lose every
+ *                  shade's colour, so the M22 smoke checks a fabric's shades stay distinct.
  * @param chroma    0 to about 0.37 in sRGB.
  * @param hueDeg    Degrees.
  */

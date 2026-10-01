@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import type { RazorpayProof, Studio } from './state';
 import type { ColourRow, FabricRow } from '@/lib/types';
+import { shadeCode } from '@/lib/fabric-generator';
 import { FONT_DISPLAY, fabricTex, spectrum, jumpTo } from './helpers';
 import { FillLine } from './brand';
 import { Room, roman } from './SwatchBook';
@@ -915,7 +916,7 @@ function Row({ line, metres, t, delay, onChange, onRemove, readOnly }: { line: L
       <div style={{ minWidth: 0, flex: 1 }}>
         <div style={{ fontFamily: FONT_DISPLAY, fontSize: 18, lineHeight: 1.1, color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{line.c.name}</div>
         <div style={{ marginTop: 2, fontSize: 9, letterSpacing: '.2em', textTransform: 'uppercase', color: off ? '#A5392B' : 'rgba(28,25,23,.45)', fontVariantNumeric: 'lining-nums' }}>
-          {off ? t.notSet : onRemove ? `₹ ${inr(metres * line.x.price)}` : `${t.shadeNo} ${String(line.c.order).padStart(2, '0')} · ₹ ${inr(metres * line.x.price)}`}
+          {off ? t.notSet : onRemove ? `₹ ${inr(metres * line.x.price)}` : `${t.shadeNo} ${shadeCode(line.c)} · ₹ ${inr(metres * line.x.price)}`}
         </div>
       </div>
       {readOnly ? (

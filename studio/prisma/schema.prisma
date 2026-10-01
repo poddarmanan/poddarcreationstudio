@@ -506,6 +506,9 @@ model Colour {
   c           Float
   h           Float
   order       Int
+  // The number written beside the swatch on the mill's shade card ("13", "401"); the buyer's
+  // reference for the shade. `order` is only its place in the range.
+  code        String?
   // Derived colour intelligence (Priority 9). Nullable so rows exist before backfill.
   hex           String?
   rgbR          Int?

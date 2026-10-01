@@ -1456,3 +1456,57 @@ the README there).
 
 The old `shirt.glb` is removed at the owner's request. The Shirt shows the built-in cut until a
 new model is added, with its line in `GARMENT_MODEL_FILES` put back.
+
+### The range, from the mill's shade cards (M49)
+
+The range is now what the mill's shade cards say: nine qualities and 353 shades, each shade
+under the number written beside it on its card.
+
+| Quality | Width · weight (card) | Shades | Numbers |
+| --- | --- | --- | --- |
+| PC Cotton (`pcpc`) | 41″ · 8.8 kg | 52 | 1–52 |
+| Cambric Cotton | 43″ · 9 kg | 20 | 1–20 |
+| Jam Cotton (`jaam11`) | 43″ · 11 kg | 47 | 401–447 |
+| Rayon (`rayon14`) | 43″ | 55 | 1–55 |
+| Rayon Dyed (`rayondyed`, new) | 43″ | 55 | 1–55 |
+| Rayon Slub | 43″ · 14 kg | 31 | 1–31 |
+| Roman Silk | 56″ | 62 | 1–62 |
+| Gajji Silk | 58″ · 22 kg | 22 | 1–22 |
+| Cotton Satin Lycra (`lycra`) | 58″ · 21 kg | 9 | 1–9 |
+
+- **No card, out of the range.** Jaam Cotton Supreme, Rayon Heavy and Rayon Wrinkle had no card,
+  and are out of the range.
+- **Specs not on the cards.** Where a card gives no weight (Rayon, Rayon Dyed, Roman Silk), the
+  previous figure stands. Composition, hand and price are the studio's own notes. Rayon Dyed
+  takes Rayon's for now.
+
+**Colours.** Each shade's colour is read from the photographed card: the middle of the swatch's
+cloth, white-balanced on the card's paper (`scripts/shade-cards/`, with a README). A phone photo
+is an approximation; a single shade is corrected by hand in `src/lib/shade-cards.ts`.
+
+**Names.** The cards carry numbers only. Each shade is named with the nearest of the studio's
+Indian colour names, unique within its quality (a numeral where two shades share the nearest).
+Ten names were added for colours the palette lacked: Shahi Neela, Syahi, Gulnaar, Lal Gulab,
+Gulkand, Kokum, Dhoop Chhaon, Gehra Hara, Shahtoot and Samundari.
+
+**The card's number.** `Colour.code` (migration `m49_shade_card_codes`, a nullable column)
+holds the number on the card. `order` stays the shade's place in the range, which carts, books
+and orders refer to. `shadeCode()` gives the number shown, falling back to the place from 01:
+
+- the order slip's lines;
+- the swatch book's cutting labels and its PDF;
+- the closet's parted slip;
+- the Lab's spec line ("Sindoor · No. 13").
+
+These used to show the 0-based place, or the place + 1, inconsistently.
+
+**Seeding without losing orders.**
+
+- **Stale shades.** The seed upserts each card. It removes old shades past the end of a card, and
+  qualities no longer in the range, *unless an order refers to them*. Those rows stay, so the
+  order keeps its history.
+- **Hidden from the studio.** The fabric repository serves only the qualities in `FABRIC_DEFS`,
+  and only shades within each card.
+- **Similar shades.** The colour analysis ("similar shades") runs over the live range only.
+- **Hero shades.** Each quality's hero shade (its roll in the halls) is a different hue from its
+  own card, so the halls are not all red.

@@ -1,6 +1,7 @@
 import type { PrismaClient } from '@/generated/prisma/client';
 import type { ColourMetrics } from '@/lib/colour-science';
 import type { ColourRelationKind } from '@/generated/prisma/enums';
+import { FABRIC_DEFS } from '@/lib/fabric-generator';
 
 export interface ColourAnalysisRow {
   id: string;
@@ -35,9 +36,14 @@ export class PrismaColourRepository implements ColourRepository {
   constructor(private readonly db: PrismaClient) {}
 
   async listForAnalysis(): Promise<ColourAnalysisRow[]> {
-    return this.db.colour.findMany({
-      select: { id: true, fabricId: true, name: true, l: true, c: true, h: true, labL: true, labA: true, labB: true },
+    // The live range only: a shade kept in the database for an old order (its quality out of the
+    // range, or past the end of its card) is never offered as a neighbour of a live one.
+    const nc = new Map(FABRIC_DEFS.map((f) => [f.id, f.nc]));
+    const rows = await this.db.colour.findMany({
+      where: { fabricId: { in: [...nc.keys()] } },
+      select: { id: true, fabricId: true, name: true, order: true, l: true, c: true, h: true, labL: true, labA: true, labB: true },
     });
+    return rows.filter((r) => r.order < (nc.get(r.fabricId) ?? 0));
   }
 
   async updateMetrics(id: string, m: ColourMetrics): Promise<void> {

@@ -187,7 +187,7 @@ export function fabricMaterialSpec(fabric: FabricLike, colour: ColourLike): Fabr
     sheen: fabric.sheen,
     irregularity: preset.irregularity,
     // The catalogue speaks OKLCH; a texture is sRGB bytes. Converting here rather than
-    // stringifying CSS is what stops all 824 shades rendering as one fallback colour.
+    // stringifying CSS is what stops all shades rendering as one fallback colour.
     hex: oklchToHex(colour.l, colour.c, colour.h),
     seed: fabric.seed * 977 + colour.order,
   };

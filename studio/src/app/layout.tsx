@@ -19,7 +19,7 @@ const jost = Jost({
 
 export const metadata: Metadata = {
   title: "Poddar Creation Studio",
-  description: "A digital showroom for wholesale dyed fabrics — eleven constructions, hundreds of shades, a showroom that never closes.",
+  description: "A digital showroom for wholesale dyed fabrics — nine qualities, hundreds of shades, a showroom that never closes.",
 };
 
 /**

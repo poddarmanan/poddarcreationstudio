@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { Studio, Pin } from './state';
 import type { FabricRow, ColourRow } from '@/lib/types';
+import { shadeCode } from '@/lib/fabric-generator';
 import { FONT_DISPLAY, fabricTex, spectrum } from './helpers';
 import { BookCeremony, type OrderState } from './BookCeremony';
 import { AuthScreen } from './AuthScreen';
@@ -875,7 +876,7 @@ function LooseCutting({
         <span aria-hidden style={{ position: 'absolute', left: tiny ? 4 : 7, top: '50%', width: tiny ? 3 : 4, height: tiny ? 3 : 4, marginTop: tiny ? -1.5 : -2, borderRadius: '50%', background: 'rgba(60,40,20,.35)' }} />
         {!bare && (
           <span style={{ fontSize: 8, letterSpacing: '.18em', textTransform: 'uppercase', color: '#9C7A45', fontVariantNumeric: 'lining-nums' }}>
-            {t.shadeNo} {String(colour.order).padStart(2, '0')}
+            {t.shadeNo} {shadeCode(colour)}
           </span>
         )}
         <span style={{ fontFamily: FONT_DISPLAY, fontSize: tiny ? 11 : big ? 17 : bare ? 13.5 : 14.5, color: INK, overflow: 'hidden', textOverflow: 'ellipsis' }}>{colour.name}</span>

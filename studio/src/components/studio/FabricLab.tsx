@@ -15,7 +15,7 @@ import { AddChooser, AddedToast, flyInto } from './AddChooser';
 import { ShadeStrip } from './ShadeStrip';
 import { PriceCall } from './brand';
 import {
-  GARMENTS, LIGHTS, PHYSICS_NOTES, STRETCH_TEST_NOTES,
+  GARMENTS, LIGHTS, PHYSICS_NOTES, STRETCH_TEST_NOTES, shadeCode,
   type GarmentKey, type LightKey,
 } from '@/lib/fabric-generator';
 
@@ -367,7 +367,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
               <span style={{ color: 'rgba(28,25,23,.3)' }}>·</span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '.6em' }}>
                 <span style={{ width: '1em', height: '1em', borderRadius: '50%', background: colCssV, border: '1px solid rgba(28,25,23,.18)', flex: 'none' }} />
-                {col.name}
+                {col.name} · {t.shadeNo} {shadeCode(col)}
               </span>
             </FitLine>
           </div>
