@@ -4,10 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { GarmentKey, LightKey } from '@/lib/fabric-generator';
-import type { ColourLike, FabricLike, FabricMaterialSpec } from '@/lib/three/fabric-spec';
-import { fabricMaterialSpec, tileRepeat } from '@/lib/three/fabric-spec';
-import type { QualityTier } from '@/lib/three/capability';
-import { FabricMaterial } from './FabricMaterial';
+import type { ColourLike, FabricLike } from '@/lib/three/fabric-spec';
+import { fabricMaterialSpec } from '@/lib/three/fabric-spec';
 import { useCapability } from './useCapability';
 import { useEffectiveTier } from './quality';
 import { Stage, type StageStats } from './Stage';
@@ -85,55 +83,41 @@ function Stand({ hem }: { hem: number }) {
 }
 
 /**
- * The bolt the roll hangs from: a length of the same cloth wound on a core, lying across the
- * top of the panel, so the panel reads as fabric coming off a roll rather than a sheet pinned
- * to nothing. It turns very slowly, as a bolt being unrolled does.
+ * The hanger the drape hangs from, as lengths hang in a cloth merchant's showroom: a polished
+ * sheesham bar the cloth is clamped in, with brass end caps, and a brass hook rising from its
+ * middle to a wire out of the top of the frame. (It replaced a bolt the cloth came off: the
+ * studio shows cloth made up and hung, not rolled.)
  */
-function Bolt({ spec, tier, width, top, pulled = false }: { spec: FabricMaterialSpec; tier: QualityTier; width: number; top: number; pulled?: boolean }) {
-  const roll = useRef<THREE.Mesh>(null);
-  const pull = useRef(0);
-  const radius = 0.07;
+function Hanger({ width, top }: { width: number; top: number }) {
   const length = width + 0.08;
-  const repeat = useMemo(() => tileRepeat(spec, length), [spec, length]);
-  useFrame((_, delta) => {
-    // Turning slowly on its own; faster while the cloth is pulled, as a bolt being unrolled.
-    pull.current += ((pulled ? 1 : 0) - pull.current) * Math.min(1, delta * 4);
-    if (roll.current) roll.current.rotation.y -= delta * (0.12 + pull.current * 0.45);
-  });
   return (
-    // Laid across by the group; the bolt itself turns about its own axis inside it. It sits on
-    // a brass rod through its core, hung from two wires — the way a bolt is displayed.
-    <group position={[0, top, -radius]} rotation={[0, 0, Math.PI / 2]}>
-      <mesh ref={roll} castShadow>
-        <cylinderGeometry args={[radius, radius, length, 48, 1]} />
-        <FabricMaterial spec={spec} tier={tier} repeat={repeat} />
+    <group position={[0, top + 0.012, 0]}>
+      {/* The bar: two halves clamping the cloth's top edge between them. */}
+      {[-1, 1].map((side) => (
+        <mesh key={side} position={[0, 0, side * 0.009]} castShadow>
+          <boxGeometry args={[length, 0.034, 0.016]} />
+          <meshStandardMaterial color="#5A3820" roughness={0.45} metalness={0.05} />
+        </mesh>
+      ))}
+      {[-1, 1].map((side) => (
+        <mesh key={`cap${side}`} position={[(side * length) / 2, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.02, 0.02, 0.012, 20]} />
+          <meshStandardMaterial color="#C9A04E" roughness={0.3} metalness={0.8} />
+        </mesh>
+      ))}
+      {/* The hook: a short stem, and a brass loop over the wire. */}
+      <mesh position={[0, 0.04, 0]}>
+        <cylinderGeometry args={[0.004, 0.004, 0.05, 10]} />
+        <meshStandardMaterial color="#C9A04E" roughness={0.3} metalness={0.8} />
       </mesh>
-      {/* The cardboard core, showing at each end. */}
-      {[-1, 1].map((side) => (
-        <mesh key={side} position={[0, (side * length) / 2 + side * 0.001, 0]}>
-          <cylinderGeometry args={[0.024, 0.024, 0.004, 24]} />
-          <meshBasicMaterial color="#D8CDB9" />
-        </mesh>
-      ))}
-      {/* The rod, and its end caps. */}
-      <mesh>
-        <cylinderGeometry args={[0.009, 0.009, length + 0.22, 20]} />
-        <meshBasicMaterial color="#8F7A55" />
+      <mesh position={[0, 0.085, 0]} rotation={[0, 0, 0]}>
+        <torusGeometry args={[0.026, 0.004, 10, 28, Math.PI * 1.5]} />
+        <meshStandardMaterial color="#C9A04E" roughness={0.3} metalness={0.8} />
       </mesh>
-      {[-1, 1].map((side) => (
-        <mesh key={`cap${side}`} position={[0, (side * (length + 0.22)) / 2, 0]}>
-          <sphereGeometry args={[0.016, 16, 12]} />
-          <meshBasicMaterial color="#A88E62" />
-        </mesh>
-      ))}
-      {/* Two wires up from the rod, out of the top of the frame. In the group's frame (turned a
-          quarter about z) the world's up is local +x, so each wire is turned the same quarter. */}
-      {[-1, 1].map((side) => (
-        <mesh key={`wire${side}`} position={[0.45, (side * (length + 0.14)) / 2, 0]} rotation={[0, 0, Math.PI / 2]}>
-          <cylinderGeometry args={[0.0025, 0.0025, 0.9, 8]} />
-          <meshBasicMaterial color="#6E6459" />
-        </mesh>
-      ))}
+      <mesh position={[0, 0.56, 0]}>
+        <cylinderGeometry args={[0.0022, 0.0022, 0.9, 8]} />
+        <meshBasicMaterial color="#6E6459" />
+      </mesh>
     </group>
   );
 }
@@ -412,7 +396,7 @@ export function FabricViewer({
           <group position={[0, rolled ? -rollDrop : 0, 0]}>
             {rolled ? (
               <RollRig top={rollHeight / 2} wind={wind}>
-                <Bolt spec={spec} tier={tier} width={0.5} top={rollHeight / 2} pulled={pulled} />
+                <Hanger width={0.5} top={rollHeight / 2} />
                 <FabricPanel spec={spec} tier={tier} flow={fabric.flow} stretch={fabric.stretch} wind={wind} pulled={pulled} width={0.5} height={rollHeight} />
               </RollRig>
             ) : (

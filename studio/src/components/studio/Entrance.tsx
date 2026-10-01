@@ -3,9 +3,10 @@
 import { useMemo, type CSSProperties } from 'react';
 import type { Studio } from './state';
 import { FONT_BODY, fabricNo, fabricTex, heroColour } from './helpers';
-import { FabricRoll } from './FabricRoll';
+import { FabricForm } from './FabricForm';
 
-/** The bolts stood in the entrance's window on a desktop: one from each room, in contrasting cloth. */
+/** The forms stood in the entrance's window on a desktop: one from each room, in contrasting cloth,
+ *  fanned to face the middle. */
 const WINDOW = ['jaam11', 'rayon14', 'gajji', 'lycra', 'roman'];
 
 export function Entrance({ studio }: { studio: Studio }) {
@@ -75,7 +76,7 @@ export function Entrance({ studio }: { studio: Studio }) {
           without scrolling. Every value reaches its original number at about 615px wide, so
           nothing above a large phone moves. */}
       {/* On a desktop the title page is a spread: the house's name and the way in on the left, and
-          on the right a window of bolts standing on a plinth, each a tap from its lab. On a phone
+          on the right a window of dress forms on a plinth, each a tap from its lab. On a phone
           the wrapper steps aside and the window is not drawn. */}
       <div className="pc-hero-spread">
       <div className="pc-hero-inner" style={{ position: 'relative', width: '100%', textAlign: 'center', padding: 'clamp(16px,4vw,56px) 20px', animation: 'rise 1.2s cubic-bezier(.2,.8,.2,1) both' }}>
@@ -204,8 +205,8 @@ export function Entrance({ studio }: { studio: Studio }) {
           const f = fabrics.find((x) => x.id === id);
           if (!f) return null;
           return (
-            <div key={id} className="pc-roll-rise" style={{ ['--d' as string]: `${500 + i * 120}ms` } as CSSProperties}>
-              <FabricRoll f={f} no={fabricNo(fabrics, f.id)} onClick={() => studio.unroll(f)} fg="#1C1917" sub="rgba(28,25,23,.55)" accent="#8A6D45" shades={t.shades} />
+            <div key={id} className="pc-form-rise" style={{ ['--d' as string]: `${500 + i * 120}ms`, ['--turnf' as string]: ((2 - i) * 0.24).toFixed(2) } as CSSProperties}>
+              <FabricForm f={f} no={fabricNo(fabrics, f.id)} onClick={(from) => studio.unroll(f, undefined, from)} fg="#1C1917" sub="rgba(28,25,23,.55)" accent="#8A6D45" shades={t.shades} />
             </div>
           );
         })}

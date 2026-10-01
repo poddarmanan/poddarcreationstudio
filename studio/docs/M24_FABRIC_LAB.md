@@ -1510,3 +1510,36 @@ These used to show the 0-based place, or the place + 1, inconsistently.
 - **Similar shades.** The colour analysis ("similar shades") runs over the live range only.
 - **Hero shades.** Each quality's hero shade (its roll in the halls) is a different hue from its
   own card, so the halls are not all red.
+
+### Dress forms in place of the rolls
+
+The owner's father did not approve the rolled cloth, so every roll is gone.
+
+**The halls.** The Showroom, the Entrance's window and the Lab's "more fabrics" show each quality
+on a dress form (`FabricForm`):
+
+- **The garment.** Each quality wears the garment it is most bought for (`SHOWCASE`): shirts in
+  PC Cotton and Rayon Slub; kurtis in Cambric, Jam Cotton and Rayon; tops in Cotton Satin Lycra
+  and Rayon Dyed; sarees in Roman and Gajji Silk.
+- **The form.** A black tailor's form with a brass cap, a pole and a round foot.
+- **The cloth.** The fabric's own texture in its hero shade, cut to the garment's outline (an
+  SVG mask, so it scales). Rounded shading and the cut's details are drawn into it: a shirt's
+  button placket and collar, a kurti's neck placket and side slits, a saree's pleats, pallu
+  folds and gold border, a top's yoke seam.
+- **Movement.** It sways from the shoulders, slower and wider for a cloth that flows. In the
+  Showroom each form turns towards the viewer as the walk carries it past (`--turnf`, set each
+  frame with the room blend), its light sliding across; the Entrance's window fans to face the
+  middle.
+
+**Stepping closer.** A tap on a form plays the new transition: the cloth opens out from where the
+form stands to fill the screen (a clip-path from the form's rectangle), with the quality's name,
+while the Lab is laid in. The Lab then opens on that quality made up as the form showed it.
+Moving between qualities inside the Lab keeps the garment chosen.
+
+**The Lab.** It opens on a garment (a kurti by default) rather than the roll. The plain hanging
+length stays, as **Drape**, for the stretch test, but it hangs from a sheesham hanger with brass
+caps and a hook instead of coming off a bolt, in 3D and in the fallback alike.
+
+**The kurti's outline.** It lost the notch in its hem that read as trouser legs.
+
+**Copy.** The walk's hint and the help tours speak of forms ("Walk → · Tap a form to step closer").

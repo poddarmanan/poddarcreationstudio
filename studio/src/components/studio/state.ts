@@ -6,7 +6,7 @@ import type { FabricRow, ColourRow } from '@/lib/types';
 import { dict, inCatalogueOrder, type Dict, type Lang, type GarmentKey, type LightKey, type RoomKey } from '@/lib/fabric-generator';
 import { fabricTex, heroColour } from './helpers';
 import { useSearch, type Search } from './search';
-import { FABRIC_STORIES } from '@/lib/fabric-generator';
+import { FABRIC_STORIES, SHOWCASE } from '@/lib/fabric-generator';
 
 export type View = 'home' | 'showroom' | 'fabric' | 'colours' | 'book' | 'cart' | 'admin' | 'track';
 
@@ -97,6 +97,8 @@ export interface TransState {
   name: string;
   fg: string;
   story: string;
+  /** Where the cloth opens out from: the form tapped, as insets of the screen ("12.5%"). */
+  from?: { t: string; r: string; b: string; l: string };
 }
 
 export interface AiMatch {
@@ -118,8 +120,12 @@ export interface Studio {
   ci: number;
   setCi: (ci: number) => void;
   openFabric: (id: string, ci?: number) => void;
-  /** The Showroom's full-page unroll, then the fabric; given a shade, it unrolls in that shade and opens on it. */
-  unroll: (f: FabricRow, ci?: number) => void;
+  /**
+   * Into a quality's lab: its cloth opens out to fill the screen (from the form tapped, given
+   * `from`), then the lab. Given a shade, in that shade, and the lab opens on it. From a form
+   * (`from` given), the lab opens on that form's garment.
+   */
+  unroll: (f: FabricRow, ci?: number, from?: DOMRect) => void;
   trans: TransState | null;
   garment: GarmentKey;
   setGarment: (g: GarmentKey) => void;
@@ -255,7 +261,7 @@ export function useStudio(rawFabrics: FabricRow[]): Studio {
   const [fid, setFid] = useState('rayon14');
   const [ci, setCi] = useState(18);
   // The lab opens on the roll: the cloth itself, before any garment is cut from it.
-  const [garment, setGarment] = useState<GarmentKey>('roll');
+  const [garment, setGarment] = useState<GarmentKey>('kurti');
   const [light, setLight] = useState<LightKey>('studio');
   // Wind is on by default, and on means strong: the lab opens with the cloth moving.
   const [wind, setWind] = useState(3);
@@ -406,15 +412,21 @@ export function useStudio(rawFabrics: FabricRow[]): Studio {
   const search = useSearch(fabrics, q, setQ, openFabric);
 
   const unroll = useCallback(
-    (f: FabricRow, ci?: number) => {
+    (f: FabricRow, ci?: number, from?: DOMRect) => {
       const shade = ci === undefined ? undefined : f.colours[ci];
       const o = shade ?? heroColour(f);
+      const pct = (v: number, of: number) => `${Math.max(0, Math.min(100, (v / of) * 100)).toFixed(2)}%`;
+      const W = window.innerWidth;
+      const H = window.innerHeight;
       setTrans({
         tex: fabricTex(f, o, 6),
         name: shade ? shade.name : f.name,
         fg: o.l > 0.62 ? '#1C1917' : '#FAF8F5',
         story: shade ? f.name : (FABRIC_STORIES[f.id] ?? ''),
+        from: from ? { t: pct(from.top, H), r: pct(W - from.right, W), b: pct(H - from.bottom, H), l: pct(from.left, W) } : undefined,
       });
+      // Stepping up to a form, the lab shows the quality made up as it was on the form.
+      if (from) setGarment(SHOWCASE[f.id] ?? 'kurti');
       timers.current.push(setTimeout(() => openFabric(f.id, shade ? ci : undefined), 720));
       timers.current.push(setTimeout(() => setTrans(null), 1250));
     },

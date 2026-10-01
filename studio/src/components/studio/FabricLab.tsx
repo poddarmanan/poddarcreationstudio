@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { usePresence, Reveal } from './motion';
-import { FabricRoll } from './FabricRoll';
+import { FabricForm } from './FabricForm';
 import type { Studio } from './state';
 import { FabricViewer } from '@/components/three/FabricViewer';
 import { ExportView } from '@/components/three/ExportView';
@@ -35,7 +35,7 @@ const GARMENT_KEYS = Object.keys(GARMENTS) as GarmentKey[];
 const HOLD_MS = 1500;
 const AFTER_LOAD_MS = 300;
 const FADE_OUT_MS = 450;
-const DIAL_LABELS: Record<GarmentKey, string> = { kurti: 'Kurti', shirt: 'Shirt', saree: 'Saree', top: 'Top', tshirt: 'T-Shirt', roll: 'Roll' };
+const DIAL_LABELS: Record<GarmentKey, string> = { kurti: 'Kurti', shirt: 'Shirt', saree: 'Saree', top: 'Top', tshirt: 'T-Shirt', roll: 'Drape' };
 
 export function FabricLab({ studio }: { studio: Studio }) {
   const { t, currentFabric: f, currentColour: col, tests, garment, light: lightKey, wind, reduceMotion } = studio;
@@ -406,14 +406,9 @@ export function FabricLab({ studio }: { studio: Studio }) {
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {isRoll ? (
               <div style={{ position: 'relative', width: 120, height: 340, filter: light.filter }}>
-                <div
-                  style={{
-                    position: 'absolute', top: -14, left: 0, width: 120, height: 28, borderRadius: '50%',
-                    background: `radial-gradient(ellipse at 42% 40%, ${colourShade(col, 0.12)}, ${colourShade(col, -0.05)} 70%)`,
-                    border: '1px solid rgba(28,25,23,.15)', zIndex: 2,
-                  }}
-                />
-                <div style={{ position: 'absolute', top: -5, left: 44, width: 32, height: 10, borderRadius: '50%', background: '#EFE9DF', border: '1px solid rgba(28,25,23,.2)', zIndex: 3 }} />
+                {/* The hanger: a sheesham bar clamping the top edge, with brass caps and a hook. */}
+                <div style={{ position: 'absolute', top: -10, left: -6, right: -6, height: 12, borderRadius: 3, background: 'linear-gradient(180deg,#7A4E2C,#4E2F18)', boxShadow: '0 3px 6px rgba(28,25,23,.3)', zIndex: 2 }} />
+                <div style={{ position: 'absolute', top: -34, left: 51, width: 18, height: 26, borderRadius: '50% 50% 0 0', border: '3px solid #C9A04E', borderBottom: 'none', zIndex: 3 }} />
                 <div
                   style={{
                     position: 'absolute', inset: 0, borderRadius: '0 0 10px 10px',
@@ -495,7 +490,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
             <span style={{ position: 'absolute', top: 12, left: 12, zIndex: 5, fontSize: 'clamp(7.5px, 1.1vw, 9.5px)', letterSpacing: '.2em', color: light.fg, transition: 'color 1.2s ease', maxWidth: '55%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', padding: '5px 10px', borderRadius: 999, background: light.fg === '#FAF8F5' ? 'rgba(28,25,23,.42)' : 'rgba(250,248,245,.62)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', boxShadow: '0 0 0 1px rgba(28,25,23,.05)' }}>
               {light.en.toUpperCase()} · {wind ? 'WIND' : 'STILL'}
             </span>
-            {loaderPhase !== 'hidden' && <StageLoader label={isRoll ? 'Unrolling the cloth' : `Draping the ${DIAL_LABELS[garment].toLowerCase()}`} leaving={loaderPhase === 'out'} />}
+            {loaderPhase !== 'hidden' && <StageLoader label={isRoll ? 'Hanging the cloth' : `Dressing the form · ${DIAL_LABELS[garment].toLowerCase()}`} leaving={loaderPhase === 'out'} />}
             <LightControl albedoHex={renderHex} current={lightKey} setLight={studio.setLight} />
             <InfoControl title={f.name} shade={col.name} shadeCss={colCssV} rows={specRows} heading={t.sheet} stretch={stretchReading} />
             <div style={{ position: 'absolute', right: 14, bottom: 14, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, zIndex: 6 }}>
@@ -591,8 +586,8 @@ export function FabricLab({ studio }: { studio: Studio }) {
             }}
           >
             {moreFabrics.map((m) => (
-              <div key={m.id} className="pc-roll-rise" style={{ flex: 'none', ['--d' as string]: m.dl }}>
-                <FabricRoll compact f={studio.fab(m.id)} no={m.no} onClick={() => studio.unroll(studio.fab(m.id))} fg="#1C1917" sub="rgba(28,25,23,.55)" accent="#8A6D45" shades={t.shades} />
+              <div key={m.id} className="pc-form-rise" style={{ flex: 'none', ['--d' as string]: m.dl }}>
+                <FabricForm compact f={studio.fab(m.id)} no={m.no} onClick={(from) => studio.unroll(studio.fab(m.id), undefined, from)} fg="#1C1917" sub="rgba(28,25,23,.55)" accent="#8A6D45" shades={t.shades} />
               </div>
             ))}
           </div>
@@ -1320,15 +1315,15 @@ function StageLoader({ label, leaving = false }: { label: string; leaving?: bool
   );
 }
 
-/** A garment's silhouette, drawn small; the roll has no path and gets a bolt. */
+/** A garment's silhouette, drawn small; the drape has no path and gets a length on its hanger. */
 function GarmentGlyph({ k, height }: { k: GarmentKey; height: number }) {
   const d = GARMENTS[k].d;
   if (!d) {
     return (
       <svg width={height * 0.77} height={height} viewBox="0 0 200 260" aria-hidden>
-        <ellipse cx="100" cy="34" rx="70" ry="22" fill="currentColor" opacity=".55" />
-        <rect x="30" y="34" width="140" height="196" rx="6" fill="currentColor" />
-        <ellipse cx="100" cy="34" rx="18" ry="6" fill="#FAF8F5" opacity=".8" />
+        <path d="M86 30a14 14 0 1 1 28 0" fill="none" stroke="currentColor" strokeWidth="7" opacity=".6" />
+        <rect x="34" y="34" width="132" height="16" rx="5" fill="currentColor" opacity=".6" />
+        <path d="M42 50h116v170c-10 6-19 6-29 0-10 6-19 6-29 0-10 6-19 6-29 0-10 6-19 6-29 0Z" fill="currentColor" />
       </svg>
     );
   }

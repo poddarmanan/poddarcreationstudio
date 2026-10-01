@@ -1,25 +1,24 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import type { Studio } from './state';
 import { MicroscopeView } from '@/components/three/MicroscopeView';
 import { FONT_DISPLAY, FONT_BODY, fabricTex, colourCss, colourFg } from './helpers';
 import { AuthScreen } from './AuthScreen';
 
+/**
+ * Stepping up to a quality: its cloth opens out from the form tapped (or from the middle of the
+ * screen) to fill it, the quality's name arriving on it, while the lab is laid in underneath; then
+ * it fades (1.25 s, the time the studio holds it for).
+ */
 export function UnrollTransition({ studio }: { studio: Studio }) {
   const { trans } = studio;
   if (!trans) return null;
+  const from = trans.from;
   return (
-    // The card fades away at the end of its time rather than vanishing in a frame (1.25 s, the
-    // time the studio holds it for).
-    <div style={{ position: 'fixed', inset: 0, zIndex: 200, overflow: 'hidden', pointerEvents: 'none', animation: 'pcUnrollOut 1.25s linear both' }}>
-      <div
-        style={{
-          position: 'absolute', inset: 0, background: trans.tex, transformOrigin: '50% 0',
-          animation: 'unfurl .75s cubic-bezier(.6,.05,.2,1) both', boxShadow: 'inset 0 -80px 120px rgba(28,25,23,.3)',
-        }}
-      />
-      <div style={{ position: 'absolute', left: 0, right: 0, top: '45%', textAlign: 'center', color: trans.fg, animation: 'rise .5s .25s both' }}>
+    <div className="pc-step" style={from ? ({ ['--ft' as string]: from.t, ['--fr' as string]: from.r, ['--fb' as string]: from.b, ['--fl' as string]: from.l } as CSSProperties) : undefined}>
+      <div className="pc-step-cloth" style={{ background: trans.tex, boxShadow: 'inset 0 -80px 120px rgba(28,25,23,.3)' }} />
+      <div className="pc-step-words" style={{ color: trans.fg }}>
         <div style={{ fontFamily: FONT_DISPLAY, fontSize: 'clamp(30px,4vw,52px)', fontWeight: 500 }}>{trans.name}</div>
         <div style={{ fontFamily: FONT_DISPLAY, fontSize: 'clamp(15px,1.6vw,20px)', opacity: 0.8, marginTop: 6 }}>{trans.story}</div>
       </div>

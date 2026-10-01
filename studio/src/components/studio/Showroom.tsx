@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from
 import type { Studio } from './state';
 import { Selvage } from './brand';
 import { FONT_DISPLAY, FONT_BODY, fabricNo } from './helpers';
-import { FabricRoll } from './FabricRoll';
+import { FabricForm } from './FabricForm';
 import { useDragScroll } from './interactions';
 import { ROOMS, type RoomKey } from '@/lib/fabric-generator';
 
@@ -14,8 +14,8 @@ const GLASS = { light: 'rgba(250,248,245,.62)', dark: 'rgba(20,17,15,.45)' };
 const RIM = { light: 'rgba(28,25,23,.08)', dark: 'rgba(201,169,110,.22)' };
 
 const smooth = (k: number) => k * k * (3 - 2 * k);
-/** A room's wall and floor, with the line where they meet set by --hz: just behind the rolls' feet,
- * wherever the layout puts them, so the rolls always stand on the floor. */
+/** A room's wall and floor, with the line where they meet set by --hz: just behind the forms' feet,
+ * wherever the layout puts them, so the forms always stand on the floor. */
 const onFloor = (bg: string) => bg.replace('62.2%', 'calc(var(--hz, 62%) + 2px)').replace(' 62%', ' var(--hz, 62%)');
 const mix = (a: string, b: string, k: number) => `color-mix(in oklab, ${b} ${(k * 100).toFixed(2)}%, ${a})`;
 
@@ -24,7 +24,7 @@ const mix = (a: string, b: string, k: number) => `color-mix(in oklab, ${b} ${(k 
  * Cotton Gallery, then the Rayon Room, then the Silk Gallery. The rooms blend into one another as
  * the walk is scrolled or dragged, in step with it: where the walk is between two rooms, their walls
  * and light, their headings, the slider's marker, its glass, the fade at the edge and the colours
- * of the rolls' lettering are that far from one to the other. Nothing jumps at a threshold, and the
+ * of the forms' lettering are that far from one to the other. Nothing jumps at a threshold, and the
  * page is not re-rendered as it moves: every frame is set on the elements directly. A room in the
  * slider glides the walk to that room's first roll.
  */
@@ -43,9 +43,9 @@ export function Showroom({ studio }: { studio: Studio }) {
   const layers = useRef<(HTMLDivElement | null)[]>([]);
   const heads = useRef<(HTMLDivElement | null)[]>([]);
   const marker = useRef<HTMLSpanElement>(null);
-  const rolls = rooms.flatMap((r) => r.ids.map((id) => ({ f: studio.fab(id), room: r.k })));
+  const stands = rooms.flatMap((r) => r.ids.map((id) => ({ f: studio.fab(id), room: r.k })));
 
-  // Where each room's rolls run along the walk, measured once and again on a resize.
+  // Where each room's forms stand along the walk, measured once and again on a resize.
   const spans = useRef<{ start: number; end: number }[]>([]);
   const measure = () => {
     const el = walk.current;
@@ -56,9 +56,10 @@ export function Showroom({ studio }: { studio: Studio }) {
       const last = ns[ns.length - 1];
       return { start: first ? first.offsetLeft : 0, end: last ? last.offsetLeft + last.offsetWidth : 0 };
     });
-    // The floor meets the wall a little behind the rolls' feet.
+    forms.current = Array.from(el.querySelectorAll<HTMLElement>('.pc-form')).map((f) => ({ el: f, mid: (f.parentElement?.offsetLeft ?? 0) + f.offsetWidth / 2 }));
+    // The floor meets the wall a little behind the forms' feet.
     const row = el.firstElementChild as HTMLElement | null;
-    const label = el.querySelector<HTMLElement>('[data-roll-label]');
+    const label = el.querySelector<HTMLElement>('[data-form-label]');
     const box = root.current;
     if (row && label && box) {
       const feet = row.getBoundingClientRect().bottom - box.getBoundingClientRect().top - label.offsetHeight - parseFloat(getComputedStyle(label).marginTop);
@@ -68,7 +69,7 @@ export function Showroom({ studio }: { studio: Studio }) {
 
   // How far along the rooms the walk is, as a number: 0 in the first room, 1 in the second, 1.5
   // halfway from the second to the third. Between two rooms it runs smoothly across a stretch of
-  // the walk as wide as most of the screen, centred on the gap between their rolls.
+  // the walk as wide as most of the screen, centred on the gap between their forms.
   // At either end of the walk it eases fully into the first room or the last, over the last
   // stretch of scrolling, so a short walk (a wide screen) starts pure and ends pure, with no jump.
   const natural = (scroll: number, width: number) => {
@@ -100,7 +101,21 @@ export function Showroom({ studio }: { studio: Studio }) {
   // The room remembered for the rest of the studio: written once the walk has come to rest.
   const remember = useRef(0);
   const shown = useRef(ri);
+  // The forms turn towards the buyer as the walk carries them past: one at the middle of the
+  // screen faces square on, one to either side turns its front in towards the middle.
+  const forms = useRef<{ el: HTMLElement; mid: number }[]>([]);
+  const turnForms = () => {
+    const el = walk.current;
+    if (!el) return;
+    const centre = el.scrollLeft + el.clientWidth / 2;
+    const reach = Math.max(320, el.clientWidth * 0.6);
+    for (const f of forms.current) {
+      const d = Math.max(-1, Math.min(1, (f.mid - centre) / reach));
+      f.el.style.setProperty('--turnf', (-d).toFixed(3));
+    }
+  };
   const paint = (x: number) => {
+    turnForms();
     const n = rooms.length;
     const k = Math.min(n - 2, Math.floor(x));
     const f = x - k;
@@ -302,14 +317,14 @@ export function Showroom({ studio }: { studio: Studio }) {
             className="is-in pc-walk-row"
             style={{ display: 'flex', alignItems: 'flex-end', gap: 'clamp(30px,4.5vw,64px)', padding: '0 clamp(34px,7vw,100px)', width: 'max-content', margin: '0 auto' }}
           >
-            {rolls.map((r, i) => (
+            {stands.map((r, i) => (
               <div key={r.f.id} data-room={r.room}>
-                <FabricRoll
-                  className="pc-hv-lift-14 pc-roll-rise"
+                <FabricForm
+                  className="pc-hv-lift-14 pc-form-rise"
                   style={{ ['--d' as string]: `${720 + Math.min(i, 6) * 110}ms` }}
                   f={r.f}
                   no={fabricNo(studio.fabrics, r.f.id)}
-                  onClick={() => studio.unroll(r.f)}
+                  onClick={(from) => studio.unroll(r.f, undefined, from)}
                   fg="var(--room-fg)"
                   sub="var(--room-sub)"
                   accent="var(--room-accent)"
