@@ -97,8 +97,6 @@ export interface TransState {
   name: string;
   fg: string;
   story: string;
-  /** Where the cloth opens out from: the drape tapped, as insets of the screen ("12.5%"). */
-  from?: { t: string; r: string; b: string; l: string };
 }
 
 export interface AiMatch {
@@ -121,8 +119,9 @@ export interface Studio {
   setCi: (ci: number) => void;
   openFabric: (id: string, ci?: number) => void;
   /**
-   * Into a quality's lab: its cloth opens out to fill the screen (from the drape tapped, given
-   * `from`), then the lab, on the drape. Given a shade, in that shade, and the lab opens on it.
+   * Into a quality's lab: its cloth falls the full height of the screen, then the lab. Given a
+   * shade, in that shade, and the lab opens on it. From a drape in the halls (`from` given), the
+   * lab opens on the drape.
    */
   unroll: (f: FabricRow, ci?: number, from?: DOMRect) => void;
   trans: TransState | null;
@@ -414,15 +413,11 @@ export function useStudio(rawFabrics: FabricRow[]): Studio {
     (f: FabricRow, ci?: number, from?: DOMRect) => {
       const shade = ci === undefined ? undefined : f.colours[ci];
       const o = shade ?? heroColour(f);
-      const pct = (v: number, of: number) => `${Math.max(0, Math.min(100, (v / of) * 100)).toFixed(2)}%`;
-      const W = window.innerWidth;
-      const H = window.innerHeight;
       setTrans({
         tex: fabricTex(f, o, 6),
         name: shade ? shade.name : f.name,
         fg: o.l > 0.62 ? '#1C1917' : '#FAF8F5',
         story: shade ? f.name : (FABRIC_STORIES[f.id] ?? ''),
-        from: from ? { t: pct(from.top, H), r: pct(W - from.right, W), b: pct(H - from.bottom, H), l: pct(from.left, W) } : undefined,
       });
       // From a drape in the halls, the lab opens on the drape, as the hall showed it. (Moving
       // between qualities inside the lab keeps the garment chosen.)

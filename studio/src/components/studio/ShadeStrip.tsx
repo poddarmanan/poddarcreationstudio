@@ -12,13 +12,15 @@ import { colourCss, colourFg } from './helpers';
  * without scrolling the page away from the stage and back.
  */
 export function ShadeStrip({
-  colours, current, picking, picked, onPick,
+  colours, current, picking, picked, onPick, fromStart = true,
 }: {
   colours: ColourRow[];
   current: number;
   picking: boolean;
   picked: number[];
   onPick: (j: number) => void;
+  /** Open at No. 1 (true), or with the current shade in view (opened on a particular shade). */
+  fromStart?: boolean;
 }) {
   // In card order, filled column by column: No. 1 on top, No. 2 under it, No. 3 beside No. 1.
   const order = useMemo(() => colours.map((c, j) => ({ c, j })).sort((a, b) => a.c.order - b.c.order), [colours]);
@@ -52,7 +54,9 @@ export function ShadeStrip({
     };
   }, []);
 
-  // The shade on the stage is kept in view: at once when the strip first shows, gently after.
+  // The strip opens at the start of the card (No. 1 first), so the range reads from lowest to
+  // highest, unless the lab was opened on a particular shade, which is then shown. After that, a
+  // shade picked out of view is brought into view, gently.
   const first = useRef(true);
   useEffect(() => {
     const el = strip.current;
@@ -60,6 +64,11 @@ export function ShadeStrip({
     if (!el || !on) return;
     const left = on.offsetLeft - el.offsetLeft;
     const inView = left >= el.scrollLeft && left + on.offsetWidth <= el.scrollLeft + el.clientWidth;
+    if (first.current && fromStart) {
+      el.scrollLeft = 0;
+      first.current = false;
+      return;
+    }
     if (!inView || first.current) {
       const quick = first.current || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       const x = left - (el.clientWidth - on.offsetWidth) / 2;
@@ -67,7 +76,7 @@ export function ShadeStrip({
       else el.scrollTo({ left: x, behavior: 'smooth' });
     }
     first.current = false;
-  }, [current]);
+  }, [current, fromStart]);
 
   // A touch on the bar sends the swatches to that stretch; a drag scrubs through them.
   useEffect(() => {

@@ -1572,3 +1572,12 @@ hung from a sheesham hanger (`FabricDrape`):
 
 A tap opens the Lab on **Drape**, the same sheesham hanger and cloth in 3D. The Lab's default is
 Drape too. Moving between qualities inside the Lab keeps the garment chosen.
+
+**Opening a fabric** is the full-screen unfurl again, at the owner's request: the cloth falls the
+whole height of the screen from the top, with the quality's name arriving on it, then fades over
+the Lab. It replaces the opening-out from the drape.
+
+**The shade grid opens at No. 1.** It used to open scrolled to the quality's featured shade, so it
+seemed to start mid-range. It now opens at the first shade on the card, so the range reads from
+the lowest number to the highest. Opened on a particular shade (from the closet, the cart, a
+search), it shows that shade instead. The data itself was already in card order.

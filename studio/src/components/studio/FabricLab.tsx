@@ -273,7 +273,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
                   {picking ? t.done : t.selectMulti}
                 </button>
               </div>
-              <ShadeStrip colours={f.colours} current={studio.ci} picking={picking} picked={picked} onPick={pickShade} />
+              <ShadeStrip colours={f.colours} current={studio.ci} picking={picking} picked={picked} onPick={pickShade} fromStart={studio.ci === f.heroIndex} />
             </div>
             </div>
   );

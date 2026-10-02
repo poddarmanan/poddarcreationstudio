@@ -2609,17 +2609,6 @@ html.pc-kb-open .pc-bottomnav, html.pc-kb-open .pc-order-dock { visibility: hidd
 }
 @media (max-width: 420px) { .pc-dock-tear { letter-spacing: .12em; } .pc-tear-callout { font-size: 10.5px; } .pc-tear-callout b { font-size: 12px; } }
 
-/* Tapping a drape: its cloth opens out from where the drape hangs to fill the screen, its name
-   arriving on it, as the Lab is laid in underneath. --ft/--fr/--fb/--fl are the drape's insets. */
-.pc-step { position: fixed; inset: 0; z-index: 200; overflow: hidden; pointer-events: none; animation: pcStepOut 1.25s linear both; }
-.pc-step-cloth { position: absolute; inset: 0; animation: pcStepOpen .78s cubic-bezier(.65, .02, .2, 1) both; }
-@keyframes pcStepOpen {
-  from { clip-path: inset(var(--ft, 40%) var(--fr, 42%) var(--fb, 30%) var(--fl, 42%) round 40px); filter: brightness(.9); }
-  to { clip-path: inset(0 0 0 0 round 0); filter: none; }
-}
-@keyframes pcStepOut { 0%, 72% { opacity: 1; } 100% { opacity: 0; } }
-.pc-step-words { position: absolute; left: 0; right: 0; top: 44%; text-align: center; animation: rise .5s .32s both; }
-@media (prefers-reduced-motion: reduce) { .pc-step-cloth { animation: none; } }
 
 /* ── The drapes (FabricDrape): a length of cloth on a sheesham hanger ──────────────────────────
    The whole drape turns towards the viewer by --turnf (-1 to 1), the light sliding across its
