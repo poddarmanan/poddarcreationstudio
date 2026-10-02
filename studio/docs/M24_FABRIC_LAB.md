@@ -1597,3 +1597,23 @@ threads are balanced light and dark, so the shade reads as itself with a sheen.
 Gajji's colours were also re-read over each whole satin swatch (its lit body, the 60th to 93rd
 percentile of brightness, white-balanced on the card's paper), rather than a small patch at the
 centre that could fall in the satin's shade.
+
+### Flourishes
+
+Added on top of the existing motion, on transform, opacity and clip-path only (cheap on a phone),
+and all of it off under reduced motion:
+
+- **Opening a fabric.** The cloth falls from a sheesham rod with brass caps across the top of the
+  screen; a line of gold rides the falling edge; once down, a band of light crosses the cloth.
+  The quality's name arrives letter by letter, its line after it.
+- **The halls.** Each hanger drops in and settles with a small bounce, and its cloth is then let
+  down from the bar to the hem, one drape after another. A hover sends a glint along the
+  hanger, and a press gives a little.
+- **Choosing a shade.** The chip springs, a flash of light passes over it, and the Lab's stage is
+  washed in the new dye from the middle outwards, over the cloth and under the controls. The
+  wash plays only when the shade changes, not when the Lab opens.
+- **Buttons.** The main buttons (the primary ink buttons, Checkout / Place order, the dock's
+  tear prompt) send a sweep of light across on hover.
+- **The Entrance.** "Poddar Creation" is set letter by letter. Each letter of "Creation" carries
+  its own gold foil, its glint a beat after the one before, so the light travels along the word.
+  (A foil on the whole word cannot paint through letters animated one by one.)

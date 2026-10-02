@@ -20,10 +20,21 @@ export function UnrollTransition({ studio }: { studio: Studio }) {
           position: 'absolute', inset: 0, background: trans.tex, transformOrigin: '50% 0',
           animation: 'unfurl .75s cubic-bezier(.6,.05,.2,1) both', boxShadow: 'inset 0 -80px 120px rgba(28,25,23,.3)',
         }}
-      />
-      <div style={{ position: 'absolute', left: 0, right: 0, top: '45%', textAlign: 'center', color: trans.fg, animation: 'rise .5s .25s both' }}>
-        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 'clamp(30px,4vw,52px)', fontWeight: 500 }}>{trans.name}</div>
-        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 'clamp(15px,1.6vw,20px)', opacity: 0.8, marginTop: 6 }}>{trans.story}</div>
+      >
+        <span aria-hidden className="pc-unfurl-shine" />
+      </div>
+      {/* The rod it falls from, and a line of gold riding its falling edge. */}
+      <span aria-hidden className="pc-unfurl-rod" />
+      <span aria-hidden className="pc-unfurl-edge" />
+      <div style={{ position: 'absolute', left: 0, right: 0, top: '45%', textAlign: 'center', color: trans.fg, zIndex: 3 }}>
+        <div aria-label={trans.name} style={{ fontFamily: FONT_DISPLAY, fontSize: 'clamp(30px,4vw,52px)', fontWeight: 500 }}>
+          {[...trans.name].map((ch, i) => (
+            <span key={i} aria-hidden className="pc-unfurl-name" style={{ animationDelay: `${280 + i * 32}ms` }}>
+              {ch}
+            </span>
+          ))}
+        </div>
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 'clamp(15px,1.6vw,20px)', opacity: 0.8, marginTop: 6, animation: 'rise .6s .55s both' }}>{trans.story}</div>
       </div>
     </div>
   );

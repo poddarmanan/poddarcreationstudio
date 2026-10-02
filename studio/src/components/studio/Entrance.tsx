@@ -88,8 +88,22 @@ export function Entrance({ studio }: { studio: Studio }) {
           <i />
         </div>
         <div className="pc-hero-eyebrow">{t.estWhat ?? t.est}</div>
-        <h1 className="pc-hero-title">
-          Poddar <em>Creation</em>
+        {/* The name, set letter by letter; a gold glint then passes along "Creation". */}
+        <h1 className="pc-hero-title" aria-label="Poddar Creation">
+          <span aria-hidden>
+            {[...'Poddar'].map((ch, i) => (
+              <span key={i} className="pc-hero-letter" style={{ ['--dl' as string]: `${250 + i * 55}ms` } as CSSProperties}>
+                {ch}
+              </span>
+            ))}
+          </span>{' '}
+          <em aria-hidden style={{ paddingRight: '.06em' }}>
+            {[...'Creation'].map((ch, i) => (
+              <span key={i} className="pc-hero-letter pc-foil-deep" style={{ ['--dl' as string]: `${620 + i * 55}ms` } as CSSProperties}>
+                {ch}
+              </span>
+            ))}
+          </em>
         </h1>
         <div className="pc-hero-est">
           <i aria-hidden />

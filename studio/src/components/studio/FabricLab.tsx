@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { usePresence, Reveal } from './motion';
 import { FabricDrape } from './FabricDrape';
@@ -127,6 +127,8 @@ export function FabricLab({ studio }: { studio: Studio }) {
     studio.unroll(order[(at + dir + order.length) % order.length]);
   };
   const colCssV = colourCss(col);
+  // The shade the lab opened on: picking another washes the stage in the new dye.
+  const [openedOn] = useState(studio.ci);
   const fg = col.l > 0.62 ? '#1C1917' : '#FAF8F5';
   const isRoll = garment === 'roll';
   const modelOn = tests.d3 && !isRoll;
@@ -386,6 +388,7 @@ export function FabricLab({ studio }: { studio: Studio }) {
         {/* Stage column: preview + lighting/wind rails */}
         <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, borderRight: '1px solid rgba(28,25,23,.06)' }}>
           <div className="pc-lab-stage" style={{ position: 'relative', flex: 1, background: light.bg, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 1.2s ease' }}>
+            {studio.ci !== openedOn && <span key={studio.ci} aria-hidden className="pc-dye-wash" style={{ ['--dye' as string]: colCssV } as CSSProperties} />}
             <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(50% 40% at 50% 15%, ${light.glow}, transparent 70%)`, transition: 'background 1.2s ease' }} />
             <div style={{ position: 'absolute', left: '15%', right: '15%', bottom: '7%', height: 26, borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(28,25,23,.3), transparent 70%)' }} />
             {/* The shine is the raking light the stage walks across the cloth (ShineSweep); the
