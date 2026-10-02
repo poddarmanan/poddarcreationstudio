@@ -1581,3 +1581,8 @@ the Lab. It replaces the opening-out from the drape.
 seemed to start mid-range. It now opens at the first shade on the card, so the range reads from
 the lowest number to the highest. Opened on a particular shade (from the closet, the cart, a
 search), it shows that shade instead. The data itself was already in card order.
+
+**Gajji Silk's shade names are the mill's own**, No. 1 to No. 22: White, Off White, Chiku,
+Chandan, Gajri, Olive Green, Purple, Mustard, Rani, Rama, Morpitch, Rust, Jamli, Bottle Green,
+Marun, Red, Navy Blue, Kai, Mehendi, Sweet Mustard, Deep Coffee, Black. The other qualities still
+carry the generated names until the mill's are given.
