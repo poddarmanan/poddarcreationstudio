@@ -1586,3 +1586,14 @@ search), it shows that shade instead. The data itself was already in card order.
 Chandan, Gajri, Olive Green, Purple, Mustard, Rani, Rama, Morpitch, Rust, Jamli, Bottle Green,
 Marun, Red, Navy Blue, Kai, Mehendi, Sweet Mustard, Deep Coffee, Black. The other qualities still
 carry the generated names until the mill's are given.
+
+**Silk colours, true to the card.** The cloth texture (`tex`, used by the drapes, closet slips,
+swatch-book cuttings, cart sheets and the unfurl) used to lay a *white* sheen band over a
+lustrous cloth: up to 37% white for Gajji, with fine white threads across it. That washed the
+deep shades (Navy Blue, Purple, Black, Bottle Green, Marun) out towards grey, though the plain
+chips were right. The band is now a lighter tint of the cloth's own colour, and the satin's
+threads are balanced light and dark, so the shade reads as itself with a sheen.
+
+Gajji's colours were also re-read over each whole satin swatch (its lit body, the 60th to 93rd
+percentile of brightness, white-balanced on the card's paper), rather than a small patch at the
+centre that could fall in the satin's shade.

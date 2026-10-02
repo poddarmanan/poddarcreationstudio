@@ -216,7 +216,8 @@ export function shade(o: { l: number; c: number; h: number }, dl: number): strin
 export function weave(family: FabricFamily, o: { l: number; c: number; h: number }, p = 3): string {
   const warp = `repeating-linear-gradient(90deg, ${shade(o, -0.05)} 0 1px, transparent 1px ${p}px)`;
   const weft = `repeating-linear-gradient(0deg, rgba(255,255,255,.08) 0 1px, transparent 1px ${p}px)`;
-  if (family === 'silk') return `repeating-linear-gradient(115deg, rgba(255,255,255,.07) 0 2px, transparent 2px ${p + 2}px)`;
+  // The satin's twill: a fine light thread and a fine dark one, so it shows without lifting the colour.
+  if (family === 'silk') return `repeating-linear-gradient(115deg, rgba(255,255,255,.05) 0 1px, rgba(0,0,0,.05) 1px 2px, transparent 2px ${p + 2}px)`;
   if (family === 'slub') return `repeating-linear-gradient(0deg, ${shade(o, -0.07)} 0 2px, transparent 2px ${p * 3}px), ${weft}`;
   if (family === 'wrinkle') return `repeating-linear-gradient(70deg, rgba(0,0,0,.05) 0 3px, rgba(255,255,255,.06) 3px 7px), repeating-linear-gradient(105deg, rgba(255,255,255,.05) 0 2px, transparent 2px ${p * 3}px)`;
   if (family === 'lycra') return `repeating-linear-gradient(90deg, ${shade(o, -0.04)} 0 1px, transparent 1px ${Math.max(2, p - 1)}px)`;
@@ -225,8 +226,12 @@ export function weave(family: FabricFamily, o: { l: number; c: number; h: number
 
 export function tex(fabricSheen: number, family: FabricFamily, o: { l: number; c: number; h: number }, p = 3): string {
   const base = `linear-gradient(${css(o.l, o.c, o.h)},${css(o.l, o.c, o.h)})`;
+  // A lustrous cloth catches the light in a band: a lighter tint of its own colour, never white, so
+  // a deep navy or black silk reads as itself with a sheen, not washed out grey. (A white band of
+  // up to 37% used to wash Gajji's darks out to grey.)
+  const lit = `oklch(${(Math.min(0.97, o.l + 0.07 + fabricSheen * 0.1) * 100).toFixed(1)}% ${o.c} ${o.h} / ${(0.35 + fabricSheen * 0.5).toFixed(2)})`;
   const sheenLayer = fabricSheen >= 0.2
-    ? `linear-gradient(102deg, rgba(255,255,255,0) 28%, rgba(255,255,255,${(0.12 + fabricSheen * 0.5).toFixed(2)}) 45%, rgba(255,255,255,.03) 58%, rgba(255,255,255,0) 78%), `
+    ? `linear-gradient(102deg, transparent 30%, ${lit} 46%, transparent 62%), `
     : '';
   return `${sheenLayer}${weave(family, o, p)}, ${base}`;
 }
