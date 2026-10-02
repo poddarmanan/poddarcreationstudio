@@ -65,8 +65,8 @@ const TOURS: Tour[] = [
     view: ['showroom'],
     steps: [
       { at: '[data-guide="rooms"]', title: 'Three rooms', text: 'The Cotton Gallery, the Rayon Room and the Silk Gallery. Tap one to walk straight there.' },
-      { at: '#pc-walk', title: 'Walk the hall', text: 'Swipe or drag along the dress forms; each turns to face you, and the room changes around you as you go.' },
-      { at: '#pc-walk [data-room]', title: 'Open a fabric', text: 'Tap a form to step up close: the Lab opens on that garment, with all its shades and its price.' },
+      { at: '#pc-walk', title: 'Walk the hall', text: 'Swipe or drag along the hanging drapes; each turns to face you, and the room changes around you as you go.' },
+      { at: '#pc-walk [data-room]', title: 'Open a fabric', text: 'Tap a drape to step up close: the Lab opens on that cloth, with all its shades and its price.' },
     ],
   },
   {
@@ -106,7 +106,7 @@ const TOURS: Tour[] = [
     view: ['home'],
     steps: [
       { at: '.pc-hero-title', title: 'Welcome to Poddar Creation', text: 'A wholesale dyeing house in Surat, open online. This short tour shows you around.' },
-      { at: '.pc-hero-enter', title: 'The Fabric Hall', text: 'Walk past every quality made up on its dress form, from cotton to silk.' },
+      { at: '.pc-hero-enter', title: 'The Fabric Hall', text: 'Walk past every quality hung on its drape, from cotton to silk.' },
       { at: '.pc-hero-link', title: 'The Colour Closet', text: 'Every shade of every quality, hung in a closet of its own.' },
       { at: '.pc-hero-search', title: 'Search', text: 'Search by name, describe what you need, or search by image.' },
       { at: '.pc-bottomnav-pill, .pc-hdrnav', title: 'Find your way', text: 'The Showroom, the Closet, your Swatch Book and your Cart are always here.' },

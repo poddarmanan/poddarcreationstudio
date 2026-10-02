@@ -85,3 +85,8 @@ export function jumpTo(y: number) {
   window.scrollTo(0, y);
   h.style.scrollBehavior = was;
 }
+
+/** Shades in the order of the mill's shade card: by their place on the card (card number order). */
+export function cardOrder(a: { order: number }, b: { order: number }): number {
+  return a.order - b.order;
+}

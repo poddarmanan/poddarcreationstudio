@@ -352,11 +352,11 @@ button, a { transition: transform .6s var(--pc-ease), background-color .55s ease
   .pc-reveal { opacity: 1; transform: none; transition: none; }
 }
 
-/* The Showroom's dress forms, and the lab's "more fabrics", rise into place one after another — on
+/* The Showroom's drapes, and the lab's "more fabrics", rise into place one after another — on
    mount in the Showroom, and when the lab's section scrolls into view (its Reveal adds is-in). */
-@keyframes pcFormRise { from { opacity: 0; transform: translateY(46px); } to { opacity: 1; transform: none; } }
-.pc-form-rise { opacity: 0; }
-.is-in .pc-form-rise { animation: pcFormRise 1.1s var(--pc-ease) var(--d, 0ms) both; }
+@keyframes pcDrapeRise { from { opacity: 0; transform: translateY(46px); } to { opacity: 1; transform: none; } }
+.pc-drape-rise { opacity: 0; }
+.is-in .pc-drape-rise { animation: pcDrapeRise 1.1s var(--pc-ease) var(--d, 0ms) both; }
 @keyframes pcNudge { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(6px); } }
 /* The page curtain: covers at once, holds a beat, lifts away as the new page lays in. */
 @keyframes pcCurtain { 0%, 28% { opacity: 1; } 100% { opacity: 0; } }
@@ -364,8 +364,8 @@ button, a { transition: transform .6s var(--pc-ease), background-color .55s ease
 @keyframes pcCurtainRule { 0% { transform: scaleX(0); } 35% { transform: scaleX(1); } 100% { transform: scaleX(1); } }
 @keyframes pcUnrollOut { 0%, 72% { opacity: 1; } 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) {
-  .pc-form-rise { opacity: 1; }
-  .is-in .pc-form-rise { animation: none; }
+  .pc-drape-rise { opacity: 1; }
+  .is-in .pc-drape-rise { animation: none; }
 }
 
 /* The Entrance's call to action: it rises in, lifts on hover, gives when pressed, and a slow light
@@ -2050,7 +2050,7 @@ button.pc-auth-link:disabled { cursor: default; }
 /* ── The Lab's shades, beside the cloth: a bar of the whole range over a few rows of swatches that
    scroll sideways (two rows on a phone, four in the desktop column). ─────────────────────────── */
 .pc-shadestrip { --rows: 2; --chip: 58px; }
-.pc-shades-desktop .pc-shadestrip { --rows: 4; --chip: 60px; }
+.pc-shades-desktop .pc-shadestrip { --rows: 2; --chip: 64px; }
 .pc-shadebar { position: relative; height: 14px; margin: 2px 0 10px; cursor: pointer; touch-action: none; }
 .pc-shadebar-run { position: absolute; left: 0; right: 0; top: 4px; height: 6px; display: flex; border-radius: 3px; overflow: hidden; box-shadow: inset 0 0 0 1px rgba(28, 25, 23, .08); }
 .pc-shadebar-run i { flex: 1; }
@@ -2367,13 +2367,13 @@ button.pc-auth-link:disabled { cursor: default; }
   .pc-sr-rooms { width: min(100%, 500px) !important; margin-top: 26px !important; }
   .pc-sr-room { padding: 12px 8px !important; font-size: 13px !important; }
   .pc-sr-hint { font-size: 12px !important; }
-  .pc-form-no { font-size: 14px !important; }
-  .pc-form-name { font-size: 22px !important; }
-  .pc-form-spec { font-size: 12px !important; }
-  .pc-form-shades { font-size: 11.5px !important; }
+  .pc-drape-no { font-size: 14px !important; }
+  .pc-drape-name { font-size: 22px !important; }
+  .pc-drape-spec { font-size: 12px !important; }
+  .pc-drape-shades { font-size: 11.5px !important; }
 
   /* The Lab: larger shades beside the cloth, the price and the action in step with them. */
-  .pc-shades-desktop .pc-shadestrip { --chip: 68px; }
+  .pc-shades-desktop .pc-shadestrip { --chip: 80px; }
   .pc-shadechip > span:last-child { font-size: 9.5px; }
   .pc-lab-label { font-size: 12px !important; }
   .pc-lab-multi { font-size: 10.5px !important; padding: 6px 12px !important; }
@@ -2416,7 +2416,7 @@ button.pc-auth-link:disabled { cursor: default; }
   .pc-hero-enter { font-size: 13.5px; }
   .pc-hero-link { font-size: 12.5px; }
   .pc-hero-search { max-width: 680px; }
-  .pc-shades-desktop .pc-shadestrip { --chip: 76px; }
+  .pc-shades-desktop .pc-shadestrip { --chip: 90px; }
   .pc-shadechip > span:last-child { font-size: 10.5px; }
   .pc-price-num { font-size: 56px !important; }
   .pc-print, .pc-order-dock, .pc-when { width: min(100%, 700px); }
@@ -2424,7 +2424,7 @@ button.pc-auth-link:disabled { cursor: default; }
   .pc-sheet-deck { width: min(100%, 520px); }
 }
 
-/* The Showroom's rolls, drawn larger on a big screen (their unit, --rk), but never so tall that the
+/* The Showroom's drapes, drawn larger on a big screen (their unit, --rk), but never so tall that the
    hall and its labels leave the screen: the unit is held to the screen's height too. */
 @media (min-width: 1280px) { .pc-walk-row { --rk: clamp(1px, calc((100vh - 640px) / 360), 1.2px); } }
 @media (min-width: 1600px) { .pc-walk-row { --rk: clamp(1px, calc((100vh - 640px) / 360), 1.35px); } }
@@ -2479,7 +2479,7 @@ button.pc-auth-link:disabled { cursor: default; }
   .pc-hero-spread .pc-hero-promise { margin-left: 0; }
   .pc-hero-spread .pc-hero-ways { flex-direction: row; align-items: center; gap: 28px; }
   .pc-hero-spread .pc-hero-enter, .pc-hero-spread .pc-hero-link { white-space: nowrap; }
-  .pc-hero-window .pc-form-name { white-space: nowrap; font-size: 18px !important; }
+  .pc-hero-window .pc-drape-name { white-space: nowrap; font-size: 18px !important; }
   .pc-hero-spread .pc-hero-search { margin-left: 0 !important; margin-right: 0 !important; }
   .pc-hero-window {
     --rk: min(clamp(.72px, calc((50vw - 200px) / 700), 1.3px), .13vh); position: relative; display: flex; align-items: flex-end; justify-content: center; gap: clamp(8px, 1.2vw, 26px);
@@ -2491,7 +2491,7 @@ button.pc-auth-link:disabled { cursor: default; }
     background: linear-gradient(180deg, #FBF7EF, #EDE3D2 60%, #E2D5BF); box-shadow: 0 30px 50px -30px rgba(60, 40, 18, .45), inset 0 1px 0 #FFFFFF;
   }
   /* In the window only the bolt's name is shown. */
-  .pc-hero-window .pc-form-no, .pc-hero-window .pc-form-spec, .pc-hero-window .pc-form-shades { display: none; }
+  .pc-hero-window .pc-drape-no, .pc-hero-window .pc-drape-spec, .pc-hero-window .pc-drape-shades { display: none; }
   .pc-hero-window > div { position: relative; }
 
   /* The closets: the list of them down the side. */
@@ -2609,30 +2609,8 @@ html.pc-kb-open .pc-bottomnav, html.pc-kb-open .pc-order-dock { visibility: hidd
 }
 @media (max-width: 420px) { .pc-dock-tear { letter-spacing: .12em; } .pc-tear-callout { font-size: 10.5px; } .pc-tear-callout b { font-size: 12px; } }
 
-/* ── The dress forms (FabricForm): a quality made up on a tailor's form ──────────────────────
-   The form turns towards the viewer by --turnf (-1 to 1), its light following; the cloth sways
-   from the shoulders, slower and wider for a cloth that flows (--flow). */
-.pc-form-figure { transform: rotateY(calc(var(--turnf, 0) * 26deg)); transform-style: preserve-3d; will-change: transform; }
-.pc-form-neck { position: absolute; left: 50%; transform: translateX(-50%); border-radius: 40% 40% 0 0 / 30% 30% 0 0; background: linear-gradient(90deg, #0E0D0C, #2C2926 45%, #0E0D0C); }
-.pc-form-cap { position: absolute; left: 50%; transform: translateX(-50%); border-radius: 50%; background: radial-gradient(ellipse at 40% 35%, #F6E3A8, #B8913F 60%, #7D5E22); box-shadow: 0 1px 2px rgba(0, 0, 0, .35); }
-.pc-form-pole { position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%); background: linear-gradient(90deg, #0E0D0C, #3A3632 50%, #0E0D0C); border-radius: 2px; }
-.pc-form-foot { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); border-radius: 50%; background: radial-gradient(ellipse at 50% 35%, #3A3632, #0E0D0C 70%); box-shadow: 0 6px 12px -4px rgba(28, 25, 23, .45); }
-.pc-form-dress { transform-origin: 50% 6%; filter: drop-shadow(0 10px 12px rgba(28, 25, 23, .22)); animation: pcFormSway calc(6.4s - var(--flow, .5) * 2.4s) ease-in-out infinite alternate; }
-@keyframes pcFormSway { from { rotate: calc(var(--flow, .5) * -1.4deg); } to { rotate: calc(var(--flow, .5) * 1.4deg); } }
-/* Round shading, with the light sliding across as the form turns, and a few soft folds below. */
-.pc-form-shade {
-  background:
-    linear-gradient(90deg, rgba(20, 12, 8, .34), rgba(20, 12, 8, .05) 20%, rgba(255, 250, 240, .16) 44%, rgba(255, 250, 240, 0) 60%, rgba(20, 12, 8, .1) 80%, rgba(20, 12, 8, .38)),
-    linear-gradient(180deg, rgba(255, 255, 255, .1), transparent 26%, transparent 70%, rgba(20, 12, 8, .16)),
-    repeating-linear-gradient(91deg, rgba(20, 12, 8, .07) 0 2px, transparent 2px 15px, rgba(255, 250, 240, .05) 15px 17px, transparent 17px 31px);
-  background-size: 170% 100%, 100% 100%, 100% 100%;
-  background-position: calc(50% + var(--turnf, 0) * 40%) 0, 0 0, 0 0;
-}
-.pc-form:hover .pc-form-dress { animation-duration: 1.6s; }
-@media (prefers-reduced-motion: reduce) { .pc-form-dress { animation: none; } }
-
-/* Tapping a form: its cloth opens out from where the form stands to fill the screen, its name
-   arriving on it, as the Lab is laid in underneath. --ft/--fr/--fb/--fl are the form's insets. */
+/* Tapping a drape: its cloth opens out from where the drape hangs to fill the screen, its name
+   arriving on it, as the Lab is laid in underneath. --ft/--fr/--fb/--fl are the drape's insets. */
 .pc-step { position: fixed; inset: 0; z-index: 200; overflow: hidden; pointer-events: none; animation: pcStepOut 1.25s linear both; }
 .pc-step-cloth { position: absolute; inset: 0; animation: pcStepOpen .78s cubic-bezier(.65, .02, .2, 1) both; }
 @keyframes pcStepOpen {
@@ -2642,39 +2620,39 @@ html.pc-kb-open .pc-bottomnav, html.pc-kb-open .pc-order-dock { visibility: hidd
 @keyframes pcStepOut { 0%, 72% { opacity: 1; } 100% { opacity: 0; } }
 .pc-step-words { position: absolute; left: 0; right: 0; top: 44%; text-align: center; animation: rise .5s .32s both; }
 @media (prefers-reduced-motion: reduce) { .pc-step-cloth { animation: none; } }
-/* What makes each cut read as a garment rather than a cut-out, drawn into the cloth: a button
-   placket down a shirt, a short placket and side slits on a kurti, pleats and a pallu fold on a
-   saree, a yoke seam on a top. In the outline's own proportions (it is cut to the same mask). */
-.pc-form-detail { pointer-events: none; }
-.pc-form-detail.is-shirt {
-  background:
-    radial-gradient(circle, rgba(250, 246, 236, .9) 0 1.3px, transparent 1.6px) 50% 14% / 100% 10.5% repeat-y,
-    linear-gradient(90deg, transparent calc(50% - 5%), rgba(20, 12, 8, .14) calc(50% - 5%) calc(50% - 4.4%), transparent calc(50% - 4.4%) calc(50% + 4.4%), rgba(20, 12, 8, .14) calc(50% + 4.4%) calc(50% + 5%), transparent calc(50% + 5%)),
-    linear-gradient(170deg, transparent 2%, rgba(20, 12, 8, .2) 2.5% 3.5%, transparent 4%) 38% 0 / 30% 20% no-repeat,
-    linear-gradient(190deg, transparent 2%, rgba(20, 12, 8, .2) 2.5% 3.5%, transparent 4%) 62% 0 / 30% 20% no-repeat;
+
+/* ── The drapes (FabricDrape): a length of cloth on a sheesham hanger ──────────────────────────
+   The whole drape turns towards the viewer by --turnf (-1 to 1), the light sliding across its
+   folds; the cloth sways from the hook, slower and wider for a cloth that flows (--flow). */
+.pc-drape-figure { transform: rotateY(calc(var(--turnf, 0) * 24deg)); transform-style: preserve-3d; will-change: transform; transform-origin: 50% 0; animation: pcDrapeSway calc(6.6s - var(--flow, .5) * 2.4s) ease-in-out infinite alternate; }
+@keyframes pcDrapeSway { from { rotate: calc(var(--flow, .5) * -1.1deg); } to { rotate: calc(var(--flow, .5) * 1.1deg); } }
+.pc-drape-wire { position: absolute; left: 50%; top: 0; width: 1px; transform: translateX(-50%); background: linear-gradient(180deg, rgba(110, 100, 89, 0), rgba(110, 100, 89, .8)); }
+.pc-drape-hook { position: absolute; left: 50%; transform: translateX(-50%); border: 2px solid #C9A04E; border-bottom: none; border-radius: 50% 50% 0 0; box-shadow: 0 -1px 0 rgba(255, 240, 200, .5) inset; }
+.pc-drape-bar {
+  position: absolute; left: 50%; z-index: 2; transform: translateX(-50%); border-radius: 3px;
+  background: linear-gradient(180deg, #8C5A33 0%, #6A4022 45%, #4A2A14 100%);
+  box-shadow: 0 4px 8px -2px rgba(28, 16, 8, .45), inset 0 1px 0 rgba(255, 220, 180, .28);
 }
-.pc-form-detail.is-kurti {
-  background:
-    linear-gradient(90deg, transparent calc(50% - .6%), rgba(20, 12, 8, .22) calc(50% - .6%) calc(50% + .6%), transparent calc(50% + .6%)) 0 4% / 100% 18% no-repeat,
-    linear-gradient(90deg, rgba(20, 12, 8, .35) 0 1.2%, transparent 1.2%) 14.4% 100% / 6% 22% no-repeat,
-    linear-gradient(90deg, transparent 98.8%, rgba(20, 12, 8, .35) 98.8%) 85.6% 100% / 6% 22% no-repeat,
-    linear-gradient(180deg, transparent 93%, rgba(250, 240, 220, .18) 93% 94.5%, transparent 94.5%);
+.pc-drape-bar i { position: absolute; top: 50%; width: 9px; height: 13px; margin-top: -6.5px; border-radius: 3px; background: linear-gradient(90deg, #7D5E22, #F3DFA6 45%, #B8913F 70%, #7D5E22); box-shadow: 0 1px 2px rgba(0, 0, 0, .35); }
+.pc-drape-bar i:first-child { left: -4px; }
+.pc-drape-bar i:last-child { right: -4px; }
+.pc-drape-cloth { position: absolute; z-index: 1; transform-origin: 50% 0; filter: drop-shadow(0 14px 14px rgba(28, 20, 12, .2)); animation: pcDrapeRipple calc(4.2s - var(--flow, .5) * 1.4s) ease-in-out infinite alternate; }
+/* The hem lags the top: a slight shear that comes and goes. */
+@keyframes pcDrapeRipple { from { transform: skewX(calc(var(--flow, .5) * -1.2deg)); } to { transform: skewX(calc(var(--flow, .5) * 1.2deg)); } }
+/* The folds: their light and shade, softening towards the hanger where the cloth is gathered flat,
+   the light sliding as the drape turns. */
+.pc-drape-folds {
+  background: var(--folds-light); background-size: 150% 100%; background-position: calc(50% + var(--turnf, 0) * 45%) 0;
 }
-.pc-form-detail.is-saree {
+/* Depth: the shadow under the hanger, the turned hem with its stitching line, and the lowest
+   reach of the cloth a shade darker. */
+.pc-drape-depth {
   background:
-    repeating-linear-gradient(90deg, rgba(20, 12, 8, .2) 0 2px, rgba(255, 250, 240, .1) 2px 4px, transparent 4px 9px) 46% 100% / 22% 40% no-repeat,
-    repeating-linear-gradient(118deg, transparent 0 10px, rgba(255, 250, 240, .1) 10px 12px, rgba(20, 12, 8, .14) 12px 14px, transparent 14px 26px),
-    linear-gradient(180deg, transparent 40%, rgba(20, 12, 8, .2) 40.6%, transparent 42%),
-    linear-gradient(180deg, transparent 96%, rgba(214, 178, 96, .55) 96% 98%, transparent 98%);
+    linear-gradient(180deg, rgba(18, 10, 6, .38), rgba(18, 10, 6, 0) 5%),
+    linear-gradient(180deg, transparent 88%, rgba(18, 10, 6, .14) 100%),
+    linear-gradient(180deg, transparent 93%, rgba(255, 250, 240, .16) 93.4%, transparent 94.4%),
+    linear-gradient(90deg, rgba(18, 10, 6, .2), transparent 3%, transparent 97%, rgba(18, 10, 6, .22));
 }
-.pc-form-detail.is-top { background: linear-gradient(180deg, transparent 16%, rgba(20, 12, 8, .16) 16.5% 17.3%, transparent 17.8%); }
-.pc-form-detail.is-tshirt { background: linear-gradient(180deg, transparent 93%, rgba(20, 12, 8, .14) 93.5% 94.2%, transparent 94.6%); }
-/* Shaped as a body shapes cloth: light on the chest, shade at the waist and in the neckline. */
-.pc-form-shade::after {
-  content: ''; position: absolute; inset: 0;
-  background:
-    radial-gradient(26% 14% at 38% 22%, rgba(255, 250, 240, .2), transparent 70%),
-    radial-gradient(22% 12% at 64% 23%, rgba(255, 250, 240, .1), transparent 70%),
-    radial-gradient(40% 8% at 50% 44%, rgba(20, 12, 8, .14), transparent 70%),
-    radial-gradient(14% 6% at 50% 4%, rgba(20, 12, 8, .45), transparent 80%);
-}
+.pc-drape-floor { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); border-radius: 50%; background: radial-gradient(closest-side, rgba(28, 20, 12, .32), rgba(28, 20, 12, 0)); }
+.pc-drape:hover .pc-drape-cloth { animation-duration: 1.4s; }
+@media (prefers-reduced-motion: reduce) { .pc-drape-figure, .pc-drape-cloth { animation: none; } }

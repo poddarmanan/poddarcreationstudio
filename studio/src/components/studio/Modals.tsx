@@ -7,7 +7,7 @@ import { FONT_DISPLAY, FONT_BODY, fabricTex, colourCss, colourFg } from './helpe
 import { AuthScreen } from './AuthScreen';
 
 /**
- * Stepping up to a quality: its cloth opens out from the form tapped (or from the middle of the
+ * Stepping up to a quality: its cloth opens out from the drape tapped (or from the middle of the
  * screen) to fill it, the quality's name arriving on it, while the lab is laid in underneath; then
  * it fades (1.25 s, the time the studio holds it for).
  */

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { usePresence, Reveal } from './motion';
-import { FabricForm } from './FabricForm';
+import { FabricDrape } from './FabricDrape';
 import type { Studio } from './state';
 import { FabricViewer } from '@/components/three/FabricViewer';
 import { ExportView } from '@/components/three/ExportView';
@@ -586,8 +586,8 @@ export function FabricLab({ studio }: { studio: Studio }) {
             }}
           >
             {moreFabrics.map((m) => (
-              <div key={m.id} className="pc-form-rise" style={{ flex: 'none', ['--d' as string]: m.dl }}>
-                <FabricForm compact f={studio.fab(m.id)} no={m.no} onClick={(from) => studio.unroll(studio.fab(m.id), undefined, from)} fg="#1C1917" sub="rgba(28,25,23,.55)" accent="#8A6D45" shades={t.shades} />
+              <div key={m.id} className="pc-drape-rise" style={{ flex: 'none', ['--d' as string]: m.dl }}>
+                <FabricDrape compact f={studio.fab(m.id)} no={m.no} onClick={(from) => studio.unroll(studio.fab(m.id), undefined, from)} fg="#1C1917" sub="rgba(28,25,23,.55)" accent="#8A6D45" shades={t.shades} />
               </div>
             ))}
           </div>

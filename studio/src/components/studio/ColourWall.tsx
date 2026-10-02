@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperti
 import type { Studio } from './state';
 import type { ColourRow, FabricRow } from '@/lib/types';
 import { shadeCode } from '@/lib/fabric-generator';
-import { fabricTex, spectrum } from './helpers';
+import { fabricTex } from './helpers';
 import { FillLine } from './brand';
 
 /** A shade in a closet, with where it comes from. */
@@ -160,11 +160,11 @@ export function ColourWall({ studio }: { studio: Studio }) {
     }, reduced() ? 0 : DOORS_SHUT_MS);
   };
 
-  // Each quality's shades as one run of colour.
+  // Each quality's shades in card order, hung rod after rod: No. 1 first on the top rod.
   const runs = useMemo(
     () =>
       fabrics.map((f) =>
-        f.colours.map((c, j): Shade => ({ key: `${f.id}-${j}`, c, x: f, j })).sort((a, b) => spectrum(a.c, b.c)),
+        f.colours.map((c, j): Shade => ({ key: `${f.id}-${j}`, c, x: f, j })).sort((a, b) => a.c.order - b.c.order),
       ),
     [fabrics],
   );

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef } from 'react';
 import type { ColourRow } from '@/lib/types';
-import { colourCss, colourFg, spectrum } from './helpers';
+import { colourCss, colourFg } from './helpers';
 
 /**
  * A quality's shades, kept beside the cloth: a few rows of swatches in one run of colour that
@@ -20,7 +20,8 @@ export function ShadeStrip({
   picked: number[];
   onPick: (j: number) => void;
 }) {
-  const order = useMemo(() => colours.map((c, j) => ({ c, j })).sort((a, b) => spectrum(a.c, b.c)), [colours]);
+  // In card order, filled column by column: No. 1 on top, No. 2 under it, No. 3 beside No. 1.
+  const order = useMemo(() => colours.map((c, j) => ({ c, j })).sort((a, b) => a.c.order - b.c.order), [colours]);
   const strip = useRef<HTMLDivElement | null>(null);
   const bar = useRef<HTMLDivElement | null>(null);
   const win = useRef<HTMLSpanElement | null>(null);

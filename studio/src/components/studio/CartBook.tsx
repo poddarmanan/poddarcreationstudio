@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import type { Studio } from './state';
 import type { FabricRow } from '@/lib/types';
-import { fabricTex, spectrum, jumpTo } from './helpers';
+import { fabricTex, jumpTo } from './helpers';
 import { Room, SheetStack, roman, type Cutting, type Group } from './SwatchBook';
 import { FabricOrder, EmptyCart } from './FabricOrder';
 import { usePresence } from './motion';
@@ -56,7 +56,7 @@ export function CartBook({ studio }: { studio: Studio }) {
         .filter((l) => l.fabricId === x.id)
         .map((l) => ({ pin: { fabricId: l.fabricId, colourOrder: l.colourOrder }, colour: x.colours.find((c) => c.order === l.colourOrder), metres: l.metres }))
         .filter((c): c is Cutting & { metres: number } => !!c.colour)
-        .sort((a, b) => spectrum(a.colour, b.colour)),
+        .sort((a, b) => a.colour.order - b.colour.order),
     }))
     .filter((g) => g.items.length);
 

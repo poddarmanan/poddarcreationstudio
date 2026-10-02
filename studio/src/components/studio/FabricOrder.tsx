@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from
 import type { RazorpayProof, Studio } from './state';
 import type { ColourRow, FabricRow } from '@/lib/types';
 import { shadeCode } from '@/lib/fabric-generator';
-import { FONT_DISPLAY, fabricTex, spectrum, jumpTo } from './helpers';
+import { FONT_DISPLAY, fabricTex, cardOrder, jumpTo } from './helpers';
 import { FillLine } from './brand';
 import { Room, roman } from './SwatchBook';
 import { PaidMoment } from './PaidMoment';
@@ -48,7 +48,7 @@ export function FabricOrder({ studio, onBack, source = 'book' }: { studio: Studi
         .filter((p) => p.fabricId === x.id)
         .map((p) => x.colours.find((c) => c.order === p.colourOrder))
         .filter((c): c is ColourRow => !!c)
-        .sort(spectrum)
+        .sort(cardOrder)
         .map((c) => ({ x, c, key: `${x.id}:${c.id}` })),
     }))
     .filter((g) => g.lines.length);

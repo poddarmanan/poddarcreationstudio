@@ -1543,3 +1543,32 @@ caps and a hook instead of coming off a bolt, in 3D and in the fallback alike.
 **The kurti's outline.** It lost the notch in its hem that read as trouser legs.
 
 **Copy.** The walk's hint and the help tours speak of forms ("Walk → · Tap a form to step closer").
+
+### Card order everywhere, and drapes in the halls
+
+**Shades in card order.** Every list of shades now follows the card's serial order (`order`, the
+card's number order) instead of being grouped by colour family (`spectrum`, no longer used):
+
+- the Lab's shade grid;
+- the Colour Closet's rods (No. 1 first on the top rod);
+- the cart's and the Swatch Book's sheets, and the book ceremony;
+- the order slip.
+
+The Lab's grid is two rows everywhere, filled column by column, so it reads as the owner asked:
+No. 1 on top, No. 2 under it, No. 3 beside No. 1, No. 4 under that, and so on. Desktop chips are
+larger to suit: 64, 80 and 90 px at the three widths.
+
+**Drapes, not dress forms.** The flat garment cut-outs read as cheap. Each quality in the halls
+(the Showroom, the Entrance's window, the Lab's "more fabrics") is now a length of its cloth
+hung from a sheesham hanger (`FabricDrape`):
+
+- **Hanger.** A brass hook on a wire, and brass end caps on the bar.
+- **Folds.** Soft folds, 4 to 7 by how the cloth flows; they are flat where gathered at the bar
+  and flare to a waved hem, one dip per fold.
+- **Hem.** A turned hem line, and a shadow on the floor.
+- **Length.** Heavier cloth hangs a little longer.
+- **Movement.** It sways from the hook with a slight shear at the hem; in the Showroom it turns
+  towards the viewer, the light sliding across the folds.
+
+A tap opens the Lab on **Drape**, the same sheesham hanger and cloth in 3D. The Lab's default is
+Drape too. Moving between qualities inside the Lab keeps the garment chosen.
