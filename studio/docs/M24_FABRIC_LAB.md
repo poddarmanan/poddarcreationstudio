@@ -1617,3 +1617,17 @@ and all of it off under reduced motion:
 - **The Entrance.** "Poddar Creation" is set letter by letter. Each letter of "Creation" carries
   its own gold foil, its glint a beat after the one before, so the light travels along the word.
   (A foil on the whole word cannot paint through letters animated one by one.)
+
+**PC Cotton's and Roman Silk's names**, from the owner's handwritten list, where it gives them:
+
+- **PC Cotton.** White, Off White, Cream, Makhan, Chandan, Chiku, Oont, Akhrot, Zaitooni, Ivory,
+  Motiya, Kewra, Grey, Moonga, Aasmani, Champa (1–16); Deep Grey (23); Royal Blue (28); Rani (29);
+  Bottle Green (30); Navy Blue (33); Jamli (34); Morpitch (35); Wine (47); Black (52).
+- **Roman Silk.** Peach, Firozi, Pista Green, Lemon, Gajri, Chandan, Mustard, C. Green (1–8); Grey
+  (12); Gajri (13); Moonga (15).
+
+The list's 11–16 for PC are read as renumbered after "Doodiya" was struck out: it is the reading
+that matches the card's colours.
+
+The numbers the list leaves blank keep their generated names. Where one of those clashed with a
+name the mill gave, it took the nearest other name: Roman No. 32 is Dhuaan, No. 38 is Badami.
